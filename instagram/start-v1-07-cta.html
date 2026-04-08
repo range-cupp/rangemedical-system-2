@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Start Carousel 07 — CTA</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#0A0A0A; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#0A0A0A; }
+  .slide::before { content:''; position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px); background-size:72px 72px; pointer-events:none; }
+
+  .top-bar { position:absolute; top:72px; left:108px; right:108px; display:flex; justify-content:space-between; align-items:center; z-index:2; }
+  .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(255,255,255,0.5); }
+  .slide-num { font-size:18px; font-weight:500; color:rgba(255,255,255,0.28); }
+
+  /* Centered content */
+  .center { position:absolute; top:0; left:108px; right:108px; bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; z-index:2; }
+  .section-label { font-size:20px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:rgba(255,255,255,0.28); margin-bottom:40px; display:flex; align-items:center; gap:16px; }
+  .section-label::before, .section-label::after { content:''; display:block; width:32px; height:1px; background:rgba(255,255,255,0.2); }
+  .headline { font-size:96px; font-weight:800; letter-spacing:-4px; line-height:0.93; color:#FFFFFF; }
+  .display { font-size:96px; font-weight:300; letter-spacing:-4px; line-height:0.93; color:rgba(255,255,255,0.3); margin-bottom:18px; }
+  .sub { font-size:36px; font-weight:400; color:rgba(255,255,255,0.4); margin-bottom:60px; }
+  .rule { width:56px; height:1px; background:rgba(255,255,255,0.2); margin:0 auto 48px; }
+
+  .contact-block { width:100%; }
+  .url-pill { background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.14); border-radius:6px; padding:28px 40px; margin-bottom:20px; }
+  .url-label { font-size:18px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:rgba(255,255,255,0.28); margin-bottom:10px; }
+  .url-text { font-size:46px; font-weight:800; letter-spacing:-1.5px; color:#FFFFFF; }
+  .phone-pill { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:20px 40px; }
+  .phone-text { font-size:36px; font-weight:400; letter-spacing:0.04em; color:rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="top-bar">
+    <span class="brand">@range_medical</span>
+    <span class="slide-num">07 / 07</span>
+  </div>
+  <div class="center">
+    <div class="section-label">Get Started</div>
+    <div class="headline">One link.</div>
+    <div class="display">Three minutes.</div>
+    <div class="sub">We take it from there.</div>
+    <div class="rule"></div>
+    <div class="contact-block">
+      <div class="url-pill">
+        <div class="url-label">Start Here</div>
+        <div class="url-text">range-medical.com/start</div>
+      </div>
+      <div class="phone-pill">
+        <div class="phone-text">(949) 997-3988 &nbsp;&bull;&nbsp; Newport Beach &amp; San Clemente</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

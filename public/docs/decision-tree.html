@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Range Medical — Patient Routing Decision Tree</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #f8f8f8;
+    color: #1a1a1a;
+    padding: 40px 20px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    padding: 48px;
+  }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .page { box-shadow: none; padding: 24px; border-radius: 0; }
+    .page-break { page-break-before: always; }
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 2px solid #1a1a1a;
+    padding-bottom: 12px;
+    margin-bottom: 32px;
+  }
+  .header h1 {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .header .subtitle {
+    font-size: 11px;
+    color: #888;
+    font-weight: 500;
+  }
+
+  /* Section titles */
+  .section-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #999;
+    margin-bottom: 6px;
+  }
+  .section-rule {
+    height: 1px;
+    background: #ddd;
+    margin-bottom: 20px;
+  }
+
+  /* Step blocks */
+  .step {
+    margin-bottom: 36px;
+  }
+  .step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    margin-right: 10px;
+    flex-shrink: 0;
+  }
+  .step-title {
+    font-size: 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  /* Questions */
+  .questions {
+    background: #f9f9f9;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 8px;
+  }
+  .question {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 14px;
+  }
+  .question:last-child { margin-bottom: 0; }
+  .q-num {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-right: 10px;
+    min-width: 20px;
+    padding-top: 1px;
+  }
+  .q-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+  }
+  .q-text strong { color: #1a1a1a; }
+  .q-note {
+    font-size: 12px;
+    color: #888;
+    margin-top: 4px;
+    padding-left: 4px;
+  }
+
+  /* Decision tree */
+  .tree {
+    display: flex;
+    gap: 24px;
+    margin-top: 16px;
+  }
+  .branch {
+    flex: 1;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+  }
+  .branch-header {
+    padding: 14px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .branch-body {
+    padding: 18px;
+    background: #fff;
+  }
+  .branch-body p {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #444;
+    margin-bottom: 10px;
+  }
+  .branch-body p:last-child { margin-bottom: 0; }
+
+  /* Door 1 */
+  .door1 .branch-header {
+    background: #1a1a1a;
+    color: #fff;
+  }
+  /* Door 2 */
+  .door2 .branch-header {
+    background: #2E6B35;
+    color: #fff;
+  }
+
+  /* Script boxes */
+  .script-box {
+    background: #fffbe6;
+    border-left: 3px solid #e6c200;
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin-top: 12px;
+    margin-bottom: 4px;
+  }
+  .script-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #b89a00;
+    margin-bottom: 4px;
+  }
+  .script-text {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #444;
+    font-style: italic;
+  }
+
+  /* Scenario matrix */
+  .scenarios {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 16px;
+  }
+  .scenario {
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .scenario-header {
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    background: #f4f4f4;
+    border-bottom: 1px solid #e5e5e5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .scenario-letter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .scenario-body {
+    padding: 12px 14px;
+  }
+  .scenario-body p {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #555;
+    margin-bottom: 6px;
+  }
+  .scenario-body p:last-child { margin-bottom: 0; }
+  .lane-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin-right: 2px;
+  }
+  .lane-1 { background: #e8f0fe; color: #1a56db; }
+  .lane-2 { background: #fef3c7; color: #92400e; }
+  .lane-3 { background: #ecfdf5; color: #065f46; }
+
+  /* Lanes reference */
+  .lanes {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .lane-card {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+  }
+  .lane-card-header {
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #fff;
+  }
+  .lane-card-body {
+    padding: 16px;
+    background: #fff;
+  }
+  .lane-card-body .item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 6px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 12px;
+  }
+  .lane-card-body .item:last-child { border-bottom: none; }
+  .item-name { color: #333; font-weight: 500; }
+  .item-price { color: #1a1a1a; font-weight: 700; }
+  .item-note { font-size: 11px; color: #999; margin-top: 2px; }
+
+  .lane-1-bg { background: #1a56db; }
+  .lane-2-bg { background: #92400e; }
+  .lane-3-bg { background: #065f46; }
+
+  /* Ascension */
+  .ascension {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .asc-step {
+    background: #f9f9f9;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #444;
+    flex: 1;
+    min-width: 180px;
+    text-align: center;
+  }
+  .asc-step strong { color: #1a1a1a; display: block; margin-bottom: 2px; }
+  .asc-arrow {
+    font-size: 20px;
+    color: #ccc;
+    padding: 0 8px;
+    flex-shrink: 0;
+  }
+
+  /* Rules */
+  .rules {
+    background: #1a1a1a;
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin-top: 16px;
+    color: #fff;
+  }
+  .rules h3 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+    color: #fff;
+  }
+  .rule {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .rule:last-child { margin-bottom: 0; }
+  .rule-num {
+    font-weight: 700;
+    margin-right: 10px;
+    min-width: 24px;
+    color: #888;
+  }
+  .rule-text { color: #ddd; }
+  .rule-text strong { color: #fff; }
+
+  /* Tracking */
+  .tracking {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-top: 16px;
+  }
+  .metric-card {
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  .metric-label {
+    font-size: 11px;
+    color: #888;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+  .metric-target {
+    font-size: 24px;
+    font-weight: 800;
+    color: #1a1a1a;
+  }
+  .metric-note {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 2px;
+  }
+
+  .footer-note {
+    text-align: center;
+    font-size: 11px;
+    color: #bbb;
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>Range Medical</h1>
+    <div class="subtitle">Patient Routing Decision Tree &mdash; Staff Operating Guide</div>
+  </div>
+
+  <!-- STEP 1: ROUTING QUESTIONS -->
+  <div class="step">
+    <div class="step-title"><span class="step-number">1</span> Ask 3 Routing Questions</div>
+    <div class="questions">
+      <div class="question">
+        <div class="q-num">Q1</div>
+        <div>
+          <div class="q-text"><strong>"Is this mainly an injury / recovery issue, or energy / hormones / weight / overall health?"</strong></div>
+          <div class="q-note">This determines Front Door 1 vs Front Door 2.</div>
+        </div>
+      </div>
+      <div class="question">
+        <div class="q-num">Q2</div>
+        <div>
+          <div class="q-text"><strong>"Are you open to doing labs to see what's going on under the hood?"</strong></div>
+          <div class="q-note">Only relevant for Front Door 2 patients. Injury patients skip labs.</div>
+        </div>
+      </div>
+      <div class="question">
+        <div class="q-num">Q3</div>
+        <div>
+          <div class="q-text"><strong>"On a scale of 1&ndash;10, how serious are you about fixing this over the next 90 days?"</strong></div>
+          <div class="q-note">8+ = push 3-month commitment &nbsp;&bull;&nbsp; Below 8 = let them start smaller</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: FRONT DOORS -->
+  <div class="step">
+    <div class="step-title"><span class="step-number">2</span> Route to the Right Front Door</div>
+    <div class="tree">
+
+      <!-- DOOR 1 -->
+      <div class="branch door1">
+        <div class="branch-header">Front Door 1 &mdash; Injury / Recovery</div>
+        <div class="branch-body">
+          <p><strong>No labs. No assessment. Start today.</strong></p>
+          <p>Same-day provider visit to evaluate injury and prescribe peptide protocol.</p>
+          <p><strong>Default offer:</strong> Recovery membership &mdash; $499/mo, 3 months</p>
+          <p><strong>Backup:</strong> Single 30-day peptide round &mdash; $675 (if they won't commit)</p>
+          <div class="script-box">
+            <div class="script-label">Say This</div>
+            <div class="script-text">"For injuries, we can start you today. Most people do our Recovery program at $499/month for 3 months instead of paying $675 each month as one-offs. Same protocol, lower cost, and most plans are 8&ndash;12 weeks anyway. Want to lock that in?"</div>
+          </div>
+          <p style="font-size:11px; color:#999; margin-top:10px;">Labs only come up later if the patient asks about energy, hormones, or optimization.</p>
+        </div>
+      </div>
+
+      <!-- DOOR 2 -->
+      <div class="branch door2">
+        <div class="branch-header">Front Door 2 &mdash; Labs + Consultation</div>
+        <div class="branch-body">
+          <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#2E6B35; margin-bottom:6px;">Step A &mdash; Day One: Sell the Labs</p>
+          <p>Patient pays for their lab panel (Essential $350 or Elite $750) and fills out a symptoms questionnaire. Labs are drawn this week.</p>
+          <p><strong>No membership talk. No program talk. Just labs.</strong></p>
+          <div class="script-box">
+            <div class="script-label">Say This</div>
+            <div class="script-text">"Step one is getting your labs done so we can see exactly what's going on. We have two panels &mdash; Essential at $350 covers the core markers, or Elite at $750 for the full picture. We'll get your blood drawn this week, and when results are back, you'll sit down with the provider to go over everything and build your plan."</div>
+          </div>
+          <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#2E6B35; margin-bottom:6px; margin-top:16px;">Step B &mdash; Results Back: 1-on-1 Provider Consultation</p>
+          <p>Provider reviews lab results with the patient, builds the clinical plan, and ends with: <strong>"Here's what we're going to do for the next 3 months."</strong></p>
+          <p>No pricing in the consultation room. Front desk packages the plan after.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- STEP 3: SCENARIO MATRIX -->
+  <div class="step">
+    <div class="step-title"><span class="step-number">3</span> Match the Plan to a Lane</div>
+    <p style="font-size:13px; color:#666; margin-bottom:16px;">After the provider consultation, front desk uses this matrix to package the plan.</p>
+
+    <div class="scenarios">
+
+      <div class="scenario">
+        <div class="scenario-header"><span class="scenario-letter">A</span> Injury / Recovery Only</div>
+        <div class="scenario-body">
+          <p><span class="lane-tag lane-2">Lane 2</span> Recovery membership &mdash; $499/mo, 3 months</p>
+          <p>Or single 30-day peptide at $675</p>
+          <p style="color:#999; font-size:11px;">No labs, no assessment. Entered through Front Door 1.</p>
+        </div>
+      </div>
+
+      <div class="scenario">
+        <div class="scenario-header"><span class="scenario-letter">B</span> Weight Loss Only</div>
+        <div class="scenario-body">
+          <p><span class="lane-tag lane-1">Lane 1</span> GLP-1 program &mdash; tirzepatide ladder</p>
+          <p>$399&ndash;$699/mo based on dose, 3-month commitment</p>
+        </div>
+      </div>
+
+      <div class="scenario">
+        <div class="scenario-header"><span class="scenario-letter">C</span> HRT Only</div>
+        <div class="scenario-body">
+          <p><span class="lane-tag lane-1">Lane 1</span> HRT Program &mdash; $250/mo</p>
+          <p>3-month min. Meds + follow-up labs included.</p>
+        </div>
+      </div>
+
+      <div class="scenario">
+        <div class="scenario-header"><span class="scenario-letter">D</span> Peptides (Non-Injury, via Assessment)</div>
+        <div class="scenario-body">
+          <p><span class="lane-tag lane-2">Lane 2</span> Recovery membership &mdash; $499/mo, 3 months</p>
+          <p>Patient already has labs. Natural upsell to Optimize/Full Stack is easy.</p>
+        </div>
+      </div>
+
+      <div class="scenario">
+        <div class="scenario-header"><span class="scenario-letter">E</span> Weight Loss + HRT</div>
+        <div class="scenario-body">
+          <p><strong>Default:</strong> <span class="lane-tag lane-1">Lane 1</span> GLP-1 + HRT ($250/mo)</p>
+          <p><strong>Upgrade:</strong> <span class="lane-tag lane-1">Lane 1</span> GLP-1 + <span class="lane-tag lane-2">Lane 2</span> Optimize or Full Stack</p>
+          <p style="color:#999; font-size:11px;">Only offer the upgrade if they clearly want peptides + injections too.</p>
+        </div>
+      </div>
+
+      <div class="scenario">
+        <div class="scenario-header"><span class="scenario-letter">F</span> Peptides + Weight Loss</div>
+        <div class="scenario-body">
+          <p><span class="lane-tag lane-1">Lane 1</span> GLP-1 program</p>
+          <p><span class="lane-tag lane-2">Lane 2</span> Recovery membership &mdash; $499/mo</p>
+        </div>
+      </div>
+
+      <div class="scenario">
+        <div class="scenario-header"><span class="scenario-letter">G</span> Energy / Cellular, Not Ready for Meds</div>
+        <div class="scenario-body">
+          <p><span class="lane-tag lane-3">Lane 3</span> Cellular Energy Reset &mdash; 6-week HBOT + RLT</p>
+          <p>Add Lane 1 or 2 later if needed.</p>
+        </div>
+      </div>
+
+      <div class="scenario">
+        <div class="scenario-header"><span class="scenario-letter">H</span> Energy + Hormones Off</div>
+        <div class="scenario-body">
+          <p><span class="lane-tag lane-1">Lane 1</span> HRT ($250/mo) or <span class="lane-tag lane-2">Lane 2</span> Optimize/Full Stack</p>
+          <p><span class="lane-tag lane-3">Lane 3</span> + Cellular Energy Reset as accelerator</p>
+        </div>
+      </div>
+
+      <div class="scenario">
+        <div class="scenario-header"><span class="scenario-letter">I</span> Athlete / Rehab</div>
+        <div class="scenario-body">
+          <p><span class="lane-tag lane-2">Lane 2</span> Recovery membership &mdash; $499/mo</p>
+          <p><span class="lane-tag lane-3">Lane 3</span> + Cellular Energy Reset for tissue healing</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- end page 1 -->
+
+<!-- PAGE 2 -->
+<div class="page" style="margin-top: 24px;">
+
+  <div class="header">
+    <h1>Range Medical</h1>
+    <div class="subtitle">Lanes, Pricing & Rules &mdash; Staff Reference</div>
+  </div>
+
+  <!-- LANES REFERENCE -->
+  <div class="step">
+    <div class="step-title"><span class="step-number">4</span> Know the Lanes & Pricing</div>
+
+    <div class="lanes">
+
+      <!-- Lane 1 -->
+      <div class="lane-card">
+        <div class="lane-card-header lane-1-bg">Lane 1 &mdash; Core Programs</div>
+        <div class="lane-card-body">
+          <div class="item">
+            <span class="item-name">HRT Program</span>
+            <span class="item-price">$250/mo</span>
+          </div>
+          <div style="font-size:11px; color:#999; padding: 0 0 6px 0;">Meds + follow-up labs included</div>
+          <div class="item">
+            <span class="item-name">GLP-1 Weight Loss</span>
+            <span class="item-price">$399&ndash;699/mo</span>
+          </div>
+          <div style="font-size:11px; color:#999; padding: 0 0 2px 0;">Tirzepatide dose ladder</div>
+          <div style="font-size:11px; color:#888; padding: 10px 0 0 0; border-top: 1px solid #f0f0f0; margin-top: 8px;">All programs: <strong>3-month minimum</strong></div>
+        </div>
+      </div>
+
+      <!-- Lane 2 -->
+      <div class="lane-card">
+        <div class="lane-card-header lane-2-bg">Lane 2 &mdash; Optimization Membership</div>
+        <div class="lane-card-body">
+          <div class="item">
+            <span class="item-name">Recovery</span>
+            <span class="item-price">$499/mo</span>
+          </div>
+          <div style="font-size:11px; color:#999; padding: 0 0 6px 0;">1 non-GLP peptide + member pricing</div>
+          <div class="item">
+            <span class="item-name">Optimize</span>
+            <span class="item-price">$699&ndash;749/mo</span>
+          </div>
+          <div style="font-size:11px; color:#999; padding: 0 0 6px 0;">Peptide + HRT + 1 Essential panel</div>
+          <div class="item">
+            <span class="item-name">Full Stack</span>
+            <span class="item-price">$999/mo</span>
+          </div>
+          <div style="font-size:11px; color:#999; padding: 0 0 2px 0;">Peptide + HRT + vitamin injections + Essential panel</div>
+          <div style="font-size:11px; color:#888; padding: 10px 0 0 0; border-top: 1px solid #f0f0f0; margin-top: 8px;">GLP-1 is <strong>never</strong> the peptide in these tiers. All tiers: <strong>3-month minimum</strong></div>
+        </div>
+      </div>
+
+      <!-- Lane 3 -->
+      <div class="lane-card">
+        <div class="lane-card-header lane-3-bg">Lane 3 &mdash; Modalities</div>
+        <div class="lane-card-body">
+          <div class="item">
+            <span class="item-name">Cellular Energy Reset</span>
+            <span class="item-price">$3,999</span>
+          </div>
+          <div style="font-size:11px; color:#999; padding: 0 0 6px 0;">6 weeks &mdash; HBOT + RLT</div>
+          <div class="item">
+            <span class="item-name">Maintenance</span>
+            <span class="item-price">$599&ndash;799/mo</span>
+          </div>
+          <div style="font-size:11px; color:#999; padding: 0 0 2px 0;">Monthly HBOT + RLT after Reset</div>
+          <div style="font-size:11px; color:#888; padding: 10px 0 0 0; border-top: 1px solid #f0f0f0; margin-top: 8px;">Never bundled into Lane 2. <strong>Own program, own pricing.</strong></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ASCENSION -->
+  <div class="step">
+    <div class="step-title"><span class="step-number">5</span> Ascension Path (How Patients Grow)</div>
+
+    <div class="section-label" style="margin-top:8px;">Injury Patient (Front Door 1)</div>
+    <div class="ascension">
+      <div class="asc-step"><strong>Recovery $499/mo</strong>Peptide protocol starts same day</div>
+      <div class="asc-arrow">&rarr;</div>
+      <div class="asc-step"><strong>Month 2: Introduce Labs</strong>"You get member pricing on labs"</div>
+      <div class="asc-arrow">&rarr;</div>
+      <div class="asc-step"><strong>Add Lane 1 or Upgrade</strong>HRT, GLP-1, or Optimize/Full Stack</div>
+    </div>
+
+    <div class="section-label" style="margin-top:20px;">Labs + Consultation Patient (Front Door 2)</div>
+    <div class="ascension">
+      <div class="asc-step"><strong>Labs</strong>Essential or Elite panel</div>
+      <div class="asc-arrow">&rarr;</div>
+      <div class="asc-step"><strong>Provider Consultation</strong>Reviews results, builds plan</div>
+      <div class="asc-arrow">&rarr;</div>
+      <div class="asc-step"><strong>Core Lane 1 Program</strong>HRT $250/mo or GLP-1</div>
+      <div class="asc-arrow">&rarr;</div>
+      <div class="asc-step"><strong>Upgrade to Lane 2</strong>Optimize or Full Stack</div>
+      <div class="asc-arrow">&rarr;</div>
+      <div class="asc-step"><strong>Add Lane 3</strong>Cellular Energy Reset</div>
+    </div>
+
+    <div style="background:#f9f9f9; border: 1px solid #e5e5e5; border-radius:8px; padding:14px 18px; margin-top:16px;">
+      <p style="font-size:13px; color:#444; line-height:1.6;"><strong>Continuity rule:</strong> All programs and memberships are a 3-month minimum. After 3 months, auto-roll to month-to-month at the same rate unless the patient downgrades or cancels.</p>
+    </div>
+  </div>
+
+  <!-- RULES -->
+  <div class="step">
+    <div class="step-title"><span class="step-number">6</span> Rules to Memorize</div>
+
+    <div class="rules">
+      <div class="rule">
+        <div class="rule-num">1.</div>
+        <div class="rule-text"><strong>Injury / recovery?</strong> Skip labs. Consult today. Default to Recovery at $499/mo for 3 months.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-num">2.</div>
+        <div class="rule-text"><strong>Everything else?</strong> Start with labs (Essential or Elite). Then provider consultation when results are back.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-num">3.</div>
+        <div class="rule-text"><strong>Provider builds the plan.</strong> No pricing in the clinical room. Ever.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-num">4.</div>
+        <div class="rule-text"><strong>Front desk matches the plan to a lane.</strong> Use the A&ndash;I scenario matrix.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-num">5.</div>
+        <div class="rule-text"><strong>Lane 1</strong> is the default for most Front Door 2 patients &mdash; HRT at $250/mo or GLP-1 at dose-based pricing.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-num">6.</div>
+        <div class="rule-text"><strong>Lane 2</strong> is the upgrade &mdash; except for peptide patients where Recovery at $499/mo IS the default.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-num">7.</div>
+        <div class="rule-text"><strong>Lane 3</strong> is its own program. Never give it away inside a membership. Sell the Reset, then convert to Maintenance.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-num">8.</div>
+        <div class="rule-text"><strong>Patients can stack lanes</strong>, but each lane bills and tracks independently.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-num">9.</div>
+        <div class="rule-text"><strong>GLP-1 is never the "peptide"</strong> in the Optimization Membership. It stays in Lane 1.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-num">10.</div>
+        <div class="rule-text"><strong>Everything is a 3-month minimum.</strong> After 3 months, auto-roll month-to-month.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRACKING -->
+  <div class="step">
+    <div class="step-title"><span class="step-number">7</span> Weekly Tracking Metrics</div>
+    <div class="tracking">
+      <div class="metric-card">
+        <div class="metric-label">Peptide Patients on Recovery</div>
+        <div class="metric-target">___ %</div>
+        <div class="metric-note">vs single 30-day purchases</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Assessment Patients on 3-Mo Program</div>
+        <div class="metric-target">___ %</div>
+        <div class="metric-note">any lane, any tier</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Cellular Energy Resets Sold</div>
+        <div class="metric-target">___</div>
+        <div class="metric-note">per week</div>
+      </div>
+    </div>
+    <p style="font-size:12px; color:#999; margin-top:12px; text-align:center;">Adjust pricing only if behavior, not feelings, tells you to.</p>
+  </div>
+
+  <div class="footer-note">
+    Range Medical &mdash; Internal Use Only &mdash; March 2026
+  </div>
+
+</div><!-- end page 2 -->
+
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Panel Quiz Slide 01 — Cover</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#0A0A0A; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#0A0A0A; }
+  .slide::before { content:''; position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px); background-size:72px 72px; pointer-events:none; }
+
+  .top-bar { position:absolute; top:72px; left:108px; right:108px; display:flex; justify-content:space-between; align-items:center; z-index:2; }
+  .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(255,255,255,0.5); }
+  .slide-num { font-size:18px; font-weight:500; color:rgba(255,255,255,0.3); }
+
+  .center { position:absolute; top:0; left:108px; right:108px; bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; z-index:2; }
+  .pill-label { display:flex; align-items:center; gap:16px; font-size:20px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:rgba(255,255,255,0.35); margin-bottom:40px; }
+  .pill-label::before, .pill-label::after { content:''; display:block; width:32px; height:1px; background:rgba(255,255,255,0.25); }
+  .hook { font-size:52px; font-weight:300; line-height:1.3; color:rgba(255,255,255,0.4); margin-bottom:20px; letter-spacing:-1px; }
+  .headline { font-size:96px; font-weight:800; line-height:0.95; letter-spacing:-4px; color:#FFFFFF; margin-bottom:44px; }
+  .headline em { font-style:normal; font-weight:300; color:rgba(255,255,255,0.35); }
+  .rule { width:56px; height:1px; background:rgba(255,255,255,0.25); margin-bottom:32px; }
+  .descriptor { font-size:30px; font-weight:400; line-height:1.55; color:rgba(255,255,255,0.42); margin-bottom:52px; max-width:700px; }
+
+  .badges { display:flex; gap:12px; justify-content:center; }
+  .badge { border:1px solid rgba(255,255,255,0.2); border-radius:2px; padding:12px 24px; font-size:18px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:rgba(255,255,255,0.45); }
+
+  .bottom-bar { position:absolute; bottom:64px; left:108px; right:108px; display:flex; justify-content:center; border-top:1px solid rgba(255,255,255,0.08); padding-top:20px; z-index:2; }
+  .swipe-cta { font-size:20px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.35); }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="top-bar">
+    <span class="brand">@range_medical</span>
+    <span class="slide-num">01 / 06</span>
+  </div>
+  <div class="center">
+    <div class="pill-label">Lab Panels</div>
+    <div class="hook">Not sure?</div>
+    <div class="headline">Find Your<br/>Panel <em>in</em><br/>10 Seconds.</div>
+    <div class="rule"></div>
+    <p class="descriptor">Tell us why you&#8217;re here and we&#8217;ll point<br/>you to the right panel.</p>
+    <div class="badges">
+      <div class="badge">Essential &#8212; $350</div>
+      <div class="badge">Elite &#8212; $750</div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <span class="swipe-cta">Swipe to find yours &#8594;</span>
+  </div>
+</div>
+</body>
+</html>

@@ -668,10 +668,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
 
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+    // Enter inserts a newline; only the Send button sends.
   };
 
   const formatTime = (dateStr) => {

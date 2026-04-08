@@ -1,0 +1,991 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-03-17",
+  "clinic": "Range Medical — Newport Beach",
+  "notes": {
+    "ca_surcharge": "AnazaoHealth adds $2.00/vial for California shipments from their 503B facility. All AnazaoHealth prices below INCLUDE this surcharge.",
+    "cost_per_ml": "Pre-calculated for easy recipe costing. Divide unit_cost by volume.",
+    "bac_water_note": "Bacteriostatic water is used to reconstitute lyophilized peptide vials. Cost per reconstitution is negligible (~$0.07–$0.14).",
+    "iv_hardware_bundle": "Standard IV session hardware = saline_1000ml + iv_catheter_22g + iv_set_basic + needle_18g_draw + misc_disposables. Total ~$12.15 per IV session."
+  },
+
+  "suppliers": {
+    "anazao": "AnazaoHealth — FDA 503B Outsourcing Facility, Las Vegas NV. 800.995.4363",
+    "ths": "Total Health Supply LLC — Irvine, CA. 657.495.3625 / amanda.moradian@totalhealth.supply",
+    "mcguff": "McGuff Company Inc — Santa Ana, CA. 800.854.7220",
+    "pyxis": "Pyxis — Peptides, GLP-1, NAD injections",
+    "merit": "Merit Pharmaceutical — 2611 N. San Fernando Rd, Los Angeles CA. 800.696.3748 / solutions@meritpharm.com",
+    "ald": "Advanced Light Devices, LLC — 5365 Kevin Way, Las Vegas NV 89149. 702.485.4135 / Gene@aldmed.com / aldmed.com"
+  },
+
+  "supplies": [
+
+    // ─── COMPOUNDED IV ACTIVES — AnazaoHealth ─────────────────────────────────
+
+    {
+      "id": "nad-anazao-500mg",
+      "name": "ß-NAD+ 125mg/mL, 4mL SDV",
+      "supplier": "anazao",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 4,
+      "concentration": "125mg/mL",
+      "total_mg": 500,
+      "unit_cost": 101.00,
+      "cost_per_ml": 25.25,
+      "cost_per_mg": 0.202,
+      "notes": "IV, IM, SQ. $99 list + $2 CA surcharge. Primary source for IV NAD+ sessions."
+    },
+    {
+      "id": "vitc-anazao-10ml",
+      "name": "Ascorbic Acid (PF/Non-Corn) 500mg/mL, 10mL SDV",
+      "supplier": "anazao",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 10,
+      "concentration": "500mg/mL",
+      "total_g": 5,
+      "unit_cost": 16.69,
+      "cost_per_ml": 1.669,
+      "cost_per_g": 3.338,
+      "notes": "$14.69 + $2 CA surcharge. PF single-dose. Use for smaller Vit C doses."
+    },
+    {
+      "id": "vitc-anazao-30ml",
+      "name": "Ascorbic Acid (Preserved/Non-Corn) 500mg/mL, 30mL MDV",
+      "supplier": "anazao",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 30,
+      "concentration": "500mg/mL",
+      "total_g": 15,
+      "unit_cost": 43.99,
+      "cost_per_ml": 1.466,
+      "cost_per_g": 2.933,
+      "notes": "$41.99 + $2 CA surcharge. Multi-dose. More economical for high-dose Vit C (25g, 50g, 75g)."
+    },
+    {
+      "id": "glutathione-anazao-pf-10ml",
+      "name": "Glutathione (PF) 200mg/mL, 10mL SDV",
+      "supplier": "anazao",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 10,
+      "concentration": "200mg/mL",
+      "total_g": 2,
+      "unit_cost": 24.93,
+      "cost_per_ml": 2.493,
+      "cost_per_g": 12.465,
+      "notes": "$22.93 + $2 CA. PF single-dose. Use for push glutathione or smaller doses."
+    },
+    {
+      "id": "glutathione-anazao-30ml",
+      "name": "Glutathione (Preserved) 200mg/mL, 30mL MDV",
+      "supplier": "anazao",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 30,
+      "concentration": "200mg/mL",
+      "total_g": 6,
+      "unit_cost": 47.00,
+      "cost_per_ml": 1.567,
+      "cost_per_g": 7.833,
+      "notes": "$45 + $2 CA. Multi-dose preserved. Most economical for IV glutathione sessions."
+    },
+    {
+      "id": "plenishiv-anazao",
+      "name": "PlenishIV Nutrient Cocktail, 50mL SDV",
+      "supplier": "anazao",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 50,
+      "concentration": "10.5/1.3/2.6/0.05/2.7/2.6/6.6/0.03 mg/mL",
+      "ingredients": ["MgCl Hexahydrate", "Ca Gluconate", "Thiamine HCl", "Riboflavin", "Pyridoxine HCl", "Niacinamide", "Dexpanthenol", "Cyanocobalamin"],
+      "unit_cost": 47.00,
+      "cost_per_ml": 0.94,
+      "notes": "$45 + $2 CA. Myers-style nutrient cocktail. Base for standard IV formulas."
+    },
+    {
+      "id": "mic-anazao-30ml",
+      "name": "M.I.C. (Methionine/Inositol/Choline) 30mL MDV",
+      "supplier": "anazao",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 30,
+      "concentration": "25/50/50 mg/mL",
+      "unit_cost": 30.67,
+      "cost_per_ml": 1.022,
+      "notes": "$28.67 + $2 CA. IM injection. Base lipotropic for standard injections."
+    },
+    {
+      "id": "mic-b12-anazao-30ml",
+      "name": "M.I.C./Vitamin B12 (Cyanocobalamin) 30mL MDV",
+      "supplier": "anazao",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 30,
+      "concentration": "25/50/50/1 mg/mL",
+      "unit_cost": 53.60,
+      "cost_per_ml": 1.787,
+      "notes": "$51.60 + $2 CA. MIC-B12 Skinny Shot. Maps to premium injection (Skinny Shot variant)."
+    },
+    {
+      "id": "methylcobalamin-anazao-10ml",
+      "name": "Methylcobalamin (B12) 5000mcg/mL, 10mL MDV",
+      "supplier": "anazao",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 10,
+      "concentration": "5000mcg/mL",
+      "total_mcg": 50000,
+      "unit_cost": 47.86,
+      "cost_per_ml": 4.786,
+      "notes": "$45.86 + $2 CA. Standard B12 injection source. ~100 injections at 0.1mL each."
+    },
+    {
+      "id": "testosterone-cyp-anazao-10ml",
+      "name": "Testosterone Cypionate (Grapeseed Oil) 200mg/mL, 10mL MDV",
+      "supplier": "anazao",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 10,
+      "concentration": "200mg/mL",
+      "total_mg": 2000,
+      "unit_cost": 39.42,
+      "cost_per_ml": 3.942,
+      "cost_per_mg": 0.01971,
+      "notes": "$37.42 + $2 CA. IM/SQ. 10mL vial = 2000mg total. Primary HRT medication."
+    },
+    {
+      "id": "testosterone-cyp-anazao-30ml",
+      "name": "Testosterone Cypionate (Grapeseed Oil) 200mg/mL, 30mL MDV",
+      "supplier": "anazao",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 30,
+      "concentration": "200mg/mL",
+      "total_mg": 6000,
+      "unit_cost": 110.06,
+      "cost_per_ml": 3.669,
+      "cost_per_mg": 0.01835,
+      "notes": "$108.06 + $2 CA. More economical per dose for high-volume HRT patients."
+    },
+
+    // ─── COMPOUNDED VIALS — Total Health Supply ───────────────────────────────
+
+    {
+      "id": "bcomplex-ths-30ml",
+      "name": "Olympia Vita-Complex Injection 30mL Vial",
+      "supplier": "ths",
+      "manufacturer": "olympia",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 30,
+      "unit_cost": 124.00,
+      "cost_per_ml": 4.133,
+      "ths_sku": "SF BCOM-30ML-O",
+      "ths_invoice": "3349",
+      "composition": "B1 (Thiamine HCl) 100mg/mL, B3 (Niacinamide) 100mg/mL, B2 (Riboflavin-5-P) 2mg/mL, B6 (Pyridoxine HCl) 2mg/mL, B5 (Dexpanthenol) 2mg/mL",
+      "notes": "IV/IM/SQ. Non-cold. Confirmed $124/vial from THS Invoice 3349. Standard component for Energy, Range, and Muscle Recovery IVs."
+    },
+    {
+      "id": "vitd3-ths-30ml",
+      "name": "Vitamin D3 (Cholecalciferol) 50,000 IU/mL, 30mL Vial",
+      "supplier": "ths",
+      "manufacturer": "olympia",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 30,
+      "concentration": "50000 IU/mL",
+      "total_iu": 1500000,
+      "unit_cost": 101.00,
+      "cost_per_ml": 3.367,
+      "cost_per_iu": 0.0000673,
+      "ths_sku": "SF D3-30ML-O",
+      "ths_invoice": "3349",
+      "notes": "IM only. Non-cold. Confirmed $101/vial. Typical IM dose = 1mL (50,000 IU) = $3.37 drug cost."
+    },
+    {
+      "id": "lcarnitine-ths-30ml",
+      "name": "Olympia L-Carnitine Injection 500mg/mL, 30mL Vial",
+      "supplier": "ths",
+      "manufacturer": "olympia",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 30,
+      "concentration": "500mg/mL",
+      "total_g": 15,
+      "unit_cost": 105.00,
+      "cost_per_ml": 3.50,
+      "cost_per_g": 7.00,
+      "ths_sku": "SF LCARN-30ML-O",
+      "ths_invoice": "3349",
+      "notes": "IM/IV. Non-cold. Confirmed $105/vial from THS Invoice 3349. Photo confirms Olympia brand on shelf. Premium injection component. Typical IM dose = 2mL (1g) = $7.00 drug cost."
+    },
+    {
+      "id": "mic-30ml",
+      "name": "MIC (Methionine/Inositol/Choline) Injection 25/50/50 mg/mL, 30mL MDV",
+      "supplier": "ths",
+      "manufacturer": "unknown",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 30,
+      "concentration": "25/50/50 mg/mL (Met/Inos/Chol)",
+      "ndc": "72682-6420-1",
+      "unit_cost": null,
+      "cost_per_ml": null,
+      "needs_verification": true,
+      "notes": "THS/Olympia version — price not found in any THS invoice on file. NDC 72682-6420-1 confirmed from shelf photo. FOR COGS USE: see mic-anazao-30ml ($30.67, $1.022/mL) as confirmed fallback until THS invoice obtained. THS likely cheaper."
+    },
+    {
+      "id": "aminomultiplex-30ml",
+      "name": "AminoMultiPlex™ Preserved Injection 30mL MDV",
+      "supplier": "anazao",
+      "manufacturer": "anazao",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 30,
+      "unit_cost": 48.50,
+      "cost_per_ml": 1.617,
+      "composition": "Arginine HCl 50mg/mL, Glutamine 15mg/mL, Lysine HCl 15mg/mL, Proline 25mg/mL",
+      "notes": "$46.50 + $2 CA surcharge = $48.50. Also available as PF SDV at $49.99+$2=$51.99. IM/IV amino acid blend. Component for Energy & Vitality / amino-boost IV protocols. THS/Olympia version also exists but no THS invoice price found — using Anazao as confirmed source."
+    },
+    {
+      "id": "methylcobalamin-b12-30ml",
+      "name": "Methylcobalamin (B12) THS/Olympia 10,000 mcg/mL, 30mL Vial — UNPRICED",
+      "supplier": "ths",
+      "manufacturer": "olympia",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 30,
+      "concentration": "10000 mcg/mL",
+      "total_mcg": 300000,
+      "unit_cost": null,
+      "cost_per_ml": null,
+      "needs_verification": true,
+      "notes": "THS/Olympia version not found in any THS invoice on file. FOR IV USE: see methylcobalamin-anazao-10ml instead (5,000mcg/mL, $4.786/mL, confirmed from Anazao price list). THS version would likely be cheaper — request invoice if switching supplier."
+    },
+    {
+      "id": "mineral-blend-ths-30ml",
+      "name": "Mineral Blend (Mg/Zn/Mn/Cu) 30mL Vial",
+      "supplier": "ths",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 30,
+      "concentration": "80/1/20/0.2 mg/mL (Mg Chlor / Zn Sulf / Manganese / Cu Gluco)",
+      "unit_cost": 136.00,
+      "cost_per_ml": 4.533,
+      "notes": "Non-cold. Mineral complex for IV therapy add-in."
+    },
+    {
+      "id": "nac-iv-ths-30ml",
+      "name": "NAC IV (Acetylcysteine) 200mg/mL, 30mL Vial",
+      "supplier": "ths",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 30,
+      "concentration": "200mg/mL",
+      "total_g": 6,
+      "unit_cost": 107.00,
+      "cost_per_ml": 3.567,
+      "cost_per_g": 17.833,
+      "notes": "Preserved. IV/IM. Detox & cellular repair formula component."
+    },
+    {
+      "id": "triimmune-ths-30ml",
+      "name": "Tri-Immune (Glutathione/Ascorbic Acid/Zinc Sulfate) 30mL Vial",
+      "supplier": "ths",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 30,
+      "concentration": "200/200/2.5 mg/mL",
+      "unit_cost": 105.00,
+      "cost_per_ml": 3.50,
+      "notes": "Immune defense IV component. Contains Glutathione + Vit C + Zinc per mL."
+    },
+    {
+      "id": "zinc-sulfate-ths-10ml",
+      "name": "Zinc Sulfate 10mg/mL, 10mL Vial",
+      "supplier": "ths",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 10,
+      "concentration": "10mg/mL",
+      "unit_cost": 79.00,
+      "cost_per_ml": 7.90,
+      "notes": "Non-cold. Standalone zinc for IV add-on."
+    },
+
+    // ─── SALINE BAGS — Total Health Supply ────────────────────────────────────
+
+    {
+      "id": "saline-1000ml",
+      "name": "Sodium Chloride 0.9% PF, 1000mL Bag",
+      "supplier": "ths",
+      "category": "saline_bag",
+      "unit": "bag",
+      "volume_ml": 1000,
+      "unit_cost": 6.02,
+      "notes": "BBR E8000. Primary IV bag for all standard and specialty IV sessions."
+    },
+    {
+      "id": "saline-500ml",
+      "name": "Sodium Chloride 0.9%, 500mL Bag",
+      "supplier": "ths",
+      "category": "saline_bag",
+      "unit": "bag",
+      "volume_ml": 500,
+      "unit_cost": 4.20,
+      "notes": "BBR Q8001. Use for shorter infusions or pediatric/fluid-sensitive protocols."
+    },
+    {
+      "id": "isolyte-s-1000ml",
+      "name": "Isolyte S pH 7.4 (Na/K/Mg/Cl/Phosphate/Acetate/Gluconate), 1000mL",
+      "supplier": "ths",
+      "category": "saline_bag",
+      "unit": "bag",
+      "volume_ml": 1000,
+      "unit_cost": 2.92,
+      "notes": "BBR L7070. Balanced electrolyte solution. More economical than plain saline."
+    },
+
+    // ─── RECONSTITUTION DILUENT — Total Health Supply ─────────────────────────
+
+    {
+      "id": "bacwater-ths-30ml",
+      "name": "Bacteriostatic Water for Injection, 30mL MDV",
+      "supplier": "ths",
+      "category": "diluent",
+      "unit": "vial",
+      "volume_ml": 30,
+      "unit_cost": 2.15,
+      "cost_per_ml": 0.072,
+      "notes": "SF BACSW30. Used to reconstitute lyophilized peptide vials. ~$0.07/mL."
+    },
+    {
+      "id": "bacwater-pharma-30ml",
+      "name": "Bacteriostatic Water (Pharma Grade) 30mL MDV — 25 vial box",
+      "supplier": "ths",
+      "category": "diluent",
+      "unit": "vial",
+      "volume_ml": 30,
+      "unit_cost": 4.00,
+      "cost_per_ml": 0.133,
+      "notes": "PFI 00409-3977-03. $100/25 vials = $4/vial. Pharmaceutical grade."
+    },
+
+    // ─── IV HARDWARE — Total Health Supply ────────────────────────────────────
+
+    {
+      "id": "iv-catheter-22g",
+      "name": "IV Catheter 22G x 1\", Autoguard Safety (50/box)",
+      "supplier": "ths",
+      "category": "iv_hardware",
+      "unit": "each",
+      "unit_cost": 2.735,
+      "notes": "BD 382523. $136.77/50 = $2.735/catheter. Required for every IV session."
+    },
+    {
+      "id": "syringe-3cc",
+      "name": "Syringe 3cc Luer Lock (100/box)",
+      "supplier": "ths",
+      "category": "syringe",
+      "unit": "each",
+      "unit_cost": 0.133,
+      "notes": "EXE 26200. ~$13.26-14.25/100 = ~$0.133. Used for drawing IV additives."
+    },
+    {
+      "id": "syringe-1cc-insulin",
+      "name": "Insulin Syringe 1cc Luer Lock (100/box)",
+      "supplier": "ths",
+      "category": "syringe",
+      "unit": "each",
+      "unit_cost": 0.235,
+      "notes": "MHC 802015. ~$23.50/100. Standard injection syringe."
+    },
+    {
+      "id": "syringe-0.3cc-insulin",
+      "name": "Insulin Syringe 0.3mL 31G x 5/16\" (100/box)",
+      "supplier": "ths",
+      "category": "syringe",
+      "unit": "each",
+      "unit_cost": 0.184,
+      "notes": "MHC 831365. $18.40/100. For small-volume subcutaneous injections (peptides)."
+    },
+    {
+      "id": "needle-18g-1in",
+      "name": "Hypodermic Needle 18G x 1\" (100/box)",
+      "supplier": "ths",
+      "category": "needle",
+      "unit": "each",
+      "unit_cost": 0.088,
+      "notes": "EXE 26419. $8.79/100. Drawing needle for IV preparation."
+    },
+    {
+      "id": "needle-25g-1.5in",
+      "name": "Hypodermic Needle 25G x 1.5\" (100/box)",
+      "supplier": "ths",
+      "category": "needle",
+      "unit": "each",
+      "unit_cost": 0.064,
+      "notes": "EXE 26406. $6.40/100. Standard IM injection needle."
+    },
+    {
+      "id": "needle-25g-1in",
+      "name": "Hypodermic Needle 25G x 1\" (100/box)",
+      "supplier": "ths",
+      "category": "needle",
+      "unit": "each",
+      "unit_cost": 0.076,
+      "notes": "EXE 26405. $7.62/100. IM injection needle."
+    },
+    {
+      "id": "needle-25g-0.625in",
+      "name": "Hypodermic Needle 25G x 5/8\" (100/box)",
+      "supplier": "ths",
+      "category": "needle",
+      "unit": "each",
+      "unit_cost": 0.076,
+      "notes": "EXE 26403. $7.62/100. Shorter IM/SQ needle."
+    },
+    {
+      "id": "needle-30g-1in",
+      "name": "Hypodermic Needle 30G x 1\" (100/box)",
+      "supplier": "ths",
+      "category": "needle",
+      "unit": "each",
+      "unit_cost": 0.095,
+      "notes": "EXE 26439. $9.50/100. Fine gauge for sensitive injection sites."
+    },
+    {
+      "id": "needle-30g-0.5in",
+      "name": "Hypodermic Needle 30G x 1/2\" (100/box)",
+      "supplier": "ths",
+      "category": "needle",
+      "unit": "each",
+      "unit_cost": 0.082,
+      "notes": "EXE 26437. $8.23/100. SQ injection needle — peptides, GLP-1."
+    },
+
+    // ─── IV HARDWARE — McGuff Company ─────────────────────────────────────────
+
+    {
+      "id": "iv-set-basic",
+      "name": "IV Set Basic Vented 20 drops/mL (50/case)",
+      "supplier": "mcguff",
+      "category": "iv_hardware",
+      "unit": "each",
+      "unit_cost": 2.785,
+      "notes": "McGuff 008269. $139.23/50 = $2.785/set. Required for every IV drip session."
+    },
+    {
+      "id": "magcl-mcguff-50ml",
+      "name": "Magnesium Chloride 200mg/mL, 50mL MDV (10/tray)",
+      "supplier": "mcguff",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 50,
+      "concentration": "200mg/mL",
+      "total_g": 10,
+      "unit_cost": 33.99,
+      "cost_per_ml": 0.68,
+      "cost_per_g": 3.399,
+      "notes": "McGuff 010150. $339.92/10 = $33.99/vial. IV magnesium add-on or MB combo component."
+    },
+
+    // ─── PYXIS — Peptides & GLP-1 ─────────────────────────────────────────────
+
+    {
+      "id": "nad-pyxis-1000mg",
+      "name": "NAD+ 1000mg Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "total_mg": 1000,
+      "unit_cost": 70.00,
+      "cost_per_mg": 0.07,
+      "notes": "Lyophilized. Reconstitute with bac water. Used for IM NAD+ injections. Compare: AnazaoHealth at $0.202/mg for IV-grade."
+    },
+    {
+      "id": "bpc-tb4-blend-10mg",
+      "name": "BPC-157 / TB-4 Blend 10mg/10mg Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "unit_cost": 50.00,
+      "notes": "Lyophilized. 10mg each peptide. 1 vial = 10-day protocol."
+    },
+    {
+      "id": "cjc-ipa-2x-5mg",
+      "name": "CJC-1295 / Ipamorelin 2X Blend 5mg/5mg Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "unit_cost": 24.00,
+      "notes": "Lyophilized. 5mg each. ~1 vial per monthly phase at standard dosing."
+    },
+    {
+      "id": "3x-blend-vial",
+      "name": "3X Peptide Blend Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "unit_cost": 26.00,
+      "notes": "Lyophilized. Composition: CJC/IPA + 1 additional peptide (confirm with Pyxis)."
+    },
+    {
+      "id": "kpv-bpc-tb4-mgf-blend",
+      "name": "KPV / BPC-157 / TB-4 / MGF Blend Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "unit_cost": 50.00,
+      "notes": "Lyophilized. 4-peptide recovery blend. Maps to Recovery 4-Blend service. 1 vial = 10-day protocol."
+    },
+    {
+      "id": "ghk-cu-50mg",
+      "name": "GHK-Cu 50mg Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "total_mg": 50,
+      "unit_cost": 25.00,
+      "cost_per_mg": 0.50,
+      "notes": "Lyophilized. 1 vial = 30-day protocol."
+    },
+    {
+      "id": "motsc-10mg",
+      "name": "MOTS-C 10mg Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "total_mg": 10,
+      "unit_cost": 38.00,
+      "cost_per_mg": 3.80,
+      "notes": "Lyophilized. Typical dosing: 5-10mg/week."
+    },
+    {
+      "id": "tirzepatide-40mg",
+      "name": "Tirzepatide 40mg Vial",
+      "supplier": "pyxis",
+      "category": "glp1",
+      "unit": "vial",
+      "total_mg": 40,
+      "unit_cost": 200.00,
+      "cost_per_mg": 5.00,
+      "notes": "GLP-1/GIP agonist. Vial split across monthly doses based on tier."
+    },
+    {
+      "id": "retatrutide-20mg",
+      "name": "Retatrutide 20mg Vial",
+      "supplier": "pyxis",
+      "category": "glp1",
+      "unit": "vial",
+      "total_mg": 20,
+      "unit_cost": 140.00,
+      "cost_per_mg": 7.00,
+      "notes": "GLP-1/GIP/Glucagon triple agonist. Vial split across monthly doses."
+    },
+    {
+      "id": "igf-lr3-pyxis",
+      "name": "IGF-LR3 Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "unit_cost": 45.00,
+      "notes": "Not yet in service menu."
+    },
+    {
+      "id": "ta1-pyxis",
+      "name": "Thymosin Alpha 1 (TA1) Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "unit_cost": 55.00,
+      "notes": "Not yet in service menu."
+    },
+    {
+      "id": "aod9604-pyxis",
+      "name": "AOD9604 Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "unit_cost": 45.00,
+      "notes": "Not yet in service menu."
+    },
+    {
+      "id": "bpc157-standalone-5mg",
+      "name": "BPC-157 Standalone 5mg Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "total_mg": 5,
+      "unit_cost": 20.00,
+      "notes": "Standalone BPC without TB4. Not yet in service menu."
+    },
+    {
+      "id": "selank-pyxis",
+      "name": "Selank Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "unit_cost": 30.00,
+      "notes": "Not yet in service menu."
+    },
+    {
+      "id": "ss31-pyxis",
+      "name": "SS31 Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "unit_cost": 70.00,
+      "notes": "Mitochondrial peptide. Not yet in service menu."
+    },
+    {
+      "id": "dsip-10mg",
+      "name": "DSIP 10mg Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "total_mg": 10,
+      "unit_cost": 20.00,
+      "notes": "Delta Sleep-Inducing Peptide. Not yet in service menu."
+    },
+    {
+      "id": "follistatin-pyxis",
+      "name": "Follistatin Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "unit_cost": 80.00,
+      "notes": "Not yet in service menu."
+    },
+    {
+      "id": "hgh-100iu",
+      "name": "HGH 100 IU Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "total_iu": 100,
+      "unit_cost": 150.00,
+      "cost_per_iu": 1.50,
+      "notes": "Not yet in service menu."
+    },
+    {
+      "id": "epithalon-50mg",
+      "name": "Epithalon 50mg Vial",
+      "supplier": "pyxis",
+      "category": "peptide",
+      "unit": "vial",
+      "total_mg": 50,
+      "unit_cost": 45.00,
+      "notes": "Not yet in service menu."
+    },
+
+    // ─── McGUFF COMPANY — Pharmaceutical Injectables ──────────────────────────
+    // Source: Invoice 1074504-IN, 2/2/2026. Actual supplier for high-dose IV Vit C.
+
+    {
+      "id": "vitc-mcguff-ascor-50ml",
+      "name": "Ascor® (Ascorbic Acid Injection USP) 500mg/mL, 50mL PBP Vial",
+      "supplier": "mcguff",
+      "category": "pharmaceutical_iv_active",
+      "unit": "vial",
+      "volume_ml": 50,
+      "concentration": "500mg/mL",
+      "total_g": 25,
+      "unit_cost": 30.00,
+      "cost_per_ml": 0.60,
+      "cost_per_g": 1.20,
+      "mcguff_part": "003500",
+      "ndc": "67157-0101-51",
+      "mcguff_invoice": "1074504-IN, 2/2/2026",
+      "notes": "$750/tray of 25 = $30/vial. PBP = Preservative-free, Buffered, pH-adjusted. Pharmaceutical USP grade. $1.20/g vs AnazaoHealth at $2.93/g — 59% cheaper. PRIMARY source for all high-dose Vit C IVs."
+    },
+    {
+      "id": "dispensing-pin-mcguff-c350n",
+      "name": "Dispensing Pin, Vial Adapter, SwanLock® Needleless w/ Air Filter (50/case)",
+      "supplier": "mcguff",
+      "category": "iv_hardware",
+      "unit": "each",
+      "unit_cost": 2.34,
+      "mcguff_part": "004270",
+      "ndc": "C350N",
+      "notes": "$117/50 = $2.34/pin. Used to access 50mL Ascor® vials. One pin per vial per session. Include in Vit C IV COGS."
+    },
+    {
+      "id": "iv-ext-set-0.2um-mcguff",
+      "name": "12\" IV Extension Set, 0.2µm Filter, Slide Clamp, Luer Lock, DEHP-free (each)",
+      "supplier": "mcguff",
+      "category": "iv_hardware",
+      "unit": "each",
+      "unit_cost": 0.00,
+      "mcguff_part": "010304",
+      "notes": "Provided free with Ascor® tray order (Invoice 1074504-IN). 0.2µm in-line filter — used for high-dose Vit C infusion. Confirm cost on reorder; currently $0 on this invoice."
+    },
+
+    // ─── ADVANCED LIGHT DEVICES (ALD) ─────────────────────────────────────────
+    // Source: Invoice #4443, 01/05/2026. 5 vials × $85 + $8.30 shipping = $433.30 total.
+    // ACTUAL supplier for Methylene Blue IV sessions at Range Medical.
+
+    {
+      "id": "mb-ald-10ml",
+      "name": "Methylene Blue Sterile 10mL, 0.2um Filtered",
+      "supplier": "ald",
+      "category": "compounded_iv_active",
+      "unit": "vial",
+      "volume_ml": 10,
+      "concentration_assumption": "10mg/mL (1%) — VERIFY with ALD or label",
+      "total_mg_assumed": 100,
+      "unit_cost": 85.00,
+      "unit_cost_with_shipping": 86.66,
+      "cost_per_ml_assumed": 8.666,
+      "cost_per_mg_assumed": 0.0867,
+      "sessions_per_vial_at_5mg": 20,
+      "cost_per_session_drug_only": 4.33,
+      "ald_invoice": "Invoice #4443, 01/05/2026",
+      "needs_verification": true,
+      "notes": "Confirmed from ALD Invoice #4443: 5 vials × $85 + $8.30 shipping. Session dose confirmed 5mg. Concentration NOT stated on invoice — assumed 10mg/mL (1% solution, standard for compounded MB IV). If concentration is different, recalculate: sessions_per_vial = total_mg / 5, cost_per_session = $86.66 / sessions_per_vial."
+    },
+
+    // ─── MERIT PHARMACEUTICAL ─────────────────────────────────────────────────
+    // Source: MeritPharm.IV_.Supply.Order_.Medigrative.1.2026.pdf (Jan 2026 order form)
+
+    {
+      "id": "mb-provayblue-10ml",
+      "name": "Provayblue® (Methylene Blue USP) 50mg/mL, 10mL SDV",
+      "supplier": "merit",
+      "category": "pharmaceutical_iv_active",
+      "unit": "ampule",
+      "volume_ml": 10,
+      "concentration": "50mg/mL",
+      "total_mg": 500,
+      "unit_cost": 371.60,
+      "cost_per_ml": 37.16,
+      "cost_per_mg": 0.743,
+      "merit_code": "00517037405",
+      "notes": "$1,857.99 / 5 ampules = $371.60/ampule. IV-grade pharmaceutical MB (USP). Requires light-protected UV tubing (UV004) for infusion. MUST confirm session dose with provider to set final COGS."
+    },
+    {
+      "id": "b12-cyanocobalamin-30ml",
+      "name": "Cyanocobalamin (B12) 1000mcg/mL, 30mL MDV",
+      "supplier": "merit",
+      "category": "pharmaceutical_injectable",
+      "unit": "vial",
+      "volume_ml": 30,
+      "concentration": "1000mcg/mL",
+      "total_mcg": 30000,
+      "unit_cost": 26.00,
+      "cost_per_ml": 0.867,
+      "cost_per_mcg": 0.000867,
+      "merit_code": "6745740005",
+      "notes": "Standard injection B12 (cyano form). 30mL MDV. Typical IM dose = 1mL = $0.87 in drug cost."
+    },
+    {
+      "id": "hydroxocobalamin-30ml",
+      "name": "Hydroxocobalamin 1000mcg/mL, 30mL MDV",
+      "supplier": "merit",
+      "category": "pharmaceutical_injectable",
+      "unit": "vial",
+      "volume_ml": 30,
+      "concentration": "1000mcg/mL",
+      "total_mcg": 30000,
+      "unit_cost": 41.99,
+      "cost_per_ml": 1.40,
+      "merit_code": "00591288830",
+      "notes": "Hydroxo form of B12 — preferred by some protocols for longer retention. $1.40/mL vs cyano at $0.87/mL."
+    },
+    {
+      "id": "b-complex-30ml",
+      "name": "Vitamin B-Complex 30mL MDV",
+      "supplier": "merit",
+      "category": "pharmaceutical_injectable",
+      "unit": "vial",
+      "volume_ml": 30,
+      "unit_cost": 315.99,
+      "cost_per_ml": 10.533,
+      "merit_code": "6745714630",
+      "notes": "Ship on Ice. Multi-B injectable (B1/B2/B3/B5/B6). Expensive at $10.53/mL. Confirm ml-per-injection for COGS calc."
+    },
+    {
+      "id": "mag-sulfate-50pct-10ml",
+      "name": "Magnesium Sulfate 50% (500mg/mL), 10mL SDV",
+      "supplier": "merit",
+      "category": "pharmaceutical_iv_active",
+      "unit": "vial",
+      "volume_ml": 10,
+      "concentration": "500mg/mL",
+      "total_g": 5,
+      "unit_cost": 6.50,
+      "cost_per_ml": 0.65,
+      "cost_per_g": 1.30,
+      "merit_code": "6332306411",
+      "notes": "50% MgSO4. Very cost-effective: $1.30/g. Dilute before IV use. Preferred source for mag component in combos."
+    },
+    {
+      "id": "mag-chloride-200mgml-50ml-merit",
+      "name": "Magnesium Chloride (Chloromag) 200mg/mL, 50mL MDV",
+      "supplier": "merit",
+      "category": "pharmaceutical_iv_active",
+      "unit": "vial",
+      "volume_ml": 50,
+      "concentration": "200mg/mL",
+      "total_g": 10,
+      "unit_cost": 26.79,
+      "cost_per_ml": 0.536,
+      "cost_per_g": 2.679,
+      "merit_code": "6745713450",
+      "notes": "Alternative to McGuff MgCl2 ($33.99/vial, $0.68/mL). Merit = $0.54/mL — 21% cheaper."
+    },
+    {
+      "id": "iv-catheter-merit-22g",
+      "name": "Medigrative® IV Catheter 22G x 3/4\" (50/box)",
+      "supplier": "merit",
+      "category": "iv_hardware",
+      "unit": "each",
+      "unit_cost": 1.30,
+      "merit_code": "53000",
+      "notes": "$65/50 = $1.30/ea. Non-safety catheter. Less than half the cost of BD Autoguard ($2.735). Confirm clinical preference before switching."
+    },
+    {
+      "id": "iv-catheter-merit-24g",
+      "name": "Medigrative® IV Catheter 24G x 3/4\" (50/box)",
+      "supplier": "merit",
+      "category": "iv_hardware",
+      "unit": "each",
+      "unit_cost": 1.30,
+      "merit_code": "88000",
+      "notes": "$65/50 = $1.30/ea. Smaller gauge option for difficult stick patients."
+    },
+    {
+      "id": "iv-set-merit-m001",
+      "name": "Medigrative® IV Tubing M001, 15 Micron Filter, 15 Drop (50/box)",
+      "supplier": "merit",
+      "category": "iv_hardware",
+      "unit": "each",
+      "unit_cost": 1.20,
+      "merit_code": "M001",
+      "notes": "$60/50 = $1.20/ea. 15-micron filter. Less than half the cost of McGuff basic IV set ($2.785)."
+    },
+    {
+      "id": "iv-set-merit-uv004",
+      "name": "Medigrative® IV Tubing UV004 — Light Safe, Needleless, 15 Micron (50/box)",
+      "supplier": "merit",
+      "category": "iv_hardware",
+      "unit": "each",
+      "unit_cost": 4.70,
+      "merit_code": "UV004",
+      "notes": "$235/50 = $4.70/ea. UV-light-protective tubing. REQUIRED for Methylene Blue IV infusions. Premium of $3.50/session vs standard tubing."
+    },
+    {
+      "id": "alcohol-prep-pads-merit",
+      "name": "Alcohol Prep Pads Medium (200/box)",
+      "supplier": "merit",
+      "category": "iv_hardware",
+      "unit": "each",
+      "unit_cost": 0.015,
+      "merit_code": "935000",
+      "notes": "$2.99/200 = $0.015/pad. Cheaper than THS estimate used in bundles."
+    },
+    {
+      "id": "dexamethasone-4mgml-30ml",
+      "name": "Dexamethasone 4mg/mL (120mg/30mL), 30mL MDV",
+      "supplier": "merit",
+      "category": "pharmaceutical_injectable",
+      "unit": "vial",
+      "volume_ml": 30,
+      "concentration": "4mg/mL",
+      "total_mg": 120,
+      "unit_cost": 23.70,
+      "cost_per_ml": 0.79,
+      "cost_per_mg": 0.1975,
+      "merit_code": "6332316330",
+      "notes": "Anti-inflammatory steroid. Component of some specialty IV protocols or post-procedure."
+    },
+    {
+      "id": "saline-500ml-merit",
+      "name": "Sodium Chloride 0.9%, 500mL Bag (24/case)",
+      "supplier": "merit",
+      "category": "saline_bag",
+      "unit": "bag",
+      "volume_ml": 500,
+      "unit_cost": 4.29,
+      "merit_code": "L8001",
+      "notes": "$102.85/24 = $4.29/bag. 500mL bag — comparable to THS 500mL at $4.20."
+    },
+
+    // ─── TOTAL HEALTH SUPPLY — Other ──────────────────────────────────────────
+
+    {
+      "id": "mb-oral-25mg-caps",
+      "name": "Methylene Blue 25mg Oral Capsules (60 caps/bottle)",
+      "supplier": "ths",
+      "category": "oral_medication",
+      "unit": "bottle",
+      "unit_cost": 100.00,
+      "cost_per_cap": 1.667,
+      "notes": "SF METHBLU-25MG-CD. ORAL only — not for IV use. 60 caps/bottle."
+    },
+
+    // ─── COMPUTED BUNDLES ─────────────────────────────────────────────────────
+    // These are pre-calculated cost bundles used as shorthand in service-recipes.json.
+
+    {
+      "id": "_bundle-iv-hardware",
+      "name": "[Bundle] Standard IV Session Hardware",
+      "category": "bundle",
+      "unit": "session",
+      "unit_cost": 12.15,
+      "components": {
+        "saline_1000ml": { "qty": 1, "cost": 6.02 },
+        "iv_catheter_22g": { "qty": 1, "cost": 2.735 },
+        "iv_set_basic": { "qty": 1, "cost": 2.785 },
+        "needle_18g_draw": { "qty": 1, "cost": 0.088 },
+        "misc_alcohol_gauze": { "qty": 1, "cost": 0.52 }
+      },
+      "notes": "Base hardware cost for any IV drip session. Add active ingredients on top."
+    },
+    {
+      "id": "_bundle-injection-hardware",
+      "name": "[Bundle] Standard Injection Hardware",
+      "category": "bundle",
+      "unit": "injection",
+      "unit_cost": 0.42,
+      "components": {
+        "syringe_1cc_insulin": { "qty": 1, "cost": 0.235 },
+        "needle_25g_1in": { "qty": 1, "cost": 0.076 },
+        "misc_alcohol": { "qty": 1, "cost": 0.109 }
+      },
+      "notes": "Base hardware cost per IM injection. Swap syringe/needle size as needed."
+    },
+    {
+      "id": "_bundle-mb-iv-hardware",
+      "name": "[Bundle] Methylene Blue IV Session Hardware (UV-Protected)",
+      "category": "bundle",
+      "unit": "session",
+      "unit_cost": 14.07,
+      "components": {
+        "saline_1000ml": { "qty": 1, "cost": 6.02 },
+        "iv_catheter_22g": { "qty": 1, "cost": 2.735 },
+        "iv_set_merit_uv004": { "qty": 1, "cost": 4.70 },
+        "needle_18g_draw": { "qty": 1, "cost": 0.088 },
+        "misc_alcohol_gauze": { "qty": 1, "cost": 0.52 }
+      },
+      "notes": "UV-protective tubing (UV004) required for MB — blocks light degradation of methylene blue. $1.92 more per session than standard IV bundle."
+    },
+    {
+      "id": "_bundle-subq-injection-hardware",
+      "name": "[Bundle] SQ Injection Hardware (peptides/GLP-1)",
+      "category": "bundle",
+      "unit": "injection",
+      "unit_cost": 0.37,
+      "components": {
+        "syringe_0.3cc_insulin": { "qty": 1, "cost": 0.184 },
+        "needle_30g_0.5in": { "qty": 1, "cost": 0.082 },
+        "misc_alcohol": { "qty": 1, "cost": 0.109 }
+      },
+      "notes": "SQ injection hardware. Used for peptide and GLP-1 self-injection kits."
+    }
+
+  ]
+}

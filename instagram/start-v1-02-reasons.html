@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Start Carousel 02 — Two Reasons</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#F5F4F0; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#F5F4F0; }
+  .bg-num { position:absolute; right:20px; bottom:10px; font-size:400px; font-weight:900; color:rgba(0,0,0,0.028); line-height:1; letter-spacing:-20px; pointer-events:none; z-index:0; }
+
+  .top-bar { position:absolute; top:72px; left:108px; right:108px; display:flex; justify-content:space-between; align-items:center; z-index:2; }
+  .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(0,0,0,0.38); }
+  .slide-num { font-size:18px; font-weight:500; color:rgba(0,0,0,0.22); }
+
+  .section-tag { position:absolute; top:130px; left:108px; font-size:18px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:rgba(0,0,0,0.3); z-index:2; }
+  .section-rule { position:absolute; top:162px; left:108px; right:108px; height:1px; background:rgba(0,0,0,0.1); z-index:2; }
+
+  .content { position:absolute; top:196px; left:108px; right:108px; z-index:2; }
+  .headline { font-size:96px; font-weight:800; letter-spacing:-4px; line-height:0.93; color:#0A0A0A; margin-bottom:52px; }
+  .rule { width:56px; height:2px; background:rgba(0,0,0,0.2); margin-bottom:56px; }
+
+  .reason { margin-bottom:56px; display:flex; gap:40px; align-items:flex-start; }
+  .reason-arrow { font-size:40px; font-weight:300; color:rgba(0,0,0,0.2); line-height:1.2; flex-shrink:0; padding-top:4px; }
+  .reason-body {}
+  .reason-num { font-size:18px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:rgba(0,0,0,0.22); margin-bottom:10px; }
+  .reason-text { font-size:48px; font-weight:600; letter-spacing:-1.5px; line-height:1.18; color:#0A0A0A; }
+
+  .bottom-bar { position:absolute; bottom:64px; left:108px; right:108px; display:flex; justify-content:flex-end; border-top:1px solid rgba(0,0,0,0.08); padding-top:20px; z-index:2; }
+  .next { font-size:20px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:rgba(0,0,0,0.28); }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="bg-num">02</div>
+  <div class="top-bar">
+    <span class="brand">@range_medical</span>
+    <span class="slide-num">02 / 07</span>
+  </div>
+  <div class="section-tag">Why People Come to Us</div>
+  <div class="section-rule"></div>
+  <div class="content">
+    <div class="headline">Two reasons.</div>
+    <div class="rule"></div>
+    <div class="reason">
+      <div class="reason-arrow">01</div>
+      <div class="reason-body">
+        <div class="reason-text">You&#8217;re rehabbing an injury that&#8217;s taking too long.</div>
+      </div>
+    </div>
+    <div class="reason">
+      <div class="reason-arrow">02</div>
+      <div class="reason-body">
+        <div class="reason-text">Your energy, hormones, or weight feel off.</div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <span class="next">Here&#8217;s How It Works &#8594;</span>
+  </div>
+</div>
+</body>
+</html>

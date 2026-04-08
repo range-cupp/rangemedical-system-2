@@ -552,6 +552,7 @@ export default function PatientProfile() {
   const [refundAmount, setRefundAmount] = useState('');
   const [refundType, setRefundType] = useState('full'); // 'full' or 'partial'
   const [refundLoading, setRefundLoading] = useState(false);
+  const [expandedCharges, setExpandedCharges] = useState({});
 
   // Timeline state
   const [timeline, setTimeline] = useState([]);
@@ -9193,11 +9194,18 @@ export default function PatientProfile() {
                           return (
                           <div key={charge.key} className="pay-item">
                             <div className="pay-item-info">
-                              <div className="pay-item-title">{charge.description || 'Payment'}</div>
-                              {charge.line_items && charge.line_items.length > 0 && (
-                                <div style={{ margin: '4px 0 2px', fontSize: 12, color: '#475569' }}>
+                              <div className="pay-item-title" style={charge.line_items && charge.line_items.length > 0 ? { cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 } : {}}
+                                onClick={charge.line_items && charge.line_items.length > 0 ? () => setExpandedCharges(s => ({ ...s, [charge.key]: !s[charge.key] })) : undefined}
+                              >
+                                {charge.line_items && charge.line_items.length > 0 && (
+                                  <span style={{ display: 'inline-block', width: 10, fontSize: 10, color: '#64748b', transition: 'transform 0.15s', transform: expandedCharges[charge.key] ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+                                )}
+                                <span>{charge.description || 'Payment'}</span>
+                              </div>
+                              {charge.line_items && charge.line_items.length > 0 && expandedCharges[charge.key] && (
+                                <div style={{ margin: '6px 0 2px', padding: '6px 8px', fontSize: 12, color: '#475569', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
                                   {charge.line_items.map((li, idx) => (
-                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '1px 0' }}>
+                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '2px 0' }}>
                                       <span>• {li.name}</span>
                                       {li.amount_paid != null && (
                                         <span style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>${li.amount_paid.toFixed(2)}</span>

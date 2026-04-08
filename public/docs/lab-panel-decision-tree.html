@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Range Medical — Lab Panel Decision Tree</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #f8f8f8;
+    color: #1a1a1a;
+    padding: 40px 20px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    padding: 40px 48px;
+  }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .page { box-shadow: none; padding: 24px; border-radius: 0; }
+    .page + .page { page-break-before: always; }
+    .no-print { display: none !important; }
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 2px solid #1a1a1a;
+    padding-bottom: 12px;
+    margin-bottom: 28px;
+  }
+  .header h1 {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .header .subtitle {
+    font-size: 11px;
+    color: #888;
+    font-weight: 500;
+  }
+
+  /* Intro */
+  .intro {
+    background: #f9f9f9;
+    border: 1px solid #e5e5e5;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #444;
+  }
+  .intro strong { color: #1a1a1a; }
+
+  /* Side by side panels */
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+  .panel {
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 14px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .panel-essential .panel-header {
+    background: #1a1a1a;
+    color: #fff;
+  }
+  .panel-elite .panel-header {
+    background: #2E6B35;
+    color: #fff;
+  }
+  .panel-price {
+    font-size: 20px;
+    font-weight: 800;
+  }
+  .panel-body {
+    padding: 20px;
+    background: #fff;
+  }
+  .panel-tagline {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  /* Marker groups */
+  .marker-group {
+    margin-bottom: 14px;
+  }
+  .marker-group:last-child { margin-bottom: 0; }
+  .marker-group-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #999;
+    margin-bottom: 4px;
+  }
+  .marker-list {
+    font-size: 12px;
+    line-height: 1.7;
+    color: #444;
+  }
+  .marker-list .highlight {
+    color: #2E6B35;
+    font-weight: 600;
+  }
+
+  /* Decision flow */
+  .decision-section {
+    margin-bottom: 28px;
+  }
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .section-subtitle {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 16px;
+    padding-left: 38px;
+  }
+
+  /* Decision questions */
+  .decision-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .decision-q {
+    background: #f9f9f9;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 16px 20px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .q-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .q-content {
+    flex: 1;
+  }
+  .q-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 6px;
+  }
+  .q-answers {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .q-answer {
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 6px 12px;
+    border-radius: 6px;
+    flex: 1;
+    min-width: 180px;
+  }
+  .answer-essential {
+    background: #f4f4f4;
+    border: 1px solid #ddd;
+    color: #444;
+  }
+  .answer-elite {
+    background: #ecfdf5;
+    border: 1px solid #bbf7d0;
+    color: #065f46;
+  }
+  .answer-label {
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .answer-essential .answer-label { color: #1a1a1a; }
+  .answer-elite .answer-label { color: #2E6B35; }
+
+  /* Script boxes */
+  .script-box {
+    background: #fffbe6;
+    border-left: 3px solid #e6c200;
+    padding: 14px 18px;
+    border-radius: 0 8px 8px 0;
+    margin-top: 12px;
+  }
+  .script-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #b89a00;
+    margin-bottom: 4px;
+  }
+  .script-text {
+    font-size: 13px;
+    line-height: 1.7;
+    color: #444;
+    font-style: italic;
+  }
+
+  /* Quick reference table */
+  .ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 14px;
+  }
+  .ref-table th {
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #999;
+    padding: 8px 12px;
+    border-bottom: 2px solid #e5e5e5;
+  }
+  .ref-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    color: #444;
+    line-height: 1.5;
+    vertical-align: top;
+  }
+  .ref-table tr:last-child td { border-bottom: none; }
+  .ref-table .col-profile { font-weight: 600; color: #1a1a1a; }
+  .tag-essential {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: #f4f4f4;
+    color: #1a1a1a;
+    border: 1px solid #ddd;
+  }
+  .tag-elite {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: #ecfdf5;
+    color: #2E6B35;
+    border: 1px solid #bbf7d0;
+  }
+
+  /* Key reasons */
+  .reasons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 14px;
+  }
+  .reason-card {
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .reason-card h4 {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+  }
+  .reason-card.essential h4 { color: #1a1a1a; }
+  .reason-card.elite h4 { color: #2E6B35; }
+  .reason-card ul {
+    list-style: none;
+    padding: 0;
+  }
+  .reason-card li {
+    font-size: 12px;
+    line-height: 1.6;
+    color: #444;
+    padding: 3px 0;
+    padding-left: 14px;
+    position: relative;
+  }
+  .reason-card li::before {
+    content: "\2013";
+    position: absolute;
+    left: 0;
+    color: #bbb;
+  }
+
+  /* Rules block */
+  .rules {
+    background: #1a1a1a;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-top: 14px;
+    color: #fff;
+  }
+  .rules h3 {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 12px;
+    color: #fff;
+  }
+  .rule {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .rule:last-child { margin-bottom: 0; }
+  .rule-num {
+    font-weight: 700;
+    margin-right: 10px;
+    min-width: 20px;
+    color: #888;
+  }
+  .rule-text { color: #ddd; }
+  .rule-text strong { color: #fff; }
+
+  .footer-note {
+    text-align: center;
+    font-size: 11px;
+    color: #bbb;
+    margin-top: 28px;
+    padding-top: 14px;
+    border-top: 1px solid #eee;
+  }
+
+  /* Elite callout */
+  .elite-callout {
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+  }
+  .elite-callout h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #2E6B35;
+    margin-bottom: 8px;
+  }
+  .elite-callout p {
+    font-size: 13px;
+    line-height: 1.7;
+    color: #444;
+    margin-bottom: 6px;
+  }
+  .elite-callout p:last-child { margin-bottom: 0; }
+  .elite-callout strong { color: #1a1a1a; }
+
+  /* Biomarker highlight box */
+  .bio-highlight {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-top: 14px;
+    margin-bottom: 28px;
+  }
+  .bio-card {
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 14px 16px;
+    background: #f0fdf4;
+  }
+  .bio-card h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #2E6B35;
+    margin-bottom: 6px;
+  }
+  .bio-card p {
+    font-size: 12px;
+    line-height: 1.6;
+    color: #444;
+  }
+  .bio-card .plain-english {
+    font-size: 11px;
+    color: #065f46;
+    font-weight: 600;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #d1fae5;
+  }
+</style>
+</head>
+<body>
+
+<!-- PAGE 1: PATIENT-FACING DECISION TREE -->
+<div class="page">
+
+  <div class="header">
+    <h1>Range Medical</h1>
+    <div class="subtitle">Lab Panel Guide &mdash; Essential vs. Elite</div>
+  </div>
+
+  <div class="intro">
+    <strong>Both panels qualify you for every treatment we offer.</strong> The Essential gives us what we need to build your plan. The Elite goes deeper &mdash; adding advanced heart markers, inflammation, and a full vitamin and mineral panel for patients who want the most complete picture of what's happening inside.
+  </div>
+
+  <!-- SIDE BY SIDE -->
+  <div class="panels">
+
+    <!-- ESSENTIAL -->
+    <div class="panel panel-essential">
+      <div class="panel-header">
+        <span>Essential Panel</span>
+        <span class="panel-price">$350</span>
+      </div>
+      <div class="panel-body">
+        <div class="panel-tagline">Everything you need to start treatment.</div>
+
+        <div class="marker-group">
+          <div class="marker-group-label">Basic Health</div>
+          <div class="marker-list">CMP (liver, kidneys, blood sugar) &bull; Lipid Panel (cholesterol, triglycerides) &bull; CBC (blood cells, anemia, infection)</div>
+        </div>
+
+        <div class="marker-group">
+          <div class="marker-group-label">Hormones</div>
+          <div class="marker-list">Testosterone (Total &amp; Free) &bull; SHBG &bull; Estradiol &bull; FSH</div>
+        </div>
+
+        <div class="marker-group">
+          <div class="marker-group-label">Thyroid</div>
+          <div class="marker-list">TSH &bull; T3 Free &bull; T4 Total &bull; TPO Antibodies</div>
+        </div>
+
+        <div class="marker-group">
+          <div class="marker-group-label">Metabolism &amp; Vitamins</div>
+          <div class="marker-list">Fasting Insulin &bull; HgbA1c &bull; Vitamin D</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ELITE -->
+    <div class="panel panel-elite">
+      <div class="panel-header">
+        <span>Elite Panel</span>
+        <span class="panel-price">$750</span>
+      </div>
+      <div class="panel-body">
+        <div class="panel-tagline">The full picture &mdash; everything above, plus:</div>
+
+        <div class="marker-group">
+          <div class="marker-group-label">Advanced Heart Health</div>
+          <div class="marker-list"><span class="highlight">Apolipoprotein A-1 &bull; Apolipoprotein B &bull; Lipoprotein(a) &bull; Homocysteine</span></div>
+        </div>
+
+        <div class="marker-group">
+          <div class="marker-group-label">Inflammation</div>
+          <div class="marker-list"><span class="highlight">CRP-HS (high-sensitivity) &bull; Sed Rate</span></div>
+        </div>
+
+        <div class="marker-group">
+          <div class="marker-group-label">Deeper Hormones</div>
+          <div class="marker-list"><span class="highlight">DHEA-S &bull; IGF-1 &bull; Cortisol &bull; LH</span></div>
+        </div>
+
+        <div class="marker-group">
+          <div class="marker-group-label">Extended Thyroid</div>
+          <div class="marker-list"><span class="highlight">T4 Free &bull; Thyroglobulin Antibodies</span></div>
+        </div>
+
+        <div class="marker-group">
+          <div class="marker-group-label">Metabolism + Full Vitamin &amp; Mineral Panel</div>
+          <div class="marker-list"><span class="highlight">Uric Acid &bull; GGT &bull; B12 &bull; Folate &bull; Magnesium &bull; Iron &bull; TIBC &bull; Ferritin</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- WHY ELITE MATTERS -->
+  <div class="elite-callout">
+    <h3>Why These Extra Markers Matter</h3>
+    <p>Standard cholesterol panels miss the real story. <strong>Apo B</strong> tells you how many particles are carrying cholesterol into your artery walls &mdash; not just how much cholesterol is floating around. <strong>Lipoprotein(a)</strong> is genetic, can't be changed by diet, and is one of the strongest independent predictors of heart attack and stroke. <strong>Apo A-1</strong> measures your body's ability to clear cholesterol out. These three markers together are what longevity doctors consider the gold standard for cardiovascular risk.</p>
+    <p><strong>CRP-HS and Homocysteine</strong> catch silent inflammation &mdash; the kind that drives chronic disease before you feel anything. And a full vitamin/mineral panel (B12, folate, magnesium, iron, ferritin) reveals deficiencies that affect energy, sleep, recovery, and brain function.</p>
+  </div>
+
+  <!-- SIMPLE DECISION FLOW -->
+  <div class="decision-section">
+    <div class="section-title"><span class="section-num">1</span> Which Panel Is Right for You?</div>
+    <div class="section-subtitle">Answer these questions honestly. There's no wrong answer.</div>
+
+    <div class="decision-flow">
+
+      <div class="decision-q">
+        <div class="q-icon">&#x1F3AF;</div>
+        <div class="q-content">
+          <div class="q-text">What brought you in today?</div>
+          <div class="q-answers">
+            <div class="q-answer answer-essential">
+              <div class="answer-label">Essential</div>
+              "I know what I want &mdash; hormones, weight loss, or peptides. Let's get started."
+            </div>
+            <div class="q-answer answer-elite">
+              <div class="answer-label">Elite</div>
+              "I want to understand what's really going on inside my body &mdash; the full picture."
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="decision-q">
+        <div class="q-icon">&#x2764;&#xFE0F;</div>
+        <div class="q-content">
+          <div class="q-text">Do you have a family history of heart disease, stroke, or high cholesterol?</div>
+          <div class="q-answers">
+            <div class="q-answer answer-essential">
+              <div class="answer-label">Essential</div>
+              "No, or I'm not sure. Basic lipids are enough for now."
+            </div>
+            <div class="q-answer answer-elite">
+              <div class="answer-label">Elite</div>
+              "Yes &mdash; I want to know my Apo B, Lp(a), and real cardiac risk, not just total cholesterol."
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="decision-q">
+        <div class="q-icon">&#x1F50D;</div>
+        <div class="q-content">
+          <div class="q-text">How deep do you want to go?</div>
+          <div class="q-answers">
+            <div class="q-answer answer-essential">
+              <div class="answer-label">Essential</div>
+              "Give me what I need to qualify for treatment and get my hormones dialed in."
+            </div>
+            <div class="q-answer answer-elite">
+              <div class="answer-label">Elite</div>
+              "I want the longevity-grade workup &mdash; inflammation, vitamins, minerals, the works."
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BOTTOM LINE -->
+  <div style="background: #f9f9f9; border: 1px solid #e5e5e5; border-radius: 10px; padding: 18px 24px; margin-bottom: 8px;">
+    <p style="font-size: 14px; line-height: 1.6; color: #444; margin: 0;">
+      <strong style="color: #1a1a1a;">Bottom line:</strong> The Essential gives you everything you need to start any treatment at Range. The Elite gives you everything you need to understand your health at the deepest level &mdash; the same markers longevity specialists use to catch problems 10&ndash;20 years before they surface. Both include labs drawn here and a one-on-one provider review.
+    </p>
+  </div>
+
+  <div class="footer-note">
+    Range Medical &bull; 1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660 &bull; (949) 997-3988
+  </div>
+
+</div>
+
+<!-- PAGE 2: FRONT DESK REFERENCE -->
+<div class="page" style="margin-top: 24px;">
+
+  <div class="header">
+    <h1>Range Medical</h1>
+    <div class="subtitle">Lab Panel Decision Tree &mdash; Front Desk Reference (Internal)</div>
+  </div>
+
+  <!-- QUICK PATIENT PROFILE TABLE -->
+  <div class="decision-section">
+    <div class="section-title"><span class="section-num">1</span> Patient Profile &rarr; Panel Match</div>
+    <div class="section-subtitle">Use this table to recommend the right panel based on what the patient tells you.</div>
+
+    <table class="ref-table">
+      <thead>
+        <tr>
+          <th style="width: 30%;">Patient Says / Profile</th>
+          <th style="width: 15%;">Panel</th>
+          <th>Why</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-profile">"I want to start testosterone" / "I need HRT"</td>
+          <td><span class="tag-essential">Essential</span></td>
+          <td>Has everything we need &mdash; total &amp; free T, SHBG, estradiol, thyroid, metabolic markers.</td>
+        </tr>
+        <tr>
+          <td class="col-profile">"I want to lose weight" / GLP-1 inquiry</td>
+          <td><span class="tag-essential">Essential</span></td>
+          <td>Covers insulin, A1c, lipids, thyroid &mdash; all we need to prescribe safely.</td>
+        </tr>
+        <tr>
+          <td class="col-profile">"I just want to see where I'm at"</td>
+          <td><span class="tag-essential">Essential</span></td>
+          <td>Great starting point. Can always upgrade to Elite next time.</td>
+        </tr>
+        <tr>
+          <td class="col-profile">"My dad had a heart attack" / family heart history</td>
+          <td><span class="tag-elite">Elite</span></td>
+          <td>Apo B, Lp(a), and homocysteine are must-haves. Standard lipids miss hereditary risk.</td>
+        </tr>
+        <tr>
+          <td class="col-profile">"I want the full longevity workup"</td>
+          <td><span class="tag-elite">Elite</span></td>
+          <td>This IS the longevity workup. Apo B, Lp(a), CRP-HS, IGF-1, full mineral panel.</td>
+        </tr>
+        <tr>
+          <td class="col-profile">"I'm always tired and I don't know why"</td>
+          <td><span class="tag-elite">Elite</span></td>
+          <td>Could be hormones, thyroid, iron, B12, cortisol, or inflammation. Elite covers all of it.</td>
+        </tr>
+        <tr>
+          <td class="col-profile">"I want to know my Apo B" / mentions specific markers</td>
+          <td><span class="tag-elite">Elite</span></td>
+          <td>They've done their research. They want advanced cardiac and/or longevity markers.</td>
+        </tr>
+        <tr>
+          <td class="col-profile">Biohacker / optimization-focused / Peter Attia listener</td>
+          <td><span class="tag-elite">Elite</span></td>
+          <td>They'll be disappointed with a basic panel. Give them what they came for.</td>
+        </tr>
+        <tr>
+          <td class="col-profile">"What do you recommend?" / unsure</td>
+          <td><span class="tag-essential">Essential</span></td>
+          <td>Start with Essential. Mention Elite if they seem interested in going deeper.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- FRONT DESK SCRIPTS -->
+  <div class="decision-section">
+    <div class="section-title"><span class="section-num">2</span> What to Say</div>
+    <div class="section-subtitle">Use these scripts when the patient asks about the difference.</div>
+
+    <div class="script-box">
+      <div class="script-label">The 10-Second Explanation</div>
+      <div class="script-text">"Both panels qualify you for any treatment here. The Essential at $350 covers hormones, thyroid, metabolism, and general health &mdash; everything we need to build your plan. The Elite at $750 adds advanced heart markers like Apo B and Lp(a), inflammation markers, and a full vitamin and mineral panel &mdash; it's the longevity-grade workup."</div>
+    </div>
+
+    <div class="script-box" style="margin-top: 12px;">
+      <div class="script-label">When They Ask "Is the Elite Worth It?"</div>
+      <div class="script-text">"If you have any family history of heart issues, or you want to catch things early before they become problems, the Elite is 100% worth it. The markers it adds &mdash; like Apo B and Lipoprotein(a) &mdash; are what longevity doctors consider the gold standard. Most primary care doctors never order them. If your main goal is just getting started on hormones or weight loss, the Essential has everything you need."</div>
+    </div>
+
+    <div class="script-box" style="margin-top: 12px;">
+      <div class="script-label">When They Hesitate on Price</div>
+      <div class="script-text">"No pressure at all &mdash; the Essential is a great panel. We can always run the Elite next time if you decide you want to go deeper. A lot of people start with Essential and upgrade on their follow-up labs."</div>
+    </div>
+
+    <div class="script-box" style="margin-top: 12px;">
+      <div class="script-label">When They Mention Apo B, Lp(a), or Longevity</div>
+      <div class="script-text">"You'll want the Elite &mdash; that's the one with Apo B, Apo A, and Lp(a). It also includes CRP, homocysteine, IGF-1, and a full mineral panel. It's the same workup longevity specialists order."</div>
+    </div>
+  </div>
+
+  <!-- WHY ELITE: THE THREE BIG MARKERS -->
+  <div class="decision-section">
+    <div class="section-title"><span class="section-num">3</span> Know These Three Markers (Elite Only)</div>
+    <div class="section-subtitle">Patients will ask about these. Here's what they are in plain English.</div>
+
+    <div class="bio-highlight">
+      <div class="bio-card">
+        <h4>Apo B</h4>
+        <p>Counts the number of particles that carry cholesterol into your artery walls. A better predictor of heart disease than LDL alone.</p>
+        <div class="plain-english">Think of it as: "How many trucks are delivering cholesterol to your arteries?"</div>
+      </div>
+      <div class="bio-card">
+        <h4>Lipoprotein(a) &mdash; Lp(a)</h4>
+        <p>A genetic marker. Can't be changed by diet or exercise. One of the strongest independent risk factors for heart attack and stroke.</p>
+        <div class="plain-english">Think of it as: "A genetic risk factor you can only find with a blood test."</div>
+      </div>
+      <div class="bio-card">
+        <h4>Apo A-1</h4>
+        <p>Measures HDL function &mdash; your body's ability to remove cholesterol from artery walls. The cleanup crew.</p>
+        <div class="plain-english">Think of it as: "How good your body is at cleaning up the cholesterol."</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RULES -->
+  <div class="decision-section">
+    <div class="section-title"><span class="section-num">4</span> Rules</div>
+
+    <div class="rules">
+      <div class="rule">
+        <div class="rule-num">1.</div>
+        <div class="rule-text"><strong>Both panels qualify for every treatment.</strong> Never tell a patient they "need" the Elite to start something. The Essential covers it.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-num">2.</div>
+        <div class="rule-text"><strong>Default recommendation is Essential</strong> unless the patient asks for more, mentions longevity/heart history, or is clearly optimization-focused.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-num">3.</div>
+        <div class="rule-text"><strong>Never pressure toward Elite.</strong> Present both clearly. Let the patient decide. The upgrade path is always available next time.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-num">4.</div>
+        <div class="rule-text"><strong>If they mention Apo B, Lp(a), or any Elite-only marker by name</strong> &mdash; they've done their research. Point them to Elite.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-num">5.</div>
+        <div class="rule-text"><strong>Family history of heart disease = recommend Elite.</strong> This is the one case where you should proactively suggest it.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-num">6.</div>
+        <div class="rule-text"><strong>Both panels include:</strong> Labs drawn at the clinic + a one-on-one provider review when results are back.</div>
+      </div>
+      <div class="rule">
+        <div class="rule-num">7.</div>
+        <div class="rule-text"><strong>Fasting is required</strong> for both panels &mdash; 8&ndash;12 hours. Water is fine. Remind them when booking.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Range Medical &mdash; Internal Use Only &mdash; March 2026
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Labs Slide 06 — Process</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#0A0A0A; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#0A0A0A; }
+  .slide::before { content:''; position:absolute; inset:0; background-image:radial-gradient(circle,rgba(255,255,255,0.045) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; }
+
+  .top-bar { position:absolute; top:72px; left:72px; right:72px; display:flex; justify-content:space-between; align-items:center; z-index:2; }
+  .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(255,255,255,0.5); }
+  .slide-num { font-size:18px; font-weight:500; color:rgba(255,255,255,0.28); }
+
+  .section-tag { position:absolute; top:130px; left:72px; font-size:18px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:rgba(255,255,255,0.28); z-index:2; }
+  .section-rule { position:absolute; top:162px; left:72px; right:72px; height:1px; background:rgba(255,255,255,0.1); z-index:2; }
+
+  /* Headline */
+  .headline-block { position:absolute; top:192px; left:72px; right:72px; z-index:2; }
+  .headline { font-size:90px; font-weight:800; letter-spacing:-4px; line-height:0.93; color:#FFFFFF; margin-bottom:18px; }
+  .headline em { font-style:normal; font-weight:300; color:rgba(255,255,255,0.32); }
+  .sub { font-size:34px; font-weight:400; color:rgba(255,255,255,0.42); line-height:1.5; max-width:760px; margin-top:18px; }
+
+  /* Steps */
+  .step { position:absolute; left:72px; right:72px; z-index:2; }
+  .step-rule { width:100%; height:1px; background:rgba(255,255,255,0.1); margin-bottom:24px; }
+  .step-inner { display:flex; align-items:flex-start; gap:40px; }
+  .step-num { font-size:18px; font-weight:700; letter-spacing:0.2em; color:rgba(255,255,255,0.2); width:32px; flex-shrink:0; padding-top:6px; }
+  .step-content { flex:1; }
+  .step-name { font-size:54px; font-weight:800; letter-spacing:-2px; line-height:1.0; color:#FFFFFF; margin-bottom:10px; }
+  .step-desc { font-size:36px; font-weight:400; line-height:1.5; color:rgba(255,255,255,0.4); }
+
+  .step-1 { top:460px; }
+  .step-2 { top:648px; }
+  .step-3 { top:836px; }
+
+  .bottom-bar { position:absolute; bottom:60px; left:72px; right:72px; border-top:1px solid rgba(255,255,255,0.08); padding-top:18px; z-index:2; }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="top-bar">
+    <span class="brand">@range_medical</span>
+    <span class="slide-num">06 / 06</span>
+  </div>
+  <div class="section-tag">How It Works</div>
+  <div class="section-rule"></div>
+
+  <div class="headline-block">
+    <div class="headline">Simple process.<br/><em>Real answers.</em></div>
+    <div class="sub">Newport Beach clinic. No referral needed. Walk out knowing exactly where you stand.</div>
+  </div>
+
+  <div class="step step-1">
+    <div class="step-rule"></div>
+    <div class="step-inner">
+      <div class="step-num">01</div>
+      <div class="step-content">
+        <div class="step-name">Blood Draw</div>
+        <div class="step-desc">Come into our Newport Beach clinic. Takes about 10 minutes. Fast 10&#8211;12 hours beforehand for accurate results.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step step-2">
+    <div class="step-rule"></div>
+    <div class="step-inner">
+      <div class="step-num">02</div>
+      <div class="step-content">
+        <div class="step-name">Results</div>
+        <div class="step-desc">3&#8211;5 business days. We review everything so you don&#8217;t have to decode it on your own.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step step-3">
+    <div class="step-rule"></div>
+    <div class="step-inner">
+      <div class="step-num">03</div>
+      <div class="step-content">
+        <div class="step-name">Your Plan</div>
+        <div class="step-desc">One-on-one provider review. We walk through every number and what to do next.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-bar"></div>
+</div>
+</body>
+</html>

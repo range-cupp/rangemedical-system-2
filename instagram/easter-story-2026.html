@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Easter Story 2026 — Range Medical</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1920px; overflow:hidden; background:#F5F4F0; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1920px; position:relative; background:#F5F4F0; }
+
+  /* Subtle line grid */
+  .slide::before { content:''; position:absolute; inset:0; background-image:linear-gradient(rgba(0,0,0,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.03) 1px,transparent 1px); background-size:72px 72px; pointer-events:none; }
+
+  /* Warm accent block at top */
+  .accent-top { position:absolute; top:0; left:0; right:0; height:8px; background:#0A0A0A; }
+
+  /* Brand bar */
+  .top-bar { position:absolute; top:72px; left:108px; right:108px; display:flex; justify-content:space-between; align-items:center; z-index:2; }
+  .brand { font-size:22px; font-weight:700; letter-spacing:0.02em; color:rgba(0,0,0,0.38); }
+  .year { font-size:18px; font-weight:500; color:rgba(0,0,0,0.22); }
+
+  /* Center content */
+  .center { position:absolute; top:0; left:108px; right:108px; bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; z-index:2; }
+
+  .kicker { font-size:22px; font-weight:700; letter-spacing:0.24em; text-transform:uppercase; color:rgba(0,0,0,0.28); margin-bottom:48px; display:flex; align-items:center; gap:20px; }
+  .kicker::before, .kicker::after { content:''; display:block; width:40px; height:1px; background:rgba(0,0,0,0.18); }
+
+  .headline { font-size:120px; font-weight:800; letter-spacing:-5px; line-height:0.9; color:#0A0A0A; margin-bottom:20px; }
+  .headline-light { font-size:120px; font-weight:300; letter-spacing:-5px; line-height:0.9; color:rgba(0,0,0,0.22); margin-bottom:72px; }
+
+  .rule { width:56px; height:2px; background:rgba(0,0,0,0.15); margin-bottom:56px; }
+
+  .message { font-size:44px; font-weight:400; line-height:1.55; color:rgba(0,0,0,0.5); margin-bottom:72px; }
+  .message strong { font-weight:700; color:#0A0A0A; }
+
+  /* Signature block */
+  .sig { border-top:1px solid rgba(0,0,0,0.1); padding-top:40px; width:100%; }
+  .sig-name { font-size:32px; font-weight:800; letter-spacing:-0.5px; color:#0A0A0A; margin-bottom:8px; }
+  .sig-loc { font-size:24px; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; color:rgba(0,0,0,0.28); }
+
+  /* Bottom bar */
+  .bottom-bar { position:absolute; bottom:72px; left:108px; right:108px; text-align:center; z-index:2; }
+  .url { font-size:26px; font-weight:600; letter-spacing:0.04em; color:rgba(0,0,0,0.25); }
+
+  /* Accent bottom */
+  .accent-bottom { position:absolute; bottom:0; left:0; right:0; height:8px; background:#0A0A0A; }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="accent-top"></div>
+
+  <div class="top-bar">
+    <span class="brand">@range_medical</span>
+    <span class="year">2026</span>
+  </div>
+
+  <div class="center">
+    <div class="kicker">Range Medical</div>
+    <div class="headline">Happy</div>
+    <div class="headline-light">Easter.</div>
+    <div class="rule"></div>
+    <div class="message">
+      Wishing you a restful Sunday<br/>
+      with the people who matter most.<br/>
+      <strong>We&#8217;ll see you this week.</strong>
+    </div>
+    <div class="sig">
+      <div class="sig-name">Range Medical</div>
+      <div class="sig-loc">Newport Beach &nbsp;&bull;&nbsp; San Clemente</div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="url">range-medical.com</div>
+  </div>
+
+  <div class="accent-bottom"></div>
+</div>
+</body>
+</html>

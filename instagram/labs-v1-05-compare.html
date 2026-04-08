@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Labs Slide 05 — Compare</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#F5F4F0; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#F5F4F0; }
+
+  .top-bar { position:absolute; top:72px; left:72px; right:72px; display:flex; justify-content:space-between; align-items:center; z-index:2; }
+  .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(0,0,0,0.38); }
+  .slide-num { font-size:18px; font-weight:500; color:rgba(0,0,0,0.22); }
+
+  .section-tag { position:absolute; top:130px; left:72px; font-size:18px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:rgba(0,0,0,0.3); z-index:2; }
+  .section-rule { position:absolute; top:162px; left:72px; right:72px; height:1px; background:rgba(0,0,0,0.1); z-index:2; }
+
+  /* Vertical divider */
+  .v-divider { position:absolute; top:180px; left:540px; bottom:108px; width:1px; background:rgba(0,0,0,0.08); z-index:2; }
+
+  /* Two panels */
+  .panel-left  { position:absolute; top:196px; left:72px;  width:420px; z-index:2; }
+  .panel-right { position:absolute; top:196px; left:576px; width:432px; z-index:2; }
+
+  .p-price { font-size:58px; font-weight:800; letter-spacing:-2px; color:#0A0A0A; line-height:1.0; margin-bottom:6px; }
+  .p-name  { font-size:24px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:rgba(0,0,0,0.28); margin-bottom:28px; }
+  .p-rule  { width:36px; height:2px; background:rgba(0,0,0,0.2); margin-bottom:28px; }
+
+  .item { margin-bottom:14px; }
+  .item-label { font-size:18px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:rgba(0,0,0,0.3); margin-bottom:5px; }
+  .item-val { font-size:34px; font-weight:500; color:rgba(0,0,0,0.65); line-height:1.35; }
+
+  /* Highlight for elite extras */
+  .item-val.highlight { color:#0A0A0A; font-weight:600; }
+
+  .bottom-bar { position:absolute; bottom:60px; left:72px; right:72px; display:flex; justify-content:flex-end; border-top:1px solid rgba(0,0,0,0.08); padding-top:18px; z-index:2; }
+  .next { font-size:18px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:rgba(0,0,0,0.28); }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="top-bar">
+    <span class="brand">@range_medical</span>
+    <span class="slide-num">05 / 06</span>
+  </div>
+  <div class="section-tag">Side by Side</div>
+  <div class="section-rule"></div>
+  <div class="v-divider"></div>
+
+  <div class="panel-left">
+    <div class="p-price">$350</div>
+    <div class="p-name">Essential</div>
+    <div class="p-rule"></div>
+    <div class="item"><div class="item-label">Hormones</div><div class="item-val">Testosterone, Estradiol, SHBG</div></div>
+    <div class="item"><div class="item-label">Thyroid</div><div class="item-val">TSH, Free T3, Total T4, TPO Ab</div></div>
+    <div class="item"><div class="item-label">Metabolic</div><div class="item-val">CMP, Lipid Panel, HbA1c, Fasting Insulin</div></div>
+    <div class="item"><div class="item-label">General</div><div class="item-val">CBC, Vitamin D</div></div>
+  </div>
+
+  <div class="panel-right">
+    <div class="p-price">$750</div>
+    <div class="p-name">Elite</div>
+    <div class="p-rule"></div>
+    <div class="item"><div class="item-label">Everything in Essential, plus&#8230;</div></div>
+    <div class="item"><div class="item-label">Advanced Thyroid</div><div class="item-val highlight">Free T4, Thyroglobulin Antibodies</div></div>
+    <div class="item"><div class="item-label">Cardiovascular</div><div class="item-val highlight">hs-CRP, ApoB, ApoA-1, Lp(a), Homocysteine</div></div>
+    <div class="item"><div class="item-label">Deeper Hormones</div><div class="item-val highlight">DHEA-S, Cortisol, IGF-1</div></div>
+    <div class="item"><div class="item-label">Vitamins &amp; Minerals</div><div class="item-val highlight">B12, Folate, Magnesium, Ferritin, Iron</div></div>
+  </div>
+
+  <div class="bottom-bar">
+    <span class="next">How It Works &#8594;</span>
+  </div>
+</div>
+</body>
+</html>

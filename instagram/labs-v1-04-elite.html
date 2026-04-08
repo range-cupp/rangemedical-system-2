@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Labs Slide 04 — Elite Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#0A0A0A; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#0A0A0A; }
+  .slide::before { content:''; position:absolute; inset:0; background-image:radial-gradient(circle,rgba(255,255,255,0.045) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; }
+
+  .top-bar { position:absolute; top:72px; left:72px; right:72px; display:flex; justify-content:space-between; align-items:center; z-index:2; }
+  .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(255,255,255,0.5); }
+  .slide-num { font-size:18px; font-weight:500; color:rgba(255,255,255,0.28); }
+
+  .section-tag { position:absolute; top:130px; left:72px; font-size:18px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:rgba(255,255,255,0.28); z-index:2; }
+  .section-rule { position:absolute; top:162px; left:72px; right:72px; height:1px; background:rgba(255,255,255,0.1); z-index:2; }
+
+  .price-block { position:absolute; top:188px; left:72px; z-index:2; display:flex; align-items:baseline; gap:20px; }
+  .price { font-size:72px; font-weight:800; letter-spacing:-3px; color:#FFFFFF; line-height:1.0; }
+  .panel-name { font-size:32px; font-weight:400; color:rgba(255,255,255,0.35); letter-spacing:-0.5px; }
+  .panel-sub { position:absolute; top:272px; left:72px; font-size:30px; font-weight:400; color:rgba(255,255,255,0.35); z-index:2; }
+
+  .cat { position:absolute; left:72px; right:72px; z-index:2; }
+  .cat-rule { width:100%; height:1px; background:rgba(255,255,255,0.1); margin-bottom:20px; }
+  .cat-num { font-size:18px; font-weight:700; letter-spacing:0.2em; color:rgba(255,255,255,0.2); margin-bottom:10px; }
+  .cat-name { font-size:56px; font-weight:800; letter-spacing:-2.5px; line-height:1.0; color:#FFFFFF; margin-bottom:8px; }
+  .cat-desc { font-size:40px; font-weight:400; line-height:1.5; color:rgba(255,255,255,0.45); }
+
+  .cat-1 { top:310px; }
+  .cat-2 { top:550px; }
+  .cat-3 { top:790px; }
+
+  .bottom-bar { position:absolute; bottom:60px; left:72px; right:72px; display:flex; justify-content:flex-end; border-top:1px solid rgba(255,255,255,0.08); padding-top:18px; z-index:2; }
+  .next { font-size:18px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.28); }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="top-bar">
+    <span class="brand">@range_medical</span>
+    <span class="slide-num">04 / 06</span>
+  </div>
+  <div class="section-tag">Elite Panel</div>
+  <div class="section-rule"></div>
+
+  <div class="price-block">
+    <div class="price">$750</div>
+    <div class="panel-name">Everything in Essential, plus&#8230;</div>
+  </div>
+  <div class="panel-sub">Everything in Essential, plus cardiovascular, hormones, and nutrient depth.</div>
+
+  <div class="cat cat-1">
+    <div class="cat-rule"></div>
+    <div class="cat-num">01</div>
+    <div class="cat-name">Cardiovascular Risk</div>
+    <div class="cat-desc">hs-CRP, ApoB, ApoA-1, Lp(a), Homocysteine. The markers most standard panels skip entirely.</div>
+  </div>
+
+  <div class="cat cat-2">
+    <div class="cat-rule"></div>
+    <div class="cat-num">02</div>
+    <div class="cat-name">Deeper Hormones</div>
+    <div class="cat-desc">DHEA-S, Cortisol, IGF-1, Free T4, Thyroglobulin Antibodies.</div>
+  </div>
+
+  <div class="cat cat-3">
+    <div class="cat-rule"></div>
+    <div class="cat-num">03</div>
+    <div class="cat-name">Vitamins &amp; Minerals</div>
+    <div class="cat-desc">B12, Folate, Magnesium, Ferritin, Iron. The deficiencies behind most chronic fatigue.</div>
+  </div>
+
+  <div class="bottom-bar">
+    <span class="next">Essential vs. Elite &#8594;</span>
+  </div>
+</div>
+</body>
+</html>

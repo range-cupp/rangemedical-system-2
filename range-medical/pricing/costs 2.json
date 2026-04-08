@@ -1,0 +1,1629 @@
+{
+  "version": "1.2",
+  "last_updated": "2026-03-18",
+  "clinic": "Range Medical — Newport Beach",
+  "suppliers": {
+    "primex": "Lab testing — per-test cost from Primex pricing sheet",
+    "pyxis": "Peptides, GLP-1, NAD+ — per-vial cost from Pyxis catalog",
+    "anazao": "AnazaoHealth FDA 503B — NAD+ IV, Vit C, Glutathione, HRT (all prices include $2 CA surcharge)",
+    "merit": "Merit Pharmaceutical — pharmaceutical-grade injectables and IV supplies (B12, MgSO4, UV tubing, hardware)",
+    "ald": "Advanced Light Devices, LLC — Las Vegas NV. Actual supplier for compounded Methylene Blue IV (Gene@aldmed.com)",
+    "ald_anazao": "Dual-source — MB from Advanced Light Devices, VitC from AnazaoHealth",
+    "estimated": "No invoice yet — estimated value, verify before relying on margin calc",
+    "depreciation_model": "HBOT/RLT — equipment depreciation + consumables per session"
+  },
+  "notes": {
+    "lab_cogs": "Confirmed from Primex lab pricing sheet (RANGE MEDICAL Lab Prices.pdf). Costs = sum of individual test charges.",
+    "nad_cogs": "Confirmed from Pyxis: NAD 1000mg = $77/vial (includes 10% markup). Per-session cost = (mg_used / 1000) * $77 + $10 bag/consumables.",
+    "vitc_cogs": "Confirmed from McGuff Invoice 1074504-IN: Ascor® 500mg/mL 50mL PBP vial = $30.00 ($1.20/g). 25g=1 vial, 50g=2 vials, 75g=3 vials. Add $2.34/vial for SwanLock dispensing pin. Previously sourced from AnazaoHealth at $2.93/g — McGuff is 59% cheaper.",
+    "peptide_cogs": "Confirmed from Pyxis vial costs. Per-protocol cost = vials_needed * vial_price. Phase durations estimated — verify against actual protocol sheets.",
+    "glp1_cogs": "Confirmed from Pyxis. Tirzepatide 40mg = $220/vial (10% markup applied). Retatrutide 20mg = $154/vial (10% markup applied). Monthly cost calculated from standard titration dosing — verify against actual dose schedules.",
+    "semaglutide_cogs": "Semaglutide NOT in Pyxis catalog — source and cost TBD.",
+    "hbot_rlt_cogs": "Modeled as depreciation + O2 + consumables. Update with actual equipment cost and session capacity.",
+    "pyxis_unlisted_services": "Pyxis catalog includes products not yet in services.json: IGF-LR3 ($45), TA1/$55, AOD9604 ($45), BPC standalone 5mg ($20), Selank ($30), SS31 ($70), DSIP ($20), Follistatin ($80), HGH 100iu ($150), Epithalon ($45). Consider adding to menu."
+  },
+
+  "costs": [
+
+    // ─── LAB PANELS ───────────────────────────────────────────────────────────
+    // Source: Primex pricing sheet. All confirmed.
+
+    {
+      "id": "lab-mens-essential",
+      "name": "Men's Essential Panel",
+      "cogs": 149.03,
+      "cogs_source": "primex",
+      "primex_panel_code": "9492",
+      "primex_panel_name": "Male HRT Panel",
+      "sell_price": 350,
+      "gross_margin_pct": 57.4,
+      "notes": "CMP, Lipid, CBC, Estradiol, HbA1c, Fasting Insulin, PSA Total, SHBG, Free T3, Total T4, Free/Total Testosterone, TPO, TSH, Vit D"
+    },
+    {
+      "id": "lab-womens-essential",
+      "name": "Women's Essential Panel",
+      "cogs": 171.03,
+      "cogs_source": "primex",
+      "primex_panel_code": "9493",
+      "primex_panel_name": "Female HRT Panel",
+      "sell_price": 350,
+      "gross_margin_pct": 51.1,
+      "notes": "CMP, Lipid, CBC, Estradiol, FSH, LH, HbA1c, Fasting Insulin, Progesterone, SHBG, Free T3, Total T4, Free/Total Testosterone, TPO, TSH, Vit D"
+    },
+    {
+      "id": "lab-mens-elite",
+      "name": "Men's Elite Panel",
+      "cogs": 349.06,
+      "cogs_source": "primex",
+      "primex_panel_code": "9506",
+      "primex_panel_name": "Male Annual PNL",
+      "sell_price": 750,
+      "gross_margin_pct": 53.5,
+      "notes": "Full annual panel. See primex_test_costs for full breakdown."
+    },
+    {
+      "id": "lab-womens-elite",
+      "name": "Women's Elite Panel",
+      "cogs": 389.03,
+      "cogs_source": "primex",
+      "primex_panel_code": "9505",
+      "primex_panel_name": "Female Annual PNL",
+      "sell_price": 750,
+      "gross_margin_pct": 48.1,
+      "notes": "Full annual panel. See primex_test_costs for full breakdown."
+    },
+    {
+      "id": "lab-mb-prescreening",
+      "name": "MB Pre-Screening Panel (G6PD, CMP, CBC)",
+      "cogs": 18.00,
+      "cogs_source": "primex_partial",
+      "needs_verification": true,
+      "sell_price": 125,
+      "gross_margin_pct": 85.6,
+      "notes": "CMP ($7.00) + CBC ($4.00) + G6PD (~$7 est). G6PD is a Primex send-out test — not in their standard catalog. Confirm cost directly with Primex rep."
+    },
+
+    // ─── REFERENCE PANELS (internal monitoring, not standalone services) ──────
+
+    {
+      "id": "_ref-male-post-panel",
+      "name": "[REF] Male Post Panel (8977)",
+      "cogs": 52.98,
+      "cogs_source": "primex",
+      "primex_panel_code": "8977",
+      "notes": "CMP, CBC, Estradiol, PSA, Total/Free Testosterone. Used for HRT follow-up."
+    },
+    {
+      "id": "_ref-female-post-panel",
+      "name": "[REF] Female Post Panel (8979)",
+      "cogs": 43.98,
+      "cogs_source": "primex",
+      "primex_panel_code": "8979",
+      "notes": "CMP, CBC, Estradiol, Free/Total Testosterone. Used for HRT follow-up."
+    },
+    {
+      "id": "_ref-weight-loss-panel",
+      "name": "[REF] Weight Loss Panel (9507)",
+      "cogs": 70.03,
+      "cogs_source": "primex",
+      "primex_panel_code": "9507",
+      "notes": "CMP, Lipid, CBC, HbA1c, Insulin, Free T3, Free T4, TPO AB, TSH. Used for GLP-1 patient monitoring."
+    },
+
+    // ─── IV THERAPY — STANDARD ────────────────────────────────────────────────
+    // Range IV: FULLY CONFIRMED from two actual IV infusion notes (March 2026) + Anazao price list.
+    // Four specialty IVs: ESTIMATED from ingredient tags on range-medical.com/iv-therapy.
+    //                     All doses assumed — need infusion notes or nurse protocol to confirm.
+    //
+    // CONFIRMED RANGE IV RECIPE (in 500mL 0.9% NS):
+    //   Vitamin C (Ascor® 500mg/mL):               2mL = 1g     → $1.20  (McGuff $30/25g vial)
+    //   Methylcobalamin B12 (5,000mcg/mL):          2mL = 10mg   → $9.57  (Anazao $45.86+$2CA)
+    //   B-Complex/Vita-Complex:                     2–3mL        → $8.27–$12.40 (THS $124/30mL)
+    //   Mineral Blend (Mg/Zn/Mn/Cu):                1mL          → $4.53  (THS $136/30mL)
+    //   Glutathione IV push (200mg):                1mL          → $1.57  (Anazao $47/30mL)
+    //   Hardware (500mL saline bag + set):                       → $10.33
+    //   TOTAL (2.5mL B-Complex avg):                             → $37.53
+    //
+    // SPECIALTY IV INGREDIENT TAGS (from website — doses TBD):
+    //   Immune Defense:         VitC | Zinc | Glutathione | B-Complex | Magnesium
+    //   Energy & Vitality:      B12 | B-Complex | L-Carnitine | Magnesium | Vitamin C
+    //   Muscle Recovery:        Amino Acids | Magnesium | B-Complex | Vitamin C | Glutathione
+    //   Detox & Cellular:       Glutathione | Vitamin C | NAC | Zinc | Magnesium
+
+    {
+      "id": "iv-range",
+      "name": "Range IV",
+      "sell_price": 225,
+      "cogs": 37.53,
+      "gross_margin_pct": 83.5,
+      "cogs_source": "ths_mcguff_anazao",
+      "cogs_breakdown": {
+        "vitc_2ml": 1.20,
+        "vitc_calc": "2mL × $0.60/mL (Ascor® McGuff, 500mg/mL)",
+        "b12_methyl_2ml": 9.57,
+        "b12_calc": "2mL × $4.786/mL (Anazao Methylcobalamin 5,000mcg/mL 10mL MDV, $45.86+$2CA = $47.86/vial)",
+        "bcomplex_2_5ml_avg": 10.33,
+        "bcomplex_calc": "2.5mL avg (2–3mL range) × $4.133/mL (Olympia Vita-Complex, THS $124/30mL)",
+        "mineral_blend_1ml": 4.53,
+        "mineral_calc": "1mL × $4.533/mL (THS Mineral Blend $136/30mL)",
+        "glutathione_push_200mg": 1.57,
+        "glutathione_calc": "1mL / 30mL × $47 (AnazaoHealth Glutathione 200mg/mL)",
+        "iv_hardware_500ml": 10.33,
+        "iv_hardware_note": "500mL NS bag ($4.20) + catheter ($2.735) + IV set ($2.785) + draw needle ($0.088) + misc ($0.52)"
+      },
+      "confirmed_from": "Two IV infusion notes (Damien + Nurse Lily, March 2026). B12 sourced from AnazaoHealth price list June 2025.",
+      "notes": "All ingredient costs fully confirmed from invoices. B-Complex dose varies 2–3mL per nurse; $37.53 uses 2.5mL avg. Range: $35.40 (2mL) – $39.67 (3mL)."
+    },
+    {
+      "id": "iv-immune-defense",
+      "name": "Immune Defense IV",
+      "sell_price": 225,
+      "cogs": 44.26,
+      "gross_margin_pct": 80.3,
+      "cogs_source": "ths_mcguff_anazao_estimated",
+      "needs_verification": true,
+      "cogs_breakdown": {
+        "vitc_15g": 18.00,
+        "vitc_calc": "30mL × $0.60/mL (Ascor® 500mg/mL, partial vial, pin amortized)",
+        "bcomplex_2ml": 8.27,
+        "bcomplex_calc": "2mL × $4.133/mL (Olympia Vita-Complex, THS $124/30mL)",
+        "mineral_blend_1ml": 4.53,
+        "mineral_calc": "1mL × $4.533/mL (Mg+Zn+Mn+Cu, THS $136/30mL)",
+        "glutathione_400mg": 3.13,
+        "glutathione_calc": "2mL × $1.567/mL (Anazao 200mg/mL, $47/30mL) — 400mg push",
+        "iv_hardware_500ml": 10.33
+      },
+      "ingredient_tags": ["Vitamin C", "Zinc", "Glutathione", "B-Complex", "Magnesium"],
+      "dose_assumptions": "VitC 15g (30mL) — most uncertain item. Could be 10g ($12) or 25g ($32.34+pin). Glutathione assumed 400mg (2×). Confirm all doses.",
+      "notes": "No B12 vs Range IV (saves $9.57). Adds extra VitC + higher Glutathione. COGS range: ~$38 (10g VitC) to ~$59 (25g VitC) → margin range 74%–83% at $225."
+    },
+    {
+      "id": "iv-energy-vitality",
+      "name": "Energy & Vitality IV",
+      "sell_price": 225,
+      "cogs": 49.96,
+      "gross_margin_pct": 77.8,
+      "cogs_source": "ths_mcguff_anazao_estimated",
+      "needs_verification": true,
+      "cogs_breakdown": {
+        "vitc_2ml": 1.20,
+        "vitc_calc": "2mL × $0.60/mL (Ascor® 500mg/mL)",
+        "b12_methyl_2ml": 9.57,
+        "b12_calc": "2mL × $4.786/mL (Anazao Methylcobalamin 5,000mcg/mL)",
+        "bcomplex_2_5ml_avg": 10.33,
+        "bcomplex_calc": "2.5mL avg × $4.133/mL (Olympia Vita-Complex, THS $124/30mL)",
+        "lcarnitine_4ml": 14.00,
+        "lcarnitine_calc": "4mL × $3.50/mL (Olympia L-Carnitine 500mg/mL, THS $105/30mL) — 2g dose assumed",
+        "mineral_blend_1ml": 4.53,
+        "mineral_calc": "1mL × $4.533/mL (Mg source, THS $136/30mL)",
+        "iv_hardware_500ml": 10.33
+      },
+      "ingredient_tags": ["B12", "B-Complex", "L-Carnitine", "Magnesium", "Vitamin C"],
+      "dose_assumptions": "L-Carnitine assumed 2g (4mL at 500mg/mL). Could be 1g (2mL=$7) or 3g (6mL=$21). B12 same dose as Range IV. Confirm L-Carnitine dose.",
+      "notes": "Most expensive of the four specialty IVs due to L-Carnitine. COGS range: ~$43 (1g L-Carnitine) to ~$57 (3g) → margin range 74%–81% at $225."
+    },
+    {
+      "id": "iv-muscle-recovery",
+      "name": "Muscle Recovery & Performance IV",
+      "sell_price": 225,
+      "cogs": 37.60,
+      "gross_margin_pct": 83.3,
+      "cogs_source": "ths_mcguff_anazao_estimated",
+      "needs_verification": true,
+      "cogs_breakdown": {
+        "vitc_2ml": 1.20,
+        "vitc_calc": "2mL × $0.60/mL (Ascor® 500mg/mL)",
+        "bcomplex_2_5ml_avg": 10.33,
+        "bcomplex_calc": "2.5mL avg × $4.133/mL (Olympia Vita-Complex, THS $124/30mL)",
+        "aminomultiplex_5ml": 8.08,
+        "aminomultiplex_calc": "5mL × $1.617/mL (Anazao AminoMultiPlex Preserved, $48.50/30mL)",
+        "mineral_blend_1ml": 4.53,
+        "mineral_calc": "1mL × $4.533/mL (Mg source, THS $136/30mL)",
+        "glutathione_400mg": 3.13,
+        "glutathione_calc": "2mL × $1.567/mL (Anazao 200mg/mL) — 400mg push",
+        "iv_hardware_500ml": 10.33
+      },
+      "ingredient_tags": ["Amino Acids", "Magnesium", "B-Complex", "Vitamin C", "Glutathione"],
+      "dose_assumptions": "AminoMultiPlex assumed 5mL. Could be 10mL ($16.17) for higher amino dose. No B12 (saves $9.57 vs Range IV). Confirm AminoMultiPlex dose.",
+      "notes": "Best margin of the four at 83.3%. COGS range: ~$38 (5mL amino) to ~$46 (10mL) → stays above 80% either way at $225."
+    },
+    {
+      "id": "iv-detox-cellular",
+      "name": "Detox & Cellular Repair IV",
+      "sell_price": 225,
+      "cogs": 42.26,
+      "gross_margin_pct": 81.2,
+      "cogs_source": "ths_mcguff_anazao_estimated",
+      "needs_verification": true,
+      "cogs_breakdown": {
+        "vitc_10g": 12.00,
+        "vitc_calc": "20mL × $0.60/mL (Ascor® 500mg/mL, 10g dose, partial vial)",
+        "glutathione_600mg": 4.70,
+        "glutathione_calc": "3mL × $1.567/mL (Anazao 200mg/mL) — 600mg push for detox",
+        "nac_3ml": 10.70,
+        "nac_calc": "3mL × $3.567/mL (THS NAC 200mg/mL, $107/30mL) — 600mg dose",
+        "mineral_blend_1ml": 4.53,
+        "mineral_calc": "1mL × $4.533/mL (Mg+Zn source, THS $136/30mL)",
+        "iv_hardware_500ml": 10.33
+      },
+      "ingredient_tags": ["Glutathione", "Vitamin C", "NAC", "Zinc", "Magnesium"],
+      "dose_assumptions": "VitC assumed 10g (20mL). NAC assumed 600mg (3mL). Glutathione assumed 600mg (3mL, higher for detox). No B12, no B-Complex. Confirm all doses.",
+      "notes": "NAC is the most expensive component per mL ($3.567). VitC dose is the biggest variable: $2 (1g) to $32 (25g). COGS range: ~$32–$54 → margin stays above 76% at $225."
+    },
+    {
+      "id": "iv-addon",
+      "name": "IV Add-on (Single Nutrient)",
+      "cogs": 8.00,
+      "sell_price": 35,
+      "gross_margin_pct": 77.1,
+      "cogs_source": "estimated",
+      "needs_verification": true,
+      "notes": "Website: 'Add on any additional nutrient for $35 each.' COGS varies by ingredient: extra VitC 5g=$3, B-Complex 1mL=$4.13, Glutathione 200mg=$1.57, L-Carnitine 1g=$7, NAC 200mg=$3.57. $8 is a mid-range estimate."
+    },
+
+    // ─── IV THERAPY — SPECIALTY ───────────────────────────────────────────────
+    // NAD+ confirmed from Pyxis: $70 per 1000mg vial.
+    // Per-session cost = (mg / 1000) * $70 + $10 bag & consumables.
+    // Glutathione and Vit C: NOT in Pyxis catalog — supplier TBD.
+    // Methylene Blue: NOT in Pyxis catalog — supplier TBD.
+
+    {
+      "id": "iv-nad-225",
+      "name": "NAD+ 225mg",
+      "cogs": 57.60,
+      "cogs_source": "anazao",
+      "cogs_breakdown": {
+        "nad_cost": 45.45,
+        "nad_calc": "225mg / 500mg * $101 (AnazaoHealth 4mL SDV)",
+        "iv_hardware_bundle": 12.15
+      },
+      "sell_price": 375,
+      "gross_margin_pct": 84.6,
+      "anazao_product": "ß-NAD+ 125mg/mL 4mL SDV",
+      "anazao_vial_cost": 101.00
+    },
+    {
+      "id": "iv-nad-500",
+      "name": "NAD+ 500mg",
+      "cogs": 113.15,
+      "cogs_source": "anazao",
+      "cogs_breakdown": {
+        "nad_cost": 101.00,
+        "nad_calc": "1 full vial (AnazaoHealth 4mL SDV = 500mg)",
+        "iv_hardware_bundle": 12.15
+      },
+      "sell_price": 525,
+      "gross_margin_pct": 78.4,
+      "anazao_vial_cost": 101.00
+    },
+    {
+      "id": "iv-nad-750",
+      "name": "NAD+ 750mg",
+      "cogs": 163.65,
+      "cogs_source": "anazao",
+      "cogs_breakdown": {
+        "nad_cost": 151.50,
+        "nad_calc": "1.5 vials * $101",
+        "iv_hardware_bundle": 12.15
+      },
+      "sell_price": 650,
+      "gross_margin_pct": 74.8,
+      "anazao_vial_cost": 101.00
+    },
+    {
+      "id": "iv-nad-1000",
+      "name": "NAD+ 1000mg",
+      "cogs": 214.15,
+      "cogs_source": "anazao",
+      "cogs_breakdown": {
+        "nad_cost": 202.00,
+        "nad_calc": "2 vials * $101",
+        "iv_hardware_bundle": 12.15
+      },
+      "sell_price": 775,
+      "gross_margin_pct": 72.4,
+      "anazao_vial_cost": 101.00
+    },
+    {
+      "id": "iv-vitc-25",
+      "name": "Vitamin C 25g",
+      "cogs": 44.49,
+      "cogs_source": "mcguff",
+      "cogs_breakdown": {
+        "vitc_cost": 30.00,
+        "vitc_calc": "25g / 25g per vial * $30.00 = 1 vial (Ascor® 500mg/mL 50mL)",
+        "dispensing_pin": 2.34,
+        "dispensing_pin_note": "1x SwanLock C350N vial adapter @ $2.34",
+        "iv_hardware_bundle": 12.15
+      },
+      "sell_price": 215,
+      "gross_margin_pct": 79.3,
+      "mcguff_product": "Ascor® Ascorbic Acid Injection USP 500mg/mL 50mL PBP",
+      "mcguff_vial_cost": 30.00,
+      "mcguff_invoice": "1074504-IN"
+    },
+    {
+      "id": "iv-vitc-50",
+      "name": "Vitamin C 50g",
+      "cogs": 76.83,
+      "cogs_source": "mcguff",
+      "cogs_breakdown": {
+        "vitc_cost": 60.00,
+        "vitc_calc": "50g / 25g per vial * $30.00 = 2 vials (Ascor® 500mg/mL 50mL)",
+        "dispensing_pins": 4.68,
+        "dispensing_pins_note": "2x SwanLock C350N vial adapters @ $2.34 each",
+        "iv_hardware_bundle": 12.15
+      },
+      "sell_price": 255,
+      "gross_margin_pct": 69.9,
+      "mcguff_vial_cost": 30.00,
+      "mcguff_invoice": "1074504-IN"
+    },
+    {
+      "id": "iv-vitc-75",
+      "name": "Vitamin C 75g",
+      "cogs": 109.17,
+      "cogs_source": "mcguff",
+      "cogs_breakdown": {
+        "vitc_cost": 90.00,
+        "vitc_calc": "75g / 25g per vial * $30.00 = 3 vials (Ascor® 500mg/mL 50mL)",
+        "dispensing_pins": 7.02,
+        "dispensing_pins_note": "3x SwanLock C350N vial adapters @ $2.34 each",
+        "iv_hardware_bundle": 12.15
+      },
+      "sell_price": 330,
+      "gross_margin_pct": 66.9,
+      "mcguff_vial_cost": 30.00,
+      "mcguff_invoice": "1074504-IN"
+    },
+    {
+      "id": "iv-glutathione-1g",
+      "name": "Glutathione 1g",
+      "cogs": 19.98,
+      "cogs_source": "anazao",
+      "cogs_breakdown": {
+        "glut_cost": 7.83,
+        "glut_calc": "1g / 6g per vial * $47 (30mL MDV)",
+        "iv_hardware_bundle": 12.15
+      },
+      "sell_price": 170,
+      "gross_margin_pct": 88.3,
+      "anazao_product": "Glutathione (Preserved) 200mg/mL 30mL MDV",
+      "anazao_vial_cost": 47.00
+    },
+    {
+      "id": "iv-glutathione-2g",
+      "name": "Glutathione 2g",
+      "cogs": 27.81,
+      "cogs_source": "anazao",
+      "cogs_breakdown": {
+        "glut_cost": 15.67,
+        "glut_calc": "2g / 6g per vial * $47",
+        "iv_hardware_bundle": 12.15
+      },
+      "sell_price": 190,
+      "gross_margin_pct": 85.4,
+      "anazao_vial_cost": 47.00
+    },
+    {
+      "id": "iv-glutathione-3g",
+      "name": "Glutathione 3g",
+      "cogs": 35.65,
+      "cogs_source": "anazao",
+      "cogs_breakdown": {
+        "glut_cost": 23.50,
+        "glut_calc": "3g / 6g per vial * $47",
+        "iv_hardware_bundle": 12.15
+      },
+      "sell_price": 215,
+      "gross_margin_pct": 83.4,
+      "anazao_vial_cost": 47.00
+    },
+    {
+      "id": "iv-methylene-blue",
+      "name": "Methylene Blue IV",
+      "cogs": 18.40,
+      "cogs_source": "ald",
+      "needs_verification": true,
+      "cogs_breakdown": {
+        "mb_drug_cost": 4.33,
+        "mb_calc": "5mg dose / 100mg per vial (assumed 10mg/mL × 10mL) × $86.66 = 1/20 vial",
+        "mb_drug_source": "Advanced Light Devices LLC — Sterile 10mL 0.2um Filtered MB, $85/vial + $1.66 shipping",
+        "sessions_per_vial": 20,
+        "iv_hardware_bundle_uv": 14.07,
+        "iv_hardware_note": "UV-protective tubing (UV004) required for MB — prevents photodegradation"
+      },
+      "ald_product": "Sterile 10mL Methylene Blue, 0.2um Filtered (Invoice #4443)",
+      "ald_vial_cost": 85.00,
+      "ald_vial_cost_with_shipping": 86.66,
+      "session_dose_mg": 5,
+      "concentration_assumption": "10mg/mL — VERIFY with label or ALD",
+      "notes": "Dose CONFIRMED at 5mg per session. Vial cost CONFIRMED from ALD Invoice #4443. Concentration assumed 10mg/mL (1% standard compounded MB) — if different, recalculate: cost_per_session = $86.66 / (vial_total_mg / 5)."
+    },
+    {
+      "id": "iv-mb-vitc-mag-combo",
+      "name": "MB + Vit C + Mag Combo",
+      "cogs": 93.77,
+      "cogs_source": "ald_anazao",
+      "needs_verification": true,
+      "cogs_breakdown": {
+        "mb_drug_cost": 4.33,
+        "mb_calc": "5mg / 100mg per vial × $86.66 (ALD, Invoice #4443)",
+        "vitc_cost": 73.32,
+        "vitc_calc": "25g / 15g per vial × $43.99 (AnazaoHealth 30mL MDV) — VitC dose UNCONFIRMED",
+        "mag_cost": 2.05,
+        "mag_calc": "~1g MgSO4 assumed / 5g per vial × $6.50 (Merit MgSO4 50%) — Mag dose UNCONFIRMED",
+        "iv_hardware_bundle_uv": 14.07,
+        "iv_hardware_note": "UV-protective tubing required for MB"
+      },
+      "notes": "MB cost now confirmed (5mg, ALD source). VitC dose and Mag dose still unconfirmed — using 25g VitC and 1g Mag as placeholders. Confirm recipe with provider."
+    },
+
+    // ─── INJECTIONS ───────────────────────────────────────────────────────────
+    // NAD+ injection costs confirmed from supplier invoices.
+    // Standard/Premium: confirmed products on shelf from Olympia via THS.
+    // Individual product costs now known; dose per injection still needs confirmation.
+    //
+    // Known COGS per product per typical injection dose (Olympia via THS):
+    //   Vita-Complex (B-Complex):   2mL × $4.133/mL = $8.27 drug + $0.42 hardware = $8.69
+    //   Vitamin D3:                 1mL × $3.367/mL = $3.37 drug + $0.42 hardware = $3.79
+    //   L-Carnitine:                2mL × $3.500/mL = $7.00 drug + $0.42 hardware = $7.42
+    //   Methylcobalamin B12:        PRICE UNKNOWN — not in any invoice on file
+    //   MIC (Met/Inos/Chol):        PRICE UNKNOWN — not in any invoice on file
+    //   Glutathione push (2g):      2/6 vial × $47 (Anazao 30mL) = $15.67 + $0.42 = $16.09
+
+    {
+      "id": "inj-standard",
+      "name": "Standard Injection",
+      "cogs": 5.50,
+      "cogs_source": "ths_partial",
+      "needs_verification": true,
+      "cogs_breakdown": {
+        "range_low": 3.79,
+        "range_low_basis": "D3 injection: 1mL × $3.367 + $0.42 hardware",
+        "range_high": 8.69,
+        "range_high_basis": "B-Complex injection: 2mL × $4.133 + $0.42 hardware",
+        "estimate_used": 5.50,
+        "estimate_basis": "Mid-range estimate pending B12/MIC price confirmation"
+      },
+      "notes": "Olympia products via THS confirmed on shelf (B-Complex $124/30mL, D3 $101/30mL, L-Carnitine $105/30mL). Methylcobalamin B12 and MIC prices still unknown — not in any THS invoice. Dose per injection unconfirmed. Range: $3.79 (D3) to $8.69 (B-Complex)."
+    },
+    {
+      "id": "inj-premium",
+      "name": "Premium Injection",
+      "cogs": 10.00,
+      "cogs_source": "ths_partial",
+      "needs_verification": true,
+      "cogs_breakdown": {
+        "lcarnitine_2ml": 7.42,
+        "lcarnitine_basis": "2mL × $3.50 (Olympia L-Carnitine) + $0.42 hardware",
+        "glutathione_push_2g": 16.09,
+        "glutathione_basis": "2g/6g vial × $47 (Anazao 30mL) + $0.42 hardware",
+        "mic_cost": "UNKNOWN — no invoice on file",
+        "estimate_used": 10.00,
+        "estimate_basis": "L-Carnitine shot mid-estimate; higher if glutathione or MIC included"
+      },
+      "notes": "L-Carnitine confirmed at $105/30mL (Olympia via THS). MIC price unknown — not in any invoice. If premium = L-Carnitine only: $7.42. If L-Carnitine + MIC: ~$12-15. If Glutathione push: $16.09. Clarify what 'Premium Injection' maps to in Stripe transactions."
+    },
+    {
+      "id": "inj-nad-50",
+      "name": "NAD+ Injection 50mg",
+      "default_source": "anazao",
+      "cogs": 12.57,
+      "cogs_source": "anazao",
+      "cost_variants": {
+        "anazao": {
+          "cogs": 12.57,
+          "gross_margin_pct": 49.7,
+          "breakdown": { "nad_cost": 10.10, "calc": "50mg / 500mg * $101 (AnazaoHealth 4mL SDV)", "hardware": 2.47 }
+        },
+        "pyxis": {
+          "cogs": 6.32,
+          "gross_margin_pct": 74.7,
+          "breakdown": { "nad_cost": 3.85, "calc": "50mg / 1000mg * $77 (Pyxis 1000mg vial, 10% markup)", "hardware": 2.47 }
+        }
+      },
+      "sell_price": 25,
+      "notes": "Dual-source. Set supplier_used on transaction to 'anazao' or 'pyxis'. Falls back to default_source if not set."
+    },
+    {
+      "id": "inj-nad-75",
+      "name": "NAD+ Injection 75mg",
+      "default_source": "anazao",
+      "cogs": 17.62,
+      "cogs_source": "anazao",
+      "cost_variants": {
+        "anazao": {
+          "cogs": 17.62,
+          "gross_margin_pct": 53.0,
+          "breakdown": { "nad_cost": 15.15, "calc": "75mg / 500mg * $101", "hardware": 2.47 }
+        },
+        "pyxis": {
+          "cogs": 8.25,
+          "gross_margin_pct": 78.0,
+          "breakdown": { "nad_cost": 5.78, "calc": "75mg / 1000mg * $77 (Pyxis 1000mg vial, 10% markup)", "hardware": 2.47 }
+        }
+      },
+      "sell_price": 37.50,
+      "notes": "Dual-source. Set supplier_used on transaction to 'anazao' or 'pyxis'. Falls back to default_source if not set."
+    },
+    {
+      "id": "inj-nad-100",
+      "name": "NAD+ Injection 100mg",
+      "default_source": "anazao",
+      "cogs": 22.67,
+      "cogs_source": "anazao",
+      "cost_variants": {
+        "anazao": {
+          "cogs": 22.67,
+          "gross_margin_pct": 54.7,
+          "breakdown": { "nad_cost": 20.20, "calc": "100mg / 500mg * $101", "hardware": 2.47 }
+        },
+        "pyxis": {
+          "cogs": 10.17,
+          "gross_margin_pct": 79.7,
+          "breakdown": { "nad_cost": 7.70, "calc": "100mg / 1000mg * $77 (Pyxis 1000mg vial, 10% markup)", "hardware": 2.47 }
+        }
+      },
+      "sell_price": 50,
+      "notes": "Dual-source. Set supplier_used on transaction to 'anazao' or 'pyxis'. Falls back to default_source if not set."
+    },
+    {
+      "id": "inj-nad-125",
+      "name": "NAD+ Injection 125mg",
+      "default_source": "anazao",
+      "cogs": 27.72,
+      "cogs_source": "anazao",
+      "cost_variants": {
+        "anazao": {
+          "cogs": 27.72,
+          "gross_margin_pct": 55.6,
+          "breakdown": { "nad_cost": 25.25, "calc": "125mg / 500mg * $101", "hardware": 2.47 }
+        },
+        "pyxis": {
+          "cogs": 12.10,
+          "gross_margin_pct": 80.6,
+          "breakdown": { "nad_cost": 9.63, "calc": "125mg / 1000mg * $77 (Pyxis 1000mg vial, 10% markup)", "hardware": 2.47 }
+        }
+      },
+      "sell_price": 62.50,
+      "notes": "Dual-source. Set supplier_used on transaction to 'anazao' or 'pyxis'. Falls back to default_source if not set."
+    },
+    {
+      "id": "inj-nad-150",
+      "name": "NAD+ Injection 150mg",
+      "default_source": "anazao",
+      "cogs": 32.77,
+      "cogs_source": "anazao",
+      "cost_variants": {
+        "anazao": {
+          "cogs": 32.77,
+          "gross_margin_pct": 56.3,
+          "breakdown": { "nad_cost": 30.30, "calc": "150mg / 500mg * $101", "hardware": 2.47 }
+        },
+        "pyxis": {
+          "cogs": 14.02,
+          "gross_margin_pct": 81.3,
+          "breakdown": { "nad_cost": 11.55, "calc": "150mg / 1000mg * $77 (Pyxis 1000mg vial, 10% markup)", "hardware": 2.47 }
+        }
+      },
+      "sell_price": 75,
+      "notes": "Dual-source. Set supplier_used on transaction to 'anazao' or 'pyxis'. Falls back to default_source if not set."
+    },
+    {
+      "id": "inj-cortisone",
+      "name": "Cortisone Injection + Consult",
+      "cogs": 35.00,
+      "cogs_source": "estimated",
+      "needs_verification": true,
+      "notes": "Corticosteroid vial + syringe + consumables. Confirm with supply invoices."
+    },
+
+    // ─── HBOT ─────────────────────────────────────────────────────────────────
+    // Model: depreciation + oxygen + consumables per session.
+    // Update depreciation with actual chamber purchase price and session capacity.
+
+    {
+      "id": "hbot-single",
+      "name": "HBOT — Single Session",
+      "cogs": 28.00,
+      "cogs_source": "depreciation_model",
+      "needs_verification": true,
+      "cogs_breakdown": {
+        "depreciation_per_session": 15.00,
+        "oxygen_per_session": 8.00,
+        "consumables_per_session": 5.00
+      },
+      "sell_price": 185,
+      "gross_margin_pct": 84.9
+    },
+    {
+      "id": "hbot-5pack",
+      "name": "HBOT — 5-Session Pack",
+      "cogs": 140.00,
+      "cogs_source": "depreciation_model",
+      "needs_verification": true,
+      "sell_price": 850,
+      "gross_margin_pct": 83.5
+    },
+    {
+      "id": "hbot-10pack",
+      "name": "HBOT — 10-Session Pack",
+      "cogs": 280.00,
+      "cogs_source": "depreciation_model",
+      "needs_verification": true,
+      "sell_price": 1600,
+      "gross_margin_pct": 82.5
+    },
+    {
+      "id": "hbot-member-session",
+      "name": "HBOT — Additional Member Session",
+      "cogs": 28.00,
+      "cogs_source": "depreciation_model",
+      "needs_verification": true,
+      "sell_price": 150,
+      "gross_margin_pct": 81.3
+    },
+    {
+      "id": "hbot-membership-1x",
+      "name": "HBOT Membership — 1x/Week",
+      "cogs": 112.00,
+      "cogs_source": "depreciation_model",
+      "needs_verification": true,
+      "notes": "~4 sessions/month x $28",
+      "sell_price": 549,
+      "gross_margin_pct": 79.6
+    },
+    {
+      "id": "hbot-membership-2x",
+      "name": "HBOT Membership — 2x/Week",
+      "cogs": 224.00,
+      "cogs_source": "depreciation_model",
+      "needs_verification": true,
+      "notes": "~8 sessions/month x $28",
+      "sell_price": 999,
+      "gross_margin_pct": 77.6
+    },
+    {
+      "id": "hbot-membership-3x",
+      "name": "HBOT Membership — 3x/Week",
+      "cogs": 336.00,
+      "cogs_source": "depreciation_model",
+      "needs_verification": true,
+      "notes": "~12 sessions/month x $28",
+      "sell_price": 1399,
+      "gross_margin_pct": 76.0
+    },
+
+    // ─── RED LIGHT THERAPY ────────────────────────────────────────────────────
+
+    {
+      "id": "rlt-single",
+      "name": "RLT — Single Session",
+      "cogs": 5.00,
+      "cogs_source": "depreciation_model",
+      "needs_verification": true,
+      "cogs_breakdown": {
+        "depreciation_per_session": 3.00,
+        "consumables_per_session": 2.00
+      },
+      "sell_price": 85,
+      "gross_margin_pct": 94.1
+    },
+    {
+      "id": "rlt-5pack",
+      "name": "RLT — 5-Pack",
+      "cogs": 25.00,
+      "cogs_source": "depreciation_model",
+      "needs_verification": true,
+      "sell_price": 375,
+      "gross_margin_pct": 93.3
+    },
+    {
+      "id": "rlt-10pack",
+      "name": "RLT — 10-Pack",
+      "cogs": 50.00,
+      "cogs_source": "depreciation_model",
+      "needs_verification": true,
+      "sell_price": 600,
+      "gross_margin_pct": 91.7
+    },
+    {
+      "id": "rlt-member-session",
+      "name": "RLT — Additional Member Session",
+      "cogs": 5.00,
+      "cogs_source": "depreciation_model",
+      "needs_verification": true,
+      "sell_price": 50,
+      "gross_margin_pct": 90.0
+    },
+    {
+      "id": "rlt-membership",
+      "name": "RLT Membership",
+      "cogs": 60.00,
+      "cogs_source": "depreciation_model",
+      "needs_verification": true,
+      "notes": "12 sessions/month included x $5",
+      "sell_price": 399,
+      "gross_margin_pct": 85.0
+    },
+
+    // ─── HBOT + RLT COMBO MEMBERSHIPS ────────────────────────────────────────
+
+    {
+      "id": "combo-membership-1x",
+      "name": "Combo — 1x/Week",
+      "cogs": 132.00,
+      "cogs_source": "depreciation_model",
+      "needs_verification": true,
+      "notes": "4x HBOT ($28) + 4x RLT ($5) = $132/month",
+      "sell_price": 899,
+      "gross_margin_pct": 85.3
+    },
+    {
+      "id": "combo-membership-2x",
+      "name": "Combo — 2x/Week",
+      "cogs": 264.00,
+      "cogs_source": "depreciation_model",
+      "needs_verification": true,
+      "notes": "8x HBOT ($28) + 8x RLT ($5) = $264/month",
+      "sell_price": 1499,
+      "gross_margin_pct": 82.4
+    },
+    {
+      "id": "combo-membership-3x",
+      "name": "Combo — 3x/Week",
+      "cogs": 396.00,
+      "cogs_source": "depreciation_model",
+      "needs_verification": true,
+      "notes": "12x HBOT ($28) + 12x RLT ($5) = $396/month",
+      "sell_price": 1999,
+      "gross_margin_pct": 80.2
+    },
+
+    // ─── PACKAGES ─────────────────────────────────────────────────────────────
+
+    {
+      "id": "pkg-six-week-reset",
+      "name": "Six-Week Cellular Energy Reset",
+      "cogs": 1200.00,
+      "cogs_source": "estimated",
+      "needs_verification": true,
+      "notes": "Update when packages.json is built out with component services."
+    },
+    {
+      "id": "pkg-maintenance-4wk",
+      "name": "Cellular Energy Maintenance (4-Week)",
+      "cogs": 180.00,
+      "cogs_source": "estimated",
+      "needs_verification": true
+    },
+    {
+      "id": "pkg-maintenance-premium-4wk",
+      "name": "Cellular Energy Maintenance Premium (4-Week)",
+      "cogs": 250.00,
+      "cogs_source": "estimated",
+      "needs_verification": true
+    },
+
+    // ─── PRP THERAPY ──────────────────────────────────────────────────────────
+
+    {
+      "id": "prp-single",
+      "name": "PRP — Single Injection",
+      "cogs": 75.00,
+      "cogs_source": "estimated",
+      "needs_verification": true,
+      "notes": "PRP kit (centrifuge tube, needle, syringe) ~$50-90. Confirm with supply invoice."
+    },
+    {
+      "id": "prp-3pack",
+      "name": "PRP — 3-Injection Pack",
+      "cogs": 225.00,
+      "cogs_source": "estimated",
+      "needs_verification": true
+    },
+
+    // ─── HRT ──────────────────────────────────────────────────────────────────
+
+    {
+      "id": "hrt-membership",
+      "name": "HRT Membership",
+      "cogs": 28.00,
+      "cogs_source": "anazao",
+      "cogs_breakdown": {
+        "testosterone_cyp_monthly": 15.77,
+        "testosterone_calc": "Typical 100mg/week = 0.5mL/week = 2mL/month. 2mL / 10mL vial * $39.42 = $7.88. At 200mg/week: 4mL/month = $15.77.",
+        "injection_hardware_4x": 1.68,
+        "monitoring_allocation": 10.55,
+        "monitoring_note": "Post panel (8977, $52.98) run quarterly = $13.25/month. Or monthly = $52.98. Using quarterly estimate."
+      },
+      "sell_price": 250,
+      "gross_margin_pct": 88.8,
+      "anazao_product": "Testosterone Cypionate 200mg/mL 10mL MDV",
+      "anazao_vial_cost": 39.42,
+      "needs_verification": true,
+      "notes": "COGS highly variable by patient protocol (100-200mg/week typical range). Monitoring labs (post panel $52.98) may or may not be included in membership. Confirm protocol and what's included."
+    },
+
+    // ─── WEIGHT LOSS (GLP-1) ──────────────────────────────────────────────────
+    // Tirzepatide confirmed: Pyxis 40mg vial = $220 (10% markup applied).
+    // Monthly COGS = (weekly_dose_mg * 4.33 weeks) / 40mg * $220.
+    // Dose tiers based on standard titration: 2.5 → 5 → 7.5 → 10 → 12.5mg/week.
+    // Verify dose-per-tier against actual Range Medical protocol before finalizing.
+    //
+    // Retatrutide confirmed: Pyxis 20mg vial = $154 (10% markup applied).
+    // Dose tiers estimated: 0.5 → 1 → 2 → 3 → 4 → 6mg/week.
+    // Verify dose-per-tier against actual Range Medical protocol before finalizing.
+    //
+    // Semaglutide: NOT in Pyxis catalog. Source and cost unknown — flagged.
+
+    {
+      "id": "wl-semaglutide",
+      "name": "Semaglutide",
+      "active": false,
+      "cogs": null,
+      "cogs_source": "unknown",
+      "needs_verification": true,
+      "notes": "NOT currently sold as of 2026-03. Not in Pyxis catalog. COGS TBD if reintroduced."
+    },
+    {
+      "id": "wl-tirz-d1",
+      "name": "Tirzepatide — Dose 1 (2.5mg/week)",
+      "cogs": 55.00,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "weekly_dose_mg": 2.5,
+        "monthly_mg": 10,
+        "vial_size_mg": 40,
+        "vials_per_month": 0.25,
+        "vial_cost": 220.00
+      },
+      "sell_price": 399,
+      "gross_margin_pct": 86.2,
+      "pyxis_product": "Tirzepatide 40mg",
+      "pyxis_vial_cost": 220.00,
+      "needs_verification": true,
+      "notes": "Dose tier assumption: 2.5mg/week. Verify against actual protocol."
+    },
+    {
+      "id": "wl-tirz-d2",
+      "name": "Tirzepatide — Dose 2 (5mg/week)",
+      "cogs": 110.00,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "weekly_dose_mg": 5,
+        "monthly_mg": 20,
+        "vial_size_mg": 40,
+        "vials_per_month": 0.5,
+        "vial_cost": 220.00
+      },
+      "sell_price": 549,
+      "gross_margin_pct": 80.0,
+      "pyxis_vial_cost": 220.00,
+      "needs_verification": true
+    },
+    {
+      "id": "wl-tirz-d3",
+      "name": "Tirzepatide — Dose 3 (7.5mg/week)",
+      "cogs": 165.00,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "weekly_dose_mg": 7.5,
+        "monthly_mg": 30,
+        "vial_size_mg": 40,
+        "vials_per_month": 0.75,
+        "vial_cost": 220.00
+      },
+      "sell_price": 599,
+      "gross_margin_pct": 72.5,
+      "pyxis_vial_cost": 220.00,
+      "needs_verification": true
+    },
+    {
+      "id": "wl-tirz-d4",
+      "name": "Tirzepatide — Dose 4 (10mg/week)",
+      "cogs": 220.00,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "weekly_dose_mg": 10,
+        "monthly_mg": 40,
+        "vial_size_mg": 40,
+        "vials_per_month": 1.0,
+        "vial_cost": 220.00
+      },
+      "sell_price": 649,
+      "gross_margin_pct": 66.1,
+      "pyxis_vial_cost": 220.00,
+      "needs_verification": true
+    },
+    {
+      "id": "wl-tirz-d5",
+      "name": "Tirzepatide — Dose 5 (12.5mg/week)",
+      "cogs": 275.00,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "weekly_dose_mg": 12.5,
+        "monthly_mg": 50,
+        "vial_size_mg": 40,
+        "vials_per_month": 1.25,
+        "vial_cost": 220.00
+      },
+      "sell_price": 699,
+      "gross_margin_pct": 60.7,
+      "pyxis_vial_cost": 220.00,
+      "needs_verification": true
+    },
+    {
+      "id": "wl-reta-d1",
+      "name": "Retatrutide — Dose 1 (0.5mg/week)",
+      "cogs": 15.40,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "weekly_dose_mg": 0.5,
+        "monthly_mg": 2,
+        "vial_size_mg": 20,
+        "vials_per_month": 0.1,
+        "vial_cost": 154.00
+      },
+      "sell_price": 499,
+      "gross_margin_pct": 96.9,
+      "pyxis_vial_cost": 154.00,
+      "needs_verification": true,
+      "notes": "Very high margin at low dose. Verify dose tier assumption."
+    },
+    {
+      "id": "wl-reta-d2",
+      "name": "Retatrutide — Dose 2 (1mg/week)",
+      "cogs": 30.80,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "weekly_dose_mg": 1,
+        "monthly_mg": 4,
+        "vial_size_mg": 20,
+        "vials_per_month": 0.2,
+        "vial_cost": 154.00
+      },
+      "sell_price": 599,
+      "gross_margin_pct": 94.9,
+      "pyxis_vial_cost": 154.00,
+      "needs_verification": true
+    },
+    {
+      "id": "wl-reta-d3",
+      "name": "Retatrutide — Dose 3 (2mg/week)",
+      "cogs": 61.60,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "weekly_dose_mg": 2,
+        "monthly_mg": 8,
+        "vial_size_mg": 20,
+        "vials_per_month": 0.4,
+        "vial_cost": 154.00
+      },
+      "sell_price": 699,
+      "gross_margin_pct": 91.2,
+      "pyxis_vial_cost": 154.00,
+      "needs_verification": true
+    },
+    {
+      "id": "wl-reta-d4",
+      "name": "Retatrutide — Dose 4 (3mg/week)",
+      "cogs": 92.40,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "weekly_dose_mg": 3,
+        "monthly_mg": 12,
+        "vial_size_mg": 20,
+        "vials_per_month": 0.6,
+        "vial_cost": 154.00
+      },
+      "sell_price": 749,
+      "gross_margin_pct": 87.7,
+      "pyxis_vial_cost": 154.00,
+      "needs_verification": true
+    },
+    {
+      "id": "wl-reta-d5",
+      "name": "Retatrutide — Dose 5 (4mg/week)",
+      "cogs": 123.20,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "weekly_dose_mg": 4,
+        "monthly_mg": 16,
+        "vial_size_mg": 20,
+        "vials_per_month": 0.8,
+        "vial_cost": 154.00
+      },
+      "sell_price": 799,
+      "gross_margin_pct": 84.6,
+      "pyxis_vial_cost": 154.00,
+      "needs_verification": true
+    },
+    {
+      "id": "wl-reta-d6",
+      "name": "Retatrutide — Dose 6 (6mg/week)",
+      "cogs": 184.80,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "weekly_dose_mg": 6,
+        "monthly_mg": 24,
+        "vial_size_mg": 20,
+        "vials_per_month": 1.2,
+        "vial_cost": 154.00
+      },
+      "sell_price": 859,
+      "gross_margin_pct": 78.5,
+      "pyxis_vial_cost": 154.00,
+      "needs_verification": true
+    },
+
+    // ─── PEPTIDE PROTOCOLS ────────────────────────────────────────────────────
+    // All confirmed from Pyxis vial costs.
+    // Per-protocol cost = vials_needed * vial_price.
+    // Phase durations estimated as monthly or multi-week — verify against protocol sheets.
+
+    {
+      "id": "pep-bpc-tb4-10",
+      "name": "BPC-157 / TB-4 — 10-Day",
+      "cogs": 31.20,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "injections": 10,
+        "dose_per_injection": "500mcg BPC-157 / 500mcg TB-4",
+        "vial_yield": "20 injections per vial (10mg/10mg ÷ 500mcg/500mcg)",
+        "drug_cost": 27.50,
+        "drug_calc": "10 injections × $2.75 (½ vial × $55)",
+        "hardware_cost": 3.70,
+        "hardware_calc": "10 injections × $0.37 (SubQ bundle: syringe + needle + alcohol)"
+      },
+      "sell_price": 250,
+      "gross_margin_pct": 87.5,
+      "pyxis_product": "BPC-157 / TB4 10mg/10mg",
+      "pyxis_vial_cost": 55.00
+    },
+    {
+      "id": "pep-bpc-tb4-20",
+      "name": "BPC-157 / TB-4 — 20-Day",
+      "cogs": 62.40,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "injections": 20,
+        "dose_per_injection": "500mcg BPC-157 / 500mcg TB-4",
+        "vial_yield": "20 injections per vial (full vial)",
+        "drug_cost": 55.00,
+        "drug_calc": "20 injections × $2.75 (1 full vial × $55)",
+        "hardware_cost": 7.40,
+        "hardware_calc": "20 injections × $0.37"
+      },
+      "sell_price": 450,
+      "gross_margin_pct": 86.1,
+      "pyxis_vial_cost": 55.00
+    },
+    {
+      "id": "pep-bpc-tb4-30",
+      "name": "BPC-157 / TB-4 — 30-Day",
+      "cogs": 93.60,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "injections": 30,
+        "dose_per_injection": "500mcg BPC-157 / 500mcg TB-4",
+        "vial_yield": "20 injections per vial — 1.5 vials needed",
+        "drug_cost": 82.50,
+        "drug_calc": "30 injections × $2.75 (1.5 vials × $55)",
+        "hardware_cost": 11.10,
+        "hardware_calc": "30 injections × $0.37"
+      },
+      "sell_price": 675,
+      "gross_margin_pct": 86.1,
+      "pyxis_vial_cost": 55.00
+    },
+    {
+      "id": "pep-recovery-4blend-10",
+      "name": "Recovery 4-Blend — 10-Day",
+      "cogs": 31.20,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "injections": 10,
+        "reconstitution": "2mL bac water, 10 units (0.1mL) per injection",
+        "vial_yield": "20 injections per vial",
+        "drug_cost": 27.50,
+        "drug_calc": "10 injections × $2.75 (½ vial × $55)",
+        "hardware_cost": 3.70,
+        "hardware_calc": "10 injections × $0.37 (SubQ bundle)"
+      },
+      "sell_price": 275,
+      "gross_margin_pct": 88.7,
+      "pyxis_product": "KPV/BPC/TB/MGF Blend",
+      "pyxis_vial_cost": 55.00
+    },
+    {
+      "id": "pep-recovery-4blend-20",
+      "name": "Recovery 4-Blend — 20-Day",
+      "cogs": 62.40,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "injections": 20,
+        "reconstitution": "2mL bac water, 10 units (0.1mL) per injection",
+        "vial_yield": "20 injections per vial (full vial)",
+        "drug_cost": 55.00,
+        "drug_calc": "20 injections × $2.75 (1 full vial × $55)",
+        "hardware_cost": 7.40,
+        "hardware_calc": "20 injections × $0.37"
+      },
+      "sell_price": 500,
+      "gross_margin_pct": 87.5,
+      "pyxis_vial_cost": 55.00
+    },
+    {
+      "id": "pep-recovery-4blend-30",
+      "name": "Recovery 4-Blend — 30-Day",
+      "cogs": 93.60,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "injections": 30,
+        "reconstitution": "2mL bac water, 10 units (0.1mL) per injection",
+        "vial_yield": "20 injections per vial — 1.5 vials needed",
+        "drug_cost": 82.50,
+        "drug_calc": "30 injections × $2.75 (1.5 vials × $55)",
+        "hardware_cost": 11.10,
+        "hardware_calc": "30 injections × $0.37"
+      },
+      "sell_price": 725,
+      "gross_margin_pct": 87.1,
+      "pyxis_vial_cost": 55.00
+    },
+    {
+      "id": "pep-ghkcu-30",
+      "name": "GHK-Cu — 30-Day",
+      "cogs": 38.60,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "injections": 30,
+        "dose_per_injection": "10 units (0.1mL)",
+        "reconstitution": "3mL bac water → 16.67mg/mL. 10 units = 0.1mL = 1.667mg/injection",
+        "vial_yield": "30 injections per vial (3mL ÷ 0.1mL) — exactly 1 vial for 30-day once-daily",
+        "vials_needed": 1,
+        "drug_cost": 27.50,
+        "drug_calc": "1 vial × $27.50",
+        "hardware_cost": 11.10,
+        "hardware_calc": "30 injections × $0.37"
+      },
+      "sell_price": 250,
+      "gross_margin_pct": 84.6,
+      "pyxis_product": "GHK 50mg",
+      "pyxis_vial_cost": 27.50
+    },
+    {
+      "id": "pep-ghkcu-cream",
+      "name": "GHK-Cu Cream",
+      "cogs": 45.00,
+      "cogs_source": "estimated",
+      "needs_verification": true,
+      "notes": "Topical cream formulation — different product from injectable GHK vial. Confirm compounding cost with supplier.",
+      "sell_price": 299,
+      "gross_margin_pct": 84.9
+    },
+    {
+      "id": "pep-glow-30",
+      "name": "GLOW — 30-Day",
+      "cogs": 62.40,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "composition": "GHK-Cu 50mg + BPC-157 10mg + TB-500 10mg",
+        "reconstitution": "2mL bac water → 10 units (0.1mL) per injection",
+        "vial_yield": "20 injections per vial",
+        "vials_needed": 1,
+        "drug_cost": 55.00,
+        "drug_calc": "1 vial × $55 (Pyxis GLOW blend, 10% markup confirmed)",
+        "hardware_cost": 7.40,
+        "hardware_calc": "20 injections × $0.37 (SubQ bundle)"
+      },
+      "sell_price": 400,
+      "gross_margin_pct": 84.4,
+      "pyxis_product": "GLOW (GHK-Cu/BPC-157/TB-500)",
+      "pyxis_vial_cost": 55.00,
+      "notes": "Composition confirmed: GHK-Cu 50mg + BPC-157 10mg + TB-500 10mg. Vial price $55 confirmed by Chris (includes 10%). 30-day once-daily = 1 vial exactly."
+    },
+    {
+      "id": "pep-motsc-p1",
+      "name": "MOTS-C Phase 1",
+      "sell_price": 400,
+      "cogs": 91.00,
+      "gross_margin_pct": 77.3,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "total_mg": 20,
+        "vials_needed": 2,
+        "drug_cost": 83.60,
+        "drug_calc": "2 vials × $41.80 (Pyxis MOTS-C 10mg)",
+        "hardware_cost": 7.40,
+        "hardware_calc": "20 injections × $0.37 (conservative — 30-day schedule)",
+        "reconstitution": "2mL bac water → 5mg/mL"
+      },
+      "pyxis_product": "Mots-c 10mg",
+      "pyxis_vial_cost": 41.80,
+      "protocol_variants": {
+        "20_day": { "schedule": "4 × 5mg injections", "injections": 4, "hardware": 1.48, "cogs": 85.08 },
+        "30_day": { "schedule": "1mg/day, 5 on/2 off × 4 cycles", "injections": 20, "hardware": 7.40, "cogs": 91.00 }
+      },
+      "notes": "Drug cost identical either way (2 vials = 20mg). COGS uses conservative 30-day hardware ($91.00). 20-day variant is $85.08 — $5.92 difference at $400 sell price."
+    },
+    {
+      "id": "pep-motsc-p2",
+      "name": "MOTS-C Phase 2",
+      "sell_price": 700,
+      "cogs": 174.60,
+      "gross_margin_pct": 75.1,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "total_mg": 40,
+        "vials_needed": 4,
+        "drug_cost": 167.20,
+        "drug_calc": "4 vials × $41.80 (Pyxis MOTS-C 10mg)",
+        "hardware_cost": 7.40,
+        "hardware_calc": "20 injections × $0.37 (conservative — 30-day schedule)",
+        "reconstitution": "2mL bac water → 5mg/mL"
+      },
+      "pyxis_product": "Mots-c 10mg",
+      "pyxis_vial_cost": 41.80,
+      "protocol_variants": {
+        "20_day": { "schedule": "4 × 10mg injections", "injections": 4, "hardware": 1.48, "cogs": 168.68 },
+        "30_day": { "schedule": "2mg/day, 5 on/2 off × 4 cycles", "injections": 20, "hardware": 7.40, "cogs": 174.60 }
+      },
+      "notes": "Drug cost identical either way (4 vials = 40mg). COGS uses conservative 30-day hardware ($174.60). 20-day variant is $168.68 — $5.92 difference at $700 sell price."
+    },
+    {
+      "id": "pep-2xblend-p1",
+      "name": "2X Blend — Phase 1 (CJC-1295/Ipamorelin)",
+      "cogs": 59.40,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "injections": 20,
+        "dose_per_injection": "20 units (0.2mL)",
+        "reconstitution": "2mL bac water → 10 injections per vial",
+        "schedule": "30-day, 5 on/2 off — 4 cycles × 5 = 20 injections",
+        "vials_needed": 2,
+        "drug_cost": 52.00,
+        "drug_calc": "2 vials × $26",
+        "hardware_cost": 7.40,
+        "hardware_calc": "20 injections × $0.37"
+      },
+      "sell_price": 400,
+      "gross_margin_pct": 85.2,
+      "pyxis_product": "2x (CJC/IPA) 5mg/5mg",
+      "pyxis_vial_cost": 26.00
+    },
+    {
+      "id": "pep-2xblend-p2",
+      "name": "2X Blend — Phase 2 (CJC-1295/Ipamorelin)",
+      "cogs": 59.40,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "injections": 20,
+        "reconstitution": "2mL bac water, 20 units/injection, 10 inj/vial",
+        "schedule": "30-day, 5 on/2 off",
+        "vials_needed": 2,
+        "drug_cost": 52.00,
+        "hardware_cost": 7.40
+      },
+      "sell_price": 450,
+      "gross_margin_pct": 86.8,
+      "pyxis_vial_cost": 26.00,
+      "needs_verification": true,
+      "notes": "Phase 2 assumed same 30-day/2-vial model as Phase 1 — confirm if dose or vial count changes."
+    },
+    {
+      "id": "pep-2xblend-p3",
+      "name": "2X Blend — Phase 3 (CJC-1295/Ipamorelin)",
+      "cogs": 59.40,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "injections": 20,
+        "reconstitution": "2mL bac water, 20 units/injection, 10 inj/vial",
+        "schedule": "30-day, 5 on/2 off",
+        "vials_needed": 2,
+        "drug_cost": 52.00,
+        "hardware_cost": 7.40
+      },
+      "sell_price": 500,
+      "gross_margin_pct": 88.1,
+      "pyxis_vial_cost": 26.00,
+      "needs_verification": true,
+      "notes": "Phase 3 assumed same 30-day/2-vial model — confirm if dose or vial count changes."
+    },
+    {
+      "id": "pep-3xblend-p1",
+      "name": "3X Blend — Phase 1",
+      "cogs": 64.60,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "injections": 20,
+        "dose_per_injection": "20 units (0.2mL)",
+        "reconstitution": "2mL bac water → 10 injections per vial",
+        "schedule": "30-day, 5 on/2 off — 4 cycles × 5 = 20 injections",
+        "vials_needed": 2,
+        "drug_cost": 57.20,
+        "drug_calc": "2 vials × $28.60",
+        "hardware_cost": 7.40,
+        "hardware_calc": "20 injections × $0.37"
+      },
+      "sell_price": 425,
+      "gross_margin_pct": 84.8,
+      "pyxis_product": "3x blend",
+      "pyxis_vial_cost": 28.60,
+      "needs_verification": true,
+      "notes": "3X blend composition not confirmed in Pyxis catalog — confirm ingredients with Pyxis."
+    },
+    {
+      "id": "pep-3xblend-p2",
+      "name": "3X Blend — Phase 2",
+      "cogs": 64.60,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "vials_needed": 2,
+        "drug_cost": 57.20,
+        "hardware_cost": 7.40,
+        "schedule": "30-day, 5 on/2 off assumed"
+      },
+      "sell_price": 475,
+      "gross_margin_pct": 86.4,
+      "pyxis_vial_cost": 28.60,
+      "needs_verification": true
+    },
+    {
+      "id": "pep-3xblend-p3",
+      "name": "3X Blend — Phase 3",
+      "cogs": 64.60,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "vials_needed": 2,
+        "drug_cost": 57.20,
+        "hardware_cost": 7.40,
+        "schedule": "30-day, 5 on/2 off assumed"
+      },
+      "sell_price": 525,
+      "gross_margin_pct": 87.7,
+      "pyxis_vial_cost": 28.60,
+      "needs_verification": true
+    },
+    {
+      "id": "pep-4xblend-p1",
+      "name": "4X Blend — Phase 1",
+      "cogs": 63.40,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "composition": "GHRP-2 / Tesamorelin / MGF / Ipamorelin",
+        "injections": 20,
+        "dose_per_injection": "20 units (0.2mL)",
+        "reconstitution": "2mL bac water → 10 injections per vial",
+        "schedule": "30-day, 5 on/2 off — 4 cycles × 5 = 20 injections",
+        "vials_needed": 2,
+        "drug_cost": 56.00,
+        "drug_calc": "2 vials × $28 (Pyxis 4X blend, confirmed price includes 10%)",
+        "hardware_cost": 7.40,
+        "hardware_calc": "20 injections × $0.37"
+      },
+      "sell_price": 450,
+      "gross_margin_pct": 85.9,
+      "pyxis_product": "4x blend (GHRP-2/Tesamorelin/MGF/IPA)",
+      "pyxis_vial_cost": 28.00,
+      "notes": "Composition confirmed: GHRP-2/Tesamorelin/MGF/Ipamorelin. Vial price $28 confirmed by Chris (includes 10%)."
+    },
+    {
+      "id": "pep-4xblend-p2",
+      "name": "4X Blend — Phase 2",
+      "cogs": 63.40,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "vials_needed": 2,
+        "drug_cost": 56.00,
+        "hardware_cost": 7.40,
+        "schedule": "30-day, 5 on/2 off assumed"
+      },
+      "sell_price": 500,
+      "gross_margin_pct": 87.3,
+      "pyxis_vial_cost": 28.00,
+      "notes": "Same 30-day/2-vial model as Phase 1. Composition: GHRP-2/Tesamorelin/MGF/Ipamorelin."
+    },
+    {
+      "id": "pep-4xblend-p3",
+      "name": "4X Blend — Phase 3",
+      "cogs": 63.40,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "vials_needed": 2,
+        "drug_cost": 56.00,
+        "hardware_cost": 7.40,
+        "schedule": "30-day, 5 on/2 off assumed"
+      },
+      "sell_price": 550,
+      "gross_margin_pct": 88.5,
+      "pyxis_vial_cost": 28.00,
+      "notes": "Same 30-day/2-vial model as Phase 1. Composition: GHRP-2/Tesamorelin/MGF/Ipamorelin."
+    },
+    {
+      "id": "pep-bdnf-p1",
+      "name": "BDNF Peptide Protocol — Phase 1",
+      "cogs": 25.00,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "vial_size_mg": 10,
+        "vial_cost": 44.00,
+        "dose_mcg": 200,
+        "injections": 20,
+        "schedule": "5 on / 2 off, 4 weeks",
+        "total_mcg_used": 4000,
+        "vials_consumed": 0.4,
+        "drug_cost": 17.60,
+        "hardware_cost": 7.40
+      },
+      "sell_price": 150,
+      "gross_margin_pct": 83.3,
+      "notes": "BDNF Phase 1 — 200 mcg SubQ, 5 on/2 off, 4 weeks. 0.4 of a 10mg vial per phase."
+    },
+    {
+      "id": "pep-bdnf-p2",
+      "name": "BDNF Peptide Protocol — Phase 2",
+      "cogs": 42.60,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "vial_size_mg": 10,
+        "vial_cost": 44.00,
+        "dose_mcg": 400,
+        "injections": 20,
+        "schedule": "5 on / 2 off, 4 weeks",
+        "total_mcg_used": 8000,
+        "vials_consumed": 0.8,
+        "drug_cost": 35.20,
+        "hardware_cost": 7.40
+      },
+      "sell_price": 200,
+      "gross_margin_pct": 78.7,
+      "notes": "BDNF Phase 2 — 400 mcg SubQ, 5 on/2 off, 4 weeks. 0.8 of a 10mg vial per phase."
+    },
+    {
+      "id": "pep-bdnf-p3",
+      "name": "BDNF Peptide Protocol — Phase 3",
+      "cogs": 60.20,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "vial_size_mg": 10,
+        "vial_cost": 44.00,
+        "dose_mcg": 600,
+        "injections": 20,
+        "schedule": "5 on / 2 off, 4 weeks",
+        "total_mcg_used": 12000,
+        "vials_consumed": 1.2,
+        "drug_cost": 52.80,
+        "hardware_cost": 7.40,
+        "note": "Requires partial second vial (2,000 mcg from vial 2)"
+      },
+      "sell_price": 250,
+      "gross_margin_pct": 75.9,
+      "notes": "BDNF Phase 3 — 600 mcg SubQ, 5 on/2 off, 4 weeks. 1.2 vials consumed."
+    },
+    {
+      "id": "pep-dsip-vial",
+      "name": "DSIP — 10mg Vial (Take-Home)",
+      "cogs": 22.00,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "vial_size_mg": 10,
+        "vial_cost": 22.00,
+        "cost_per_mcg": 0.0022,
+        "reconstitution": "2 mL BAC water → 2,500 mcg/mL",
+        "doses_per_vial": {
+          "at_500mcg": 20,
+          "at_750mcg": 13,
+          "at_1000mcg": 10
+        }
+      },
+      "notes": "DSIP PRN dosing — patient takes vial home. COGS = 1 full vial per sale. Starting dose 500 mcg, max 1,000 mcg before bed."
+    },
+    {
+      "id": "pep-dsip-injection",
+      "name": "DSIP — Single In-Office Injection",
+      "cogs": 6.10,
+      "cogs_source": "pyxis",
+      "cogs_breakdown": {
+        "vial_size_mg": 10,
+        "vial_cost": 22.00,
+        "dose_mcg": 250,
+        "drug_cost": 0.55,
+        "hardware_cost": 5.50,
+        "notes": "250 mcg = 2.5% of 10mg vial = $0.55 drug cost + hardware"
+      },
+      "notes": "Single pre-filled in-office injection at 250 mcg. Sold as 'DSIP Protocol — Phase 1 (250 mcg) — One-Time'."
+    },
+
+    // ─── OTHER ────────────────────────────────────────────────────────────────
+
+    {
+      "id": "other-gi-stool",
+      "name": "GI Effects Stool Test",
+      "cogs": 450.00,
+      "cogs_source": "estimated",
+      "needs_verification": true,
+      "notes": "Genova Diagnostics test kit. Confirm cost with supplier.",
+      "sell_price": 999,
+      "gross_margin_pct": 55.1
+    },
+    {
+      "id": "other-exosome-iv",
+      "name": "Exosome IV",
+      "cogs": null,
+      "cogs_source": "tbd",
+      "notes": "Price by consultation — COGS TBD based on exosome product and dosage."
+    }
+
+  ],
+
+  // ─── PYXIS PRODUCTS NOT YET IN SERVICE MENU ──────────────────────────────
+  // These are available from Pyxis but don't have matching IDs in services.json.
+  // Consider adding to menu or confirming if they're used internally.
+
+  "pyxis_unlisted": [
+    { "product": "IGF-LR3",           "vial_cost": 45.00, "notes": "IGF-1 Long R3 — growth factor peptide" },
+    { "product": "TA1 (Thymosin A1)", "vial_cost": 55.00, "notes": "Immune modulation peptide" },
+    { "product": "AOD9604",           "vial_cost": 45.00, "notes": "Fat loss peptide" },
+    { "product": "BPC-157 (standalone 5mg)", "vial_cost": 20.00, "notes": "Standalone BPC without TB4" },
+    { "product": "Selank",            "vial_cost": 30.00, "notes": "Anxiolytic/nootropic peptide" },
+    { "product": "SS31",              "vial_cost": 70.00, "notes": "Mitochondrial peptide" },
+    { "product": "DSIP 10mg",         "vial_cost": 20.00, "notes": "Delta Sleep-Inducing Peptide" },
+    { "product": "Follistatin",       "vial_cost": 80.00, "notes": "Muscle growth — myostatin inhibitor" },
+    { "product": "HGH 100iu",         "vial_cost": 150.00, "notes": "Human Growth Hormone" },
+    { "product": "Epithalon 50mg",    "vial_cost": 45.00, "notes": "Anti-aging/telomere peptide" }
+  ],
+
+  // ─── PRIMEX INDIVIDUAL TEST COST REFERENCE ────────────────────────────────
+  // Source: RANGE MEDICAL Lab Prices - Google Sheets.pdf (confirmed).
+  // G6PD not in standard Primex catalog — send-out test, cost TBD.
+
+  "primex_test_costs": {
+    "ApolipoproteinA": 14.10,
+    "ApolipoproteinB": 9.20,
+    "CBC": 4.00,
+    "CMP": 7.00,
+    "Cortisol": 10.81,
+    "CRP_HS": 9.00,
+    "DHEA_S": 14.74,
+    "DHT": 45.00,
+    "Estradiol": 9.00,
+    "FIB4_LiverFibrosis": 49.21,
+    "Ferritin": 9.03,
+    "Folate": 9.75,
+    "FreeT3": 11.00,
+    "FreeT4": 5.98,
+    "TotalT4": 3.00,
+    "FreeTestosterone": 15.00,
+    "TotalTestosterone": 8.98,
+    "FSH": 8.00,
+    "GGTP": 4.77,
+    "G6PD": null,
+    "HbA1c": 6.44,
+    "Homocysteine": 12.00,
+    "IGF1": 18.66,
+    "Insulin": 12.65,
+    "IronPanel_TIBC": 9.07,
+    "LH": 10.00,
+    "LipidPanel": 8.32,
+    "LipoproteinA": 14.10,
+    "LipoproteinInsulinResistanceIndex": 105.36,
+    "Magnesium": 4.44,
+    "MyeloperoxidaseAntibody_MPO": 15.64,
+    "OmegaCheck": 48.75,
+    "Progesterone": 13.00,
+    "Prolactin": 12.85,
+    "PSAFree": 9.00,
+    "PSATotal": 9.00,
+    "SedRate": 2.35,
+    "SHBG": 20.00,
+    "ThyroglobulinAB": 15.00,
+    "TPO_AB": 9.64,
+    "TSH": 5.00,
+    "UricAcid": 3.00,
+    "VitaminB12": 10.00,
+    "VitaminD_25OH": 20.00
+  }
+}

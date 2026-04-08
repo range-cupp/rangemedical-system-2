@@ -1,0 +1,19 @@
+{
+  "name": "range-medical-report-engine",
+  "version": "1.0.0",
+  "description": "Nightly P&L digest — generate and email daily gross profit report",
+  "private": true,
+  "scripts": {
+    "generate": "node generate-report.js",
+    "send": "node send-digest.js",
+    "daily": "node generate-report.js && node send-digest.js",
+    "backfill": "node backfill.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^17.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

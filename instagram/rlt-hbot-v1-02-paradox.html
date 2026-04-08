@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>RLT+HBOT 02 — The Paradox</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#F5F4F0; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#F5F4F0; }
+
+  .top-bar { position:absolute; top:72px; left:108px; right:108px; display:flex; justify-content:space-between; align-items:center; z-index:2; }
+  .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(0,0,0,0.38); }
+  .slide-num { font-size:18px; font-weight:500; color:rgba(0,0,0,0.22); }
+
+  .section-tag { position:absolute; top:130px; left:108px; font-size:18px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:rgba(0,0,0,0.3); z-index:2; }
+  .section-rule { position:absolute; top:162px; left:108px; right:108px; height:1px; background:rgba(0,0,0,0.1); z-index:2; }
+
+  .content { position:absolute; top:196px; left:108px; right:108px; z-index:2; }
+  .headline { font-size:80px; font-weight:800; letter-spacing:-3.5px; line-height:0.95; color:#0A0A0A; margin-bottom:44px; }
+  .rule { width:56px; height:2px; background:rgba(0,0,0,0.2); margin-bottom:44px; }
+
+  .row { display:flex; gap:32px; align-items:flex-start; margin-bottom:44px; }
+  .row-num { font-size:18px; font-weight:700; letter-spacing:0.2em; color:rgba(0,0,0,0.2); flex-shrink:0; padding-top:6px; width:32px; }
+  .row-text { font-size:44px; font-weight:600; letter-spacing:-1.5px; line-height:1.2; color:#0A0A0A; }
+  .row-text span { color:rgba(0,0,0,0.35); font-weight:400; }
+
+  .callout { border-left:3px solid rgba(0,0,0,0.15); padding-left:28px; margin-top:52px; }
+  .callout-text { font-size:34px; font-weight:400; line-height:1.55; color:rgba(0,0,0,0.45); }
+  .callout-attr { font-size:22px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:rgba(0,0,0,0.25); margin-top:12px; }
+
+  .bottom-bar { position:absolute; bottom:60px; left:108px; right:108px; display:flex; justify-content:flex-end; border-top:1px solid rgba(0,0,0,0.08); padding-top:18px; z-index:2; }
+  .next { font-size:20px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:rgba(0,0,0,0.28); }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="top-bar">
+    <span class="brand">@range_medical</span>
+    <span class="slide-num">02 / 07</span>
+  </div>
+  <div class="section-tag">The Science</div>
+  <div class="section-rule"></div>
+  <div class="content">
+    <div class="headline">The hyperoxic&#8209;<br/>hypoxic paradox.</div>
+    <div class="rule"></div>
+    <div class="row">
+      <div class="row-num">01</div>
+      <div class="row-text">Oxygen floods in <span>at 2x normal pressure.</span></div>
+    </div>
+    <div class="row">
+      <div class="row-num">02</div>
+      <div class="row-text">Pressure drops back to normal.</div>
+    </div>
+    <div class="row">
+      <div class="row-num">03</div>
+      <div class="row-text">That cycle <span>is what triggers repair.</span></div>
+    </div>
+    <div class="callout">
+      <div class="callout-text">The same survival signal you get from hard exercise or fasting &#8212; but reaching places those can&#8217;t.</div>
+      <div class="callout-attr">David Sinclair calls it an adversity mimetic</div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <span class="next">The Study &#8594;</span>
+  </div>
+</div>
+</body>
+</html>

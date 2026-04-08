@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>RLT+HBOT 03 — The Study</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#0A0A0A; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#0A0A0A; }
+  .slide::before { content:''; position:absolute; inset:0; background-image:radial-gradient(circle,rgba(255,255,255,0.045) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; }
+
+  .top-bar { position:absolute; top:72px; left:108px; right:108px; display:flex; justify-content:space-between; align-items:center; z-index:2; }
+  .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(255,255,255,0.5); }
+  .slide-num { font-size:18px; font-weight:500; color:rgba(255,255,255,0.28); }
+
+  .section-tag { position:absolute; top:130px; left:108px; font-size:18px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:rgba(255,255,255,0.28); z-index:2; }
+  .section-rule { position:absolute; top:162px; left:108px; right:108px; height:1px; background:rgba(255,255,255,0.1); z-index:2; }
+
+  .setup { position:absolute; top:196px; left:108px; right:108px; z-index:2; }
+  .setup-text { font-size:36px; font-weight:400; color:rgba(255,255,255,0.38); line-height:1.5; margin-bottom:8px; }
+  .setup-bold { font-size:40px; font-weight:700; color:rgba(255,255,255,0.6); line-height:1.4; }
+
+  .stats { position:absolute; top:390px; left:108px; right:108px; z-index:2; }
+  .stat { margin-bottom:40px; border-left:3px solid rgba(255,255,255,0.12); padding-left:32px; }
+  .stat-num { font-size:96px; font-weight:800; letter-spacing:-4px; line-height:1.0; color:#FFFFFF; }
+  .stat-label { font-size:36px; font-weight:400; color:rgba(255,255,255,0.42); line-height:1.4; margin-top:4px; }
+
+  .rule { position:absolute; top:370px; left:108px; right:108px; height:1px; background:rgba(255,255,255,0.1); z-index:2; }
+
+  .bottom-bar { position:absolute; bottom:60px; left:108px; right:108px; display:flex; justify-content:flex-end; border-top:1px solid rgba(255,255,255,0.08); padding-top:18px; z-index:2; }
+  .next { font-size:20px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.28); }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="top-bar">
+    <span class="brand">@range_medical</span>
+    <span class="slide-num">03 / 07</span>
+  </div>
+  <div class="section-tag">Tel Aviv University Study</div>
+  <div class="section-rule"></div>
+
+  <div class="setup">
+    <div class="setup-text">No diet changes. No new supplements.</div>
+    <div class="setup-bold">Just 60 sessions in the chamber.</div>
+  </div>
+
+  <div class="rule"></div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num">+20&#8211;38%</div>
+      <div class="stat-label">Increase in telomere length &#8212; the biological marker of cellular age.</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">&#8722;33%</div>
+      <div class="stat-label">Drop in senescent cells &#8212; the damaged cells that stop working but won&#8217;t die, driving inflammation and faster aging.</div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <span class="next">Why the Protocol Matters &#8594;</span>
+  </div>
+</div>
+</body>
+</html>

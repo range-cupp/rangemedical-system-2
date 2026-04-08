@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>4X GH Blend | Range Medical</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    @page {
+      size: letter landscape;
+      margin: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #1a1a1a;
+      background: #ffffff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      width: 11in;
+      min-height: 8.5in;
+      max-height: 8.5in;
+      margin: 0 auto;
+      padding: 0.4in 0.55in 0.35in;
+      display: flex;
+      flex-direction: column;
+      page-break-after: always;
+      overflow: hidden;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #1a1a1a;
+      margin-bottom: 10px;
+    }
+
+    .header-left {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .header-right {
+      font-size: 9px;
+      color: #737373;
+      text-align: right;
+      line-height: 1.5;
+    }
+
+    /* ── TITLE BLOCK ── */
+    .title-block {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 10px;
+    }
+
+    .title-left {
+      flex: 1;
+    }
+
+    .title-label {
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #737373;
+      margin-bottom: 3px;
+    }
+
+    .title-main {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 0.95;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .title-sub {
+      font-size: 10px;
+      color: #737373;
+      line-height: 1.6;
+      max-width: 600px;
+    }
+
+    .dose-strip {
+      display: flex;
+      gap: 20px;
+      padding: 9px 16px;
+      border: 1px solid #e0e0e0;
+      font-size: 9.5px;
+      color: #737373;
+      flex-shrink: 0;
+    }
+
+    .dose-strip strong {
+      color: #1a1a1a;
+      font-weight: 700;
+    }
+
+    /* ── THREE-COLUMN LAYOUT ── */
+    .three-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+      flex: 1;
+    }
+
+    .col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* ── SECTION HEADERS ── */
+    .section-head {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #737373;
+      padding-bottom: 4px;
+      border-bottom: 0.75px solid #d0d0d0;
+      margin-bottom: 5px;
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: #fafafa;
+      border: 1px solid #e8e8e8;
+      padding: 8px 12px;
+    }
+
+    .card p, .card li {
+      font-size: 9.5px;
+      color: #525252;
+      line-height: 1.6;
+    }
+
+    .card ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .card li {
+      padding: 1.5px 0;
+      padding-left: 14px;
+      position: relative;
+    }
+
+    .card li::before {
+      content: "\2713";
+      position: absolute;
+      left: 0;
+      font-weight: 700;
+      color: #1a1a1a;
+      font-size: 8.5px;
+    }
+
+    .card-accent {
+      background: #f5f5f5;
+      border: 1.5px solid #d0d0d0;
+    }
+
+    .card-accent p {
+      color: #1a1a1a;
+    }
+
+    /* ── WHAT IT IS ── */
+    .what-card {
+      padding: 7px 12px;
+      border: 1px solid #e8e8e8;
+      margin-bottom: 6px;
+    }
+
+    .what-card h4 {
+      font-size: 10.5px;
+      font-weight: 800;
+      margin-bottom: 3px;
+    }
+
+    .what-card p {
+      font-size: 9px;
+      color: #525252;
+      line-height: 1.55;
+    }
+
+    .synergy-box {
+      background: #f5f5f5;
+      border: 1.5px solid #d0d0d0;
+      padding: 9px 12px;
+      text-align: center;
+    }
+
+    .synergy-box p {
+      font-size: 9px;
+      color: #1a1a1a;
+      line-height: 1.55;
+    }
+
+    /* ── PROTOCOL TABLE ── */
+    .protocol-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .protocol-table th {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #737373;
+      text-align: left;
+      padding: 5px 8px;
+      border-bottom: 1px solid #d0d0d0;
+    }
+
+    .protocol-table td {
+      font-size: 9.5px;
+      padding: 6px 8px;
+      border-bottom: 1px solid #eeeeee;
+      color: #1a1a1a;
+    }
+
+    .protocol-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .protocol-table .highlight td {
+      font-weight: 700;
+    }
+
+    .best-value {
+      display: inline-block;
+      background: #1a1a1a;
+      color: #ffffff;
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    /* ── STEPS ── */
+    .step {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      margin-bottom: 5px;
+    }
+
+    .step-num {
+      width: 20px;
+      height: 20px;
+      background: #1a1a1a;
+      color: #ffffff;
+      font-size: 9px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-text {
+      font-size: 9.5px;
+      color: #525252;
+      line-height: 1.55;
+    }
+
+    .step-text strong {
+      color: #1a1a1a;
+    }
+
+    /* ── TIMELINE ── */
+    .timeline-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .timeline-item {
+      flex: 1;
+      background: #f5f5f5;
+      border: 1.5px solid #d0d0d0;
+      padding: 8px 10px;
+    }
+
+    .timeline-item h4 {
+      font-size: 10px;
+      font-weight: 800;
+      margin-bottom: 3px;
+      color: #1a1a1a;
+    }
+
+    .timeline-item p {
+      font-size: 9px;
+      color: #525252;
+      line-height: 1.55;
+    }
+
+    /* ── SIDE EFFECTS / SAFETY ── */
+    .warning-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .warning-list li {
+      font-size: 9.5px;
+      color: #525252;
+      padding: 1.5px 0;
+      padding-left: 14px;
+      position: relative;
+      line-height: 1.5;
+    }
+
+    .warning-list.x-marks li::before {
+      content: "\2715";
+      position: absolute;
+      left: 0;
+      font-weight: 700;
+      color: #1a1a1a;
+      font-size: 8px;
+    }
+
+    .warning-list.dots li::before {
+      content: "\2022";
+      position: absolute;
+      left: 1px;
+      font-weight: 700;
+      color: #737373;
+      font-size: 10px;
+    }
+
+    /* ── TIP BOX ── */
+    .tip-box {
+      border-left: 3px solid #1a1a1a;
+      padding: 8px 12px;
+      background: #fafafa;
+    }
+
+    .tip-box strong {
+      font-size: 9.5px;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .tip-box p {
+      font-size: 9px;
+      color: #525252;
+      line-height: 1.55;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      margin-top: auto;
+      padding-top: 8px;
+      border-top: 0.75px solid #d0d0d0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 30px;
+    }
+
+    .footer-left {
+      font-size: 7.5px;
+      color: #999999;
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .footer-right {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .footer-right .cta-line {
+      font-size: 10px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 2px;
+    }
+
+    .footer-right .cta-sub {
+      font-size: 8px;
+      color: #737373;
+    }
+
+    /* ── PRINT OVERRIDES ── */
+    @media print {
+      body { background: none; }
+      .page {
+        width: auto;
+        min-height: auto;
+        max-height: auto;
+        padding: 0.4in 0.55in 0.35in;
+      }
+    }
+
+    /* ── SCREEN PREVIEW ── */
+    @media screen {
+      body {
+        background: #e0e0e0;
+        padding: 20px 0;
+      }
+      .page {
+        box-shadow: 0 2px 20px rgba(0,0,0,0.15);
+        background: #ffffff;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">Range Medical</div>
+      <div class="header-right">
+        range-medical.com&ensp;&bull;&ensp;(949) 997-3988<br>
+        1901 Westcliff Drive, Suite 10, Newport Beach, CA
+      </div>
+    </div>
+
+    <!-- Title -->
+    <div class="title-block">
+      <div class="title-left">
+        <div class="title-label">Peptide Protocol Guide</div>
+        <div class="title-main">4X GH Blend</div>
+        <div class="title-sub">Our most comprehensive growth hormone secretagogue blend &mdash; four peptides working together for maximum recovery, fat loss, cognition, and performance.</div>
+      </div>
+      <div class="dose-strip">
+        <div><strong>Dose:</strong> Provider-determined (1.8mg&ndash;5.2mg)</div>
+        <div><strong>Frequency:</strong> 5 on / 2 off</div>
+        <div><strong>Route:</strong> Subcutaneous injection</div>
+      </div>
+    </div>
+
+    <!-- Three Column Content -->
+    <div class="three-col">
+
+      <!-- COLUMN 1: What / Benefits / When -->
+      <div class="col">
+
+        <div>
+          <div class="section-head">What It Is</div>
+          <div class="what-card">
+            <h4>GHRP-2</h4>
+            <p>The potent trigger. One of the strongest GH-releasing peptides available. Drives a powerful growth hormone pulse.</p>
+          </div>
+          <div class="what-card">
+            <h4>Tesamorelin</h4>
+            <p>The fat burner. A GHRH analog FDA-studied for reducing visceral belly fat. Directly stimulates GH release.</p>
+          </div>
+          <div class="what-card">
+            <h4>MGF</h4>
+            <p>The repair factor. Activates satellite cells for targeted muscle repair and tissue healing at injury sites.</p>
+          </div>
+          <div class="what-card">
+            <h4>Ipamorelin</h4>
+            <p>The clean amplifier. Selective GH release without cortisol, prolactin, or appetite side effects.</p>
+          </div>
+          <div class="synergy-box">
+            <p><strong>Why all four?</strong> &mdash; The most potent GH-releasing combination available. Each peptide targets a different pathway &mdash; together they produce maximum growth hormone output with tissue repair benefits.</p>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-head">Benefits</div>
+          <div class="card">
+            <ul>
+              <li>Most potent GH-releasing combination</li>
+              <li>Accelerated fat loss and body recomposition</li>
+              <li>Enhanced cognitive function and mental clarity</li>
+              <li>Deep sleep improvement and overnight recovery</li>
+              <li>Faster muscle repair and workout recovery</li>
+              <li>Improved skin, hair, and joint health</li>
+              <li>Comprehensive performance optimization</li>
+            </ul>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-head">When to Use It</div>
+          <div class="card">
+            <ul>
+              <li>Maximum optimization seekers</li>
+              <li>Athletes and high performers</li>
+              <li>Significant body composition goals</li>
+              <li>Age-related decline in energy and recovery</li>
+              <li>Post-injury or post-surgical repair</li>
+              <li>Cognitive performance enhancement</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- COLUMN 2: How to Inject / What to Expect -->
+      <div class="col">
+
+        <div>
+          <div class="section-head">How to Inject</div>
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-text"><strong>Prep.</strong> Wash hands. Clean injection site with alcohol pad. Remove syringe from fridge a few minutes early.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-text"><strong>Inject.</strong> Pinch skin at a fatty area (abdomen or thigh). Insert needle at 45&deg; angle. Inject slowly under the skin.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text"><strong>Rotate.</strong> Use a different injection site each day &mdash; alternate between abdomen and thighs.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-text"><strong>Dispose.</strong> Single-use only. Place in sharps container or return to clinic. Never recap or reuse.</div>
+          </div>
+          <div class="tip-box" style="margin-top: 4px;">
+            <strong>Timing</strong>
+            <p>Inject before bed on an empty stomach (2+ hours after eating). GH is released during deep sleep &mdash; evening dosing maximizes results.</p>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-head">What to Expect</div>
+          <div class="timeline-row">
+            <div class="timeline-item">
+              <h4>Weeks 1 &ndash; 2</h4>
+              <p>Noticeably better sleep and increased energy. Recovery from training improves. Mental clarity sharpens.</p>
+            </div>
+            <div class="timeline-item">
+              <h4>Months 2 &ndash; 3</h4>
+              <p>Significant body composition changes. Visible fat loss, improved muscle definition, sustained energy, and better overall vitality.</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-head">Protocol Options</div>
+          <table class="protocol-table">
+            <thead>
+              <tr>
+                <th>Duration</th>
+                <th>Price</th>
+                <th>Best For</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Phase 1</td>
+                <td>$450/mo</td>
+                <td>Starting dose, sleep &amp; energy</td>
+              </tr>
+              <tr>
+                <td>Phase 2</td>
+                <td>$500/mo</td>
+                <td>Fat loss, recovery, cognition</td>
+              </tr>
+              <tr class="highlight">
+                <td>Phase 3</td>
+                <td>$550/mo</td>
+                <td>Maximum performance</td>
+              </tr>
+            </tbody>
+          </table>
+          <p style="font-size: 8px; color: #737373; margin-top: 5px;">5 on / 2 off schedule. 20 injections per month. Pre-filled syringes. Pickup or delivery.</p>
+        </div>
+
+      </div>
+
+      <!-- COLUMN 3: Side Effects / Safety / Labs -->
+      <div class="col">
+
+        <div>
+          <div class="section-head">Possible Side Effects</div>
+          <div class="card">
+            <ul class="warning-list dots">
+              <li>Mild water retention (usually temporary)</li>
+              <li>Slight redness or swelling at injection site</li>
+              <li>Increased appetite (from GHRP-2)</li>
+              <li>Transient tingling or numbness in hands</li>
+              <li>Occasional headache or fatigue</li>
+            </ul>
+            <p style="font-size: 8px; color: #737373; margin-top: 6px;">Usually mild and resolve within the first 1&ndash;2 weeks. Appetite increase from GHRP-2 is normal. Contact us if symptoms persist.</p>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-head">Do Not Use If</div>
+          <div class="card">
+            <ul class="warning-list x-marks">
+              <li>Pregnant or breastfeeding</li>
+              <li>Living with active cancer</li>
+              <li>Managing serious liver, kidney, or heart conditions</li>
+              <li>Dealing with uncontrolled medical conditions</li>
+              <li>Allergic to any ingredient</li>
+            </ul>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-head">Labs Required</div>
+          <div class="card-accent" style="padding: 10px 14px;">
+            <p style="font-size: 9.5px;"><strong>Labs recommended.</strong> Baseline bloodwork helps your provider determine the right dose and track progress. We&rsquo;ll guide you through it.</p>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-head">Cycle Information</div>
+          <div class="card">
+            <ul>
+              <li>5 days on, 2 days off each week</li>
+              <li>8&ndash;12 week cycles recommended</li>
+              <li>Provider check-ins to adjust dosing</li>
+              <li>Consistency is key &mdash; same time nightly</li>
+              <li>First injection done at clinic with training</li>
+            </ul>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-head">How It&rsquo;s Delivered</div>
+          <div class="card">
+            <ul>
+              <li>Pre-filled, single-use syringes</li>
+              <li>Shipped to your door or picked up in clinic</li>
+              <li>No mixing or reconstituting required</li>
+              <li>Sharps container provided</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="footer-left">
+        Peptides are not FDA-approved to diagnose, treat, cure, or prevent any disease. Individual results vary based on health status, dosage, and consistency. This document is for Range Medical patients only and is not a substitute for medical advice. Do not adjust your dose without consulting your provider.
+      </div>
+      <div class="footer-right">
+        <div class="cta-line">Questions? Call or text (949) 997-3988</div>
+        <div class="cta-sub">range-medical.com</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

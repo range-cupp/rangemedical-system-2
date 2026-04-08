@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>RLT+HBOT 05 — The Combo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#0A0A0A; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#0A0A0A; }
+  .slide::before { content:''; position:absolute; inset:0; background-image:radial-gradient(circle,rgba(255,255,255,0.045) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; }
+
+  .top-bar { position:absolute; top:72px; left:108px; right:108px; display:flex; justify-content:space-between; align-items:center; z-index:2; }
+  .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(255,255,255,0.5); }
+  .slide-num { font-size:18px; font-weight:500; color:rgba(255,255,255,0.28); }
+
+  .section-tag { position:absolute; top:130px; left:108px; font-size:18px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:rgba(255,255,255,0.28); z-index:2; }
+  .section-rule { position:absolute; top:162px; left:108px; right:108px; height:1px; background:rgba(255,255,255,0.1); z-index:2; }
+
+  .headline-block { position:absolute; top:196px; left:108px; right:108px; z-index:2; }
+  .headline { font-size:88px; font-weight:800; letter-spacing:-4px; line-height:0.93; color:#FFFFFF; }
+  .headline-light { font-size:88px; font-weight:300; letter-spacing:-4px; line-height:0.93; color:rgba(255,255,255,0.3); margin-bottom:52px; }
+
+  .therapy { position:absolute; left:108px; right:108px; z-index:2; }
+  .therapy-rule { width:100%; height:1px; background:rgba(255,255,255,0.1); margin-bottom:24px; }
+  .therapy-inner { display:flex; gap:32px; align-items:flex-start; }
+  .therapy-step { font-size:18px; font-weight:700; letter-spacing:0.2em; color:rgba(255,255,255,0.2); width:32px; flex-shrink:0; padding-top:6px; }
+  .therapy-body {}
+  .therapy-name { font-size:48px; font-weight:800; letter-spacing:-2px; line-height:1.0; color:#FFFFFF; margin-bottom:8px; }
+  .therapy-desc { font-size:36px; font-weight:400; line-height:1.5; color:rgba(255,255,255,0.4); }
+
+  .therapy-1 { top:450px; }
+  .therapy-2 { top:668px; }
+
+  .tag-line { position:absolute; bottom:130px; left:108px; right:108px; z-index:2; border-top:1px solid rgba(255,255,255,0.1); padding-top:24px; }
+  .tag-text { font-size:34px; font-weight:600; letter-spacing:-0.5px; color:rgba(255,255,255,0.5); }
+
+  .bottom-bar { position:absolute; bottom:60px; left:108px; right:108px; display:flex; justify-content:flex-end; border-top:1px solid rgba(255,255,255,0.08); padding-top:18px; z-index:2; }
+  .next { font-size:20px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.28); }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="top-bar">
+    <span class="brand">@range_medical</span>
+    <span class="slide-num">05 / 07</span>
+  </div>
+  <div class="section-tag">The Sequence</div>
+  <div class="section-rule"></div>
+
+  <div class="headline-block">
+    <div class="headline">Two mechanisms.</div>
+    <div class="headline-light">One sequence.</div>
+  </div>
+
+  <div class="therapy therapy-1">
+    <div class="therapy-rule"></div>
+    <div class="therapy-inner">
+      <div class="therapy-step">01</div>
+      <div class="therapy-body">
+        <div class="therapy-name">Red Light Therapy</div>
+        <div class="therapy-desc">660&#8211;850nm. Triggers nitric oxide release. Opens the blood vessels and primes the tissue. 20 minutes.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="therapy therapy-2">
+    <div class="therapy-rule"></div>
+    <div class="therapy-inner">
+      <div class="therapy-step">02</div>
+      <div class="therapy-body">
+        <div class="therapy-name">Hyperbaric Oxygen</div>
+        <div class="therapy-desc">2.0 ATA pure oxygen floods into already-open tissue. The hyperoxic&#8209;hypoxic cycle triggers cellular repair. 60 minutes.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tag-line">
+    <div class="tag-text">The order isn&#8217;t random. It&#8217;s the whole point.</div>
+  </div>
+
+  <div class="bottom-bar">
+    <span class="next">The 6-Week Reset &#8594;</span>
+  </div>
+</div>
+</body>
+</html>

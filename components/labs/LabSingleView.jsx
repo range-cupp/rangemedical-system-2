@@ -6,7 +6,7 @@ import MarkerCard from './MarkerCard';
 
 export default function LabSingleView({ results, biomarkerLibrary, previousResults, synopsis, synopsisLoading, onRegenerateSynopsis, labId }) {
   const [filter, setFilter] = useState('all');
-  const [synopsisExpanded, setSynopsisExpanded] = useState(true);
+  const [synopsisExpanded, setSynopsisExpanded] = useState(false);
 
   // Q&A state
   const [qaMessages, setQaMessages] = useState([]);

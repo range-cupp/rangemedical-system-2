@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Start Carousel 04 — Injury Path</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#FFFFFF; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#FFFFFF; }
+
+  .top-bar { position:absolute; top:72px; left:108px; right:108px; display:flex; justify-content:space-between; align-items:center; z-index:2; }
+  .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(0,0,0,0.35); }
+  .slide-num { font-size:18px; font-weight:500; color:rgba(0,0,0,0.2); }
+
+  .section-tag { position:absolute; top:130px; left:108px; font-size:18px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:rgba(0,0,0,0.28); z-index:2; }
+  .section-rule { position:absolute; top:162px; left:108px; right:108px; height:1px; background:rgba(0,0,0,0.08); z-index:2; }
+
+  .headline-block { position:absolute; top:192px; left:108px; right:108px; z-index:2; }
+  .path-tag { font-size:18px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:rgba(0,0,0,0.28); margin-bottom:14px; }
+  .headline { font-size:72px; font-weight:800; letter-spacing:-3px; line-height:1.0; color:#0A0A0A; margin-bottom:10px; }
+
+  .items-block { position:absolute; top:388px; left:108px; right:108px; z-index:2; }
+  .item { display:flex; gap:28px; align-items:flex-start; margin-bottom:38px; }
+  .item-arrow { font-size:36px; font-weight:300; color:rgba(0,0,0,0.2); line-height:1.3; flex-shrink:0; }
+  .item-text { font-size:46px; font-weight:600; letter-spacing:-1.5px; line-height:1.2; color:#0A0A0A; }
+  .item-text.dim { color:rgba(0,0,0,0.45); font-weight:400; }
+
+  .bottom-bar { position:absolute; bottom:60px; left:108px; right:108px; display:flex; justify-content:flex-end; border-top:1px solid rgba(0,0,0,0.08); padding-top:18px; z-index:2; }
+  .next { font-size:20px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:rgba(0,0,0,0.28); }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="top-bar">
+    <span class="brand">@range_medical</span>
+    <span class="slide-num">04 / 07</span>
+  </div>
+  <div class="section-tag">Injury Path</div>
+  <div class="section-rule"></div>
+
+  <div class="headline-block">
+    <div class="headline">Dealing with<br/>an injury?</div>
+  </div>
+
+  <div class="items-block">
+    <div class="item"><div class="item-arrow">&#8594;</div><div class="item-text">Book a Recovery Visit</div></div>
+    <div class="item"><div class="item-arrow">&#8594;</div><div class="item-text dim">We look at your injury story</div></div>
+    <div class="item"><div class="item-arrow">&#8594;</div><div class="item-text dim">Focused exam</div></div>
+    <div class="item"><div class="item-arrow">&#8594;</div><div class="item-text">You leave with a written recovery plan</div></div>
+    <div class="item"><div class="item-arrow">&#8594;</div><div class="item-text dim">No labs required up front</div></div>
+  </div>
+
+  <div class="bottom-bar">
+    <span class="next">Energy Path &#8594;</span>
+  </div>
+</div>
+</body>
+</html>

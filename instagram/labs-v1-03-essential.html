@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Labs Slide 03 — Essential Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#FFFFFF; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#FFFFFF; }
+
+  .top-bar { position:absolute; top:72px; left:72px; right:72px; display:flex; justify-content:space-between; align-items:center; z-index:2; }
+  .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(0,0,0,0.35); }
+  .slide-num { font-size:18px; font-weight:500; color:rgba(0,0,0,0.2); }
+
+  .section-tag { position:absolute; top:130px; left:72px; font-size:18px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:rgba(0,0,0,0.28); z-index:2; }
+  .section-rule { position:absolute; top:162px; left:72px; right:72px; height:1px; background:rgba(0,0,0,0.08); z-index:2; }
+
+  /* Price block */
+  .price-block { position:absolute; top:188px; left:72px; z-index:2; display:flex; align-items:baseline; gap:20px; }
+  .price { font-size:72px; font-weight:800; letter-spacing:-3px; color:#0A0A0A; line-height:1.0; }
+  .panel-name { font-size:32px; font-weight:400; color:rgba(0,0,0,0.35); letter-spacing:-0.5px; }
+  .panel-sub { position:absolute; top:272px; left:72px; font-size:30px; font-weight:400; color:rgba(0,0,0,0.35); z-index:2; }
+
+  /* Three category rows */
+  .cat { position:absolute; left:72px; right:72px; z-index:2; }
+  .cat-rule { width:100%; height:1px; background:rgba(0,0,0,0.08); margin-bottom:20px; }
+  .cat-num { font-size:18px; font-weight:700; letter-spacing:0.2em; color:rgba(0,0,0,0.2); margin-bottom:10px; }
+  .cat-name { font-size:56px; font-weight:800; letter-spacing:-2.5px; line-height:1.0; color:#0A0A0A; margin-bottom:8px; }
+  .cat-desc { font-size:40px; font-weight:400; line-height:1.5; color:rgba(0,0,0,0.45); }
+
+  .cat-1 { top:310px; }
+  .cat-2 { top:560px; }
+  .cat-3 { top:808px; }
+
+  .bottom-bar { position:absolute; bottom:60px; left:72px; right:72px; display:flex; justify-content:flex-end; border-top:1px solid rgba(0,0,0,0.08); padding-top:18px; z-index:2; }
+  .next { font-size:18px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:rgba(0,0,0,0.28); }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="top-bar">
+    <span class="brand">@range_medical</span>
+    <span class="slide-num">03 / 06</span>
+  </div>
+  <div class="section-tag">Essential Panel</div>
+  <div class="section-rule"></div>
+
+  <div class="price-block">
+    <div class="price">$350</div>
+    <div class="panel-name">Core markers</div>
+  </div>
+  <div class="panel-sub">Includes labs + one-on-one provider review. Results in 3&#8211;5 days.</div>
+
+  <div class="cat cat-1">
+    <div class="cat-rule"></div>
+    <div class="cat-num">01</div>
+    <div class="cat-name">Hormones</div>
+    <div class="cat-desc">Testosterone (total &amp; free), estradiol, SHBG, Free T3, Total T4, TSH, TPO antibodies.</div>
+  </div>
+
+  <div class="cat cat-2">
+    <div class="cat-rule"></div>
+    <div class="cat-num">02</div>
+    <div class="cat-name">Metabolic</div>
+    <div class="cat-desc">CMP, lipid panel, HbA1c, fasting insulin. Blood sugar, cholesterol, liver, and kidney function.</div>
+  </div>
+
+  <div class="cat cat-3">
+    <div class="cat-rule"></div>
+    <div class="cat-num">03</div>
+    <div class="cat-name">General Health</div>
+    <div class="cat-desc">CBC with differential, Vitamin D, and key baseline markers.</div>
+  </div>
+
+  <div class="bottom-bar">
+    <span class="next">The Elite Panel &#8594;</span>
+  </div>
+</div>
+</body>
+</html>

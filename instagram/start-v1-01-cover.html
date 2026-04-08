@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Start Carousel 01 — Cover</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#0A0A0A; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#0A0A0A; }
+  .slide::before { content:''; position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px); background-size:72px 72px; pointer-events:none; }
+
+  .top-bar { position:absolute; top:72px; left:108px; right:108px; display:flex; justify-content:space-between; align-items:center; z-index:2; }
+  .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(255,255,255,0.5); }
+  .slide-num { font-size:18px; font-weight:500; color:rgba(255,255,255,0.3); }
+
+  /* Centered content block */
+  .center { position:absolute; top:0; left:108px; right:108px; bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; z-index:2; }
+  .pill-label { font-size:20px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:rgba(255,255,255,0.35); margin-bottom:40px; display:flex; align-items:center; gap:16px; }
+  .pill-label::before, .pill-label::after { content:''; display:block; width:32px; height:1px; background:rgba(255,255,255,0.25); }
+  .headline { font-size:96px; font-weight:800; line-height:0.93; letter-spacing:-4.5px; color:#FFFFFF; margin-bottom:20px; }
+  .display { font-size:96px; font-weight:300; line-height:0.93; letter-spacing:-4.5px; color:rgba(255,255,255,0.35); margin-bottom:52px; }
+  .rule { width:56px; height:1px; background:rgba(255,255,255,0.25); margin:0 auto 36px; }
+  .url { font-size:28px; font-weight:500; letter-spacing:0.04em; color:rgba(255,255,255,0.45); }
+
+  .bottom-bar { position:absolute; bottom:64px; left:108px; right:108px; display:flex; justify-content:center; border-top:1px solid rgba(255,255,255,0.08); padding-top:20px; z-index:2; }
+  .swipe-cta { font-size:20px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.3); }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="top-bar">
+    <span class="brand">@range_medical</span>
+    <span class="slide-num">01 / 07</span>
+  </div>
+  <div class="center">
+    <div class="pill-label">Range Medical</div>
+    <div class="headline">Not feeling</div>
+    <div class="headline" style="margin-bottom:12px">like yourself?</div>
+    <div class="display">Start here.</div>
+    <div class="rule"></div>
+    <div class="url">range-medical.com/start</div>
+  </div>
+  <div class="bottom-bar">
+    <span class="swipe-cta">Swipe to see how it works &#8594;</span>
+  </div>
+</div>
+</body>
+</html>

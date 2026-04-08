@@ -42,7 +42,6 @@ export default function TesamorelinIpamorelinGuide() {
           <span className="hero-badge">Your Peptide Protocol Guide</span>
           <h1>2X Blend: Tesamorelin + Ipamorelin</h1>
           <p className="hero-sub">Everything you need to know about your peptide therapy — how it works, how to inject, and what to expect.</p>
-          <div className="hero-price">Starting at $400/month</div>
         </div>
       </section>
 
@@ -129,21 +128,18 @@ export default function TesamorelinIpamorelinGuide() {
               <div className="phase-dose">500mcg / 500mcg</div>
               <div className="phase-total">1mg total per injection</div>
               <p>Starting dose — your body adjusts to the peptides. Most people begin noticing better sleep and subtle energy shifts.</p>
-              <div className="phase-price">$400/month</div>
             </div>
             <div className="phase-card">
               <div className="phase-label">Phase 2</div>
               <div className="phase-dose">1mg / 1mg</div>
               <div className="phase-total">2mg total per injection</div>
               <p>Increased dose — growth hormone levels rise further. Recovery, energy, and body composition changes become more noticeable.</p>
-              <div className="phase-price">$450/month</div>
             </div>
             <div className="phase-card">
               <div className="phase-label">Phase 3</div>
               <div className="phase-dose">1.5mg / 1.5mg</div>
               <div className="phase-total">3mg total per injection</div>
               <p>Full dose — maximum growth hormone output. Fat loss, muscle retention, and overall vitality are at their peak.</p>
-              <div className="phase-price">$500/month</div>
             </div>
           </div>
 

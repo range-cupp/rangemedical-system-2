@@ -55,7 +55,7 @@ const SERVICES = [
   },
 ];
 
-export default function SluppGuide() {
+export default function PT141Guide() {
   const [openAccordion, setOpenAccordion] = useState(null);
 
   const toggleAccordion = (id) => {
@@ -64,127 +64,181 @@ export default function SluppGuide() {
 
   return (
     <Layout
-      title="5-Amino-1MQ / SLUPP Peptide Guide | Range Medical"
-      description="Your guide to 5-Amino-1MQ / SLUPP oral peptide therapy for metabolic optimization. How it works, what to expect, and protocol details. Range Medical, Newport Beach. (949) 997-3988"
+      title="PT-141 (Bremelanotide) Peptide Guide | Range Medical"
+      description="Your guide to PT-141 (Bremelanotide) peptide therapy. Sexual desire and arousal support for men and women. Range Medical, Newport Beach. (949) 997-3988"
     >
       <Head>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "MedicalWebPage", "name": "5-Amino-1MQ / SLUPP Peptide Guide", "description": "Patient guide for 5-Amino-1MQ / SLUPP oral peptide therapy including protocol details, timeline, and safety information.", "url": "https://www.range-medical.com/slupp-guide", "provider": { "@type": "MedicalBusiness", "name": "Range Medical", "telephone": "+1-949-997-3988", "address": { "@type": "PostalAddress", "streetAddress": "1901 Westcliff Dr. Suite 10", "addressLocality": "Newport Beach", "addressRegion": "CA", "postalCode": "92660", "addressCountry": "US" } } }) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "MedicalWebPage", "name": "PT-141 Peptide Guide", "description": "Patient guide for PT-141 peptide therapy including protocol details, timeline, and safety information.", "url": "https://www.range-medical.com/pt-141-guide", "provider": { "@type": "MedicalBusiness", "name": "Range Medical", "telephone": "+1-949-997-3988", "address": { "@type": "PostalAddress", "streetAddress": "1901 Westcliff Dr. Suite 10", "addressLocality": "Newport Beach", "addressRegion": "CA", "postalCode": "92660", "addressCountry": "US" } } }) }} />
       </Head>
 
       {/* Hero */}
       <section className="peptide-hero">
         <div className="container">
           <span className="hero-badge">Your Peptide Protocol Guide</span>
-          <h1>5-AMINO-1MQ / SLUPP</h1>
-          <p className="hero-sub">The oral metabolic optimization blend — two targeted compounds that support fat metabolism, cellular energy, and metabolic function without injections.</p>
+          <h1>PT-141</h1>
+          <p className="hero-sub">The sexual health peptide — a melanocortin receptor agonist that acts in the brain to restore desire and arousal, for both men and women.</p>
           <div className="hero-dose">
-            <div><span>Dose:</span> 50mg / 1mg daily tablet</div>
+            <div><span>Dose:</span> 500 mcg–1 mg as needed</div>
+            <div><span>Duration:</span> On-demand dosing</div>
           </div>
         </div>
       </section>
 
-      {/* What Is 5-Amino-1MQ / SLUPP */}
+      {/* What It Is */}
       <section className="section">
         <div className="container">
           <div className="section-kicker">The Basics</div>
-          <h2 className="section-title">What Is 5-Amino-1MQ / SLUPP?</h2>
-          <p className="section-subtitle">An oral peptide tablet combining two compounds that target metabolic function at the cellular level.</p>
-          <p className="body-text">5-Amino-1MQ inhibits NNMT — an enzyme linked to fat storage and metabolic slowdown. By blocking NNMT, it helps restore healthy metabolic activity and supports the body's natural fat-burning pathways. SLUPP works alongside it to support cellular energy production. No injections required — just one tablet per day.</p>
+          <h2 className="section-title">What Is PT-141?</h2>
+          <p className="section-subtitle">PT-141 (Bremelanotide) is a synthetic analog of alpha-MSH that activates melanocortin receptors in the central nervous system.</p>
+          <p className="body-text">Unlike PDE5 inhibitors (Viagra, Cialis) that work on blood flow, PT-141 works upstream in the brain. It activates the pathways responsible for sexual desire itself, which is why it's effective for both men and women — including in cases where blood-flow drugs don't solve the problem. An FDA-approved version (Vyleesi) exists specifically for hypoactive sexual desire disorder in women.</p>
         </div>
       </section>
 
-      {/* How It Works */}
+      {/* Benefits */}
       <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">How It Works</div>
-          <h2 className="section-title">What 5-Amino-1MQ / SLUPP Does</h2>
-          <p className="section-subtitle">Four key mechanisms that make this oral blend a powerful tool for metabolic optimization.</p>
+          <div className="section-kicker">Key Benefits</div>
+          <h2 className="section-title">What PT-141 Does</h2>
+          <p className="section-subtitle">The main mechanisms and effects patients can expect from a well-run protocol.</p>
           <div className="info-grid">
             <div className="info-card">
-              <h3>NNMT Inhibition</h3>
+              <h3>Desire & Libido</h3>
               <ul>
-                <li>Blocks the enzyme linked to fat cell expansion</li>
-                <li>Targets metabolic slowdown at the source</li>
-                <li>Supports restoration of healthy metabolic activity</li>
+                <li>Restores sexual desire at the brain level</li>
+                <li>Works for both men and women</li>
+                <li>Separate mechanism from PDE5 inhibitors</li>
               </ul>
             </div>
             <div className="info-card">
-              <h3>Metabolic Boost</h3>
+              <h3>Arousal</h3>
               <ul>
-                <li>Supports healthy cellular energy production</li>
-                <li>Promotes optimal NAD+ levels</li>
-                <li>Enhances overall metabolic efficiency</li>
+                <li>Supports physical arousal</li>
+                <li>Effective when blood-flow drugs aren't enough</li>
+                <li>Can be used alongside other treatments</li>
               </ul>
             </div>
             <div className="info-card">
-              <h3>Fat Metabolism</h3>
+              <h3>On-Demand</h3>
               <ul>
-                <li>Promotes the body's natural fat-burning pathways</li>
-                <li>Supports healthy body composition</li>
-                <li>Works synergistically with diet and exercise</li>
+                <li>Fast onset (typically 2–4 hours)</li>
+                <li>Taken as needed, not daily</li>
+                <li>Flexible dosing</li>
               </ul>
             </div>
             <div className="info-card">
-              <h3>Easy Protocol</h3>
+              <h3>Unique Mechanism</h3>
               <ul>
-                <li>Oral tablet — no injections required</li>
-                <li>No mixing or reconstitution needed</li>
-                <li>No refrigeration — store at room temperature</li>
+                <li>Acts on melanocortin receptors</li>
+                <li>Central nervous system pathway</li>
+                <li>Complements rather than replaces other options</li>
               </ul>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Your Protocol */}
+      {/* Who It's For */}
       <section className="section">
         <div className="container">
+          <div className="section-kicker">Who It's For</div>
+          <h2 className="section-title">Is This Right For You?</h2>
+          <p className="section-subtitle">PT-141 tends to be a strong fit for patients dealing with the following.</p>
+          <div className="info-card">
+            <ul>
+                <li>Men and women with low libido or desire</li>
+                <li>Patients where PDE5 inhibitors don't resolve the issue</li>
+                <li>Those looking for on-demand rather than daily dosing</li>
+                <li>Patients whose hormones are already optimized but desire is still low</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Protocol */}
+      <section className="section section-gray">
+        <div className="container">
           <div className="section-kicker">Your Protocol</div>
-          <h2 className="section-title">How to Use 5-Amino-1MQ / SLUPP</h2>
+          <h2 className="section-title">How to Use PT-141</h2>
           <p className="section-subtitle">Your provider has prescribed a protocol tailored to your goals. Here are the key details to keep in mind.</p>
           <div className="info-grid">
             <div className="info-card">
-              <h3>Dosing</h3>
-              <p>1 tablet daily, taken in the morning with or without food. Consistency is key — same time every day for best results.</p>
+              <h3>Timing</h3>
+              <p>Inject approximately 2 hours before anticipated activity. Onset varies slightly by patient.</p>
             </div>
             <div className="info-card">
-              <h3>Duration</h3>
-              <p>30 days per cycle. Your provider may recommend additional cycles based on your response and metabolic goals.</p>
+              <h3>Injection Site</h3>
+              <p>Subcutaneous into the abdomen.</p>
             </div>
             <div className="info-card">
-              <h3>Delivery</h3>
-              <p>Pick up at the clinic or have your tablets shipped directly to you. No cold storage or special handling required.</p>
+              <h3>Frequency</h3>
+              <p>On-demand. Do not exceed your provider's prescribed frequency. Not intended for daily use.</p>
             </div>
             <div className="info-card">
               <h3>Storage</h3>
-              <p>Store at room temperature in a cool, dry place. No refrigeration needed. Keep out of direct sunlight and away from moisture.</p>
+              <p>Keep refrigerated. Do not freeze. Let the vial warm slightly before injection.</p>
             </div>
-          </div>
-          <div className="tip-box" style={{ marginTop: '1.5rem' }}>
-            <strong>Pro Tip</strong>
-            <p>Set a daily morning alarm to stay consistent. Taking your tablet at the same time each day keeps levels steady and maximizes metabolic support.</p>
           </div>
         </div>
       </section>
 
-      {/* What to Expect */}
-      <section className="section section-gray">
+      {/* Timeline */}
+      <section className="section">
         <div className="container">
           <div className="section-kicker">Timeline</div>
           <h2 className="section-title">What to Expect</h2>
-          <p className="section-subtitle">Everyone responds differently, but here's what patients typically experience during a 5-Amino-1MQ / SLUPP protocol.</p>
+          <p className="section-subtitle">Everyone responds differently, but here's what patients typically experience.</p>
           <div className="timeline-grid">
             <div className="timeline-card">
-              <h4>Week 1-2</h4>
-              <p>Your body begins adapting to the metabolic shift. Some patients notice improved energy levels and reduced cravings. Subtle changes in how your body processes fuel.</p>
+              <h4>30-60 min</h4>
+              <p>Peptide starts to absorb. Some patients feel warmth or a subtle shift in mood.</p>
             </div>
             <div className="timeline-card">
-              <h4>Week 3-4</h4>
-              <p>Metabolic benefits become more noticeable. Patients often report improved body composition, sustained energy throughout the day, and better response to diet and exercise.</p>
+              <h4>2-4 hours</h4>
+              <p>Peak effect window. This is typically when patients feel the biggest shift in desire and arousal.</p>
             </div>
             <div className="timeline-card">
-              <h4>Week 5+</h4>
-              <p>Compounding results with continued use. Many patients see meaningful changes in body composition and metabolic markers. Your provider may recommend additional cycles for sustained progress.</p>
+              <h4>6-8 hours</h4>
+              <p>Effects taper off. Most patients describe the experience as returning to normal baseline.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Side Effects */}
+      <section className="section section-gray">
+        <div className="container">
+          <div className="section-kicker">Safety</div>
+          <h2 className="section-title">Side Effects</h2>
+          <p className="section-subtitle">PT-141 is generally well tolerated. Contact your provider if you experience anything unusual.</p>
+          <div className="info-card">
+            <ul>
+                <li>Nausea (most common, often first dose only)</li>
+                <li>Facial flushing or warmth</li>
+                <li>Mild headache</li>
+                <li>Temporary increase in blood pressure — avoid if hypertensive without provider clearance</li>
+                <li>Darkening of moles or skin with excessive use</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="section">
+        <div className="container">
+          <div className="section-kicker">FAQ</div>
+          <h2 className="section-title">Common Questions</h2>
+          <div className="faq-list">
+            <div className="faq-item">
+              <h4>How is this different from Viagra or Cialis?</h4>
+              <p>Viagra and Cialis work on blood flow. PT-141 works in the brain on the desire and arousal signal itself. Different mechanism, often complementary.</p>
+            </div>
+            <div className="faq-item">
+              <h4>Does it work for women?</h4>
+              <p>Yes. An FDA-approved version exists specifically for women with low desire. PT-141 is one of the few options that addresses female libido directly.</p>
+            </div>
+            <div className="faq-item">
+              <h4>Why does my provider want me to try a low dose first?</h4>
+              <p>Nausea is the most common side effect and is more likely at higher doses. Starting low lets us find the right amount for you.</p>
             </div>
           </div>
         </div>
@@ -278,12 +332,14 @@ export default function SluppGuide() {
         .tip-box { background: #ffffff; border-left: 4px solid #000000; padding: 1.25rem 1.5rem; border-radius: 0; }
         .tip-box strong { display: block; margin-bottom: 0.25rem; }
         .tip-box p { font-size: 0.9rem; color: #525252; line-height: 1.6; margin: 0; }
-
         .timeline-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
         .timeline-card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 0; padding: 1.75rem; }
         .timeline-card h4 { font-size: 1rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; margin-bottom: 0.5rem; }
         .timeline-card p { font-size: 0.9rem; color: #525252; line-height: 1.7; }
-
+        .faq-list { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem; }
+        .faq-item { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 0; padding: 1.25rem 1.5rem; }
+        .faq-item h4 { font-size: 0.9375rem; font-weight: 700; color: #171717; margin-bottom: 0.5rem; }
+        .faq-item p { font-size: 0.9rem; color: #525252; line-height: 1.7; margin: 0; }
         .accordion-list { display: flex; flex-direction: column; gap: 0; margin-top: 1.5rem; }
         .accordion-item { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 0; overflow: hidden; }
         .accordion-item + .accordion-item { border-top: 0; }
@@ -291,12 +347,10 @@ export default function SluppGuide() {
         .accordion-header:hover { background: #fafafa; }
         .accordion-header-left { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
         .accordion-name { font-size: 0.9375rem; font-weight: 700; color: #171717; }
-        .accordion-price { font-size: 0.8125rem; color: #737373; font-weight: 400; }
         .accordion-chevron { display: flex; align-items: center; justify-content: center; transition: transform 0.2s ease; flex-shrink: 0; }
         .accordion-chevron-open { transform: rotate(180deg); }
         .accordion-body { overflow: hidden; transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease; }
         .accordion-desc { font-size: 0.9rem; color: #525252; line-height: 1.7; margin: 0; }
-
         .disclaimer { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 0; padding: 1.25rem; }
         .disclaimer p { font-size: 0.8125rem; color: #737373; line-height: 1.6; margin: 0; }
         .final-cta { background: #000000; color: #ffffff; padding: 3.5rem 1.5rem; text-align: center; }

@@ -6,61 +6,51 @@ const SERVICES = [
   {
     id: 'hrt',
     name: 'Hormone Optimization',
-    price: '$250/mo',
     description: 'Testosterone, thyroid, and hormone balancing for men and women. Includes all medications, ongoing labs, provider check-ins, and one IV per month.',
   },
   {
     id: 'weight-loss',
     name: 'Medical Weight Loss',
-    price: 'Starting at $350/mo',
     description: 'Physician-supervised GLP-1 medications (Semaglutide, Tirzepatide, Retatrutide) with labs and ongoing support.',
   },
   {
     id: 'iv',
     name: 'IV Therapy',
-    price: 'Starting at $225',
     description: 'Custom IV vitamin infusions including NAD+, high-dose Vitamin C, glutathione, methylene blue, and build-your-own options.',
   },
   {
     id: 'peptide',
     name: 'Peptide Therapy',
-    price: 'Varies',
     description: 'Advanced peptide protocols for recovery, healing, and optimization. BPC-157, TB-500, GLOW, GHK-Cu, growth hormone blends, and more.',
   },
   {
     id: 'injections',
     name: 'Vitamin Injections',
-    price: '$35\u2013$75',
     description: 'Fast nutrient delivery: B12, B-Complex, D3, Biotin, Glutathione, NAD+, and more.',
   },
   {
     id: 'nad',
     name: 'NAD+ Therapy',
-    price: '$0.50/mg',
     description: 'High-dose NAD+ via IV or injection for cellular energy, brain function, and recovery.',
   },
   {
     id: 'hbot',
     name: 'Hyperbaric Oxygen Therapy',
-    price: 'Starting at $185/session',
-    description: 'Pressurized oxygen therapy for injury recovery, cognitive performance, and longevity. Memberships from $549/mo.',
+    description: 'Pressurized oxygen therapy for injury recovery, cognitive performance, and longevity.',
   },
   {
     id: 'rlt',
     name: 'Red Light Therapy',
-    price: 'Starting at $85/session',
-    description: 'Photobiomodulation for muscle recovery, skin health, and cellular regeneration. Memberships from $399/mo.',
+    description: 'Photobiomodulation for muscle recovery, skin health, and cellular regeneration.',
   },
   {
     id: 'prp',
     name: 'PRP Therapy',
-    price: 'Starting at $750',
     description: 'Your own concentrated platelets injected to support tissue repair for joint pain and tendon issues.',
   },
   {
     id: 'reset',
     name: '6-Week Cellular Reset',
-    price: <><s style={{ color: '#a3a3a3', fontWeight: 400 }}>$3,999</s> $2,999</>,
     description: 'Comprehensive program combining multiple therapies for full cellular energy restoration.',
   },
 ];
@@ -189,7 +179,7 @@ export default function FourXBlendGuide() {
             <div className="phase-card">
               <div className="phase-label">Phase 1</div>
               <div className="phase-duration">Days 1–30 &middot; 20 injections</div>
-              <div className="phase-total">1mg total per injection &middot; $450</div>
+              <div className="phase-total">1mg total per injection</div>
               <div className="phase-breakdown">
                 <div className="phase-row"><span>GHRP-2</span><span>500 mcg</span></div>
                 <div className="phase-row"><span>Tesamorelin</span><span>500 mcg</span></div>
@@ -200,7 +190,7 @@ export default function FourXBlendGuide() {
             <div className="phase-card">
               <div className="phase-label">Phase 2</div>
               <div className="phase-duration">Days 31–60 &middot; 20 injections</div>
-              <div className="phase-total">2mg total per injection &middot; $500</div>
+              <div className="phase-total">2mg total per injection</div>
               <div className="phase-breakdown">
                 <div className="phase-row"><span>GHRP-2</span><span>1 mg</span></div>
                 <div className="phase-row"><span>Tesamorelin</span><span>1 mg</span></div>
@@ -211,7 +201,7 @@ export default function FourXBlendGuide() {
             <div className="phase-card">
               <div className="phase-label">Phase 3</div>
               <div className="phase-duration">Days 61–90 &middot; 20 injections</div>
-              <div className="phase-total">3mg total per injection &middot; $550</div>
+              <div className="phase-total">3mg total per injection</div>
               <div className="phase-breakdown">
                 <div className="phase-row"><span>GHRP-2</span><span>1.5 mg</span></div>
                 <div className="phase-row"><span>Tesamorelin</span><span>1.5 mg</span></div>
@@ -264,7 +254,6 @@ export default function FourXBlendGuide() {
                   >
                     <div className="accordion-header-left">
                       <span className="accordion-name">{service.name}</span>
-                      <span className="accordion-price">{service.price}</span>
                     </div>
                     <span className={`accordion-chevron ${isOpen ? 'accordion-chevron-open' : ''}`}>
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">

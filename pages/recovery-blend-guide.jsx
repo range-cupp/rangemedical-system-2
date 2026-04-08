@@ -128,18 +128,15 @@ export default function RecoveryBlendGuide() {
             <div className="rb-protocol-grid">
               <div className="rb-protocol-card">
                 <div className="rb-protocol-days">10-Day</div>
-                <div className="rb-protocol-price">$275</div>
                 <p className="rb-protocol-desc">Starter protocol for recent injuries, flare-ups, or first-time users. Many notice improvement within this window.</p>
               </div>
               <div className="rb-protocol-card">
                 <div className="rb-protocol-days">20-Day</div>
-                <div className="rb-protocol-price">$500</div>
                 <p className="rb-protocol-desc">Extended healing for moderate injuries. Builds on initial progress with continued support.</p>
               </div>
               <div className="rb-protocol-card rb-featured">
                 <span className="rb-protocol-badge">Best Value</span>
                 <div className="rb-protocol-days">30-Day</div>
-                <div className="rb-protocol-price">$725</div>
                 <p className="rb-protocol-desc">Advanced protocol for chronic issues, post-surgery recovery, or athletes in training.</p>
               </div>
             </div>

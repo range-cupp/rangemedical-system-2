@@ -6,61 +6,51 @@ const SERVICES = [
   {
     id: 'hrt',
     name: 'Hormone Optimization',
-    price: '$250/mo',
     description: 'Testosterone, thyroid, and hormone balancing for men and women. Includes all medications, ongoing labs, provider check-ins, and one IV per month.',
   },
   {
     id: 'weight-loss',
     name: 'Medical Weight Loss',
-    price: 'Starting at $350/mo',
     description: 'Physician-supervised GLP-1 medications (Semaglutide, Tirzepatide, Retatrutide) with labs and ongoing support.',
   },
   {
     id: 'iv',
     name: 'IV Therapy',
-    price: 'Starting at $225',
     description: 'Custom IV vitamin infusions including NAD+, high-dose Vitamin C, glutathione, methylene blue, and build-your-own options.',
   },
   {
     id: 'peptide',
     name: 'Peptide Therapy',
-    price: 'Varies',
     description: 'Advanced peptide protocols for recovery, healing, and optimization. BPC-157, TB-500, GLOW, GHK-Cu, growth hormone blends, and more.',
   },
   {
     id: 'injections',
     name: 'Vitamin Injections',
-    price: '$35\u2013$75',
     description: 'Fast nutrient delivery: B12, B-Complex, D3, Biotin, Glutathione, NAD+, and more.',
   },
   {
     id: 'nad',
     name: 'NAD+ Therapy',
-    price: '$0.50/mg',
     description: 'High-dose NAD+ via IV or injection for cellular energy, brain function, and recovery.',
   },
   {
     id: 'hbot',
     name: 'Hyperbaric Oxygen Therapy',
-    price: 'Starting at $185/session',
-    description: 'Pressurized oxygen therapy for injury recovery, cognitive performance, and longevity. Memberships from $549/mo.',
+    description: 'Pressurized oxygen therapy for injury recovery, cognitive performance, and longevity.',
   },
   {
     id: 'rlt',
     name: 'Red Light Therapy',
-    price: 'Starting at $85/session',
-    description: 'Photobiomodulation for muscle recovery, skin health, and cellular regeneration. Memberships from $399/mo.',
+    description: 'Photobiomodulation for muscle recovery, skin health, and cellular regeneration.',
   },
   {
     id: 'prp',
     name: 'PRP Therapy',
-    price: 'Starting at $750',
     description: 'Your own concentrated platelets injected to support tissue repair for joint pain and tendon issues.',
   },
   {
     id: 'reset',
     name: '6-Week Cellular Reset',
-    price: <><s style={{ color: '#a3a3a3', fontWeight: 400 }}>$3,999</s> $2,999</>,
     description: 'Comprehensive program combining multiple therapies for full cellular energy restoration.',
   },
 ];
@@ -188,17 +178,17 @@ export default function BDNFGuide() {
           <div className="timeline-grid">
             <div className="timeline-card">
               <h4>Phase 1</h4>
-              <p className="phase-dose">200 mcg &middot; 4 weeks &middot; $150</p>
+              <p className="phase-dose">200 mcg &middot; 4 weeks</p>
               <p>Your body begins adapting to the peptide. Some patients notice subtle improvements in focus and mental clarity within the first few weeks. 20 injections total in this phase.</p>
             </div>
             <div className="timeline-card">
               <h4>Phase 2</h4>
-              <p className="phase-dose">400 mcg &middot; 4 weeks &middot; $200</p>
+              <p className="phase-dose">400 mcg &middot; 4 weeks</p>
               <p>Dose increases as your body has adapted. Most patients report noticeable improvements in memory, focus, and overall cognitive sharpness. 20 injections total in this phase.</p>
             </div>
             <div className="timeline-card">
               <h4>Phase 3</h4>
-              <p className="phase-dose">600 mcg &middot; 4 weeks &middot; $250</p>
+              <p className="phase-dose">600 mcg &middot; 4 weeks</p>
               <p>Full therapeutic dose. Compounding benefits in mental clarity, mood stability, and cognitive performance. Your provider will assess progress and discuss next steps. 20 injections total in this phase.</p>
             </div>
           </div>
@@ -223,7 +213,6 @@ export default function BDNFGuide() {
                   >
                     <div className="accordion-header-left">
                       <span className="accordion-name">{service.name}</span>
-                      <span className="accordion-price">{service.price}</span>
                     </div>
                     <span className={`accordion-chevron ${isOpen ? 'accordion-chevron-open' : ''}`}>
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">

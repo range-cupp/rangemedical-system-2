@@ -55,7 +55,7 @@ const SERVICES = [
   },
 ];
 
-export default function SluppGuide() {
+export default function EpithalonGuide() {
   const [openAccordion, setOpenAccordion] = useState(null);
 
   const toggleAccordion = (id) => {
@@ -64,127 +64,180 @@ export default function SluppGuide() {
 
   return (
     <Layout
-      title="5-Amino-1MQ / SLUPP Peptide Guide | Range Medical"
-      description="Your guide to 5-Amino-1MQ / SLUPP oral peptide therapy for metabolic optimization. How it works, what to expect, and protocol details. Range Medical, Newport Beach. (949) 997-3988"
+      title="Epithalon Peptide Guide | Range Medical"
+      description="Your guide to Epithalon peptide therapy. Telomere support, cellular longevity, and anti-aging benefits. Range Medical, Newport Beach. (949) 997-3988"
     >
       <Head>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "MedicalWebPage", "name": "5-Amino-1MQ / SLUPP Peptide Guide", "description": "Patient guide for 5-Amino-1MQ / SLUPP oral peptide therapy including protocol details, timeline, and safety information.", "url": "https://www.range-medical.com/slupp-guide", "provider": { "@type": "MedicalBusiness", "name": "Range Medical", "telephone": "+1-949-997-3988", "address": { "@type": "PostalAddress", "streetAddress": "1901 Westcliff Dr. Suite 10", "addressLocality": "Newport Beach", "addressRegion": "CA", "postalCode": "92660", "addressCountry": "US" } } }) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "MedicalWebPage", "name": "EPITHALON Peptide Guide", "description": "Patient guide for EPITHALON peptide therapy including protocol details, timeline, and safety information.", "url": "https://www.range-medical.com/epithalon-guide", "provider": { "@type": "MedicalBusiness", "name": "Range Medical", "telephone": "+1-949-997-3988", "address": { "@type": "PostalAddress", "streetAddress": "1901 Westcliff Dr. Suite 10", "addressLocality": "Newport Beach", "addressRegion": "CA", "postalCode": "92660", "addressCountry": "US" } } }) }} />
       </Head>
 
       {/* Hero */}
       <section className="peptide-hero">
         <div className="container">
           <span className="hero-badge">Your Peptide Protocol Guide</span>
-          <h1>5-AMINO-1MQ / SLUPP</h1>
-          <p className="hero-sub">The oral metabolic optimization blend — two targeted compounds that support fat metabolism, cellular energy, and metabolic function without injections.</p>
+          <h1>EPITHALON</h1>
+          <p className="hero-sub">The telomere peptide — a four-amino-acid sequence shown in research to activate telomerase, the enzyme responsible for maintaining the protective caps on your DNA.</p>
           <div className="hero-dose">
-            <div><span>Dose:</span> 50mg / 1mg daily tablet</div>
+            <div><span>Dose:</span> 10 mg daily</div>
+            <div><span>Duration:</span> 20 days</div>
           </div>
         </div>
       </section>
 
-      {/* What Is 5-Amino-1MQ / SLUPP */}
+      {/* What It Is */}
       <section className="section">
         <div className="container">
           <div className="section-kicker">The Basics</div>
-          <h2 className="section-title">What Is 5-Amino-1MQ / SLUPP?</h2>
-          <p className="section-subtitle">An oral peptide tablet combining two compounds that target metabolic function at the cellular level.</p>
-          <p className="body-text">5-Amino-1MQ inhibits NNMT — an enzyme linked to fat storage and metabolic slowdown. By blocking NNMT, it helps restore healthy metabolic activity and supports the body's natural fat-burning pathways. SLUPP works alongside it to support cellular energy production. No injections required — just one tablet per day.</p>
+          <h2 className="section-title">What Is EPITHALON?</h2>
+          <p className="section-subtitle">Epithalon (also called Epitalon) is a synthetic tetrapeptide derived from the pineal hormone Epithalamin.</p>
+          <p className="body-text">It works upstream at the level of the cell itself — activating telomerase, the enzyme that rebuilds telomeres. Telomeres are the protective tips on your chromosomes that shorten a little every time a cell divides. When they get too short, cells stop dividing and start to senesce. By supporting telomerase activity, Epithalon helps keep cells dividing cleanly for longer.</p>
         </div>
       </section>
 
-      {/* How It Works */}
+      {/* Benefits */}
       <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">How It Works</div>
-          <h2 className="section-title">What 5-Amino-1MQ / SLUPP Does</h2>
-          <p className="section-subtitle">Four key mechanisms that make this oral blend a powerful tool for metabolic optimization.</p>
+          <div className="section-kicker">Key Benefits</div>
+          <h2 className="section-title">What EPITHALON Does</h2>
+          <p className="section-subtitle">The main mechanisms and effects patients can expect from a well-run protocol.</p>
           <div className="info-grid">
             <div className="info-card">
-              <h3>NNMT Inhibition</h3>
+              <h3>Cellular Longevity</h3>
               <ul>
-                <li>Blocks the enzyme linked to fat cell expansion</li>
-                <li>Targets metabolic slowdown at the source</li>
-                <li>Supports restoration of healthy metabolic activity</li>
+                <li>Supports telomerase activity</li>
+                <li>Helps maintain telomere length</li>
+                <li>Protects dividing cells from early senescence</li>
               </ul>
             </div>
             <div className="info-card">
-              <h3>Metabolic Boost</h3>
+              <h3>Circadian & Sleep</h3>
               <ul>
-                <li>Supports healthy cellular energy production</li>
-                <li>Promotes optimal NAD+ levels</li>
-                <li>Enhances overall metabolic efficiency</li>
+                <li>Normalizes melatonin rhythm</li>
+                <li>Improves sleep depth and quality</li>
+                <li>Supports healthy pineal function</li>
               </ul>
             </div>
             <div className="info-card">
-              <h3>Fat Metabolism</h3>
+              <h3>Antioxidant Support</h3>
               <ul>
-                <li>Promotes the body's natural fat-burning pathways</li>
-                <li>Supports healthy body composition</li>
-                <li>Works synergistically with diet and exercise</li>
+                <li>Reduces oxidative stress</li>
+                <li>Supports mitochondrial resilience</li>
+                <li>Helps neutralize free radicals</li>
               </ul>
             </div>
             <div className="info-card">
-              <h3>Easy Protocol</h3>
+              <h3>Systemic Resilience</h3>
               <ul>
-                <li>Oral tablet — no injections required</li>
-                <li>No mixing or reconstitution needed</li>
-                <li>No refrigeration — store at room temperature</li>
+                <li>Supports immune aging markers</li>
+                <li>Patients often report more stable energy</li>
+                <li>Integrates well with other longevity protocols</li>
               </ul>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Your Protocol */}
+      {/* Who It's For */}
       <section className="section">
         <div className="container">
+          <div className="section-kicker">Who It's For</div>
+          <h2 className="section-title">Is This Right For You?</h2>
+          <p className="section-subtitle">EPITHALON tends to be a strong fit for patients dealing with the following.</p>
+          <div className="info-card">
+            <ul>
+                <li>Patients focused on long-term longevity and cellular aging</li>
+                <li>Poor or fragmented sleep tied to disrupted circadian rhythm</li>
+                <li>Patients stacking with NAD+, SS-31, or growth hormone peptides</li>
+                <li>Anyone wanting a structured, short-course longevity cycle</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Protocol */}
+      <section className="section section-gray">
+        <div className="container">
           <div className="section-kicker">Your Protocol</div>
-          <h2 className="section-title">How to Use 5-Amino-1MQ / SLUPP</h2>
+          <h2 className="section-title">How to Use EPITHALON</h2>
           <p className="section-subtitle">Your provider has prescribed a protocol tailored to your goals. Here are the key details to keep in mind.</p>
           <div className="info-grid">
             <div className="info-card">
-              <h3>Dosing</h3>
-              <p>1 tablet daily, taken in the morning with or without food. Consistency is key — same time every day for best results.</p>
+              <h3>Injection Frequency</h3>
+              <p>One subcutaneous injection daily for 20 consecutive days. Most patients inject in the morning or at night.</p>
+            </div>
+            <div className="info-card">
+              <h3>Injection Site</h3>
+              <p>Subcutaneous into the abdomen. Rotate sites slightly each day to prevent irritation.</p>
             </div>
             <div className="info-card">
               <h3>Duration</h3>
-              <p>30 days per cycle. Your provider may recommend additional cycles based on your response and metabolic goals.</p>
-            </div>
-            <div className="info-card">
-              <h3>Delivery</h3>
-              <p>Pick up at the clinic or have your tablets shipped directly to you. No cold storage or special handling required.</p>
+              <p>A 20-day cycle. Most providers repeat the cycle once or twice per year rather than running it continuously.</p>
             </div>
             <div className="info-card">
               <h3>Storage</h3>
-              <p>Store at room temperature in a cool, dry place. No refrigeration needed. Keep out of direct sunlight and away from moisture.</p>
+              <p>Keep refrigerated. Do not freeze. Let the vial come closer to room temperature before injection.</p>
             </div>
-          </div>
-          <div className="tip-box" style={{ marginTop: '1.5rem' }}>
-            <strong>Pro Tip</strong>
-            <p>Set a daily morning alarm to stay consistent. Taking your tablet at the same time each day keeps levels steady and maximizes metabolic support.</p>
           </div>
         </div>
       </section>
 
-      {/* What to Expect */}
-      <section className="section section-gray">
+      {/* Timeline */}
+      <section className="section">
         <div className="container">
           <div className="section-kicker">Timeline</div>
           <h2 className="section-title">What to Expect</h2>
-          <p className="section-subtitle">Everyone responds differently, but here's what patients typically experience during a 5-Amino-1MQ / SLUPP protocol.</p>
+          <p className="section-subtitle">Everyone responds differently, but here's what patients typically experience.</p>
           <div className="timeline-grid">
             <div className="timeline-card">
-              <h4>Week 1-2</h4>
-              <p>Your body begins adapting to the metabolic shift. Some patients notice improved energy levels and reduced cravings. Subtle changes in how your body processes fuel.</p>
+              <h4>Week 1</h4>
+              <p>Early circadian effects — deeper sleep, more consistent wake times. Little else noticeable this early.</p>
             </div>
             <div className="timeline-card">
-              <h4>Week 3-4</h4>
-              <p>Metabolic benefits become more noticeable. Patients often report improved body composition, sustained energy throughout the day, and better response to diet and exercise.</p>
+              <h4>Week 2-3</h4>
+              <p>Patients often report calmer energy, more restorative sleep, and a general sense of recovery catching up.</p>
             </div>
             <div className="timeline-card">
-              <h4>Week 5+</h4>
-              <p>Compounding results with continued use. Many patients see meaningful changes in body composition and metabolic markers. Your provider may recommend additional cycles for sustained progress.</p>
+              <h4>After Cycle</h4>
+              <p>The real benefit of Epithalon is structural and cumulative. Stacking cycles over time is where longevity markers and sleep quality tend to improve most.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Side Effects */}
+      <section className="section section-gray">
+        <div className="container">
+          <div className="section-kicker">Safety</div>
+          <h2 className="section-title">Side Effects</h2>
+          <p className="section-subtitle">EPITHALON is generally well tolerated. Contact your provider if you experience anything unusual.</p>
+          <div className="info-card">
+            <ul>
+                <li>Generally very well tolerated</li>
+                <li>Mild injection-site redness or tenderness</li>
+                <li>Occasional vivid dreams as sleep deepens</li>
+                <li>Rare mild headache during the first few days</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="section">
+        <div className="container">
+          <div className="section-kicker">FAQ</div>
+          <h2 className="section-title">Common Questions</h2>
+          <div className="faq-list">
+            <div className="faq-item">
+              <h4>How long does a cycle last?</h4>
+              <p>20 days. Most patients run one or two cycles per year rather than continuously.</p>
+            </div>
+            <div className="faq-item">
+              <h4>Do I need to cycle off?</h4>
+              <p>Yes. Epithalon is designed as a pulsed protocol — you do the 20 days, then stop and let your body integrate the changes.</p>
+            </div>
+            <div className="faq-item">
+              <h4>Can I stack it with other peptides?</h4>
+              <p>Yes. It pairs well with NAD+, SS-31, GHK-Cu, and growth hormone blends. Your provider will coordinate timing.</p>
             </div>
           </div>
         </div>
@@ -278,12 +331,14 @@ export default function SluppGuide() {
         .tip-box { background: #ffffff; border-left: 4px solid #000000; padding: 1.25rem 1.5rem; border-radius: 0; }
         .tip-box strong { display: block; margin-bottom: 0.25rem; }
         .tip-box p { font-size: 0.9rem; color: #525252; line-height: 1.6; margin: 0; }
-
         .timeline-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
         .timeline-card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 0; padding: 1.75rem; }
         .timeline-card h4 { font-size: 1rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; margin-bottom: 0.5rem; }
         .timeline-card p { font-size: 0.9rem; color: #525252; line-height: 1.7; }
-
+        .faq-list { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem; }
+        .faq-item { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 0; padding: 1.25rem 1.5rem; }
+        .faq-item h4 { font-size: 0.9375rem; font-weight: 700; color: #171717; margin-bottom: 0.5rem; }
+        .faq-item p { font-size: 0.9rem; color: #525252; line-height: 1.7; margin: 0; }
         .accordion-list { display: flex; flex-direction: column; gap: 0; margin-top: 1.5rem; }
         .accordion-item { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 0; overflow: hidden; }
         .accordion-item + .accordion-item { border-top: 0; }
@@ -291,12 +346,10 @@ export default function SluppGuide() {
         .accordion-header:hover { background: #fafafa; }
         .accordion-header-left { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
         .accordion-name { font-size: 0.9375rem; font-weight: 700; color: #171717; }
-        .accordion-price { font-size: 0.8125rem; color: #737373; font-weight: 400; }
         .accordion-chevron { display: flex; align-items: center; justify-content: center; transition: transform 0.2s ease; flex-shrink: 0; }
         .accordion-chevron-open { transform: rotate(180deg); }
         .accordion-body { overflow: hidden; transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease; }
         .accordion-desc { font-size: 0.9rem; color: #525252; line-height: 1.7; margin: 0; }
-
         .disclaimer { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 0; padding: 1.25rem; }
         .disclaimer p { font-size: 0.8125rem; color: #737373; line-height: 1.6; margin: 0; }
         .final-cta { background: #000000; color: #ffffff; padding: 3.5rem 1.5rem; text-align: center; }

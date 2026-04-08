@@ -44,7 +44,6 @@ export default function ThreeXBlendGuide() {
             <h1>3X BLEND</h1>
             <div className="tx-hero-rule"></div>
             <p className="tx-body-text">Everything you need to know about your peptide therapy — how it works, how to inject, and what to expect.</p>
-            <div className="tx-hero-price">$400/month</div>
           </div>
         </section>
 

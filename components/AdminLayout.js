@@ -567,8 +567,6 @@ const NAV_ITEMS = [
   { href: '/admin/sales-pipeline', label: 'Sales Pipeline', icon: 'trending-down' },
   { href: '/admin/referrals', label: 'Referrals', icon: 'user-plus' },
   { href: '/admin/patients', label: 'Patients', icon: 'users' },
-  { href: '/admin/protocols', label: 'Protocols', icon: 'activity' },
-  { href: '/admin/protocol-builder', label: 'Protocol Builder', icon: 'clipboard' },
   { href: '/admin/schedule', label: 'Schedule', icon: 'calendar' },
   { href: '/admin/checkout', label: 'Checkout', icon: 'shopping-bag' },
   { href: '/admin/quotes', label: 'Quotes', icon: 'file-text' },

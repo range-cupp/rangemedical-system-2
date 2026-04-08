@@ -12,7 +12,9 @@ function parseVialParams(query) {
       const parts = entry.trim().split('.');
       const vialId = parts[0];
       const days = parts[1] && parseInt(parts[1]) > 0 ? parseInt(parts[1]) : null;
-      const delivery = parts[2] || 'vial'; // 'vial' or 'prefilled'
+      // Always treat as vial — Range Medical dispenses vials, not prefilled syringes,
+      // for these peptides. Ignore any 'prefilled' marker in legacy/old links.
+      const delivery = 'vial';
       const catalog = VIAL_CATALOG.find(v => v.id === vialId);
       if (!catalog) return null;
       return { ...catalog, protocolDays: days, delivery };

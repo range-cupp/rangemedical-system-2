@@ -61,14 +61,21 @@ export default async function handler(req, res) {
 
     // Fetch invoice line items for charges that came from Stripe invoices
     const invoiceIds = [...new Set(charges.data.map(c => c.invoice).filter(Boolean))];
-    let invoiceLineItems = {};
+    let invoiceLineItems = {}; // joined description string
+    let invoiceLineItemsDetailed = {}; // structured [{name, amount_paid}]
     if (invoiceIds.length > 0) {
       await Promise.all(invoiceIds.map(async (invId) => {
         try {
           const invoice = await stripe.invoices.retrieve(invId, { expand: ['lines.data'] });
-          invoiceLineItems[invId] = (invoice.lines?.data || [])
+          const lines = invoice.lines?.data || [];
+          invoiceLineItems[invId] = lines
             .map(line => line.description || line.price?.nickname || 'Service')
             .join(', ');
+          invoiceLineItemsDetailed[invId] = lines.map(line => ({
+            name: line.description || line.price?.nickname || 'Service',
+            amount_paid: typeof line.amount === 'number' ? line.amount / 100 : null,
+            category: null,
+          }));
         } catch (err) {
           // Skip if invoice retrieval fails
         }
@@ -90,7 +97,7 @@ export default async function handler(req, res) {
       }
 
       // Itemized line items (medication + dose + amount paid) — staff-facing detail
-      const lineItems = linkedPurchases.map(p => {
+      let lineItems = linkedPurchases.map(p => {
         const baseName = p.medication || p.description || p.item_name || 'Service';
         const parts = [baseName];
         if (p.dose) parts.push(p.dose);
@@ -101,6 +108,10 @@ export default async function handler(req, res) {
           amount_paid: p.amount_paid != null ? Number(p.amount_paid) : null,
         };
       });
+      // Fallback: build from Stripe invoice lines when no linked purchases exist
+      if (lineItems.length === 0 && c.invoice && invoiceLineItemsDetailed[c.invoice]) {
+        lineItems = invoiceLineItemsDetailed[c.invoice];
+      }
 
       return {
         id: c.id,

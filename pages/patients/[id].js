@@ -472,6 +472,8 @@ export default function PatientProfile() {
   const [pendingNotifications, setPendingNotifications] = useState([]);
   const [labs, setLabs] = useState([]);
   const [intakes, setIntakes] = useState([]);
+  const [uploadingPhotoId, setUploadingPhotoId] = useState(false);
+  const photoIdInputRef = useRef(null);
   const [consents, setConsents] = useState([]);
   const [medicalDocuments, setMedicalDocuments] = useState([]);
   const [assessments, setAssessments] = useState([]);
@@ -3868,6 +3870,41 @@ export default function PatientProfile() {
     }
   };
 
+  const handlePhotoIdUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 12 * 1024 * 1024) {
+      alert('Photo ID must be smaller than 12 MB.');
+      e.target.value = '';
+      return;
+    }
+    try {
+      setUploadingPhotoId(true);
+      const fileBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch(`/api/patients/${id}/photo-id`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileBase64, fileName: file.name, contentType: file.type }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Upload failed');
+      }
+      await fetchPatient();
+    } catch (err) {
+      console.error('Photo ID upload failed:', err);
+      alert(err.message || 'Failed to upload photo ID');
+    } finally {
+      setUploadingPhotoId(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
   return (
     <AdminLayout title="Patient Profile" hideHeader>
       <Head>
@@ -3887,18 +3924,36 @@ export default function PatientProfile() {
                 }
               }} className="back-btn"><span className="back-arrow">←</span><span className="back-text">Back</span></button>
               {/* Photo ID Badge */}
+              <input
+                ref={photoIdInputRef}
+                type="file"
+                accept="image/*,application/pdf"
+                style={{ display: 'none' }}
+                onChange={handlePhotoIdUpload}
+              />
               {intakes.find(i => i.photo_id_url) ? (
                 <button className="photo-id-badge" onClick={() => {
                   const photoIdUrl = intakes.find(i => i.photo_id_url)?.photo_id_url;
                   if (photoIdUrl) openPdfViewer(photoIdUrl, 'Photo ID');
-                }} title="View Photo ID">
+                }} onContextMenu={(e) => {
+                  e.preventDefault();
+                  if (confirm('Replace existing Photo ID?')) photoIdInputRef.current?.click();
+                }} title="Click to view · Right-click to replace">
                   <span className="photo-id-icon">🪪</span>
                   <span className="photo-id-label">Photo ID</span>
                 </button>
               ) : (
-                <div className="photo-id-badge photo-id-empty">
-                  <span className="photo-id-initials">{(patient?.first_name?.[0] || patient?.name?.[0] || '?').toUpperCase()}</span>
-                </div>
+                <button
+                  className="photo-id-badge photo-id-empty"
+                  onClick={() => photoIdInputRef.current?.click()}
+                  disabled={uploadingPhotoId}
+                  title="Upload Photo ID"
+                  style={{ cursor: uploadingPhotoId ? 'wait' : 'pointer' }}
+                >
+                  <span className="photo-id-initials">
+                    {uploadingPhotoId ? '…' : '+ID'}
+                  </span>
+                </button>
               )}
               <div className="header-identity">
                 <h1>{getPatientDisplayName()}</h1>

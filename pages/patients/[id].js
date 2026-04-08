@@ -563,6 +563,7 @@ export default function PatientProfile() {
 
   // UI state
   const [activeTab, setActiveTab] = useState('chart');
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [expandedProtocols, setExpandedProtocols] = useState({});
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -4755,16 +4756,20 @@ export default function PatientProfile() {
               {/* Upcoming Appointments */}
               {(() => {
                 const now = new Date();
-                const upcoming = appointments
+                const allUpcoming = appointments
                   .filter(a => new Date(a.start_time) >= now && !['cancelled', 'no_show'].includes((a.status || '').toLowerCase()))
-                  .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
-                  .slice(0, 5);
-                if (upcoming.length === 0) return null;
+                  .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+                if (allUpcoming.length === 0) return null;
+                const upcoming = showAllUpcoming ? allUpcoming : allUpcoming.slice(0, 5);
                 return (
                   <section className="card" style={{ marginBottom: '16px' }}>
                     <div className="card-header">
                       <h3>Upcoming Appointments</h3>
-                      <button onClick={() => setActiveTab('chart')} className="btn-text">View All →</button>
+                      {allUpcoming.length > 5 && (
+                        <button onClick={() => setShowAllUpcoming(v => !v)} className="btn-text">
+                          {showAllUpcoming ? 'Show Less' : `View All (${allUpcoming.length}) →`}
+                        </button>
+                      )}
                     </div>
                     <div style={{ padding: '4px 16px 12px' }}>
                       {upcoming.map(apt => {
@@ -4790,9 +4795,8 @@ export default function PatientProfile() {
                             padding: '10px 12px', marginBottom: '4px',
                             background: isToday ? '#eff6ff' : '#f8fafc',
                             border: isToday ? '1px solid #93c5fd' : '1px solid #f1f5f9',
-                            borderRadius: 0, cursor: 'pointer',
+                            borderRadius: 0,
                           }}
-                            onClick={() => setActiveTab('chart')}
                           >
                             <div style={{ minWidth: '56px', textAlign: 'center', flexShrink: 0 }}>
                               <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: isToday ? '#2563eb' : isTomorrow ? '#d97706' : '#64748b' }}>

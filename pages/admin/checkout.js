@@ -1706,8 +1706,15 @@ function CheckoutInner() {
                                 {lineItems.map((li, i) => (
                                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#555', padding: '2px 0' }}>
                                     <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {li.name}</span>
-                                    <span style={{ fontWeight: 600, whiteSpace: 'nowrap', marginLeft: '12px' }}>
-                                      {li.amount_paid != null ? formatPrice(Math.round(li.amount_paid * 100)) : ''}
+                                    <span style={{ whiteSpace: 'nowrap', marginLeft: '12px' }}>
+                                      {li.discounted && li.list_amount != null && li.list_amount !== li.amount_paid && (
+                                        <span style={{ color: '#94a3b8', textDecoration: 'line-through', marginRight: 6 }}>
+                                          {formatPrice(Math.round(li.list_amount * 100))}
+                                        </span>
+                                      )}
+                                      <span style={{ fontWeight: 600 }}>
+                                        {li.amount_paid != null ? formatPrice(Math.round(li.amount_paid * 100)) : ''}
+                                      </span>
                                     </span>
                                   </div>
                                 ))}

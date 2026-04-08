@@ -571,14 +571,12 @@ const NAV_ITEMS = [
   { href: '/admin/checkout', label: 'Checkout', icon: 'shopping-bag' },
   { href: '/admin/quotes', label: 'Quotes', icon: 'file-text' },
   { href: '/admin/payments', label: 'Payments', icon: 'credit-card' },
-  { href: '/admin/energy-packs', label: 'Energy Packs', icon: 'zap', adminOnly: true },
   { href: '/admin/communications', label: 'Communications', icon: 'message' },
   { href: '/admin/email-campaigns', label: 'Email Campaigns', icon: 'mail', adminOnly: true },
   { href: '/admin/google-reviews', label: 'Google Reviews', icon: 'star', adminOnly: true },
   { href: '/admin/tasks', label: 'Tasks', icon: 'check-square' },
   { href: '/staff-chat', label: 'Assistant', icon: 'message' },
   { href: '/admin/send-forms', label: 'Send Forms', icon: 'file-text' },
-  { href: '/admin/knowledge', label: 'Knowledge Base', icon: 'book-open' },
   { href: '/admin/peptide-guide', label: 'Peptide Guide', icon: 'flask' },
   { href: '/admin/snippets', label: 'Snippets', icon: 'file-text' },
   { href: '/admin/provider-schedule', label: 'Staff Hours', icon: 'clock' },
@@ -741,6 +739,8 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
   const currentPath = router.pathname;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [editNav, setEditNav] = useState(false);
+  const [hiddenNav, setHiddenNav] = useState([]);
   const { unreadCount, toast, dismissToast } = useUnreadNotifications(router);
   useNewPatientNotifications(router);
   const { purchaseCount, purchaseToast, dismissPurchaseToast } = useNewPurchaseNotifications(router);
@@ -764,11 +764,35 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
   }
 
   // Filter nav items based on permissions
-  const visibleNavItems = NAV_ITEMS.filter(item => {
+  const permittedNavItems = NAV_ITEMS.filter(item => {
     if (item.adminOnly && !employee?.is_admin) return false;
     if (!item.permission) return true;
     return hasPermission(item.permission);
   });
+
+  // Per-user hidden nav items (localStorage)
+  const hiddenStorageKey = employee?.id ? `sidebar_hidden_${employee.id}` : null;
+  useEffect(() => {
+    if (!hiddenStorageKey) return;
+    try {
+      const raw = localStorage.getItem(hiddenStorageKey);
+      if (raw) setHiddenNav(JSON.parse(raw));
+    } catch {}
+  }, [hiddenStorageKey]);
+
+  const persistHidden = (next) => {
+    setHiddenNav(next);
+    if (hiddenStorageKey) {
+      try { localStorage.setItem(hiddenStorageKey, JSON.stringify(next)); } catch {}
+    }
+  };
+  const hideItem = (href) => persistHidden(Array.from(new Set([...hiddenNav, href])));
+  const unhideItem = (href) => persistHidden(hiddenNav.filter(h => h !== href));
+
+  const visibleNavItems = editNav
+    ? permittedNavItems
+    : permittedNavItems.filter(item => !hiddenNav.includes(item.href));
+  const hiddenNavList = permittedNavItems.filter(item => hiddenNav.includes(item.href));
 
   return (
     <>
@@ -803,6 +827,7 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
 
           <nav style={styles.nav}>
             {visibleNavItems.map(item => {
+              const isHidden = hiddenNav.includes(item.href);
               const isActive = currentPath === item.href ||
                 (item.href !== '/admin' && currentPath.startsWith(item.href)) ||
                 (item.href === '/admin/patients' && currentPath.startsWith('/patients'));
@@ -823,7 +848,29 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
                   onClick={() => setSidebarOpen(false)}
                 >
                   <span style={styles.navIcon}>{icons[item.icon]}</span>
-                  {item.label}
+                  <span style={{ flex: 1, opacity: editNav && isHidden ? 0.45 : 1 }}>{item.label}</span>
+                  {editNav && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        isHidden ? unhideItem(item.href) : hideItem(item.href);
+                      }}
+                      title={isHidden ? 'Show in sidebar' : 'Hide from sidebar'}
+                      style={{
+                        background: 'rgba(255,255,255,0.12)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        padding: '2px 8px',
+                        marginRight: '4px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {isHidden ? 'Show' : 'Hide'}
+                    </button>
+                  )}
                   {showBadge && item.href === '/admin/tasks' ? (
                     <span style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                       {overdueCount > 0 && (
@@ -859,6 +906,23 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
           </nav>
 
           <div style={styles.sidebarFooter}>
+            <button
+              onClick={() => setEditNav(v => !v)}
+              style={{
+                background: editNav ? 'rgba(255,255,255,0.18)' : 'transparent',
+                color: 'rgba(255,255,255,0.65)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '11px',
+                cursor: 'pointer',
+                marginBottom: '8px',
+                width: '100%',
+              }}
+              title="Show or hide items in your sidebar"
+            >
+              {editNav ? 'Done editing sidebar' : 'Edit sidebar'}
+            </button>
             <Link href="/admin/command-center" style={styles.commandCenterLink}>
               Command Center
             </Link>

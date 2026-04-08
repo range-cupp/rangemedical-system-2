@@ -511,11 +511,9 @@ export default async function handler(req, res) {
       // Calculate stats
       const upcomingAppointments = appointments.filter(apt => new Date(apt.start_time) >= new Date());
       // ── LTV calculation ──
-      // Use stripe_amount_cents (actual charge) when available, fall back to amount_paid
+      // ALWAYS use amount_paid — the actual dollars the patient was charged.
+      // Never use original_amount, list price, or stripe_amount_cents (gross).
       const ltv = allPurchases.reduce((sum, p) => {
-        if (p.stripe_amount_cents && p.stripe_status === 'succeeded') {
-          return sum + (p.stripe_amount_cents / 100);
-        }
         return sum + (parseFloat(p.amount_paid) || 0);
       }, 0);
       const purchaseDates = allPurchases

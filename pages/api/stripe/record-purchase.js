@@ -209,9 +209,12 @@ export default async function handler(req, res) {
       }
     }
 
-    // Retrieve card details from Stripe PaymentIntent
+    // Retrieve card details + ACTUAL charged amount from Stripe PaymentIntent.
+    // Stripe is the source of truth — never trust the client-supplied amount,
+    // which may be the catalog/list price rather than what was collected.
     let cardBrand = null;
     let cardLast4 = null;
+    let stripeChargedCents = null;
     if (stripe_payment_intent_id) {
       try {
         const pi = await stripe.paymentIntents.retrieve(stripe_payment_intent_id, {
@@ -221,10 +224,14 @@ export default async function handler(req, res) {
           cardBrand = pi.payment_method.card.brand;
           cardLast4 = pi.payment_method.card.last4;
         }
+        if (pi.amount_received != null) {
+          stripeChargedCents = pi.amount_received;
+        }
       } catch (err) {
         console.error('Failed to retrieve card details for purchase:', err.message);
       }
     }
+    const actualPaidDollars = stripeChargedCents != null ? stripeChargedCents / 100 : amountDollars;
 
     const insertData = {
       patient_id,
@@ -233,8 +240,10 @@ export default async function handler(req, res) {
       patient_phone: patient?.phone || null,
       item_name: description || 'Stripe charge',
       product_name: description || 'Stripe charge',
-      amount: amountDollars,
-      amount_paid: amountDollars,
+      amount: actualPaidDollars,
+      amount_paid: actualPaidDollars,
+      stripe_amount_cents: stripeChargedCents,
+      stripe_status: stripeChargedCents != null ? 'succeeded' : null,
       category: service_category || 'Other',
       quantity: quantity || 1,
       stripe_payment_intent_id: stripe_payment_intent_id || null,

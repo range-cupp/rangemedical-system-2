@@ -514,6 +514,7 @@ export default function PatientProfile() {
   const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [vitalsModalData, setVitalsModalData] = useState({ weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
   const [vitalsModalSaving, setVitalsModalSaving] = useState(false);
+  const [editingVitalsId, setEditingVitalsId] = useState(null);
   const [commsLog, setCommsLog] = useState([]);
   const [allPurchases, setAllPurchases] = useState([]);
   const [expandedTransactions, setExpandedTransactions] = useState({});
@@ -954,6 +955,7 @@ export default function PatientProfile() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id: editingVitalsId || undefined,
           patient_id: id,
           appointment_id: null,
           height_inches: heightVal || '',
@@ -974,6 +976,7 @@ export default function PatientProfile() {
       setVitalsHistory(vitalsData.vitals || []);
       setShowVitalsModal(false);
       setVitalsModalData({ weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
+      setEditingVitalsId(null);
     } catch (err) {
       alert('Error saving vitals: ' + err.message);
     } finally {
@@ -4870,6 +4873,7 @@ export default function PatientProfile() {
                             // Pre-fill height from last vitals if available
                             const lastHeight = vitalsHistory.find(v => v.height_inches)?.height_inches || '';
                             setVitalsModalData({ weight_lbs: '', height_inches: lastHeight, bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
+                            setEditingVitalsId(null);
                             setShowVitalsModal(true);
                           }}
                           className="btn-primary-sm"
@@ -4893,11 +4897,24 @@ export default function PatientProfile() {
                               const d = new Date(v.recorded_at);
                               const isLatest = i === displayVitals.length - 1;
                               return (
-                                <th key={v.id || i} style={{
+                                <th key={v.id || i} title="Click to edit" onClick={() => {
+                                  setVitalsModalData({
+                                    weight_lbs: v.weight_lbs ?? '',
+                                    height_inches: v.height_inches ?? '',
+                                    bp_systolic: v.bp_systolic ?? '',
+                                    bp_diastolic: v.bp_diastolic ?? '',
+                                    temperature: v.temperature ?? '',
+                                    pulse: v.pulse ?? '',
+                                    respiratory_rate: v.respiratory_rate ?? '',
+                                    o2_saturation: v.o2_saturation ?? '',
+                                  });
+                                  setEditingVitalsId(v.id);
+                                  setShowVitalsModal(true);
+                                }} style={{
                                   padding: '6px 10px', textAlign: 'center', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: 600,
                                   color: isLatest ? '#1e40af' : '#64748b',
                                   borderBottom: isLatest ? '2px solid #3b82f6' : undefined,
-                                  minWidth: '80px',
+                                  minWidth: '80px', cursor: 'pointer',
                                 }}>
                                   <div>{d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })}</div>
                                   <div style={{ fontSize: '10px', fontWeight: 400, color: '#94a3b8', marginTop: '1px' }}>
@@ -14154,7 +14171,7 @@ export default function PatientProfile() {
             onClick={e => e.stopPropagation()}>
             <div style={{ padding: '20px 24px 0', borderBottom: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px' }}>
-                <h3 style={{ margin: 0, fontSize: '16px' }}>Add Vitals</h3>
+                <h3 style={{ margin: 0, fontSize: '16px' }}>{editingVitalsId ? 'Edit Vitals' : 'Add Vitals'}</h3>
                 <button onClick={() => setShowVitalsModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>&times;</button>
               </div>
             </div>

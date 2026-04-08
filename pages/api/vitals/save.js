@@ -24,6 +24,7 @@ export default async function handler(req, res) {
 
   try {
     const {
+      id,
       patient_id,
       appointment_id,
       height_inches,
@@ -64,10 +65,14 @@ export default async function handler(req, res) {
       recorded_by: recorded_by || null,
       recorded_at: new Date().toISOString()
     };
+    // Preserve original recorded_at when editing an existing record
+    if (id) {
+      delete vitalsData.recorded_at;
+    }
 
     // Check if vitals already exist for this appointment
-    let existingId = null;
-    if (appointment_id) {
+    let existingId = id || null;
+    if (!existingId && appointment_id) {
       const { data: existing } = await supabase
         .from('patient_vitals')
         .select('id')

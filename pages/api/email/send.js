@@ -3,8 +3,47 @@
 // Tracks in comms_log + audit_log — Range Medical System
 
 import { Resend } from 'resend';
+import { createClient } from '@supabase/supabase-js';
 import { requireAuth, logAction } from '../../../lib/auth';
 import { logComm } from '../../../lib/comms-log';
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+async function uploadAttachmentsToStorage(attachments) {
+  const stored = [];
+  for (const att of attachments || []) {
+    try {
+      const buffer = Buffer.from(att.content, 'base64');
+      const safeName = (att.filename || 'attachment').replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `email-attachments/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
+      const { error: upErr } = await supabaseAdmin.storage
+        .from('medical-documents')
+        .upload(path, buffer, {
+          contentType: att.type || 'application/octet-stream',
+          upsert: false,
+        });
+      if (upErr) {
+        console.error('attachment upload error:', upErr.message);
+        stored.push({ filename: att.filename, type: att.type || null, size: buffer.length, url: null });
+        continue;
+      }
+      const { data: urlData } = supabaseAdmin.storage.from('medical-documents').getPublicUrl(path);
+      stored.push({
+        filename: att.filename,
+        type: att.type || null,
+        size: buffer.length,
+        url: urlData?.publicUrl || null,
+        path,
+      });
+    } catch (err) {
+      console.error('attachment store error:', err.message);
+    }
+  }
+  return stored;
+}
 
 // Increase body size limit for file attachments (default is 1MB)
 export const config = {
@@ -184,6 +223,11 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to send email', details: emailError.message });
     }
 
+    // Persist attachments to storage so they can be viewed later in the comms log
+    const storedAttachments = resendAttachments.length > 0
+      ? await uploadAttachmentsToStorage(attachments)
+      : [];
+
     // Log successful send to comms_log (includes full rendered HTML)
     await logComm({
       channel: 'email',
@@ -200,6 +244,7 @@ export default async function handler(req, res) {
       direction: 'outbound',
       sentByEmployeeId: employee.id,
       sentByEmployeeName: employee.name,
+      metadata: storedAttachments.length > 0 ? { attachments: storedAttachments } : null,
     });
 
     // Log to audit trail

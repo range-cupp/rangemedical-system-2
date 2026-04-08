@@ -1916,6 +1916,41 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                   {selectedMessage.message || ''}
                 </div>
               )}
+              {Array.isArray(selectedMessage.metadata?.attachments) && selectedMessage.metadata.attachments.length > 0 && (
+                <div style={{ marginTop: 16, padding: '12px 16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
+                    Attachments ({selectedMessage.metadata.attachments.length})
+                  </div>
+                  {selectedMessage.metadata.attachments.map((att, i) => {
+                    const isImage = att.type && att.type.startsWith('image/');
+                    return (
+                      <div key={i} style={{ marginBottom: 10 }}>
+                        {isImage && att.url ? (
+                          <a href={att.url} target="_blank" rel="noreferrer">
+                            <img
+                              src={att.url}
+                              alt={att.filename}
+                              style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 4, border: '1px solid #e2e8f0', display: 'block' }}
+                            />
+                          </a>
+                        ) : null}
+                        {att.url ? (
+                          <a
+                            href={att.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ display: 'inline-block', marginTop: isImage ? 6 : 0, fontSize: 13, color: '#0369a1', textDecoration: 'none' }}
+                          >
+                            📎 {att.filename}{att.size ? ` (${Math.round(att.size / 1024)} KB)` : ''}
+                          </a>
+                        ) : (
+                          <span style={{ fontSize: 13, color: '#64748b' }}>📎 {att.filename} (unavailable)</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

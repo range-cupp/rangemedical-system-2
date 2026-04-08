@@ -771,7 +771,23 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
           />
         );
 
-      case 'textarea':
+      case 'textarea': {
+        // Only the main "Provider Notes" field uses the rich contentEditable editor
+        // (which is bound to a single shared ref → additional.notes). Every other
+        // textarea — e.g. "Side Effect Management" — must be a plain controlled
+        // textarea so its content saves to its own section/field key.
+        const isMainNotes = sectionKey === 'additional' && field.key === 'notes';
+        if (!isMainNotes) {
+          return (
+            <textarea
+              value={value}
+              onChange={(e) => updateField(sectionKey, field.key, e.target.value)}
+              placeholder={field.placeholder || ''}
+              rows={3}
+              style={{ ...styles.input, minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }}
+            />
+          );
+        }
         return (
           <div>
             {/* Formatting toolbar */}
@@ -809,6 +825,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
             </div>
           </div>
         );
+      }
 
       case 'select':
         return (

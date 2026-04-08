@@ -85,8 +85,15 @@ export default async function handler(req, res) {
       const vialId = getVialIdForMedication(p.medication, p.program_name);
       if (vialId && !seenVialIds.has(vialId)) {
         seenVialIds.add(vialId);
-        const isVialPurchase = p.num_vials && p.num_vials > 0;
-        const delivery = isVialPurchase ? 'vial' : 'prefilled';
+        const supplyTypeStr = (p.supply_type || '').toLowerCase();
+        const isVialPurchase =
+          (p.num_vials && p.num_vials > 0) ||
+          supplyTypeStr.includes('vial') ||
+          (p.delivery_method || '').toLowerCase().includes('vial');
+        // Default to vial — Range Medical dispenses vials, not prefilled syringes,
+        // for these peptides. Only fall back to prefilled if explicitly marked.
+        const isExplicitlyPrefilled = supplyTypeStr.includes('prefilled');
+        const delivery = isExplicitlyPrefilled && !isVialPurchase ? 'prefilled' : 'vial';
         // For vial protocols, calculate days from num_vials × catalog injectionsPerVial
         let days = p.total_sessions || null;
         if (isVialPurchase) {

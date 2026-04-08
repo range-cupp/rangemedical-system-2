@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     // We match by purchase_date + amount_paid against the Stripe charge.
     const { data: allPatientPurchases } = await supabase
       .from('purchases')
-      .select('id, purchase_date, description, item_name, amount_paid, medication, dose, quantity, category, stripe_payment_intent_id')
+      .select('id, purchase_date, description, item_name, amount_paid, medication, quantity, category, stripe_payment_intent_id')
       .eq('patient_id', id);
     const unlinkedPurchases = (allPatientPurchases || []).filter(p => !p.stripe_payment_intent_id);
 
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
     if (paymentIntentIds.length > 0) {
       const { data: purchases } = await supabase
         .from('purchases')
-        .select('id, stripe_payment_intent_id, description, item_name, amount_paid, medication, dose, quantity, category')
+        .select('id, stripe_payment_intent_id, description, item_name, amount_paid, medication, quantity, category')
         .in('stripe_payment_intent_id', paymentIntentIds);
 
       if (purchases) {
@@ -159,7 +159,6 @@ export default async function handler(req, res) {
       let lineItems = linkedPurchases.map(p => {
         const baseName = p.medication || p.description || p.item_name || 'Service';
         const parts = [baseName];
-        if (p.dose) parts.push(p.dose);
         if (p.quantity && Number(p.quantity) > 1) parts.push(`×${p.quantity}`);
         return {
           name: parts.join(' · '),
@@ -206,7 +205,6 @@ export default async function handler(req, res) {
           lineItems = matched.map(p => {
             const baseName = p.medication || p.item_name || p.description || 'Service';
             const parts = [baseName];
-            if (p.dose) parts.push(p.dose);
             if (p.quantity && Number(p.quantity) > 1) parts.push(`×${p.quantity}`);
             return {
               name: parts.join(' · '),

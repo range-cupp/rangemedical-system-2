@@ -4,6 +4,7 @@ import { normalizePhone } from '../../../lib/twilio-sms';
 import { sendBlooioMessage } from '../../../lib/blooio';
 
 const DAMON_PHONE = '+19499335483';
+const DAMON_EMPLOYEE_ID = '8a62c77f-5c18-4b59-9e1e-70113ab4954e';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -131,9 +132,10 @@ export default async function handler(req, res) {
 
     // Create patient profile so the lead lands in the call list
     const referralTagForPatient = `Referral: ${partner.name}`;
+    const fullName = `${first_name} ${last_name}`.trim();
+    let patientId = existingPatient?.id || null;
     if (!existingPatient) {
-      const fullName = `${first_name} ${last_name}`.trim();
-      await supabase.from('patients').insert({
+      const { data: newPatient } = await supabase.from('patients').insert({
         first_name,
         last_name,
         name: fullName,
@@ -143,7 +145,24 @@ export default async function handler(req, res) {
         status: 'lead',
         referral_source: referralTagForPatient,
         tags: ['referral', 'needs-call'],
+      }).select('id').single();
+      patientId = newPatient?.id || null;
+    }
+
+    // Create a "Call new referral" task for Damon
+    try {
+      await supabase.from('tasks').insert({
+        title: `Call new referral: ${fullName}`,
+        description: `Referred by ${partner.name}. Phone: ${phone}${email ? ' · Email: ' + email : ''}`,
+        assigned_to: DAMON_EMPLOYEE_ID,
+        assigned_by: DAMON_EMPLOYEE_ID,
+        patient_id: patientId,
+        patient_name: fullName,
+        priority: 'high',
+        status: 'pending',
       });
+    } catch (taskErr) {
+      console.error('Damon referral task error:', taskErr);
     }
 
     // Text Damon about the new referral lead

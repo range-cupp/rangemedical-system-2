@@ -940,6 +940,31 @@ export default function PatientProfile() {
     rescheduled: [],
   };
 
+  // Delete a vitals record
+  const handleDeleteVitals = async () => {
+    if (!editingVitalsId) return;
+    if (!confirm('Delete this vitals entry? This cannot be undone.')) return;
+    setVitalsModalSaving(true);
+    try {
+      const res = await fetch('/api/vitals/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingVitalsId }),
+      });
+      if (!res.ok) throw new Error('Failed to delete vitals');
+      const vitalsRes = await fetch(`/api/vitals/history?patient_id=${id}`);
+      const vitalsData = await vitalsRes.json();
+      setVitalsHistory(vitalsData.vitals || []);
+      setShowVitalsModal(false);
+      setVitalsModalData({ weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
+      setEditingVitalsId(null);
+    } catch (err) {
+      alert('Error deleting vitals: ' + err.message);
+    } finally {
+      setVitalsModalSaving(false);
+    }
+  };
+
   // Save standalone vitals (no encounter required)
   const handleSaveStandaloneVitals = async () => {
     setVitalsModalSaving(true);
@@ -14262,7 +14287,17 @@ export default function PatientProfile() {
                   />
                 </div>
               </div>
-              <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
+                <div>
+                  {editingVitalsId && (
+                    <button
+                      onClick={handleDeleteVitals}
+                      disabled={vitalsModalSaving}
+                      style={{ padding: '8px 14px', border: '1px solid #fecaca', background: '#fff', color: '#dc2626', cursor: 'pointer', fontSize: '13px', borderRadius: 0 }}
+                    >Delete</button>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   onClick={() => setShowVitalsModal(false)}
                   style={{ padding: '8px 16px', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: '13px', borderRadius: 0 }}
@@ -14273,6 +14308,7 @@ export default function PatientProfile() {
                   className="btn-primary"
                   style={{ padding: '8px 20px', fontSize: '13px', opacity: vitalsModalSaving ? 0.6 : 1 }}
                 >{vitalsModalSaving ? 'Saving...' : 'Save Vitals'}</button>
+                </div>
               </div>
             </div>
           </div>

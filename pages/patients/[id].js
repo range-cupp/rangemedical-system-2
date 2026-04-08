@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
+import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../components/AuthProvider';
 import EnergyPackBalance from '../../components/EnergyPackBalance';
 
@@ -3873,28 +3874,46 @@ export default function PatientProfile() {
   const handlePhotoIdUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 12 * 1024 * 1024) {
-      alert('Photo ID must be smaller than 12 MB.');
+    if (file.size > 25 * 1024 * 1024) {
+      alert('Photo ID must be smaller than 25 MB.');
       e.target.value = '';
       return;
     }
     try {
       setUploadingPhotoId(true);
-      const fileBase64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+
+      // Upload directly to Supabase Storage from the browser to avoid Vercel's
+      // request body size limit on serverless functions.
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const safeExt = ['jpg', 'jpeg', 'png', 'pdf', 'webp', 'heic', 'heif'].includes(ext) ? ext : 'jpg';
+      const storagePath = `photo-ids/patient-${id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${safeExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('medical-documents')
+        .upload(storagePath, file, {
+          contentType: file.type || 'image/jpeg',
+          cacheControl: '3600',
+          upsert: false,
+        });
+      if (uploadError) throw new Error(uploadError.message || 'Storage upload failed');
+
+      const { data: publicUrlData } = supabase.storage
+        .from('medical-documents')
+        .getPublicUrl(storagePath);
+      const photoIdUrl = publicUrlData?.publicUrl;
+      if (!photoIdUrl) throw new Error('Could not resolve uploaded file URL');
+
+      // Persist the URL on the patient's intake (server-side handles update vs. stub create)
       const res = await fetch(`/api/patients/${id}/photo-id`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileBase64, fileName: file.name, contentType: file.type }),
+        body: JSON.stringify({ photoIdUrl }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Upload failed');
+        throw new Error(data.error || 'Failed to attach photo ID');
       }
+
       closePdfViewer();
       await fetchPatient();
     } catch (err) {

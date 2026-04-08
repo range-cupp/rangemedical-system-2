@@ -90,7 +90,7 @@ export default function QuotePage() {
               </div>
             ) : (
               <div className="ctas">
-                <a className="btn-primary" href="sms:+19495395023">Text Us to Get Started</a>
+                <a className="btn-primary" href={`sms:+19495395023?&body=${encodeURIComponent(`Hi Range Medical — I'd like to move forward with my quote: "${quote.title || 'Custom Pricing'}" (ref ${quote.token}). My name is ${quote.recipient_name}.`)}`}>Text Us to Get Started</a>
                 <a className="btn-secondary" href="tel:+19495395023">Call (949) 539-5023</a>
               </div>
             )}

@@ -30,7 +30,7 @@ ON CONFLICT (name, COALESCE(peptide_identifier, '')) DO UPDATE SET
 
 -- ── SS-31 (30-day pack) ───────────────────────────────────────────────────────
 INSERT INTO pos_services (name, category, price_cents, recurring, peptide_identifier, sub_category, description, sort_order, active) VALUES
-  ('Peptide Therapy — 30 Day Protocol', 'peptide', 92500, false, 'SS-31', 'Longevity', 'Elamipretide. 30-day protocol — daily 1–2mg.', 631, true)
+  ('Peptide Therapy — 30 Day Protocol', 'peptide', 47500, false, 'SS-31', 'Longevity', 'Elamipretide. 30-day protocol — daily 1–2mg.', 631, true)
 ON CONFLICT (name, COALESCE(peptide_identifier, '')) DO UPDATE SET
   price_cents  = EXCLUDED.price_cents,
   sub_category = EXCLUDED.sub_category,

@@ -7,6 +7,7 @@ import { useRouter } from 'next/router';
 import AdminLayout, { sharedStyles as s } from '../../../components/AdminLayout';
 
 const blankItem = () => ({ name: '', description: '', price: '', qty: 1 });
+const blankOption = (name) => ({ name: name || 'Option A', items: [blankItem()], discount: '' });
 
 export default function NewQuote() {
   const router = useRouter();
@@ -16,11 +17,11 @@ export default function NewQuote() {
   const [searchResults, setSearchResults] = useState([]);
   const [title, setTitle] = useState('');
   const [introNote, setIntroNote] = useState('');
-  const [items, setItems] = useState([blankItem()]);
+  const [options, setOptions] = useState([blankOption('Option A')]);
+  const [activeOpt, setActiveOpt] = useState(0);
   const [catalog, setCatalog] = useState([]);
   const [catalogSearch, setCatalogSearch] = useState('');
   const [catalogCategory, setCatalogCategory] = useState('');
-  const [discount, setDiscount] = useState('');
   const [expires, setExpires] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -52,14 +53,29 @@ export default function NewQuote() {
     setSearchResults([]);
   };
 
-  const updateItem = (i, key, val) => {
-    setItems((arr) => arr.map((it, idx) => idx === i ? { ...it, [key]: val } : it));
+  const mutateActive = (fn) => {
+    setOptions((opts) => opts.map((o, idx) => idx === activeOpt ? fn(o) : o));
   };
-  const addItem = () => setItems((arr) => [...arr, blankItem()]);
-  const removeItem = (i) => setItems((arr) => arr.filter((_, idx) => idx !== i));
+  const updateItem = (i, key, val) => {
+    mutateActive((o) => ({ ...o, items: o.items.map((it, idx) => idx === i ? { ...it, [key]: val } : it) }));
+  };
+  const addItem = () => mutateActive((o) => ({ ...o, items: [...o.items, blankItem()] }));
+  const removeItem = (i) => mutateActive((o) => ({ ...o, items: o.items.filter((_, idx) => idx !== i) }));
+  const setActiveDiscount = (val) => mutateActive((o) => ({ ...o, discount: val }));
+  const setActiveName = (val) => mutateActive((o) => ({ ...o, name: val }));
+  const addOption = () => {
+    if (options.length >= 3) return;
+    const next = ['Option A', 'Option B', 'Option C'][options.length];
+    setOptions((opts) => [...opts, blankOption(next)]);
+    setActiveOpt(options.length);
+  };
+  const removeOption = (i) => {
+    if (options.length <= 1) return;
+    setOptions((opts) => opts.filter((_, idx) => idx !== i));
+    setActiveOpt((cur) => Math.max(0, cur >= i ? cur - 1 : cur));
+  };
   const addFromCatalog = (svc) => {
     const priceDollars = (Number(svc.price_cents ?? svc.price) || 0) / 100;
-    // Patient-facing name: prefer the actual peptide/compound when present
     let displayName = svc.name;
     if (svc.peptide_identifier) {
       displayName = svc.duration_days
@@ -72,10 +88,10 @@ export default function NewQuote() {
       price: priceDollars,
       qty: 1,
     };
-    setItems((arr) => {
-      // If first row is blank, replace it
-      if (arr.length === 1 && !arr[0].name && !arr[0].price) return [newItem];
-      return [...arr, newItem];
+    mutateActive((o) => {
+      const arr = o.items;
+      if (arr.length === 1 && !arr[0].name && !arr[0].price) return { ...o, items: [newItem] };
+      return { ...o, items: [...arr, newItem] };
     });
   };
 
@@ -98,15 +114,26 @@ export default function NewQuote() {
     return parts.join(' · ') || svc.category;
   };
 
+  const active = options[activeOpt] || options[0];
+  const items = active.items;
+  const discount = active.discount;
   const subtotal = items.reduce((sum, it) => sum + ((Number(it.price) || 0) * (Number(it.qty) || 1)), 0);
   const total = Math.max(0, subtotal - (Number(discount) || 0));
+  const isComparison = options.length > 1;
 
   const save = async (sendAfter = false) => {
     setError('');
     if (!recipient.name) return setError('Recipient name is required');
-    if (items.filter((it) => it.name).length === 0) return setError('Add at least one item');
+    if (options.some((o) => o.items.filter((it) => it.name).length === 0)) {
+      return setError('Each option needs at least one item');
+    }
     setSaving(true);
     try {
+      const payloadOptions = options.map((o) => ({
+        name: o.name,
+        items: o.items,
+        discount_cents: Math.round((Number(o.discount) || 0) * 100),
+      }));
       const res = await fetch('/api/quotes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -117,8 +144,9 @@ export default function NewQuote() {
           recipient_email: recipient.email || null,
           title: title || null,
           intro_note: introNote || null,
-          items,
-          discount_cents: Math.round((Number(discount) || 0) * 100),
+          items: options[0].items,
+          discount_cents: Math.round((Number(options[0].discount) || 0) * 100),
+          options: isComparison ? payloadOptions : null,
           expires_at: expires ? new Date(expires).toISOString() : null,
         }),
       });
@@ -251,8 +279,48 @@ export default function NewQuote() {
       </div>
 
       <div style={{ ...s.card, marginBottom: 20 }}>
-        <div style={s.cardHeader}><h3 style={s.cardTitle}>Line Items</h3></div>
+        <div style={s.cardHeader}>
+          <h3 style={s.cardTitle}>Line Items{isComparison ? ' — Comparison' : ''}</h3>
+          {options.length < 3 && (
+            <button onClick={addOption} style={{ ...s.btnSecondary, ...s.btnSmall }}>+ Add Option to Compare</button>
+          )}
+        </div>
         <div style={s.cardBody}>
+          {/* Option tabs */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 16, borderBottom: '1px solid #e5e5e5' }}>
+            {options.map((o, i) => (
+              <div
+                key={i}
+                onClick={() => setActiveOpt(i)}
+                style={{
+                  padding: '10px 16px',
+                  cursor: 'pointer',
+                  borderBottom: activeOpt === i ? '2px solid #0a0a0a' : '2px solid transparent',
+                  fontWeight: activeOpt === i ? 700 : 500,
+                  fontSize: 14,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                {o.name || `Option ${i + 1}`}
+                {isComparison && (
+                  <span
+                    onClick={(e) => { e.stopPropagation(); removeOption(i); }}
+                    style={{ color: '#888', fontSize: 16, lineHeight: 1 }}
+                  >×</span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {isComparison && (
+            <div style={{ ...s.fieldGroup, marginBottom: 14 }}>
+              <label style={s.label}>Option name (shown to patient)</label>
+              <input style={s.input} value={active.name} onChange={(e) => setActiveName(e.target.value)} placeholder="e.g. 2.5 mg Monthly" />
+            </div>
+          )}
+
           {items.map((it, i) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 3fr 1fr 0.6fr 0.4fr', gap: 10, marginBottom: 10, alignItems: 'start' }}>
               <input style={s.input} placeholder="Item name (e.g. Tesamorelin 12-week)" value={it.name} onChange={(e) => updateItem(i, 'name', e.target.value)} />
@@ -267,7 +335,7 @@ export default function NewQuote() {
           <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <div style={s.fieldGroup}>
               <label style={s.label}>Bundle discount ($)</label>
-              <input style={s.input} type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} />
+              <input style={s.input} type="number" value={discount} onChange={(e) => setActiveDiscount(e.target.value)} />
             </div>
             <div style={s.fieldGroup}>
               <label style={s.label}>Expires</label>

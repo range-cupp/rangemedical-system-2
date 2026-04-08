@@ -28,8 +28,9 @@ export default function QuotePage() {
       .catch(() => { setError('Failed to load'); setLoading(false); });
   }, [token]);
 
+  const wide = !!(quote && Array.isArray(quote.options) && quote.options.length > 1);
   return (
-    <Shell>
+    <Shell wide={wide}>
       <Head>
         <title>Your Range Medical Pricing</title>
         <meta name="robots" content="noindex,nofollow" />
@@ -44,6 +45,7 @@ export default function QuotePage() {
       {!loading && !error && quote && (() => {
         const firstName = (quote.recipient_name || '').split(' ')[0];
         const expired = quote.expires_at && new Date(quote.expires_at) < new Date();
+        const opts = Array.isArray(quote.options) && quote.options.length > 0 ? quote.options : null;
         return (
           <>
             <div className="kicker">
@@ -53,7 +55,7 @@ export default function QuotePage() {
             </div>
 
             <h1 className="headline">
-              {(quote.title || 'YOUR CUSTOM PRICING').toUpperCase()}
+              {(quote.title || (opts ? 'COMPARE YOUR OPTIONS' : 'YOUR CUSTOM PRICING')).toUpperCase()}
             </h1>
             <div className="rule" />
 
@@ -61,28 +63,57 @@ export default function QuotePage() {
               <p className="intro">{quote.intro_note}</p>
             )}
 
-            <div className="items">
-              {(quote.items || []).map((it, i) => (
-                <div key={i} className="item">
-                  <div className="item-main">
-                    <div className="item-name">
-                      {it.name}{Number(it.qty) > 1 ? ` × ${it.qty}` : ''}
+            {opts ? (
+              <div className="options-grid" style={{ gridTemplateColumns: `repeat(${opts.length}, minmax(0, 1fr))` }}>
+                {opts.map((opt, oi) => (
+                  <div key={oi} className="option-card">
+                    <div className="opt-name">{opt.name || `Option ${oi + 1}`}</div>
+                    <div className="opt-items">
+                      {(opt.items || []).map((it, i) => (
+                        <div key={i} className="opt-item">
+                          <div className="opt-item-name">
+                            {it.name}{Number(it.qty) > 1 ? ` × ${it.qty}` : ''}
+                          </div>
+                          {it.description && <div className="opt-item-desc">{it.description}</div>}
+                          <div className="opt-item-price">
+                            ${(Number(it.price) * Number(it.qty || 1)).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    {it.description && (
-                      <div className="item-desc">{it.description}</div>
-                    )}
+                    <div className="opt-total">
+                      <div className="opt-total-label">TOTAL</div>
+                      <div className="opt-total-value">{fmt(opt.total_cents)}</div>
+                    </div>
                   </div>
-                  <div className="item-price">
-                    ${(Number(it.price) * Number(it.qty || 1)).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
+                <div className="items">
+                  {(quote.items || []).map((it, i) => (
+                    <div key={i} className="item">
+                      <div className="item-main">
+                        <div className="item-name">
+                          {it.name}{Number(it.qty) > 1 ? ` × ${it.qty}` : ''}
+                        </div>
+                        {it.description && (
+                          <div className="item-desc">{it.description}</div>
+                        )}
+                      </div>
+                      <div className="item-price">
+                        ${(Number(it.price) * Number(it.qty || 1)).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            <div className="total-row">
-              <div className="total-label">TOTAL</div>
-              <div className="total-value">{fmt(quote.total_cents)}</div>
-            </div>
+                <div className="total-row">
+                  <div className="total-label">TOTAL</div>
+                  <div className="total-value">{fmt(quote.total_cents)}</div>
+                </div>
+              </>
+            )}
 
             {expired ? (
               <div style={{ marginTop: 40, padding: 20, background: '#fafafa', textAlign: 'center', fontSize: 13, color: '#737373', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
@@ -233,6 +264,81 @@ export default function QuotePage() {
           transition: all 0.2s;
         }
         .btn-secondary:hover { background: #0a0a0a; color: #fff; }
+        .options-grid {
+          display: grid;
+          gap: 20px;
+          margin-top: 8px;
+        }
+        @media (max-width: 720px) {
+          .options-grid { grid-template-columns: 1fr !important; }
+        }
+        .option-card {
+          border: 1.5px solid #0a0a0a;
+          padding: 28px 24px;
+          display: flex;
+          flex-direction: column;
+          background: #fff;
+        }
+        .opt-name {
+          font-size: 13px;
+          font-weight: 800;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: #0a0a0a;
+          padding-bottom: 16px;
+          border-bottom: 2px solid #0a0a0a;
+          margin-bottom: 20px;
+        }
+        .opt-items {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+        }
+        .opt-item {
+          padding-bottom: 18px;
+          border-bottom: 1px solid #e0e0e0;
+        }
+        .opt-item:last-child { border-bottom: none; }
+        .opt-item-name {
+          font-size: 15px;
+          font-weight: 700;
+          color: #0a0a0a;
+          line-height: 1.35;
+        }
+        .opt-item-desc {
+          font-size: 12px;
+          color: #737373;
+          margin-top: 6px;
+          line-height: 1.55;
+        }
+        .opt-item-price {
+          font-size: 15px;
+          font-weight: 700;
+          color: #0a0a0a;
+          margin-top: 8px;
+        }
+        .opt-total {
+          margin-top: 24px;
+          padding-top: 18px;
+          border-top: 2px solid #0a0a0a;
+          display: flex;
+          justify-content: space-between;
+          align-items: baseline;
+        }
+        .opt-total-label {
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          color: #737373;
+          text-transform: uppercase;
+        }
+        .opt-total-value {
+          font-size: 26px;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+          color: #0a0a0a;
+        }
         .footer {
           margin-top: 64px;
           padding-top: 28px;
@@ -247,7 +353,8 @@ export default function QuotePage() {
   );
 }
 
-function Shell({ children }) {
+function Shell({ children, wide }) {
+  const maxW = wide ? 1080 : 760;
   return (
     <div style={{
       minHeight: '100vh',
@@ -257,14 +364,14 @@ function Shell({ children }) {
       WebkitFontSmoothing: 'antialiased',
     }}>
       <header style={{ borderBottom: '1px solid #e0e0e0', background: '#fff' }}>
-        <div style={{ maxWidth: 760, margin: '0 auto', padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ maxWidth: maxW, margin: '0 auto', padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: '0.14em' }}>RANGE MEDICAL</div>
           <div style={{ fontSize: 11, color: '#737373', textAlign: 'right', letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 600 }}>
             range-medical.com · (949) 539-5023
           </div>
         </div>
       </header>
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '64px 28px 80px' }}>
+      <div style={{ maxWidth: maxW, margin: '0 auto', padding: '64px 28px 80px' }}>
         {children}
       </div>
     </div>

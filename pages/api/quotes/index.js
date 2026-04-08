@@ -51,6 +51,7 @@ export default async function handler(req, res) {
         intro_note = null,
         items = [],
         discount_cents = 0,
+        options = null,
         expires_at = null,
         created_by = null,
       } = req.body || {};
@@ -58,18 +59,37 @@ export default async function handler(req, res) {
       if (!recipient_name) {
         return res.status(400).json({ error: 'recipient_name is required' });
       }
-      if (!Array.isArray(items) || items.length === 0) {
-        return res.status(400).json({ error: 'At least one item is required' });
-      }
 
-      const cleanItems = items.map((it) => ({
+      const cleanItemList = (arr) => (Array.isArray(arr) ? arr : []).map((it) => ({
         name: String(it.name || '').trim(),
         description: String(it.description || '').trim(),
         price: Number(it.price) || 0,
         qty: Number(it.qty) || 1,
       })).filter((it) => it.name);
 
-      const totals = computeTotals(cleanItems, discount_cents);
+      // Comparison mode: 2–3 named options
+      let cleanOptions = null;
+      if (Array.isArray(options) && options.length > 0) {
+        cleanOptions = options.slice(0, 3).map((opt, i) => {
+          const optItems = cleanItemList(opt.items);
+          const optTotals = computeTotals(optItems, opt.discount_cents || 0);
+          return {
+            name: String(opt.name || `Option ${i + 1}`).trim() || `Option ${i + 1}`,
+            items: optItems,
+            ...optTotals,
+          };
+        }).filter((o) => o.items.length > 0);
+        if (cleanOptions.length === 0) cleanOptions = null;
+      }
+
+      // Single-option (legacy) path — also used as the "primary" snapshot when options exist
+      const cleanItems = cleanOptions ? cleanOptions[0].items : cleanItemList(items);
+      if (cleanItems.length === 0) {
+        return res.status(400).json({ error: 'At least one item is required' });
+      }
+      const totals = cleanOptions
+        ? { subtotal_cents: cleanOptions[0].subtotal_cents, discount_cents: cleanOptions[0].discount_cents, total_cents: cleanOptions[0].total_cents }
+        : computeTotals(cleanItems, discount_cents);
 
       const token = genToken();
       const { data, error } = await supabase
@@ -83,6 +103,7 @@ export default async function handler(req, res) {
           title,
           intro_note,
           items: cleanItems,
+          options: cleanOptions,
           ...totals,
           expires_at,
           status: 'draft',

@@ -59,6 +59,39 @@ export default async function handler(req, res) {
       }
     }
 
+    // Fetch internal invoices (our `invoices` table) by payment_intent_id — these
+    // store the staff-side line items entered at checkout / invoice creation.
+    let internalInvoiceItemsByPi = {};
+    if (paymentIntentIds.length > 0) {
+      const { data: internalInvoices } = await supabase
+        .from('invoices')
+        .select('stripe_payment_intent_id, items, subtotal_cents, discount_cents, discount_description')
+        .in('stripe_payment_intent_id', paymentIntentIds);
+      if (internalInvoices) {
+        for (const inv of internalInvoices) {
+          if (!inv.stripe_payment_intent_id || !Array.isArray(inv.items)) continue;
+          const lines = inv.items.map(it => {
+            const qty = Number(it.quantity) || 1;
+            const unit = Number(it.price_cents) || 0;
+            const baseName = it.display_name || it.name || it.description || 'Service';
+            return {
+              name: qty > 1 ? `${baseName} ×${qty}` : baseName,
+              category: it.category || null,
+              amount_paid: (unit * qty) / 100,
+            };
+          });
+          if (Number(inv.discount_cents) > 0) {
+            lines.push({
+              name: inv.discount_description ? `Discount (${inv.discount_description})` : 'Discount',
+              category: 'discount',
+              amount_paid: -Number(inv.discount_cents) / 100,
+            });
+          }
+          internalInvoiceItemsByPi[inv.stripe_payment_intent_id] = lines;
+        }
+      }
+    }
+
     // Fetch invoice line items for charges that came from Stripe invoices
     const invoiceIds = [...new Set(charges.data.map(c => c.invoice).filter(Boolean))];
     let invoiceLineItems = {}; // joined description string
@@ -108,7 +141,11 @@ export default async function handler(req, res) {
           amount_paid: p.amount_paid != null ? Number(p.amount_paid) : null,
         };
       });
-      // Fallback: build from Stripe invoice lines when no linked purchases exist
+      // Fallback 1: internal invoices table keyed by payment intent
+      if (lineItems.length === 0 && piId && internalInvoiceItemsByPi[piId]) {
+        lineItems = internalInvoiceItemsByPi[piId];
+      }
+      // Fallback 2: Stripe-hosted invoice lines
       if (lineItems.length === 0 && c.invoice && invoiceLineItemsDetailed[c.invoice]) {
         lineItems = invoiceLineItemsDetailed[c.invoice];
       }

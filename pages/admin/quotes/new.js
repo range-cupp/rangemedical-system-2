@@ -17,10 +17,21 @@ export default function NewQuote() {
   const [title, setTitle] = useState('');
   const [introNote, setIntroNote] = useState('');
   const [items, setItems] = useState([blankItem()]);
+  const [catalog, setCatalog] = useState([]);
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const [catalogCategory, setCatalogCategory] = useState('');
   const [discount, setDiscount] = useState('');
   const [expires, setExpires] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Load POS catalog
+  useEffect(() => {
+    fetch('/api/pos/services?active=true')
+      .then((r) => r.json())
+      .then((d) => setCatalog(Array.isArray(d?.services) ? d.services : []))
+      .catch(() => setCatalog([]));
+  }, []);
 
   // Patient search
   useEffect(() => {
@@ -46,6 +57,27 @@ export default function NewQuote() {
   };
   const addItem = () => setItems((arr) => [...arr, blankItem()]);
   const removeItem = (i) => setItems((arr) => arr.filter((_, idx) => idx !== i));
+  const addFromCatalog = (svc) => {
+    const priceDollars = (Number(svc.price_cents ?? svc.price) || 0) / 100;
+    const newItem = {
+      name: svc.name,
+      description: svc.description || svc.category || '',
+      price: priceDollars,
+      qty: 1,
+    };
+    setItems((arr) => {
+      // If first row is blank, replace it
+      if (arr.length === 1 && !arr[0].name && !arr[0].price) return [newItem];
+      return [...arr, newItem];
+    });
+  };
+
+  const categories = Array.from(new Set(catalog.map((c) => c.category).filter(Boolean))).sort();
+  const filteredCatalog = catalog.filter((c) => {
+    if (catalogCategory && c.category !== catalogCategory) return false;
+    if (catalogSearch && !c.name.toLowerCase().includes(catalogSearch.toLowerCase())) return false;
+    return true;
+  });
 
   const subtotal = items.reduce((sum, it) => sum + ((Number(it.price) || 0) * (Number(it.qty) || 1)), 0);
   const total = Math.max(0, subtotal - (Number(discount) || 0));
@@ -150,6 +182,51 @@ export default function NewQuote() {
           <div style={s.fieldGroup}>
             <label style={s.label}>Personal note (optional)</label>
             <textarea style={{ ...s.input, minHeight: 80, fontFamily: 'inherit' }} value={introNote} onChange={(e) => setIntroNote(e.target.value)} placeholder="Hey John — here's the options we talked about…" />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ ...s.card, marginBottom: 20 }}>
+        <div style={s.cardHeader}><h3 style={s.cardTitle}>Add from POS Catalog</h3></div>
+        <div style={s.cardBody}>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+            <input
+              style={{ ...s.input, flex: 2 }}
+              placeholder="Search catalog…"
+              value={catalogSearch}
+              onChange={(e) => setCatalogSearch(e.target.value)}
+            />
+            <select
+              style={{ ...s.select, flex: 1 }}
+              value={catalogCategory}
+              onChange={(e) => setCatalogCategory(e.target.value)}
+            >
+              <option value="">All categories</option>
+              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div style={{ maxHeight: 280, overflow: 'auto', border: '1px solid #e5e5e5' }}>
+            {filteredCatalog.length === 0 && (
+              <div style={{ padding: 14, color: '#888', fontSize: 14 }}>
+                {catalog.length === 0 ? 'Loading catalog…' : 'No matches.'}
+              </div>
+            )}
+            {filteredCatalog.map((svc) => {
+              const cents = Number(svc.price_cents ?? svc.price) || 0;
+              return (
+                <div
+                  key={svc.id}
+                  onClick={() => addFromCatalog(svc)}
+                  style={{ padding: '10px 14px', borderBottom: '1px solid #f0f0f0', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{svc.name}</div>
+                    <div style={{ fontSize: 12, color: '#888' }}>{svc.category}</div>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>${(cents / 100).toFixed(2)}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

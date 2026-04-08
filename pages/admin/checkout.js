@@ -109,8 +109,6 @@ const SUBGROUP_RULES = {
   weight_loss: [
     { label: 'Tirzepatide — Monthly Program', match: i => i.name.toLowerCase().includes('tirzepatide') && i.name.toLowerCase().includes('monthly') },
     { label: 'Retatrutide — Monthly Program', match: i => i.name.toLowerCase().includes('retatrutide') && i.name.toLowerCase().includes('monthly') },
-    { label: 'Tirzepatide — Single Injections', match: i => i.name.toLowerCase().includes('tirzepatide') && i.name.toLowerCase().includes('single') },
-    { label: 'Retatrutide — Single Injections', match: i => i.name.toLowerCase().includes('retatrutide') && i.name.toLowerCase().includes('single') },
     { label: 'Semaglutide', match: i => i.name.toLowerCase().includes('semaglutide') },
   ],
   iv_therapy: [
@@ -282,7 +280,14 @@ function CheckoutInner() {
       try {
         const res = await fetch('/api/pos/services?active=true');
         const data = await res.json();
-        setServices(data.services || []);
+        // Hide one-time/single-injection options for Tirzepatide and Retatrutide —
+        // these meds are sold as monthly programs only.
+        const filtered = (data.services || []).filter(s => {
+          const n = (s.name || '').toLowerCase();
+          const isTirzOrReta = n.includes('tirzepatide') || n.includes('retatrutide');
+          return !(isTirzOrReta && n.includes('single'));
+        });
+        setServices(filtered);
       } catch (err) {
         console.error('Load services error:', err);
       }

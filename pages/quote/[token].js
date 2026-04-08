@@ -90,8 +90,8 @@ export default function QuotePage() {
               </div>
             ) : (
               <div className="ctas">
-                <a className="btn-primary" href="sms:+19499973988">Text Us to Get Started</a>
-                <a className="btn-secondary" href="tel:+19499973988">Call (949) 997-3988</a>
+                <a className="btn-primary" href="sms:+19495395023">Text Us to Get Started</a>
+                <a className="btn-secondary" href="tel:+19495395023">Call (949) 539-5023</a>
               </div>
             )}
 
@@ -260,7 +260,7 @@ function Shell({ children }) {
         <div style={{ maxWidth: 760, margin: '0 auto', padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: '0.14em' }}>RANGE MEDICAL</div>
           <div style={{ fontSize: 11, color: '#737373', textAlign: 'right', letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 600 }}>
-            range-medical.com · (949) 997-3988
+            range-medical.com · (949) 539-5023
           </div>
         </div>
       </header>

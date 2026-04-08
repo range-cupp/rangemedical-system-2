@@ -14047,7 +14047,7 @@ export default function PatientProfile() {
         .pay-item-info { flex: 1; min-width: 0; }
         .pay-item-title {
           font-size: 13px; font-weight: 600; color: #1e293b;
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          word-break: break-word; overflow-wrap: anywhere;
         }
         .pay-item-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
         .pay-item-amount { font-size: 15px; font-weight: 700; color: #0f172a; flex-shrink: 0; }

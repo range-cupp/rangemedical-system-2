@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       const stripeSubs = await stripe.subscriptions.list({
         customer: patient.stripe_customer_id,
         limit: 100,
-        expand: ['data.default_payment_method', 'data.latest_invoice'],
+        expand: ['data.default_payment_method', 'data.latest_invoice', 'data.items.data.price.product'],
       });
 
       const subscriptions = stripeSubs.data.map(sub => {

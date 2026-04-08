@@ -7,7 +7,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 
 const fmt = (cents) => `$${((cents || 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : '';
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' }) : '';
 
 export default function QuotePage() {
   const router = useRouter();

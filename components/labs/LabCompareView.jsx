@@ -10,7 +10,7 @@ export default function LabCompareView({ allLabResults, biomarkerLibrary }) {
 
   const formatDate = (d) => {
     if (!d) return '';
-    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' , timeZone: 'America/Los_Angeles' });
   };
 
   const formatValue = (v) => {

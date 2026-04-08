@@ -60,7 +60,7 @@ export default function AppPatients() {
   const formatDOB = (dob) => {
     if (!dob) return null;
     const d = new Date(dob + 'T12:00:00');
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
   };
 
   const list = query.trim().length >= 2 ? results : recent;

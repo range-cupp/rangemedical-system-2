@@ -460,7 +460,7 @@ export default function SendFormsPage() {
 
   const addRecentSend = (name, method, count, type) => {
     setRecentSends(prev => [
-      { name, method, count, type, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) },
+      { name, method, count, type, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' }) },
       ...prev.slice(0, 9),
     ]);
   };

@@ -373,16 +373,17 @@ function ProviderBriefing({ briefing, appointment, onPrint }) {
   const fmtDate = (iso) => {
     if (!iso) return '—';
     try {
-      return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
     } catch { return iso; }
   };
-  // DOB is a date-only value (YYYY-MM-DD); parse as local to avoid UTC→PST shifting it back a day.
+  // DOB is a date-only value (YYYY-MM-DD); construct via UTC and render in UTC
+  // so the displayed date matches what's stored, regardless of server TZ.
   const fmtDateOnly = (iso) => {
     if (!iso) return '—';
     const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (!m) return fmtDate(iso);
-    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   };
   const dobLine = briefing.patient.dob
     ? `${fmtDateOnly(briefing.patient.dob)}${briefing.patient.age != null ? ` (age ${briefing.patient.age})` : ''}`

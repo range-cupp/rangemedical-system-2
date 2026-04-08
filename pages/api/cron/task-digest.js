@@ -44,6 +44,7 @@ export default async function handler(req, res) {
     const today = pacificDate.toISOString().split('T')[0];
     const displayDate = pacificDate.toLocaleDateString('en-US', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+          timeZone: 'America/Los_Angeles',
     });
 
     console.log(`Task Digest — ${displayDate}`);
@@ -177,7 +178,7 @@ function formatDueDate(due_date) {
   if (due_date === today) return { label: 'Due today', overdue: false, urgent: true };
   if (due_date === tomorrow) return { label: 'Due tomorrow', overdue: false };
   return {
-    label: new Date(due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    label: new Date(due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' }),
     overdue: false,
   };
 }

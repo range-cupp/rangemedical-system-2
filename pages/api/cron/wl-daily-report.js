@@ -45,6 +45,7 @@ export default async function handler(req, res) {
     const today = pacificDate.toISOString().split('T')[0];
     const displayDate = pacificDate.toLocaleDateString('en-US', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+          timeZone: 'America/Los_Angeles',
     });
 
     console.log(`WL Daily Report — fetching entries for ${today}`);

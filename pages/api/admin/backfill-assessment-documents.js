@@ -66,7 +66,7 @@ export default async function handler(req, res) {
 
       // Create medical document record
       const pathLabel = lead.assessment_path === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization';
-      const dateStr = new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const dateStr = new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
 
       const { error: insertError } = await supabase
         .from('medical_documents')

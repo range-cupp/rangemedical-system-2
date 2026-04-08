@@ -42,9 +42,11 @@ export default async function handler(req, res) {
     const today = pacificDate.toISOString().split('T')[0];
     const displayDate = pacificDate.toLocaleDateString('en-US', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+          timeZone: 'America/Los_Angeles',
     });
     const shortDate = pacificDate.toLocaleDateString('en-US', {
       month: 'numeric', day: 'numeric', year: '2-digit',
+          timeZone: 'America/Los_Angeles',
     });
 
     console.log(`Daily Sales Report — fetching data for ${today}`);

@@ -60,7 +60,7 @@ export default async function handler(req, res) {
   const patientAge = patient.date_of_birth
     ? Math.floor((Date.now() - new Date(patient.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
     : null;
-  const memberSince = patient.created_at ? new Date(patient.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Unknown';
+  const memberSince = patient.created_at ? new Date(patient.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' , timeZone: 'America/Los_Angeles' }) : 'Unknown';
 
   let context = `TODAY: ${today}\n`;
   context += `PATIENT: ${patient.first_name} ${patient.last_name}`;

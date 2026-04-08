@@ -137,7 +137,8 @@ export default async function handler(req, res) {
             month: 'long',
             day: 'numeric',
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
+                  timeZone: 'America/Los_Angeles',
         });
 
         let noteBody;

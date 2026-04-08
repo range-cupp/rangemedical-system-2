@@ -121,6 +121,7 @@ export default async function handler(req, res) {
         invoiceId: allPurchases[0].id,
         date: new Date(purchase.purchase_date).toLocaleDateString('en-US', {
           year: 'numeric', month: 'long', day: 'numeric',
+                  timeZone: 'America/Los_Angeles',
         }),
         items,
         amountPaidCents: totalAmountCents,
@@ -142,6 +143,7 @@ export default async function handler(req, res) {
         invoiceId: purchase.id,
         date: new Date(purchase.purchase_date).toLocaleDateString('en-US', {
           year: 'numeric', month: 'long', day: 'numeric',
+                  timeZone: 'America/Los_Angeles',
         }),
         description: purchase.description || purchase.item_name,
         amountPaidCents,

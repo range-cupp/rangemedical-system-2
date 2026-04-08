@@ -233,7 +233,7 @@ export default function CommunicationsPage() {
     if (diffMins < 60) return `${diffMins}m`;
     if (diffHrs < 24) return `${diffHrs}h`;
     if (diffDays < 7) return `${diffDays}d`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' });
   };
 
   const formatDate = (dateStr) => {

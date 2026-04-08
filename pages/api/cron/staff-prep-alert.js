@@ -54,7 +54,7 @@ function formatAppointmentTime(isoString) {
 function formatDateDisplay(dateStr) {
   const [y, m, d] = dateStr.split('-');
   const date = new Date(y, m - 1, d);
-  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' });
 }
 
 // Evaluate prep flags for a single appointment

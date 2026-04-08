@@ -51,7 +51,7 @@ function getMonthNumber(daysSinceStart) {
 
 function formatDate(dateStr) {
   if (!dateStr) return '\u2014';
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' });
 }
 
 export default function WeightLossPipelineTab() {

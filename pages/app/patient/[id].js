@@ -55,7 +55,7 @@ export default function AppPatientDetail() {
 
   const formatDate = (d) => {
     if (!d) return null;
-    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
   };
 
   return (

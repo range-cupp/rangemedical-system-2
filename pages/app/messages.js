@@ -340,7 +340,7 @@ export default function AppMessages() {
               messages.map(msg => {
                 const isOut = msg.direction === 'outbound';
                 const timeStr = msg.sent_at
-                  ? new Date(msg.sent_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, month: 'short', day: 'numeric' })
+                  ? new Date(msg.sent_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })
                   : '';
                 const hasMedia = msg.media_url;
                 const showText = msg.body && !(hasMedia && msg.body === '📷 Image');
@@ -484,8 +484,8 @@ export default function AppMessages() {
                     const now = new Date();
                     const isToday = d.toDateString() === now.toDateString();
                     return isToday
-                      ? d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-                      : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                      ? d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true , timeZone: 'America/Los_Angeles' })
+                      : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' });
                   })()
                 : '';
               return (

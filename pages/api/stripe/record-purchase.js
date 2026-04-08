@@ -73,6 +73,7 @@ async function sendReceiptEmail(purchase) {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
+              timeZone: 'America/Los_Angeles',
       }),
       description: purchase.description || purchase.item_name,
       amountPaidCents: actualPaidCents,

@@ -74,7 +74,7 @@ const FALLBACK_REVIEWS = [
 function formatReviewDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' , timeZone: 'America/Los_Angeles' });
 }
 
 function extractHighlight(text) {

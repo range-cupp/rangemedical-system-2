@@ -1332,7 +1332,7 @@ export default function ProtocolBuilder() {
                   {currentProtocols.map(proto => {
                     const cat = getProtoCategory(proto);
                     const color = PROTO_COLORS[cat] || '#808080';
-                    const startDate = proto.start_date ? new Date(proto.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+                    const startDate = proto.start_date ? new Date(proto.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' }) : '';
                     const isUpgradable = proto.program_type === 'hrt' || proto.program_type === 'weight_loss';
 
                     return (
@@ -1517,7 +1517,7 @@ export default function ProtocolBuilder() {
               </div>
 
               <div style={{ marginTop: '20px', fontSize: '12px', color: '#a0a0a0' }}>
-                Date: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                Date: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
               </div>
             </div>
 

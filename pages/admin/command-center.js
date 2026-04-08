@@ -393,7 +393,7 @@ function getProtocolStatus(protocol, cycleInfo) {
     if (refillDate) {
       const now = new Date();
       const diff = Math.ceil((refillDate - now) / (1000 * 60 * 60 * 24));
-      const label = refillDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const label = refillDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' });
       if (diff < 0) return `Refill overdue`;
       if (diff <= 7) return `Refill ~${label}`;
       return `Refill ~${label}`;
@@ -2392,7 +2392,7 @@ export default function CommandCenter() {
                               if (!refill) return null;
                               const now = new Date();
                               const diff = Math.ceil((refill - now) / (1000 * 60 * 60 * 24));
-                              const label = refill.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                              const label = refill.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
                               return (
                                 <div style={styles.protocolDetailItem}>
                                   <span style={styles.protocolDetailLabel}>Est. Refill</span>
@@ -2474,7 +2474,7 @@ export default function CommandCenter() {
                               const refill = getVialRefillDate(protocolDetailPanel.protocol);
                               if (!refill) return 'N/A';
                               const diff = Math.ceil((refill - new Date()) / (1000 * 60 * 60 * 24));
-                              const label = refill.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                              const label = refill.toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' });
                               return `${label} (${diff <= 0 ? 'overdue' : `~${diff} days`})`;
                             })()}
                           </span>
@@ -3921,7 +3921,7 @@ export default function CommandCenter() {
                                 <div style={{ marginTop: '6px' }}><strong>💊 Total injections:</strong> {totalDoses} ({assignForm.numVials} vial{parseInt(assignForm.numVials) > 1 ? 's' : ''} × {dpv})</div>
                                 <div style={{ marginTop: '6px' }}><strong>📅 Duration:</strong> {durationDays} days</div>
                                 <div style={{ marginTop: '6px', color: '#059669' }}>
-                                  <strong>🔄 Protocol ends:</strong> {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  <strong>🔄 Protocol ends:</strong> {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
                                 </div>
                               </>
                             );
@@ -4817,7 +4817,7 @@ export default function CommandCenter() {
                   </select>
                   {editingProtocol.end_date && (
                     <div style={{ fontSize: '12px', color: '#059669', marginTop: '6px' }}>
-                      Next pickup: {new Date(editingProtocol.end_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                      Next pickup: {new Date(editingProtocol.end_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
                     </div>
                   )}
                 </div>
@@ -5363,7 +5363,7 @@ function MyTasksWidget({ session, employeeId }) {
               </div>
               <div style={{ fontSize: '11px', color: '#999' }}>
                 {task.assigned_by_name && `From ${task.assigned_by_name}`}
-                {task.due_date && ` · Due ${new Date(task.due_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                {task.due_date && ` · Due ${new Date(task.due_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}`}
               </div>
             </div>
             <span style={{
@@ -7906,8 +7906,8 @@ function CommsLogTab() {
   const formatTime = (ts) => {
     if (!ts) return '—';
     const d = new Date(ts);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
-      d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' }) + ' ' +
+      d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' });
   };
 
   const handleSearch = (e) => {
@@ -8179,7 +8179,7 @@ function OxygenTab() {
                   </span>
                 </td>
                 <td style={{ ...oxygenStyles.td, color: '#888', fontSize: '13px' }}>
-                  {new Date(sub.subscribed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {new Date(sub.subscribed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
                 </td>
               </tr>
             ))}
@@ -8379,7 +8379,7 @@ function POSTab({ stripePromise }) {
 
   function formatDate(d) {
     if (!d) return '—';
-    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' });
   }
 
   // Group services by category
@@ -8776,7 +8776,7 @@ function POSTab({ stripePromise }) {
                     return (
                       <tr key={inv.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
                         <td style={{ padding: '10px 12px', fontSize: '13px' }}>
-                          {new Date(inv.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {new Date(inv.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
                         </td>
                         <td style={{ padding: '10px 12px', fontSize: '14px', fontWeight: '500' }}>{inv.patient_name}</td>
                         <td style={{ padding: '10px 12px', fontSize: '14px', fontWeight: '600', textAlign: 'right' }}>

@@ -197,6 +197,7 @@ export default async function handler(req, res) {
         year: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
+              timeZone: 'America/Los_Angeles',
       });
 
       const emailHtml = `

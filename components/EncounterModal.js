@@ -776,12 +776,12 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
 
   const formatDate = (d) => {
     if (!d) return '';
-    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' });
   };
 
   const formatShortDate = (d) => {
     if (!d) return '';
-    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
   };
 
   const statusConfig = {
@@ -1581,7 +1581,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {previousNotes.map(note => {
                           const noteDate = new Date(note.note_date || note.created_at);
-                          const dateStr = noteDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                          const dateStr = noteDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
                           const preview = (note.body || '').replace(/\*\*/g, '').replace(/\n/g, ' ').slice(0, 120);
                           return (
                             <button

@@ -54,7 +54,7 @@ async function main() {
 
   // Send scheduling prompt SMS via Blooio
   console.log('\n=== Sending Scheduling Prompt via Blooio ===');
-  const monthName = new Date().toLocaleDateString('en-US', { month: 'long' });
+  const monthName = new Date().toLocaleDateString('en-US', { month: 'long' , timeZone: 'America/Los_Angeles' });
   const schedulePrompt = `Hi ${firstName}! Your complimentary Range IV for ${monthName} is ready 💉 Want to schedule? Reply YES and we'll send you a link to pick a time! — Range Medical`;
 
   console.log('To:', patientPhone);

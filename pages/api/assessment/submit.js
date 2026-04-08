@@ -275,7 +275,7 @@ export default async function handler(req, res) {
 
 // Build assessment note for GHL
 function buildAssessmentNote(path, data) {
-  const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
 
   if (path === 'injury') {
     return `📋 Range Assessment - Injury & Recovery
@@ -366,7 +366,8 @@ async function sendEmailNotification(data) {
     day: 'numeric',
     year: 'numeric',
     hour: 'numeric',
-    minute: '2-digit'
+    minute: '2-digit',
+      timeZone: 'America/Los_Angeles',
   });
 
   let detailsHtml = '';

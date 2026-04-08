@@ -985,6 +985,7 @@ export default function RangeAssessment() {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
+          timeZone: 'America/Los_Angeles',
     });
   };
 

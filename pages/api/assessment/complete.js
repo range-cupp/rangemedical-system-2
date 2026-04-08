@@ -377,7 +377,7 @@ export default async function handler(req, res) {
 
           if (pdfUrl && patientId) {
             const pathLabel = assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization';
-            const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
             pdfPromises.push(
               supabase.from('medical_documents').insert({
                 patient_id: patientId,
@@ -800,7 +800,7 @@ async function generateAssessmentPDF({ firstName, lastName, email, phone, assess
 
 // Build GHL note with intake summary
 function buildIntakeNote(assessmentPath, formData, intakeData, recommendation) {
-  const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
   const lines = [];
 
   lines.push(`Medical Intake Completed — ${date}`);
@@ -874,7 +874,8 @@ function buildIntakeNote(assessmentPath, formData, intakeData, recommendation) {
 async function sendConsolidatedEmail({ firstName, lastName, email, phone, assessmentPath, formData, intakeData, recommendation, pdfUrl }) {
   const pathName = assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization';
   const date = new Date().toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
+      timeZone: 'America/Los_Angeles',
   });
 
   // Build personal info section

@@ -119,6 +119,7 @@ export default async function handler(req, res) {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
+              timeZone: 'America/Los_Angeles',
       }),
       items,
       amountPaidCents: totalAmountCents,

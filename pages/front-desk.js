@@ -334,7 +334,7 @@ function TaskRow({ task, today, onComplete, onSelectPatient, expanded }) {
             <span style={{ color: priorityColors[task.priority] || '#999', fontWeight: 600 }}>{priorityLabels[task.priority] || task.priority}</span>
             {task.due_date && (
               <span style={{ color: overdue ? '#ef4444' : dueToday ? '#f59e0b' : '#888', fontWeight: overdue ? 600 : 400 }}>
-                {overdue ? 'Overdue' : dueToday ? 'Due today' : `Due ${new Date(task.due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                {overdue ? 'Overdue' : dueToday ? 'Due today' : `Due ${new Date(task.due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}`}
               </span>
             )}
             {task.assigned_by_name && <span style={{ color: '#aaa' }}>from {task.assigned_by_name}</span>}
@@ -363,7 +363,7 @@ function TaskRow({ task, today, onComplete, onSelectPatient, expanded }) {
           <div style={{ fontSize: 12, color: overdue ? '#ef4444' : dueToday ? '#f59e0b' : '#999', marginTop: 1 }}>
             {task.patient_name && <span>{task.patient_name}</span>}
             {task.patient_name && task.due_date && <span> · </span>}
-            {task.due_date && <span>{overdue ? 'Overdue' : dueToday ? 'Due today' : `Due ${new Date(task.due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}</span>}
+            {task.due_date && <span>{overdue ? 'Overdue' : dueToday ? 'Due today' : `Due ${new Date(task.due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}`}</span>}
           </div>
         )}
       </div>

@@ -517,7 +517,7 @@ function generateCoveredReceiptHtml({ firstName, patientName, description, cover
       </td></tr>
       <tr><td style="padding:16px;border-bottom:1px solid #f0f0f0;">
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#666;margin:0 0 6px;">Date</div>
-        <div style="font-size:14px;color:#111;">${new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+        <div style="font-size:14px;color:#111;">${new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' , timeZone: 'America/Los_Angeles' })}</div>
       </td></tr>
       <tr><td style="padding:16px;border-bottom:1px solid #f0f0f0;">
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#666;margin:0 0 6px;">Coverage</div>

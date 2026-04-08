@@ -60,7 +60,7 @@ function calculateCurrentDay(startDate) {
 // =====================================================
 function formatDate(d) {
   if (!d) return '\u2014';
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
 }
 
 function daysAgo(d) {
@@ -747,7 +747,7 @@ export default function ProtocolsPage() {
                 })()}
               </td>
               <td style={styles.td}>
-                {protocol.start_date ? new Date(protocol.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '\u2014'}
+                {protocol.start_date ? new Date(protocol.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' }) : '\u2014'}
               </td>
               <td style={styles.td}>
                 <div style={styles.progressContainer}>

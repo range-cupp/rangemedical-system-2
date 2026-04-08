@@ -352,7 +352,7 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
 
   const formatShortDate = (d) => {
     if (!d) return '';
-    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
   };
 
   // ── Styles ───────────────────────────────────────────────────────────────────
@@ -1200,7 +1200,7 @@ export default function TasksPage() {
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' });
   };
 
   const isOverdue = (task) => {

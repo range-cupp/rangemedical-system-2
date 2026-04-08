@@ -121,7 +121,7 @@ async function generateLabPDF(lab, patient, rangesMap) {
   // Patient info
   const patientName = `${patient.first_name} ${patient.last_name}`;
   const dob = patient.date_of_birth
-    ? new Date(patient.date_of_birth + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    ? new Date(patient.date_of_birth + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })
     : 'N/A';
   const gender = patient.gender || 'N/A';
   const panelType = lab.panel_type || 'N/A';
@@ -204,7 +204,7 @@ async function generateLabPDF(lab, patient, rangesMap) {
   drawLine(MARGIN, y, PAGE_WIDTH - MARGIN, y, BORDER_GRAY, 0.5);
   y -= 14;
   drawText('Generated from Range Medical CRM', MARGIN, y, { size: 7, color: TEXT_GRAY });
-  const genDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const genDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
   const genStr = `Generated: ${genDate}`;
   const genWidth = fontRegular.widthOfTextAtSize(genStr, 7);
   drawText(genStr, PAGE_WIDTH - MARGIN - genWidth, y, { size: 7, color: TEXT_GRAY });

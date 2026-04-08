@@ -219,7 +219,7 @@ async function sendRangeIVPerkEmail(patientId) {
   }
 
   const firstName = patient.first_name || (patient.name || '').split(' ')[0] || 'there';
-  const monthName = new Date().toLocaleDateString('en-US', { month: 'long' });
+  const monthName = new Date().toLocaleDateString('en-US', { month: 'long' , timeZone: 'America/Los_Angeles' });
 
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto;">
@@ -361,7 +361,7 @@ async function processHRTMembershipPerk(invoice) {
   // Send patient scheduling prompt SMS
   if (patient?.phone) {
     const firstName = patient.first_name || (patient.name || '').split(' ')[0] || 'there';
-    const monthName = new Date().toLocaleDateString('en-US', { month: 'long' });
+    const monthName = new Date().toLocaleDateString('en-US', { month: 'long' , timeZone: 'America/Los_Angeles' });
     const schedulePrompt = `Hi ${firstName}! Your complimentary Range IV for ${monthName} is ready 💉 Want to schedule? Reply YES and we'll send you a link to pick a time! — Range Medical`;
 
     const promptResult = await sendSMS({ to: patient.phone, message: schedulePrompt }).catch(err => {

@@ -181,7 +181,7 @@ export default function PatientPortal() {
         {/* Weight Loss Progress Chart */}
         {(() => {
           const wlChartData = weightLossLogs.filter(l => l.weight).map(l => ({
-            date: new Date(l.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            date: new Date(l.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' }),
             weight: parseFloat(l.weight)
           }));
           if (wlChartData.length < 2) return null;
@@ -327,7 +327,7 @@ export default function PatientPortal() {
 
 function formatDate(d) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
 }
 
 function formatFrequency(f) {

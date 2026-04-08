@@ -170,6 +170,7 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
       const firstName = patient.name.split(' ')[0];
       const apptDate = new Date(appointment.start_time).toLocaleDateString('en-US', {
         weekday: 'long', month: 'long', day: 'numeric',
+              timeZone: 'America/Los_Angeles',
       });
       const message = `Hi ${firstName}, your ${appointment.service_name} appointment on ${apptDate} has been cancelled. Please call (949) 997-3988 to reschedule.`;
 

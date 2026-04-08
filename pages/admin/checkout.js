@@ -1676,7 +1676,7 @@ function CheckoutInner() {
                     <div style={styles.recentChargesList}>
                       {recentCharges.map(c => {
                         const dateStr = c.created
-                          ? new Date(c.created * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                          ? new Date(c.created * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })
                           : '';
                         const amount = formatPrice(c.amount || 0);
                         const desc = c.description || 'Payment';

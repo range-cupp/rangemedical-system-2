@@ -231,13 +231,13 @@ function ChartTooltip({ active, payload }) {
 function fmt(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' });
 }
 
 function fmtFull(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
 }
 
 // ─── Get today in Pacific ────────────────────────────────────────────────────
@@ -272,7 +272,7 @@ function calcProjectedGoal(logs, goalWeight) {
   goalDate.setDate(goalDate.getDate() + Math.round(weeksToGoal * 7));
 
   return {
-    date: goalDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+    date: goalDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' }),
     avgWeeklyLoss: avgWeeklyLoss.toFixed(1),
   };
 }

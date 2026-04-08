@@ -124,7 +124,7 @@ export default function HRTDetailPanel({ isOpen, onClose, lead }) {
   const formatDate = (dateStr) => {
     if (!dateStr) return '\u2014';
     const d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T12:00:00');
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
   };
 
   const timeAgo = (dateStr) => {

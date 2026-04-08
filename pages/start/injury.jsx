@@ -160,7 +160,7 @@ export default function StartInjury() {
 
   // Format date for display
   const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' });
   };
 
   return (

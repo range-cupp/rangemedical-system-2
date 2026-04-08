@@ -185,7 +185,7 @@ export default async function handler(req, res) {
 }
 
 function buildQuizNote({ firstName, lastName, scores, goal, timeline, avatar }) {
-  const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
   const avatarLabel = AVATAR_LABELS[avatar] || avatar;
 
   let scoreLines = '';
@@ -224,7 +224,8 @@ async function sendNotificationEmail({ firstName, lastName, email, phone, scores
     day: 'numeric',
     year: 'numeric',
     hour: 'numeric',
-    minute: '2-digit'
+    minute: '2-digit',
+      timeZone: 'America/Los_Angeles',
   });
 
   let scoreRowsHtml = '';

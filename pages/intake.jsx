@@ -1928,7 +1928,7 @@ function initializeForm() {
 
   // Set today's date
   const today = new Date();
-  const dateStr = today.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+  const dateStr = today.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' , timeZone: 'America/Los_Angeles' });
   document.getElementById('signatureDate').value = dateStr;
 
   // Initialize signature pad

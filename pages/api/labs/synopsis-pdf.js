@@ -145,7 +145,7 @@ export default async function handler(req, res) {
     drawText('AI CLINICAL SYNOPSIS', MARGIN, y, { font: fontBold, size: 17, color: BLACK });
     y -= 16;
     const testDateFormatted = lab.test_date
-      ? new Date(lab.test_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      ? new Date(lab.test_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })
       : 'N/A';
     drawText(`Lab results from ${testDateFormatted}`, MARGIN, y, { font: fontItalic, size: 9.5, color: MID_GRAY });
     y -= 22;
@@ -160,7 +160,7 @@ export default async function handler(req, res) {
     // Info rows
     const patientName = `${patient.first_name} ${patient.last_name}`;
     const dob = patient.date_of_birth
-      ? new Date(patient.date_of_birth + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      ? new Date(patient.date_of_birth + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })
       : 'N/A';
     const gender = patient.gender ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1) : 'N/A';
     const panelType = lab.panel_type || 'N/A';
@@ -326,9 +326,9 @@ export default async function handler(req, res) {
     });
 
     y -= 16;
-    const genDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const genDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
     const synopsisDate = lab.ai_synopsis_generated_at
-      ? new Date(lab.ai_synopsis_generated_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      ? new Date(lab.ai_synopsis_generated_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })
       : genDate;
     const genStr = `Synopsis generated: ${synopsisDate}  \u2022  PDF generated: ${genDate}`;
     drawText(genStr, MARGIN, y, { font: fontRegular, size: 7, color: MID_GRAY });

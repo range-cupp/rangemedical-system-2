@@ -741,7 +741,7 @@ export default function ProtocolDetail() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to log session');
-      setSuccess(`Session #${sessionModal.sessionNum} logged for ${new Date(sessionDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`);
+      setSuccess(`Session #${sessionModal.sessionNum} logged for ${new Date(sessionDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}`);
       setSessionModal(null);
       setSessionDate(new Date().toISOString().split('T')[0]);
       fetchProtocol();
@@ -1250,7 +1250,8 @@ export default function ProtocolDetail() {
                 )}
                 <div style={{ marginTop: '4px', fontSize: '13px', color: '#999' }}>
                   Started {protocol?.start_date ? new Date(protocol.start_date + 'T12:00:00').toLocaleDateString('en-US', {
-                    month: 'long', day: 'numeric', year: 'numeric'
+                    month: 'long', day: 'numeric', year: 'numeric',
+                                      timeZone: 'America/Los_Angeles',
                   }) : 'N/A'}
                 </div>
 
@@ -1357,13 +1358,13 @@ export default function ProtocolDetail() {
                               <div style={{ display: 'flex', gap: '16px', fontSize: '12px', flexWrap: 'wrap' }}>
                                 <span style={{ color: '#6b7280' }}>
                                   Last pickup: <strong style={{ color: '#111' }}>
-                                    {new Date(detail.last_refill_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    {new Date(detail.last_refill_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
                                   </strong>
                                 </span>
                                 {detail.next_expected_date && (
                                   <span style={{ color: '#6b7280' }}>
                                     Next refill: <strong style={{ color: isOverdue ? '#dc2626' : isDueSoon ? '#f59e0b' : '#111' }}>
-                                      {new Date(detail.next_expected_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                      {new Date(detail.next_expected_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
                                       {isOverdue && ` (${Math.abs(daysUntil)}d overdue)`}
                                       {isDueSoon && ` (in ${daysUntil}d)`}
                                     </strong>
@@ -1718,7 +1719,7 @@ export default function ProtocolDetail() {
                   else if (desc.includes('single') || desc.includes('1 week')) injectionsPerPurchase = 1;
 
                   const groupInjections = chronologicalLogs.slice(injectionIdx, injectionIdx + injectionsPerPurchase);
-                  const dateLabel = new Date(purchase.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                  const dateLabel = new Date(purchase.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
                   groups.push({
                     label: `${injectionsPerPurchase} injections`,
                     subLabel: dateLabel,
@@ -1763,7 +1764,7 @@ export default function ProtocolDetail() {
                 const logDate = rawDate && rawDate.length === 10
                   ? new Date(rawDate + 'T12:00:00')
                   : new Date(rawDate);
-                const dateStr = logDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                const dateStr = logDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' });
                 const notes = log.notes || '';
                 const doseMatch = notes.match(/Dose:\s*([^|]+)/);
                 const sideEffectsMatch = notes.match(/Side effects:\s*([^|]+)/);
@@ -2109,7 +2110,7 @@ export default function ProtocolDetail() {
                       <div key={ci.id} style={{ padding: '12px 14px', background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                           <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
-                            {new Date(ci.check_in_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                            {new Date(ci.check_in_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
                           </span>
                           <span style={{ fontSize: '12px', fontWeight: '700', color: scoreColor(ci.overall_score), background: scoreBg(ci.overall_score), padding: '3px 10px' }}>
                             Overall: {ci.overall_score}/10
@@ -2919,7 +2920,7 @@ export default function ProtocolDetail() {
                         )}
                         {hasStarted && protocol?.onboarding_start_date && (
                           <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>
-                            Started {new Date(protocol.onboarding_start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            Started {new Date(protocol.onboarding_start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
                           </span>
                         )}
                       </div>
@@ -3021,9 +3022,9 @@ export default function ProtocolDetail() {
                 {isOngoing && isHRTProtocol(programType) && protocol?.status === 'active' && (() => {
                   if (!rangeIVStatus) return null;
                   const { used, service_date, cycle_start, cycle_end } = rangeIVStatus;
-                  const cycleStartDisplay = cycle_start ? new Date(cycle_start + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
-                  const cycleEndDisplay = cycle_end ? new Date(cycle_end + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
-                  const usedDateDisplay = service_date ? new Date(service_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
+                  const cycleStartDisplay = cycle_start ? new Date(cycle_start + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' }) : null;
+                  const cycleEndDisplay = cycle_end ? new Date(cycle_end + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' }) : null;
+                  const usedDateDisplay = service_date ? new Date(service_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' }) : null;
 
                   return (
                     <div style={{
@@ -4034,7 +4035,7 @@ export default function ProtocolDetail() {
 
 function formatDate(d) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
 }
 
 function formatFrequency(f) {

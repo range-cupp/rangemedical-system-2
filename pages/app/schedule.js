@@ -117,7 +117,7 @@ export default function AppSchedule() {
                 className={`date-tab${selectedDate === date ? ' active' : ''}`}
                 onClick={() => setSelectedDate(date)}
               >
-                <div className="date-tab-day">{isToday ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                <div className="date-tab-day">{isToday ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short' , timeZone: 'America/Los_Angeles' })}</div>
                 <div className="date-tab-num">{d.getDate()}</div>
                 {count > 0 && (
                   <div style={{ width: 5, height: 5, borderRadius: '50%', background: selectedDate === date ? '#fff' : '#6366f1', margin: '3px auto 0' }} />
@@ -142,7 +142,7 @@ export default function AppSchedule() {
             {displayedAppts.map(appt => {
               const start = new Date(appt.start_time);
               const end = new Date(appt.end_time);
-              const timeStr = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+              const timeStr = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true , timeZone: 'America/Los_Angeles' });
               const durMin = Math.round((end - start) / 60000);
               const patient = appt.patients;
               const name = patient ? `${patient.first_name} ${patient.last_name}` : 'Unknown patient';

@@ -59,7 +59,7 @@ export default function AppProtocols() {
 
   const formatDate = (d) => {
     if (!d) return '—';
-    return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' });
   };
 
   return (

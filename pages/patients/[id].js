@@ -1637,7 +1637,7 @@ export default function PatientProfile() {
     if (!dateStr) return '—';
     const [year, month, day] = dateStr.split('T')[0].split('-');
     const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
   };
 
   const formatDOB = (dateStr) => {
@@ -4501,7 +4501,7 @@ export default function PatientProfile() {
                               )}
                               {nextApt && (
                                 <span style={{ color: '#1e40af', fontSize: 13, fontWeight: 600 }}>
-                                  📅 Booked: {formatShortDate(nextApt.start_time.split('T')[0])} {new Date(nextApt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                                  📅 Booked: {formatShortDate(nextApt.start_time.split('T')[0])} {new Date(nextApt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' })}
                                 </span>
                               )}
                             </>
@@ -4788,7 +4788,7 @@ export default function PatientProfile() {
                           <div>
                             <div style={{ fontWeight: 600, fontSize: '14px' }}>{sub.description || 'Monthly Subscription'}</div>
                             <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                              Since {new Date(sub.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              Since {new Date(sub.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
                               {sub.cancel_at_period_end && <span style={{ color: '#ef4444', marginLeft: '8px' }}>• Cancels at period end</span>}
                             </div>
                           </div>
@@ -4805,7 +4805,7 @@ export default function PatientProfile() {
                           </div>
                           {sub.current_period_end && (
                             <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px' }}>
-                              Renews {new Date(sub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              Renews {new Date(sub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
                             </div>
                           )}
                         </div>
@@ -4860,9 +4860,9 @@ export default function PatientProfile() {
                               {msg.channel === 'email' && msg.subject ? ` — ${msg.subject}` : ''}
                             </span>
                             <span style={{ fontSize: '11px', color: '#94a3b8', flexShrink: 0 }}>
-                              {new Date(msg.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              {new Date(msg.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
                               {' '}
-                              {new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                              {new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' })}
                             </span>
                           </div>
                           <div style={{
@@ -4916,9 +4916,9 @@ export default function PatientProfile() {
                   .map(v => {
                     const recorded = new Date(v.recorded_at);
                     return {
-                      date: recorded.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                      date: recorded.toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' }),
                       weight: parseFloat(v.weight_lbs),
-                      fullDate: recorded.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                      fullDate: recorded.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' }),
                       dose: doseAt(recorded),
                     };
                   })
@@ -4997,9 +4997,9 @@ export default function PatientProfile() {
                                   borderBottom: isLatest ? '2px solid #3b82f6' : undefined,
                                   minWidth: '80px', cursor: 'pointer',
                                 }}>
-                                  <div>{d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })}</div>
+                                  <div>{d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' , timeZone: 'America/Los_Angeles' })}</div>
                                   <div style={{ fontSize: '10px', fontWeight: 400, color: '#94a3b8', marginTop: '1px' }}>
-                                    {d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                    {d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true , timeZone: 'America/Los_Angeles' })}
                                   </div>
                                 </th>
                               );
@@ -5105,7 +5105,7 @@ export default function PatientProfile() {
                       {cycleInfo.cycleExhausted ? (
                         <span style={{ color: '#dc2626', fontWeight: '600' }}>
                           Cycle complete — 2-week off period recommended
-                          {cycleInfo.offPeriodEnds && ` (ends ${new Date(cycleInfo.offPeriodEnds + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`}
+                          {cycleInfo.offPeriodEnds && ` (ends ${new Date(cycleInfo.offPeriodEnds + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })})`}
                         </span>
                       ) : (
                         <span><strong>{remaining}</strong> days remaining on protocol</span>
@@ -5166,7 +5166,7 @@ export default function PatientProfile() {
                       {ghCycleInfo.cycleExhausted ? (
                         <span style={{ color: '#dc2626', fontWeight: '600' }}>
                           Cycle complete — off period recommended
-                          {ghCycleInfo.offPeriodEnds && ` (ends ${new Date(ghCycleInfo.offPeriodEnds + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`}
+                          {ghCycleInfo.offPeriodEnds && ` (ends ${new Date(ghCycleInfo.offPeriodEnds + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })})`}
                         </span>
                       ) : (
                         <span><strong>{remaining}</strong> days remaining on 90-day cycle</span>
@@ -5194,7 +5194,7 @@ export default function PatientProfile() {
                 const stage = LAB_STAGES.find(s => s.id === activeLab.status) || LAB_STAGES[0];
                 const panelType = activeLab.medication || 'Essential';
                 const drawDateObj = activeLab.start_date ? new Date(activeLab.start_date + 'T12:00:00') : null;
-                const drawDate = drawDateObj ? drawDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(drawDateObj.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }) : '';
+                const drawDate = drawDateObj ? drawDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(drawDateObj.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) , timeZone: 'America/Los_Angeles' }) : '';
                 return (
                   <div
                     onClick={() => setActiveTab('labs')}
@@ -5375,7 +5375,7 @@ export default function PatientProfile() {
                           <div style={{ display: 'flex', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
                             {med.start_date && (
                               <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                                Started {new Date(med.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                Started {new Date(med.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
                               </span>
                             )}
                             {med.source && (
@@ -5422,7 +5422,7 @@ export default function PatientProfile() {
                             {rx.days_supply && <span style={{ fontSize: '11px', color: '#64748b' }}>{rx.days_supply}-day supply</span>}
                             {rx.created_by && <span style={{ fontSize: '11px', color: '#94a3b8' }}>by {rx.created_by.split('@')[0]}</span>}
                             <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                              {new Date(rx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {new Date(rx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
                             </span>
                           </div>
                           {rx.is_controlled && (
@@ -5461,7 +5461,7 @@ export default function PatientProfile() {
                             {med.strength && <span> {med.strength}</span>}
                           </div>
                           <div style={{ display: 'flex', gap: '12px', marginTop: '4px', flexWrap: 'wrap' }}>
-                            {med.stop_date && <span style={{ fontSize: '11px', color: '#94a3b8' }}>Stopped {new Date(med.stop_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
+                            {med.stop_date && <span style={{ fontSize: '11px', color: '#94a3b8' }}>Stopped {new Date(med.stop_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}</span>}
                             {med.discontinued_reason && <span style={{ fontSize: '11px', color: '#94a3b8' }}>{med.discontinued_reason}</span>}
                           </div>
                         </div>
@@ -5585,7 +5585,7 @@ export default function PatientProfile() {
                           const weight = logWeight || vitalsWeight;
                           if (!weight) return null;
                           return {
-                            date: new Date(l.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                            date: new Date(l.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' }),
                             weight,
                             dose: l.dosage || '',
                             fromVitals: !logWeight && !!vitalsWeight,
@@ -5866,7 +5866,7 @@ export default function PatientProfile() {
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <span style={{ fontSize: 14 }}>💧</span>
                                 <span style={{ fontSize: 12, fontWeight: 600, color: hrtRangeIVStatus.used ? '#6b7280' : '#166534' }}>
-                                  {hrtRangeIVStatus.used ? `Range IV used ${new Date(hrtRangeIVStatus.service_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'Range IV available'}
+                                  {hrtRangeIVStatus.used ? `Range IV used ${new Date(hrtRangeIVStatus.service_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}` : 'Range IV available'}
                                 </span>
                               </div>
                               {!hrtRangeIVStatus.used && (
@@ -6116,7 +6116,7 @@ export default function PatientProfile() {
                               {/* Weight Chart */}
                               {chartData.length >= 2 && (() => {
                                 let paymentMarkers = wlDeliveryLogs.map(log => ({
-                                  date: new Date(log.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                                  date: new Date(log.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' }),
                                   qty: log.quantity || 1,
                                   method: log.fulfillment_method === 'overnight' ? 'Shipped' : 'Pickup',
                                 }));
@@ -6127,7 +6127,7 @@ export default function PatientProfile() {
                                     const isMonthly = (p.service_name || '').toLowerCase().includes('monthly');
                                     const qty = qtyMatch ? parseInt(qtyMatch[1]) : (isMonthly ? 4 : 1);
                                     return {
-                                      date: new Date(p.purchase_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                                      date: new Date(p.purchase_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' }),
                                       qty,
                                       method: 'Payment',
                                     };
@@ -6289,7 +6289,7 @@ export default function PatientProfile() {
                                         const injRange = `Injections ${boundary.startIdx + 1}–${boundary.endIdx + 1}`;
                                         if (purchase) {
                                           const pDate = new Date(purchase.purchase_date + 'T12:00:00');
-                                          const dateLabel = pDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                          const dateLabel = pDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
                                           const amount = purchase.amount_paid != null ? `$${parseFloat(purchase.amount_paid).toFixed(0)}` : 'No amount';
                                           return (
                                             <tr key={'group-' + blockIdx + '-' + purchase.id} style={{ background: '#f1f5f9', borderTop: blockIdx > 0 ? '2px solid #cbd5e1' : 'none' }}>
@@ -6671,7 +6671,7 @@ export default function PatientProfile() {
                                         <div key={ci.id} style={{ padding: '10px 12px', background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: 0 }}>
                                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                                             <span style={{ fontSize: 12, fontWeight: 600, color: '#1f2937' }}>
-                                              {new Date(ci.check_in_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                              {new Date(ci.check_in_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
                                             </span>
                                             <span style={{ fontSize: 11, fontWeight: 700, color: scoreColor(ci.overall_score), background: scoreBg(ci.overall_score), padding: '2px 8px' }}>
                                               Overall: {ci.overall_score}/10
@@ -7141,7 +7141,7 @@ export default function PatientProfile() {
                                               >
                                                 <td style={{ padding: '5px 8px', color: '#9ca3af', fontSize: 11 }}>{week.num}</td>
                                                 <td style={{ padding: '5px 8px' }}>
-                                                  {week.weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                  {week.weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
                                                   {week.num === 1 && <span style={{ fontSize: 9, color: '#3b82f6', marginLeft: 4, fontWeight: 600 }}>START</span>}
                                                 </td>
                                                 <td style={{ padding: '5px 8px', fontWeight: week.isDoseChange ? 700 : 400 }}>
@@ -7178,7 +7178,7 @@ export default function PatientProfile() {
                                             <span key={i}>
                                               {i > 0 && ' \u2192 '}
                                               {' '}{parseMg(entry.dose) || entry.dose}mg
-                                              <span style={{ color: '#b45309' }}> ({new Date(entry.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})</span>
+                                              <span style={{ color: '#b45309' }}> ({new Date(entry.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })})</span>
                                             </span>
                                           ))}
                                         </div>
@@ -7232,7 +7232,7 @@ export default function PatientProfile() {
                 const isElite = panelType.toLowerCase() === 'elite';
                 const labType = lp.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
                 const drawDateObj = lp.start_date ? new Date(lp.start_date + 'T12:00:00') : null;
-                const drawDate = drawDateObj ? drawDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(drawDateObj.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }) : '-';
+                const drawDate = drawDateObj ? drawDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(drawDateObj.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) , timeZone: 'America/Los_Angeles' }) : '-';
                 const daysInStage = lp.updated_at ? Math.floor((new Date() - new Date(lp.updated_at)) / (1000 * 60 * 60 * 24)) : 0;
 
                 return (
@@ -7399,7 +7399,7 @@ export default function PatientProfile() {
                     const panelType = lp.medication || 'Essential';
                     const labType = lp.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
                     const drawDateObj = lp.start_date ? new Date(lp.start_date + 'T12:00:00') : null;
-                    const drawDate = drawDateObj ? drawDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(drawDateObj.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }) : '-';
+                    const drawDate = drawDateObj ? drawDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(drawDateObj.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) , timeZone: 'America/Los_Angeles' }) : '-';
                     return (
                       <div key={lp.id} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -7787,9 +7787,9 @@ export default function PatientProfile() {
                               const d = new Date(v.recorded_at);
                               return (
                                 <th key={v.id || i} style={{ padding: '6px 10px', textAlign: 'center', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: 600, color: '#64748b', minWidth: '75px' }}>
-                                  <div>{d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })}</div>
+                                  <div>{d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' , timeZone: 'America/Los_Angeles' })}</div>
                                   <div style={{ fontSize: '10px', fontWeight: 400, color: '#94a3b8', marginTop: '1px' }}>
-                                    {d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                    {d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true , timeZone: 'America/Los_Angeles' })}
                                   </div>
                                 </th>
                               );
@@ -7990,7 +7990,7 @@ export default function PatientProfile() {
                         return (
                           <div key={log.id} className="appointment-row past">
                             <div className="apt-date">
-                              <div className="apt-day">{logDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</div>
+                              <div className="apt-day">{logDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}</div>
                               <div className="apt-time" style={{ textTransform: 'capitalize' }}>{entryType}</div>
                             </div>
                             <div className="apt-details">
@@ -8683,7 +8683,7 @@ export default function PatientProfile() {
                 const scores = selected?.scored_totals || {};
                 const responses = selected?.responses || {};
                 const door = selected?.door;
-                const submittedDate = selected?.submitted_at ? new Date(selected.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Pending';
+                const submittedDate = selected?.submitted_at ? new Date(selected.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' }) : 'Pending';
                 const doorLabel = door === 1 ? 'Injury Baseline' : door === 2 ? 'Optimization Baseline' : door === 3 ? 'Combined Baseline' : 'Baseline';
 
                 return (
@@ -8692,7 +8692,7 @@ export default function PatientProfile() {
                     {baselineQuestionnaires.length > 1 && (
                       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
                         {baselineQuestionnaires.map((bq, idx) => {
-                          const d = bq.submitted_at ? new Date(bq.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : `#${idx + 1}`;
+                          const d = bq.submitted_at ? new Date(bq.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' }) : `#${idx + 1}`;
                           const typeLabel = bq.door === 1 ? 'Injury' : bq.door === 2 ? 'Optimization' : 'Combined';
                           return (
                             <button
@@ -8911,7 +8911,7 @@ export default function PatientProfile() {
                   </div>
                   <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 16px', flex: 1, minWidth: 120 }}>
                     <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 2 }}>Patient Since</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#1e293b' }}>{stats.firstPurchase ? new Date(stats.firstPurchase + (stats.firstPurchase.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#1e293b' }}>{stats.firstPurchase ? new Date(stats.firstPurchase + (stats.firstPurchase.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('en-US', { month: 'short', year: 'numeric' , timeZone: 'America/Los_Angeles' }) : '—'}</div>
                   </div>
                 </div>
               )}
@@ -9067,7 +9067,7 @@ export default function PatientProfile() {
                                       {sub.service_category}
                                     </span>
                                   )}
-                                  Since {new Date(sub.created).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  Since {new Date(sub.created).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
                                 </div>
                               </div>
                               <div>
@@ -9085,10 +9085,10 @@ export default function PatientProfile() {
                                 <div><strong>Card: </strong>{pm.brand.toUpperCase()} ···· {pm.last4} <span style={{ color: '#94a3b8' }}>({String(pm.exp_month).padStart(2, '0')}/{pm.exp_year})</span></div>
                               )}
                               {sub.current_period_end && !isCanceled && (
-                                <div><strong>{isCancelingAtEnd ? 'Ends: ' : 'Renews: '}</strong>{new Date(sub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                                <div><strong>{isCancelingAtEnd ? 'Ends: ' : 'Renews: '}</strong>{new Date(sub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}</div>
                               )}
                               {isCanceled && sub.canceled_at && (
-                                <div><strong>Canceled: </strong>{new Date(sub.canceled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                                <div><strong>Canceled: </strong>{new Date(sub.canceled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}</div>
                               )}
                             </div>
 
@@ -9098,7 +9098,7 @@ export default function PatientProfile() {
                                 {inv.attempt_count > 1 && ` (${inv.attempt_count} attempts)`}
                                 {inv.next_payment_attempt && (
                                   <span style={{ marginLeft: 8, fontSize: 11 }}>
-                                    Next retry: {new Date(inv.next_payment_attempt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    Next retry: {new Date(inv.next_payment_attempt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
                                   </span>
                                 )}
                               </div>
@@ -9245,7 +9245,7 @@ export default function PatientProfile() {
                     ) : (
                       <div className="pay-list">
                         {chargeRows.map(charge => {
-                          const dateStr = charge.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                          const dateStr = charge.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
                           return (
                           <div key={charge.key} className="pay-item">
                             <div className="pay-item-info">
@@ -9459,7 +9459,7 @@ export default function PatientProfile() {
                 <div style={{ marginBottom: 12, padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{refundingCharge.description || 'Payment'}</div>
                   <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
-                    {refundingCharge.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {refundingCharge.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
                     {refundingCharge.card_last4 && <span> — ····{refundingCharge.card_last4}</span>}
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 700, marginTop: 4 }}>
@@ -10624,7 +10624,7 @@ export default function PatientProfile() {
                         {isVial && <div><strong>{editForm.numVials} vials × {editForm.dosesPerVial} doses = {vialTotal} total injections</strong></div>}
                         {isPrefilled && <div><strong>{prefillDays}-day program</strong>{dpw ? ` — ${Math.round(prefillDays * dpw / 7)} injections` : ''}</div>}
                         {calcDurationDays && <div>Duration: {calcDurationDays} days ({Math.round(calcDurationDays / 7)} weeks)</div>}
-                        {editForm.startDate && calcEndDate && <div>End date: {new Date(calcEndDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>}
+                        {editForm.startDate && calcEndDate && <div>End date: {new Date(calcEndDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}</div>}
                       </div>
                     )}
 
@@ -10657,7 +10657,7 @@ export default function PatientProfile() {
                           const dayNum = Math.floor((today - start) / 86400000) + 1;
                           const daysLeft = Math.max(0, calcDurationDays - dayNum);
                           const pct = Math.min(100, Math.round((dayNum / calcDurationDays) * 100));
-                          if (dayNum < 1) return <span>Starts {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>;
+                          if (dayNum < 1) return <span>Starts {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}</span>;
                           if (daysLeft <= 0) return <span style={{ color: '#dc2626', fontWeight: 600 }}>Supply ended — refill needed</span>;
                           return (
                             <>
@@ -10668,7 +10668,7 @@ export default function PatientProfile() {
                               <div style={{ background: '#e5e7eb', height: 6, width: '100%' }}>
                                 <div style={{ background: pct > 85 ? '#dc2626' : '#0369a1', height: 6, width: `${pct}%` }} />
                               </div>
-                              {calcEndDate && <div style={{ marginTop: 4, color: '#6b7280' }}>Refill by: {new Date(calcEndDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>}
+                              {calcEndDate && <div style={{ marginTop: 4, color: '#6b7280' }}>Refill by: {new Date(calcEndDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}</div>}
                             </>
                           );
                         })()}
@@ -10782,7 +10782,7 @@ export default function PatientProfile() {
                         <div><strong>{editForm.numVials} vial{editForm.numVials > 1 ? 's' : ''} × {editForm.dosesPerVial} doses = {injVialTotal} total injections</strong></div>
                         {injDaysPerWeek && <div>{injDaysPerWeek}x per week ({(editForm.scheduledDays || []).map(d => d.slice(0, 3)).join(', ')})</div>}
                         {injCalcDurationDays && <div>Duration: {injCalcDurationDays} days ({(injCalcDurationDays / 7).toFixed(1)} weeks)</div>}
-                        {editForm.startDate && injCalcEndDate && <div>Refill by: {new Date(injCalcEndDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>}
+                        {editForm.startDate && injCalcEndDate && <div>Refill by: {new Date(injCalcEndDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}</div>}
                       </div>
                     )}
 
@@ -10795,7 +10795,7 @@ export default function PatientProfile() {
                           const dayNum = Math.floor((today - start) / 86400000) + 1;
                           const daysLeft = Math.max(0, injCalcDurationDays - dayNum);
                           const pct = Math.min(100, Math.round((dayNum / injCalcDurationDays) * 100));
-                          if (dayNum < 1) return <span>Starts {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>;
+                          if (dayNum < 1) return <span>Starts {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}</span>;
                           if (daysLeft <= 0) return <span style={{ color: '#dc2626', fontWeight: 600 }}>Supply ended — refill needed</span>;
                           return (
                             <>
@@ -11320,7 +11320,7 @@ export default function PatientProfile() {
                     <div style={{ maxHeight: 220, overflowY: 'auto' }}>
                       {creditHistory.map(entry => {
                         const isPositive = entry.amount_cents > 0;
-                        const dateStr = entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+                        const dateStr = entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' }) : '—';
                         const amtStr = (isPositive ? '+' : '') + '$' + (Math.abs(entry.amount_cents) / 100).toFixed(2);
                         const label = entry.description || entry.reason || (entry.type === 'use' ? 'Applied at checkout' : 'Credit added');
                         return (
@@ -11447,7 +11447,7 @@ export default function PatientProfile() {
                   </div>
                   <div style={{ fontSize: 13, color: '#666', marginTop: 2 }}>
                     {mergeSource.selected_dose && <span>{mergeSource.selected_dose} · </span>}
-                    Started {mergeSource.start_date ? new Date(mergeSource.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                    Started {mergeSource.start_date ? new Date(mergeSource.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' }) : '—'}
                     {' · '}{mergeSource.sessions_used || 0} injections logged
                   </div>
                 </div>
@@ -11472,7 +11472,7 @@ export default function PatientProfile() {
                       <option key={p.id} value={p.id}>
                         {getProtocolDisplayName(p)}
                         {p.selected_dose ? ` · ${p.selected_dose}` : ''}
-                        {' · '}Started {p.start_date ? new Date(p.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                        {' · '}Started {p.start_date ? new Date(p.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' }) : '—'}
                         {' · '}{p.sessions_used || 0} injections
                       </option>
                     ))}
@@ -11492,7 +11492,7 @@ export default function PatientProfile() {
                           const s = mergeSource.start_date ? new Date(mergeSource.start_date + 'T12:00:00') : null;
                           const t = mergeTarget.start_date ? new Date(mergeTarget.start_date + 'T12:00:00') : null;
                           const earliest = s && t ? (s < t ? mergeSource.start_date : mergeTarget.start_date) : (mergeSource.start_date || mergeTarget.start_date);
-                          return earliest ? new Date(earliest + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+                          return earliest ? new Date(earliest + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' }) : '—';
                         })()}
                       </strong>
                     </div>
@@ -11587,7 +11587,7 @@ export default function PatientProfile() {
                     .filter(p => p.category === 'weight_loss' && !p.protocol_id)
                     .map(p => (
                       <option key={p.id} value={p.id}>
-                        {p.item_name || p.description || 'Weight Loss'} — ${Number(p.amount_paid || 0).toFixed(0)} — {p.purchase_date ? new Date(p.purchase_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                        {p.item_name || p.description || 'Weight Loss'} — ${Number(p.amount_paid || 0).toFixed(0)} — {p.purchase_date ? new Date(p.purchase_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' }) : ''}
                       </option>
                     ))}
                 </select>
@@ -12058,7 +12058,7 @@ export default function PatientProfile() {
                   {doseChangeProtocol.dose_history.map((entry, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: 12, borderBottom: '1px solid #f3f4f6' }}>
                       <span>
-                        <span style={{ fontWeight: 600 }}>{new Date(entry.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        <span style={{ fontWeight: 600 }}>{new Date(entry.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}</span>
                         {' \u2014 '}{entry.dose}{entry.notes ? ` (${entry.notes})` : ''}
                       </span>
                       {i > 0 && (

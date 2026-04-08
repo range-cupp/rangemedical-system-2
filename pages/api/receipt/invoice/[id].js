@@ -84,6 +84,7 @@ export default async function handler(req, res) {
 
     const date = new Date(invoice.paid_at || invoice.created_at).toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric',
+          timeZone: 'America/Los_Angeles',
     });
 
     const items = (invoice.items || []);

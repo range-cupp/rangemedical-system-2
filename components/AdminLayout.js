@@ -94,7 +94,7 @@ function useUnreadNotifications(router) {
       patientName: data.patientName || 'Unknown',
       message: data.message || '',
       patientId: data.patientId || null,
-      time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+      time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' }),
     });
     toastTimeoutRef.current = setTimeout(() => setToast(null), 15000);
   }, []);
@@ -364,7 +364,7 @@ function useNewPurchaseNotifications(router) {
             name: purchase.patient_name || 'Unknown',
             item: purchase.item_name || 'Purchase',
             amount: `$${(purchase.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+            time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' }),
           });
           toastTimeoutRef.current = setTimeout(() => {
             if (mounted) setPurchaseToast(null);
@@ -507,7 +507,7 @@ function useUnreadTasks(employeeId, router) {
             title: task.title?.length > 80 ? task.title.slice(0, 80) + '...' : task.title,
             from: task.assigned_by_name || 'Unknown',
             priority: task.priority,
-            time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+            time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' }),
           });
           toastTimeoutRef.current = setTimeout(() => {
             if (mounted) setTaskToast(null);

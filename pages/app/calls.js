@@ -49,10 +49,10 @@ export default function AppCalls() {
     const now = new Date();
     const isToday = d.toDateString() === now.toDateString();
     const isYesterday = new Date(now - 86400000).toDateString() === d.toDateString();
-    const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true , timeZone: 'America/Los_Angeles' });
     if (isToday) return `Today ${timeStr}`;
     if (isYesterday) return `Yesterday ${timeStr}`;
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + timeStr;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' }) + ' ' + timeStr;
   };
 
   const directionIcon = (dir, status) => {

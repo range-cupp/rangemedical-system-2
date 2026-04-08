@@ -45,7 +45,7 @@ export default function AppToday() {
   };
 
   const today = new Date();
-  const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' , timeZone: 'America/Los_Angeles' });
   const greeting = today.getHours() < 12 ? 'Good morning' : today.getHours() < 17 ? 'Good afternoon' : 'Good evening';
 
   return (
@@ -165,7 +165,7 @@ export default function AppToday() {
                         <div style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.title}</div>
                         {task.due_date && (
                           <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>
-                            Due {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            Due {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
                           </div>
                         )}
                       </div>

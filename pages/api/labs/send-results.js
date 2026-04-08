@@ -61,7 +61,7 @@ export default async function handler(req, res) {
 
     const firstName = patient.first_name || (patient.name || '').split(' ')[0] || 'there';
     const testDate = lab.test_date
-      ? new Date(lab.test_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+      ? new Date(lab.test_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' , timeZone: 'America/Los_Angeles' })
       : 'your recent';
 
     const message = `Hi ${firstName}! Your ${testDate} lab results from Range Medical are ready.\n\n${labUrl}\n\nTap each result to learn what it means. Questions? Call (949) 997-3988.`;

@@ -152,7 +152,7 @@ async function createOrUpdateGHLContact(data) {
 Study: ${studyTitle}
 Category: ${category}
 Service Page: ${serviceName}
-Date: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+Date: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
 
 This contact downloaded research about ${category.toLowerCase()} related to ${serviceName.toLowerCase()}. Research summary was emailed automatically.`;
 

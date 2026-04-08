@@ -950,7 +950,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
           services: allSvcs,
           providers: selectedServices.length > 1 ? selectedProviders : { [selectedService?.name]: selectedProvider },
           location: selectedLocation?.short || 'Newport Beach',
-          date: new Date(apptDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+          date: new Date(apptDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' }),
           time: formatTimeLabel(apptTime),
           duration: allSvcs.reduce((s, x) => s + (x.duration || 0), 0) || selectedService?.duration,
           notificationSent: sendNotification,
@@ -1505,7 +1505,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 onClick={() => goToDate(day)}
                 style={{ ...styles.weekDayHeader, ...(today ? styles.weekDayHeaderToday : {}), cursor: 'pointer' }}
               >
-                <span style={styles.weekDayName}>{day.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                <span style={styles.weekDayName}>{day.toLocaleDateString('en-US', { weekday: 'short' , timeZone: 'America/Los_Angeles' })}</span>
                 <span style={styles.weekDayNum}>{day.getDate()}</span>
               </div>
               <div style={styles.weekDayBody}>
@@ -1951,7 +1951,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             <div style={styles.popoverRow}>
               <span style={styles.popoverLabel}>Date</span>
               <span style={styles.popoverValue}>
-                {new Date(appt.start_time).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                {new Date(appt.start_time).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
               </span>
             </div>
             <div style={styles.popoverRow}>
@@ -2430,7 +2430,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                   {/* Submitted date */}
                   {intake.submitted_at && (
                     <div style={{ fontSize: '11px', color: '#999', marginBottom: '14px' }}>
-                      Submitted {new Date(intake.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      Submitted {new Date(intake.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
                     </div>
                   )}
 
@@ -2511,7 +2511,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       {intake.date_of_birth && (
                         <div>
                           <span style={{ fontSize: '11px', color: '#888' }}>DOB</span>
-                          <div style={{ fontSize: '12px', color: '#1a1a1a' }}>{new Date(intake.date_of_birth + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                          <div style={{ fontSize: '12px', color: '#1a1a1a' }}>{new Date(intake.date_of_birth + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}</div>
                         </div>
                       )}
                       {intake.gender && (
@@ -3593,7 +3593,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             </div>
             <div style={styles.confirmRow}>
               <span style={styles.confirmLabel}>Date</span>
-              <span>{new Date(apptDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
+              <span>{new Date(apptDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}</span>
             </div>
             <div style={styles.confirmRow}>
               <span style={styles.confirmLabel}>Time</span>
@@ -3744,13 +3744,13 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             <button onClick={goToday} style={styles.todayBtn}>Today</button>
             <button onClick={() => navigate(1)} style={styles.navBtn}>&gt;</button>
             <span style={styles.dateLabel}>
-              {viewMode === 'day' && currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              {viewMode === 'day' && currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
               {viewMode === 'week' && (() => {
                 const ws = getWeekStart(currentDate);
                 const we = new Date(ws); we.setDate(we.getDate() + 6);
-                return `${ws.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${we.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+                return `${ws.toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })} – ${we.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}`;
               })()}
-              {viewMode === 'month' && currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              {viewMode === 'month' && currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
             </span>
           </div>
 
@@ -3874,7 +3874,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 <div>
                   <div style={{ fontWeight: '500', color: '#111' }}>{doc.file_name || doc.lab_type || 'Lab Document'}</div>
                   <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
-                    {doc.collection_date ? new Date(doc.collection_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                    {doc.collection_date ? new Date(doc.collection_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' }) : ''}
                     {doc.panel_type ? ` · ${doc.panel_type}` : ''}
                     {doc.source === 'labs' ? ' · Primex' : ''}
                   </div>
@@ -3946,13 +3946,13 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '13px', color: '#666' }}>
                         {pt.date_of_birth && (
                           <span style={{ background: '#f3f4f6', padding: '3px 8px', borderRadius: '0' }}>
-                            DOB: {new Date(pt.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            DOB: {new Date(pt.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
                           </span>
                         )}
                         {pt.gender && <span style={{ background: '#f3f4f6', padding: '3px 8px', borderRadius: '0' }}>{pt.gender}</span>}
                         {pt.created_at && (
                           <span style={{ background: '#f3f4f6', padding: '3px 8px', borderRadius: '0' }}>
-                            Since {new Date(pt.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                            Since {new Date(pt.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
                           </span>
                         )}
                       </div>
@@ -4059,7 +4059,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                               </div>
                             )}
                             <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>
-                              Started {new Date(proto.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              Started {new Date(proto.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
                               {proto.frequency ? ` · ${proto.frequency}` : ''}
                             </div>
                           </div>
@@ -4170,8 +4170,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                                     {step.dose}
                                   </span>
                                   <span style={{ fontSize: '11px', color: '#aaa' }}>
-                                    {step.count} inj · {new Date(step.firstDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                    {step.count > 1 ? ` – ${new Date(step.lastDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
+                                    {step.count} inj · {new Date(step.firstDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
+                                    {step.count > 1 ? ` – ${new Date(step.lastDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}` : ''}
                                   </span>
                                 </div>
                               ))}
@@ -4209,7 +4209,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                               </span>
                             </div>
                             <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
-                              {new Date(apt.start_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at {new Date(apt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                              {new Date(apt.start_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })} at {new Date(apt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' })}
                               {apt.provider ? ` · ${apt.provider}` : ''}
                             </div>
                           </div>
@@ -4237,7 +4237,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                               </div>
                               <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', display: 'flex', justifyContent: 'space-between' }}>
                                 <span>{p.payment_method ? p.payment_method.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : ''}</span>
-                                <span>{p.purchase_date ? new Date(p.purchase_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</span>
+                                <span>{p.purchase_date ? new Date(p.purchase_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' }) : ''}</span>
                               </div>
                             </div>
                           );
@@ -4257,7 +4257,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                             {log.medication && <div style={{ fontSize: '11px', color: '#888' }}>{log.medication} {log.dosage || ''}</div>}
                           </div>
                           <span style={{ fontSize: '12px', color: '#888', whiteSpace: 'nowrap' }}>
-                            {new Date(log.entry_date || log.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            {new Date(log.entry_date || log.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
                           </span>
                         </div>
                       )) : <span style={{ fontSize: '13px', color: '#bbb' }}>No visits recorded</span>}
@@ -4291,7 +4291,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                               {apt.provider && <span style={{ fontSize: '11px', color: '#aaa' }}> · {apt.provider}</span>}
                             </div>
                             <span style={{ fontSize: '12px', color: '#888' }}>
-                              {new Date(apt.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              {new Date(apt.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
                             </span>
                           </div>
                         ))
@@ -4324,7 +4324,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                         {notes.slice(0, 3).map((note, i) => (
                           <div key={note.id || i} style={{ padding: '8px 0', borderBottom: i < Math.min(notes.length, 3) - 1 ? '1px solid #e5e7eb' : 'none' }}>
                             <div style={{ fontSize: '12px', color: '#888', marginBottom: '3px' }}>
-                              {new Date(note.note_date || note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {new Date(note.note_date || note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
                               {note.source && <> · {note.source}</>}
                             </div>
                             <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.4', maxHeight: '60px', overflow: 'hidden' }}>
@@ -4401,7 +4401,7 @@ function getPacificOffset(date) {
 }
 
 function formatTime(iso) {
-  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' });
 }
 
 function formatTimeLabel(time) {

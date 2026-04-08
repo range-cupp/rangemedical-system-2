@@ -99,12 +99,12 @@ export default function Dashboard() {
     const diffHrs = Math.floor(diffMs / 3600000);
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHrs < 24) return `${diffHrs}h ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' });
   };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
-    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' });
   };
 
   const getDaysInStage = (updatedAt) => {

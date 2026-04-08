@@ -88,7 +88,7 @@ export default async function handler(req, res) {
     <div style="padding:24px 32px;border-bottom:2px solid #0f172a;">
       <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">Range Medical — Data Health</div>
       <div style="font-size:24px;font-weight:700;color:#0f172a;margin-top:4px;">${isMonday ? 'Weekly ' : 'Nightly '}Audit</div>
-      <div style="font-size:13px;color:#64748b;margin-top:2px;">${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</div>
+      <div style="font-size:13px;color:#64748b;margin-top:2px;">${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}</div>
     </div>
 
     <div style="padding:24px 32px;">

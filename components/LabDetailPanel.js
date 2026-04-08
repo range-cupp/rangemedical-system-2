@@ -121,13 +121,13 @@ export default function LabDetailPanel({ isOpen, onClose, lead }) {
   const formatDate = (dateStr) => {
     if (!dateStr) return '\u2014';
     const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
   };
 
   const formatTime = (dateStr) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
-    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' });
   };
 
   const timeAgo = (dateStr) => {
@@ -281,7 +281,7 @@ export default function LabDetailPanel({ isOpen, onClose, lead }) {
                     <div style={s.infoItem}>
                       <span style={s.infoLabel}>Draw Date</span>
                       <span style={s.infoValue}>
-                        {new Date(lead.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {new Date(lead.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
                       </span>
                     </div>
                   )}

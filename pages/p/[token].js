@@ -683,10 +683,10 @@ function AppointmentsSection({ token }) {
               {statusBadge(appt.status)}
             </div>
             <div style={{ fontSize: '14px', color: '#555', marginBottom: '4px' }}>
-              {new Date(appt.start_time).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              {new Date(appt.start_time).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
             </div>
             <div style={{ fontSize: '13px', color: '#888' }}>
-              {new Date(appt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} — {appt.duration_minutes} min
+              {new Date(appt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' })} — {appt.duration_minutes} min
             </div>
             {appt.location && (
               <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px' }}>{appt.location}</div>
@@ -706,7 +706,7 @@ function AppointmentsSection({ token }) {
                 {statusBadge(appt.status)}
               </div>
               <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
-                {new Date(appt.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                {new Date(appt.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
               </div>
             </div>
           ))}

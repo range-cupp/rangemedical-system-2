@@ -49,12 +49,12 @@ export default function LabsPipelineTab() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
-    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' });
   };
 
   const formatDateTime = (isoStr) => {
     if (!isoStr) return '—';
-    return new Date(isoStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    return new Date(isoStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' });
   };
 
   const handleMoveStage = async (protocolId, newStage) => {

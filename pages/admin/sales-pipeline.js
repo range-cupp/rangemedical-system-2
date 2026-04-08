@@ -199,7 +199,7 @@ function timeAgo(dateStr) {
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
   if (days < 7) return `${days}d ago`;
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' });
 }
 
 export default function SalesPipeline() {
@@ -1030,7 +1030,7 @@ function LabCard({ lead, stageKey, onDragStart, onClose, onClick }) {
   const panelType = lead.source || 'Essential';
   const isElite = panelType === 'Elite';
   const daysInStage = lead.updated_at ? Math.floor((Date.now() - new Date(lead.updated_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
-  const drawDate = lead.start_date ? new Date(lead.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+  const drawDate = lead.start_date ? new Date(lead.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' }) : '';
 
   return (
     <div
@@ -1152,7 +1152,7 @@ function HRTCard({ lead, stageKey, onDragStart, onClick }) {
       <div style={styles.cardFooter}>
         <span style={styles.cardTime}>
           {lead.last_refill_date
-            ? new Date(lead.last_refill_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            ? new Date(lead.last_refill_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })
             : 'No refill'}
           {lead.days_since_last_refill != null && (
             <span style={{ color: lead.days_since_last_refill > 35 ? '#ef4444' : '#9ca3af' }}>
@@ -1180,7 +1180,7 @@ function WLCard({ lead, stageKey, onDragStart, onClick }) {
   const mc = getWLMedColor(lead.medication);
 
   const lastActivityFormatted = lead.last_activity
-    ? new Date(lead.last_activity + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    ? new Date(lead.last_activity + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })
     : null;
 
   return (
@@ -1278,8 +1278,8 @@ function PeptideCard({ lead, stageKey, onDragStart, onClick }) {
     daysLabel = `Day ${lead.days_since_start}`;
   }
 
-  const startFormatted = lead.start_date ? new Date(lead.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-  const endFormatted = lead.end_date ? new Date(lead.end_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+  const startFormatted = lead.start_date ? new Date(lead.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' }) : '';
+  const endFormatted = lead.end_date ? new Date(lead.end_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' }) : '';
 
   // Last check-in info
   let checkinInfo = '';

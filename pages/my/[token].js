@@ -905,7 +905,7 @@ export default function PatientTracker() {
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: '500' }}>{log.weight} lbs</div>
                       <div style={{ fontSize: '11px', color: '#888' }}>
-                        {new Date(log.log_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                        {new Date(log.log_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
                       </div>
                     </div>
                     {prevLog && (

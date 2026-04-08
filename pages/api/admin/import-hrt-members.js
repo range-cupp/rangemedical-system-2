@@ -226,7 +226,7 @@ async function importContact(contact) {
   const now = new Date();
   const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  const periodLabel = periodStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const periodLabel = periodStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' , timeZone: 'America/Los_Angeles' });
 
   const { error: periodError } = await supabase
     .from('hrt_monthly_periods')

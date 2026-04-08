@@ -177,7 +177,8 @@ async function logTextSent(protocolId, phone, message, method) {
         month: 'short', 
         day: 'numeric', 
         hour: 'numeric', 
-        minute: '2-digit' 
+        minute: '2-digit', 
+              timeZone: 'America/Los_Angeles',
       });
       const newNote = `[${timestamp}] Tracker link texted to patient`;
       const updatedNotes = protocol?.notes 

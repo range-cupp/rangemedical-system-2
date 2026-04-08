@@ -52,7 +52,7 @@ const fmtPct = (pct)    => pct != null ? `${pct.toFixed(1)}%` : '—';
 const fmtDay = (dateStr) => {
   const [y, m, d] = dateStr.split('-');
   return new Date(Number(y), Number(m) - 1, Number(d))
-    .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
 };
 
 // Category display labels (prettier names for the email)

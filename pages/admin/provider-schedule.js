@@ -21,7 +21,7 @@ function formatTime12(time24) {
 function formatDate(dateStr) {
   const [y, m, d] = dateStr.split('-');
   const date = new Date(y, m - 1, d);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
 }
 
 // Get availability for a specific day from the schedule

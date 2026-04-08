@@ -198,7 +198,7 @@ export default function ShopOrders() {
                         </button>
                       )}
                       <span style={{ fontSize: 12, color: '#999', marginLeft: 'auto' }}>
-                        {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                        {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' })}
                       </span>
                     </div>
                   </div>

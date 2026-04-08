@@ -219,6 +219,7 @@ export default async function handler(req, res) {
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
+              timeZone: 'America/Los_Angeles',
       });
 
       const severityColor = severity === 'red' ? '#DC2626' : severity === 'yellow' ? '#D97706' : '#16A34A';

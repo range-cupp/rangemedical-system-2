@@ -332,7 +332,8 @@ function PurchasesInner({ embedded } = {}) {
                         {(purchase.payment_date || purchase.purchase_date) ? new Date(purchase.payment_date || purchase.purchase_date).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
-                          year: 'numeric'
+                          year: 'numeric',
+                                                  timeZone: 'America/Los_Angeles',
                         }) : '—'}
                       </td>
                       <td style={styles.td}>
@@ -636,7 +637,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     const newDuration = parseInt(form.duration) || 0;
     const wouldTotal = cycleInfo.cycleDaysUsed + newDuration;
     if (cycleInfo.cycleExhausted) {
-      return { level: 'error', message: `Patient has already used ${cycleInfo.cycleDaysUsed}/${cycleInfo.maxDays} days in current cycle. A ${cycleInfo.offDays}-day off period is recommended${cycleInfo.offPeriodEnds ? ` (ends ${new Date(cycleInfo.offPeriodEnds + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})` : ''}.` };
+      return { level: 'error', message: `Patient has already used ${cycleInfo.cycleDaysUsed}/${cycleInfo.maxDays} days in current cycle. A ${cycleInfo.offDays}-day off period is recommended${cycleInfo.offPeriodEnds ? ` (ends ${new Date(cycleInfo.offPeriodEnds + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })})` : ''}.` };
     }
     if (wouldTotal > cycleInfo.maxDays) {
       return { level: 'warning', message: `Adding ${newDuration} days would bring this patient to ${wouldTotal}/${cycleInfo.maxDays} days — exceeds the 90-day cycle limit. ${cycleInfo.daysRemaining} days remaining.` };
@@ -1342,7 +1343,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
                     </div>
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: 600, color: '#0369a1', marginTop: '4px' }}>
-                        {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
                       </div>
                       <div style={{ fontSize: '11px', color: '#6b7280' }}>Estimated end</div>
                     </div>

@@ -602,7 +602,8 @@ export default function BookingTab({ preselectedPatient = null }) {
     return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+          timeZone: 'America/Los_Angeles',
     });
   };
 
@@ -612,7 +613,8 @@ export default function BookingTab({ preselectedPatient = null }) {
       weekday: 'long',
       month: 'long',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
+          timeZone: 'America/Los_Angeles',
     });
   };
 
@@ -1089,7 +1091,7 @@ export default function BookingTab({ preselectedPatient = null }) {
                       style={{ ...styles.slotBtn, ...styles.slotBtnSelected, marginTop: '12px', width: '100%' }}
                       onClick={() => setStep(4)}
                     >
-                      Continue with {new Date(`2000-01-01T${customTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                      Continue with {new Date(`2000-01-01T${customTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' })}
                     </button>
                   )}
                 </div>
@@ -1142,7 +1144,7 @@ export default function BookingTab({ preselectedPatient = null }) {
                   <span style={styles.summaryLabel}>Time</span>
                   <span style={styles.summaryValue}>
                     {useCustomTime
-                      ? new Date(`2000-01-01T${customTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                      ? new Date(`2000-01-01T${customTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' })
                       : formatTime(selectedSlot?.start)}
                   </span>
                 </div>

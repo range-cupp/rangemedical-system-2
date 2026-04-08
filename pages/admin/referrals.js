@@ -349,7 +349,7 @@ export default function ReferralsAdmin() {
                           onClick={() => lead.notes && setExpandedLead(expandedLead === lead.id ? null : lead.id)}
                         >
                           <td style={{ ...s.td, fontSize: '13px', color: '#888', whiteSpace: 'nowrap' }}>
-                            {new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            {new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
                           </td>
                           <td style={{ ...s.td, fontWeight: '600' }}>{lead.first_name} {lead.last_name}</td>
                           <td style={s.td}><a href={`tel:${lead.phone}`} style={{ color: '#1a1a1a', textDecoration: 'none' }}>{lead.phone}</a></td>

@@ -73,7 +73,7 @@ export default function ClinicSchedule() {
 
   const formatDateHeader = (dateStr) => {
     const date = new Date(dateStr + 'T12:00:00');
-    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
   };
 
   const getStatusStyle = (status) => {

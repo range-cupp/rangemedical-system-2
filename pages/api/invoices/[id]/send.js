@@ -53,6 +53,7 @@ export default async function handler(req, res) {
             invoiceId: invoice.id,
             date: new Date(invoice.created_at).toLocaleDateString('en-US', {
               year: 'numeric', month: 'long', day: 'numeric',
+                          timeZone: 'America/Los_Angeles',
             }),
             items: invoice.items,
             totalCents: invoice.total_cents,

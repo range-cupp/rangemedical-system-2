@@ -926,7 +926,7 @@ export default function PatientTracker() {
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: '500' }}>{log.weight} lbs</div>
                       <div style={{ fontSize: '11px', color: '#888' }}>
-                        {new Date(log.log_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                        {new Date(log.log_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
                       </div>
                     </div>
                     {prevLog && (
@@ -1353,8 +1353,8 @@ export default function PatientTracker() {
                 <div key={appt.id} style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5' }}>
                   <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a' }}>{appt.service_name}</div>
                   <div style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
-                    {new Date(appt.start_time).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at{' '}
-                    {new Date(appt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    {new Date(appt.start_time).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' , timeZone: 'America/Los_Angeles' })} at{' '}
+                    {new Date(appt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' })}
                   </div>
                   {appt.location && <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>{appt.location}</div>}
                 </div>

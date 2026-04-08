@@ -451,7 +451,8 @@ function initializeForm() {
       signature: signaturePad.toDataURL('image/jpeg', 0.5),
       submissionDate: new Date().toLocaleString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric',
-        hour: '2-digit', minute: '2-digit'
+        hour: '2-digit', minute: '2-digit',
+              timeZone: 'America/Los_Angeles',
       })
     };
   }

@@ -165,7 +165,7 @@ export default function PatientPlanView({ plan }) {
               </p>
             )}
             <p style={{ fontSize: '14px', color: '#a0a0a0', margin: 0 }}>
-              {new Date(plan.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              {new Date(plan.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
             </p>
           </div>
         </header>

@@ -68,6 +68,13 @@ const DISPLAY_NAMES = {
   'iv-glutathione-3g': '3g',
   'inj-standard': 'B12, B-Complex, D3, Biotin, Amino Blend, NAC, BCAA',
   'inj-premium': 'L-Carnitine, Glutathione, MIC-B12/Skinny Shot',
+  'hbot-1x': '1x/Week — 4 sessions/mo',
+  'hbot-2x': '2x/Week — 8 sessions/mo',
+  'hbot-3x': '3x/Week — 12 sessions/mo',
+  'rlt-1x': '1x/Week — 4 sessions/mo',
+  'rlt-2x': '2x/Week — 8 sessions/mo',
+  'rlt-3x': '3x/Week — 12 sessions/mo',
+  'combo-3x': '3x/Week — HBOT + RLT each session',
 };
 
 // Categories with nested collapsible sub-groups
@@ -187,7 +194,20 @@ const CALCULATOR_CATEGORIES = [
   },
   {
     label: 'Body Therapies',
-    items: ['hbot-single', 'rlt-single'],
+    groups: [
+      {
+        label: 'HBOT',
+        items: ['hbot-1x', 'hbot-2x', 'hbot-3x'],
+      },
+      {
+        label: 'Red Light Therapy',
+        items: ['rlt-1x', 'rlt-2x', 'rlt-3x'],
+      },
+      {
+        label: 'HBOT + RLT Challenge',
+        items: ['combo-3x'],
+      },
+    ],
   },
   {
     label: 'PRP Therapy',

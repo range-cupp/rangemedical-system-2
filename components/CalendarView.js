@@ -2454,9 +2454,33 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             const conditions = intake.medical_conditions || [];
             const hasConditions = conditions.length > 0;
 
+            // Detailed medical history from individual boolean fields
+            const medHistoryItems = [
+              { label: 'High Blood Pressure', has: intake.high_blood_pressure, year: intake.high_blood_pressure_year },
+              { label: 'High Cholesterol', has: intake.high_cholesterol, year: intake.high_cholesterol_year },
+              { label: 'Heart Disease', has: intake.heart_disease, year: intake.heart_disease_year, detail: intake.heart_disease_type },
+              { label: 'Diabetes', has: intake.diabetes, year: intake.diabetes_year, detail: intake.diabetes_type },
+              { label: 'Thyroid Disorder', has: intake.thyroid_disorder, year: intake.thyroid_disorder_year, detail: intake.thyroid_disorder_type },
+              { label: 'Depression / Anxiety', has: intake.depression_anxiety, year: intake.depression_anxiety_year },
+              { label: 'Kidney Disease', has: intake.kidney_disease, year: intake.kidney_disease_year, detail: intake.kidney_disease_type },
+              { label: 'Liver Disease', has: intake.liver_disease, year: intake.liver_disease_year, detail: intake.liver_disease_type },
+              { label: 'Autoimmune Disorder', has: intake.autoimmune_disorder, year: intake.autoimmune_disorder_year, detail: intake.autoimmune_disorder_type },
+              { label: 'Cancer', has: intake.cancer, year: intake.cancer_year, detail: intake.cancer_type },
+            ].filter(item => item.has);
+
             // HRT info
             const onHrt = intake.on_hrt;
             const hrtDetails = intake.hrt_details || '';
+
+            // Supplements
+            const supplements = intake.supplements || [];
+            const hasSupplements = Array.isArray(supplements) ? supplements.length > 0 : !!supplements;
+
+            // Injury info
+            const hasInjury = intake.injured || intake.currently_injured;
+
+            // Goals
+            const goals = intake.goals;
 
             return (
               <div style={{ width: '400px', borderLeft: '1px solid #e5e5e5', overflow: 'auto', maxHeight: '80vh', background: '#fafafa' }}>
@@ -2472,8 +2496,40 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     </div>
                   )}
 
+                  {/* Demographics from intake — moved to top */}
+                  <div style={{ ...sectionStyle, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                    {intake.date_of_birth && (
+                      <div>
+                        <div style={sectionLabelStyle}>DOB</div>
+                        <div style={{ fontSize: '13px', color: '#1a1a1a' }}>{new Date(intake.date_of_birth + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}</div>
+                      </div>
+                    )}
+                    {intake.gender && (
+                      <div>
+                        <div style={sectionLabelStyle}>Gender</div>
+                        <div style={{ fontSize: '13px', color: '#1a1a1a', textTransform: 'capitalize' }}>{intake.gender}</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* How heard */}
+                  {(intake.how_heard || intake.how_heard_other) && (
+                    <div style={sectionStyle}>
+                      <div style={sectionLabelStyle}>How Heard About Us</div>
+                      <div style={{ ...valueStyle, fontSize: '12px' }}>{intake.how_heard}{intake.how_heard_other ? ` — ${intake.how_heard_other}` : ''}</div>
+                    </div>
+                  )}
+
+                  {/* Goals */}
+                  {goals && (
+                    <div style={sectionStyle}>
+                      <div style={sectionLabelStyle}>Goals</div>
+                      <div style={{ ...valueStyle, fontSize: '12px' }}>{typeof goals === 'string' ? goals : (Array.isArray(goals) ? goals.join(', ') : JSON.stringify(goals))}</div>
+                    </div>
+                  )}
+
                   {/* Allergies — prominent if present */}
-                  <div style={sectionStyle}>
+                  <div style={{ ...sectionStyle, borderTop: '1px solid #e5e5e5', paddingTop: '12px' }}>
                     <div style={sectionLabelStyle}>Allergies</div>
                     {hasAllergies ? (
                       <div>
@@ -2502,7 +2558,19 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     )}
                   </div>
 
-                  {/* Medical conditions */}
+                  {/* Supplements */}
+                  {hasSupplements && (
+                    <div style={sectionStyle}>
+                      <div style={sectionLabelStyle}>Supplements</div>
+                      <div>
+                        {(Array.isArray(supplements) ? supplements : [supplements]).map((s, i) => (
+                          <span key={i} style={chipStyle}>{typeof s === 'object' ? (s.name || JSON.stringify(s)) : s}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Medical conditions — JSONB array */}
                   <div style={sectionStyle}>
                     <div style={sectionLabelStyle}>Medical Conditions</div>
                     {hasConditions ? (
@@ -2516,6 +2584,22 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     )}
                   </div>
 
+                  {/* Detailed medical history — individual boolean fields */}
+                  {medHistoryItems.length > 0 && (
+                    <div style={sectionStyle}>
+                      <div style={sectionLabelStyle}>Medical History</div>
+                      {medHistoryItems.map((item, i) => (
+                        <div key={i} style={{ fontSize: '12px', color: '#1a1a1a', padding: '3px 0', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                          <span style={alertChipStyle}>
+                            {item.label}
+                            {item.detail ? ` (${item.detail})` : ''}
+                            {item.year ? ` — ${item.year}` : ''}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* HRT status */}
                   {onHrt && (
                     <div style={sectionStyle}>
@@ -2524,13 +2608,57 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     </div>
                   )}
 
+                  {/* Previous therapy */}
+                  {intake.previous_therapy && (
+                    <div style={sectionStyle}>
+                      <div style={sectionLabelStyle}>Previous Therapy</div>
+                      <div style={{ ...valueStyle, fontSize: '12px' }}>{intake.previous_therapy_details || 'Yes (no details provided)'}</div>
+                    </div>
+                  )}
+
+                  {/* Injury info */}
+                  {hasInjury && (
+                    <div style={{ ...sectionStyle, background: '#fef2f2', padding: '10px 12px', border: '1px solid #fecaca' }}>
+                      <div style={sectionLabelStyle}>Injury / Recovery</div>
+                      {intake.injury_description && <div style={{ fontSize: '12px', color: '#1a1a1a', marginBottom: '4px' }}>{intake.injury_description}</div>}
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                        {intake.injury_location && <div style={{ fontSize: '11px', color: '#666' }}>Location: {intake.injury_location}</div>}
+                        {(intake.injury_date || intake.injury_when_occurred) && <div style={{ fontSize: '11px', color: '#666' }}>Date: {intake.injury_date || intake.injury_when_occurred}</div>}
+                        {intake.pain_severity && <div style={{ fontSize: '11px', color: '#666' }}>Pain: {intake.pain_severity}/10</div>}
+                        {intake.functional_limitation && <div style={{ fontSize: '11px', color: '#666' }}>Functional limitation: {intake.functional_limitation}/10</div>}
+                        {intake.injury_trajectory && <div style={{ fontSize: '11px', color: '#666' }}>Trajectory: {intake.injury_trajectory}</div>}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Symptoms */}
                   {intake.symptoms && (
                     <div style={sectionStyle}>
                       <div style={sectionLabelStyle}>Reported Symptoms</div>
                       <div style={{ ...valueStyle, fontSize: '12px' }}>
-                        {Array.isArray(intake.symptoms) ? intake.symptoms.join(', ') : intake.symptoms}
+                        {Array.isArray(intake.symptoms) ? intake.symptoms.map((s, i) => (
+                          <span key={i} style={chipStyle}>{s}</span>
+                        )) : intake.symptoms}
                       </div>
+                      {intake.symptom_duration && (
+                        <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>Duration: {intake.symptom_duration}</div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Recent hospitalization */}
+                  {intake.recent_hospitalization && (
+                    <div style={sectionStyle}>
+                      <div style={sectionLabelStyle}>Recent Hospitalization</div>
+                      <div style={{ ...valueStyle, fontSize: '12px' }}>{intake.hospitalization_reason || 'Yes (no details provided)'}</div>
+                    </div>
+                  )}
+
+                  {/* Primary care physician */}
+                  {intake.has_pcp && intake.pcp_name && (
+                    <div style={sectionStyle}>
+                      <div style={sectionLabelStyle}>Primary Care Physician</div>
+                      <div style={{ ...valueStyle, fontSize: '12px' }}>{intake.pcp_name}</div>
                     </div>
                   )}
 
@@ -2542,24 +2670,13 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     </div>
                   )}
 
-                  {/* Demographics from intake */}
-                  <div style={{ borderTop: '1px solid #e5e5e5', paddingTop: '12px', marginTop: '12px' }}>
-                    <div style={sectionLabelStyle}>Demographics</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                      {intake.date_of_birth && (
-                        <div>
-                          <span style={{ fontSize: '11px', color: '#888' }}>DOB</span>
-                          <div style={{ fontSize: '12px', color: '#1a1a1a' }}>{new Date(intake.date_of_birth + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}</div>
-                        </div>
-                      )}
-                      {intake.gender && (
-                        <div>
-                          <span style={{ fontSize: '11px', color: '#888' }}>Gender</span>
-                          <div style={{ fontSize: '12px', color: '#1a1a1a', textTransform: 'capitalize' }}>{intake.gender}</div>
-                        </div>
-                      )}
+                  {/* What brings you in (legacy) */}
+                  {(intake.what_brings_you || intake.what_brings_you_in) && (
+                    <div style={sectionStyle}>
+                      <div style={sectionLabelStyle}>What Brings You In</div>
+                      <div style={{ ...valueStyle, fontSize: '12px' }}>{intake.what_brings_you || intake.what_brings_you_in}</div>
                     </div>
-                  </div>
+                  )}
 
                   {/* View full profile link */}
                   {appt.patient_id && (

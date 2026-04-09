@@ -20,6 +20,24 @@ const REPORT_RECIPIENTS = [
   'cupp@range-medical.com',
 ];
 
+// Actual dollars received for a single purchase row.
+// Mirrors displayAmt() in /pages/admin/purchases/index.js so the daily report
+// matches the admin Purchases page totals.
+//
+// GHL webhooks store amount_paid as the FULL invoice payment, duplicated across
+// every line item on a multi-item invoice. Naively summing amount_paid across
+// rows would multi-count those invoices. Rules:
+//   - amount_paid is explicitly 0   → comp, count as $0
+//   - 0 < amount_paid < amount      → real discount/partial pay, use amount_paid
+//   - amount_paid >= amount or null → use per-line amount (avoids GHL duplication)
+function rowAmount(p) {
+  const amt = parseFloat(p.amount) || 0;
+  const paid = parseFloat(p.amount_paid);
+  if (p.amount_paid === 0 || p.amount_paid === '0') return 0;
+  if (!isNaN(paid) && paid > 0 && paid < amt) return paid;
+  return amt;
+}
+
 export default async function handler(req, res) {
   // Verify cron authorization
   const cronSecret = req.headers['x-cron-secret'] || req.query.secret;
@@ -61,10 +79,7 @@ export default async function handler(req, res) {
 
     if (purchaseErr) throw purchaseErr;
 
-    const totalRevenue = (purchases || []).reduce((sum, p) => {
-      const amt = parseFloat(p.amount_paid) || parseFloat(p.amount) || 0;
-      return sum + amt;
-    }, 0);
+    const totalRevenue = (purchases || []).reduce((sum, p) => sum + rowAmount(p), 0);
 
     const transactionCount = (purchases || []).length;
 
@@ -74,7 +89,7 @@ export default async function handler(req, res) {
       const cat = p.category || 'other';
       if (!revenueByCategory[cat]) revenueByCategory[cat] = { count: 0, total: 0 };
       revenueByCategory[cat].count++;
-      revenueByCategory[cat].total += parseFloat(p.amount_paid) || parseFloat(p.amount) || 0;
+      revenueByCategory[cat].total += rowAmount(p);
     });
 
     // Revenue by payment method
@@ -83,7 +98,7 @@ export default async function handler(req, res) {
       const method = p.payment_method || 'unknown';
       if (!revenueByPayment[method]) revenueByPayment[method] = { count: 0, total: 0 };
       revenueByPayment[method].count++;
-      revenueByPayment[method].total += parseFloat(p.amount_paid) || parseFloat(p.amount) || 0;
+      revenueByPayment[method].total += rowAmount(p);
     });
 
     // ── 2. Sessions: today's service log entries ───────────────────────

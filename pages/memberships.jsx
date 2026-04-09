@@ -94,7 +94,7 @@ const CALCULATOR_CATEGORIES = [
         items: ['pep-motsc-p1', 'pep-motsc-p2'],
       },
       {
-        label: 'Tesamorelin/Ipamorelin',
+        label: '2X Blend — Tesamorelin/Ipamorelin',
         items: ['pep-2xblend-p1', 'pep-2xblend-p2', 'pep-2xblend-p3'],
       },
       {

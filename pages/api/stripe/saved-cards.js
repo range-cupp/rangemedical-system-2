@@ -22,16 +22,31 @@ export default async function handler(req, res) {
 
       const { data: patient, error } = await supabase
         .from('patients')
-        .select('stripe_customer_id')
+        .select('stripe_customer_id, email, name')
         .eq('id', patient_id)
         .single();
 
-      if (error || !patient?.stripe_customer_id) {
+      if (error || !patient) {
+        return res.status(200).json({ cards: [] });
+      }
+
+      let customerId = patient.stripe_customer_id;
+
+      // If no stripe_customer_id, try to find existing Stripe customer by email
+      if (!customerId && patient.email) {
+        const existing = await stripe.customers.list({ email: patient.email, limit: 1 });
+        if (existing.data.length > 0) {
+          customerId = existing.data[0].id;
+          await supabase.from('patients').update({ stripe_customer_id: customerId }).eq('id', patient_id);
+        }
+      }
+
+      if (!customerId) {
         return res.status(200).json({ cards: [] });
       }
 
       const paymentMethods = await stripe.paymentMethods.list({
-        customer: patient.stripe_customer_id,
+        customer: customerId,
         type: 'card',
       });
 

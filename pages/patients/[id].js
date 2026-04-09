@@ -9291,95 +9291,48 @@ export default function PatientProfile() {
                 </div>
               )}
 
-              {/* Purchases Sub-tab — Stripe-powered payment history */}
+              {/* Purchases Sub-tab — all transactions from purchases table */}
               {paymentsSubTab === 'purchases' && (() => {
-                // Build charge rows from Stripe data (actual amounts)
-                const chargeRows = stripeCharges
-                  .filter(c => c.status === 'succeeded')
-                  .map(charge => ({
-                    key: charge.id,
-                    amount: charge.amount / 100,
-                    amountRefunded: charge.amount_refunded / 100,
-                    refunded: charge.refunded,
-                    date: new Date(charge.created * 1000),
-                    card_brand: charge.card_brand,
-                    card_last4: charge.card_last4,
-                    description: charge.description,
-                    purchase_id: charge.purchase_id,
-                    line_items: charge.line_items || [],
-                  }));
+                // Group purchases by date — each date is a transaction
+                const byDate = {};
+                (allPurchases || []).forEach(p => {
+                  const d = p.purchase_date || 'Unknown';
+                  if (!byDate[d]) byDate[d] = [];
+                  byDate[d].push(p);
+                });
+                const transactionDates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
 
                 return (
                 <div>
                   <div className="pay-section">
                     <div className="pay-section-header">
-                      <h3>Payments ({chargeRows.length})</h3>
-                      <button onClick={() => { setStripeChargesFetched(false); fetchStripeCharges(); }} className="pay-btn-secondary" style={{ fontSize: 11 }}>
-                        {loadingStripeCharges ? 'Loading...' : 'Refresh'}
-                      </button>
+                      <h3>Transactions ({transactionDates.length})</h3>
                     </div>
-                    {loadingStripeCharges && chargeRows.length === 0 ? (
-                      <div className="pay-empty">Loading payments from Stripe...</div>
-                    ) : chargeRows.length === 0 ? (
-                      <div className="pay-empty">No payments found</div>
+                    {transactionDates.length === 0 ? (
+                      <div className="pay-empty">No transactions found</div>
                     ) : (
                       <div className="pay-list">
-                        {chargeRows.map(charge => {
-                          const dateStr = charge.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
+                        {transactionDates.map(date => {
+                          const items = byDate[date];
+                          const total = items.reduce((s, p) => s + Number(p.amount_paid || 0), 0);
+                          const dateStr = date !== 'Unknown' ? new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' }) : 'Unknown date';
                           return (
-                          <div key={charge.key} className="pay-item">
-                            <div className="pay-item-info">
-                              <div className="pay-item-title">
-                                <span>{charge.description || 'Payment'}</span>
-                              </div>
-                              {charge.line_items && charge.line_items.length > 0 && (
-                                <div style={{ margin: '4px 0 2px', fontSize: 12, color: '#475569' }}>
-                                  {charge.line_items.map((li, idx) => (
-                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '1px 0' }}>
-                                      <span style={{ color: '#64748b' }}>• {li.name}</span>
-                                      {li.amount_paid != null && (
-                                        <span style={{ fontVariantNumeric: 'tabular-nums', color: '#475569', fontWeight: 500 }}>${li.amount_paid.toFixed(2)}</span>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                              <div className="pay-item-sub">
-                                {dateStr}
-                                {charge.card_last4 && (
-                                  <span style={{ marginLeft: 8, color: '#888' }}>
-                                    {charge.card_brand ? charge.card_brand.charAt(0).toUpperCase() + charge.card_brand.slice(1) : ''} ····{charge.card_last4}
-                                  </span>
-                                )}
+                          <div key={date} className="pay-item" style={{ alignItems: 'flex-start' }}>
+                            <div className="pay-item-info" style={{ flex: 1 }}>
+                              <div className="pay-item-title">{dateStr}</div>
+                              <div style={{ margin: '4px 0 0', fontSize: 12 }}>
+                                {items.map((p, idx) => (
+                                  <div key={p.id || idx} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '2px 0' }}>
+                                    <span style={{ color: '#475569' }}>• {p.medication || p.item_name || p.description || 'Service'}</span>
+                                    <span style={{ fontVariantNumeric: 'tabular-nums', color: Number(p.amount_paid) === 0 ? '#64748b' : '#0f172a', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                      {Number(p.amount_paid) === 0 ? 'Complimentary' : `$${Number(p.amount_paid).toFixed(2)}`}
+                                    </span>
+                                  </div>
+                                ))}
                               </div>
                             </div>
-                            <div style={{ textAlign: 'right', minWidth: 70 }}>
-                              <div className="pay-item-amount" style={charge.refunded ? { textDecoration: 'line-through', color: '#94a3b8' } : {}}>
-                                ${charge.amount.toFixed(2)}
-                              </div>
-                              {charge.amountRefunded > 0 && !charge.refunded && (
-                                <div style={{ fontSize: 10, color: '#dc2626' }}>-${charge.amountRefunded.toFixed(2)} refunded</div>
-                              )}
-                            </div>
-                            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                              {charge.refunded && <span className="pay-badge pay-badge-red">refunded</span>}
-                              {charge.amountRefunded > 0 && !charge.refunded && (
-                                <span className="pay-badge" style={{ background: '#fef3c7', color: '#92400e', fontSize: 9 }}>partial refund</span>
-                              )}
-                              {!charge.refunded && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setRefundingCharge(charge); setRefundType('full'); setRefundAmount(''); }}
-                                  style={{ fontSize: 10, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: '2px 4px' }}
-                                >
-                                  Refund
-                                </button>
-                              )}
-                              {charge.purchase_id && (
-                                <a href={`/api/receipt/${charge.purchase_id}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                                  style={{ fontSize: 10, color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>
-                                  Receipt
-                                </a>
-                              )}
+                            <div style={{ textAlign: 'right', minWidth: 80, paddingTop: 2 }}>
+                              <div className="pay-item-amount">${total.toFixed(2)}</div>
                             </div>
                           </div>
                           );

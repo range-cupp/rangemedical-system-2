@@ -68,7 +68,7 @@ function AssessmentPaymentForm({ onSuccess, leadId }) {
     <form onSubmit={handleSubmit}>
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: '1rem', color: '#171717' }}>
-          <span>In-Clinic Visit — Injury & Recovery</span>
+          <span>Range Assessment — In-Clinic Visit</span>
           <span style={{ fontWeight: 700 }}>$197</span>
         </div>
         <div style={{ borderTop: '2px solid #eee', paddingTop: 12, display: 'flex', justifyContent: 'space-between', fontSize: '1.125rem', fontWeight: 700, color: '#171717' }}>
@@ -1154,7 +1154,7 @@ export default function RangeAssessment() {
                 <div style={{ background: '#fafafa', borderRadius: 0, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
                   <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>What Happens Next</h3>
                   <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: 0 }}>
-                    Our team will review your information and reach out to schedule your consultation. We'll create a personalized peptide protocol based on your assessment and medical history.
+                    Our team will review your information and reach out to schedule your consultation. We'll build a personalized plan based on your assessment and medical history.
                   </p>
                 </div>
               )}
@@ -2543,10 +2543,20 @@ export default function RangeAssessment() {
 
   // Results screen for Energy path
   if (showResults && recommendation) {
+    // Generate a personalized headline based on top symptoms
+    const topSymptom = recommendation.symptoms[0];
+    const durationLabel = {
+      'less_1_month': 'a few weeks',
+      '1_3_months': 'a couple months',
+      '3_6_months': 'months',
+      '6_12_months': 'most of the past year',
+      '1_plus_years': 'over a year'
+    }[formData.symptomDuration] || 'a while';
+
     return (
       <Layout>
         <Head>
-          <title>Your Lab Recommendation | Range Medical</title>
+          <title>Your Results | Range Medical</title>
           <meta name="robots" content="noindex, nofollow" />
         </Head>
 
@@ -2555,10 +2565,10 @@ export default function RangeAssessment() {
 
             {/* Header */}
             <div className="res-header">
-              <span className="res-kicker">Your Personalized Recommendation</span>
-              <h1>Here's What We Need to Check</h1>
+              <span className="res-kicker">Your Personalized Results</span>
+              <h1>{formData.firstName}, Here's What We Found</h1>
               <p className="res-intro">
-                Based on your answers, here's what we recommend testing to find out what's going on.
+                You've been dealing with this for {durationLabel}. Based on your answers, there are real reasons you feel the way you do — and they're fixable. Here's what's likely going on.
               </p>
             </div>
 
@@ -2597,41 +2607,25 @@ export default function RangeAssessment() {
                       <line x1="16" y1="13" x2="8" y2="13"/>
                       <line x1="16" y1="17" x2="8" y2="17"/>
                     </svg>
-                    <span>Already have labs?</span>
+                    <span>Already have recent labs?</span>
                   </div>
                   <p className="res-labs-notice-text">
-                    You mentioned having labs from the last 60 days. Before purchasing a new panel,
-                    send them over — we'll review and let you know if additional testing is needed.
+                    Bring them to your assessment — we'll review what you have and only order what's missing.
                   </p>
-                  <a href="mailto:info@range-medical.com" className="res-labs-notice-btn">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                      <polyline points="22,6 12,13 2,6"/>
-                    </svg>
-                    Email Labs to info@range-medical.com
-                  </a>
                 </div>
               )}
             </div>
 
-            {/* SECTION 2: What We Recommend */}
+            {/* SECTION 2: Why You Feel This Way */}
             <div className="res-section">
               <div className="res-section-label">
                 <div className="res-section-num">2</div>
-                <span>What We Recommend</span>
+                <span>Why You Might Feel This Way</span>
               </div>
 
-              {/* Elite Recommendation Reasons */}
-              {recommendation.panel === 'elite' && recommendation.eliteReasons.length > 0 && (
-                <div className="res-recommend-why">
-                  <p className="res-recommend-intro">Based on your symptoms and goals, we suggest the <strong>Elite Panel</strong> because:</p>
-                  <ul>
-                    {recommendation.eliteReasons.slice(0, 3).map((reason, i) => (
-                      <li key={i}>{reason}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              <p style={{ fontSize: '1rem', color: '#525252', lineHeight: 1.7, margin: '0 0 1.5rem' }}>
+                These symptoms don't happen by accident. They're usually signals that something is off with your hormones, thyroid, or metabolism. Here's what your answers point to:
+              </p>
 
               {/* Why These Matter */}
               <div className="res-reasons-list">
@@ -2643,93 +2637,87 @@ export default function RangeAssessment() {
                 ))}
               </div>
 
-              {/* Biomarkers */}
+              {/* Biomarkers - educational */}
               <div className="res-markers-box">
-                <h4>Key Markers We'll Check</h4>
+                <h4>Markers That Would Tell Us Exactly What's Off</h4>
                 <div className="res-markers">
                   {recommendation.essentialMarkers.slice(0, 10).map((marker, i) => (
                     <span key={i} className="res-marker">{marker}</span>
                   ))}
-                  {recommendation.panel === 'elite' && recommendation.eliteMarkers.slice(0, 6).map((marker, i) => (
+                  {recommendation.eliteMarkers.slice(0, 6).map((marker, i) => (
                     <span key={`elite-${i}`} className="res-marker res-marker-elite">{marker}</span>
                   ))}
                 </div>
                 <p className="res-markers-more">
-                  {recommendation.panel === 'elite'
-                    ? `+ ${Math.max(0, 36 - 16)} more markers included in Elite`
-                    : '+ thyroid, cholesterol, and blood sugar tests'
-                  }
+                  These are the labs your provider would review during your assessment to pinpoint the cause and build your plan.
                 </p>
               </div>
             </div>
 
-            {/* SECTION 3: Pick & Pay */}
+            {/* SECTION 3: Book Your Assessment */}
             <div className="res-section">
               <div className="res-section-label">
                 <div className="res-section-num">3</div>
-                <span>Choose Your Labs & Pay</span>
+                <span>Your Next Step</span>
               </div>
 
-              <div className="res-panels-grid">
-                {/* Elite Panel */}
-                <div className={`res-panel-option ${recommendation.panel === 'elite' ? 'res-panel-recommended' : ''}`}>
-                  {recommendation.panel === 'elite' && (
-                    <div className="res-panel-badge">Recommended</div>
-                  )}
-                  <h3 className="res-panel-name">Elite Panel</h3>
-                  <div className="res-panel-price">$750</div>
-                  <p className="res-panel-desc">
-                    Our most complete panel — checks your hormones, heart health, inflammation, and more.
-                  </p>
-                  <p className="res-panel-includes">36+ biomarkers tested</p>
-                  <button
-                    className="res-panel-cta"
-                    onClick={() => {
-                      setSelectedPanel('elite');
-                      setShowResults(false);
-                      setShowEnergyPayment(true);
-                      initializeEnergyPayment('elite');
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                  >
-                    Select & Pay — $750
-                  </button>
+              <div style={{ background: '#fafafa', border: '1px solid #e5e5e5', padding: '2rem', marginBottom: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>
+                  Book Your Range Assessment
+                </h3>
+                <p style={{ fontSize: '1rem', color: '#525252', lineHeight: 1.7, margin: '0 0 1.5rem' }}>
+                  Come in and sit down with a provider who will review your symptoms, go over the right lab work for your situation, and build a plan to get you feeling like yourself again.
+                </p>
+
+                <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2 }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <span style={{ fontSize: '0.9375rem', color: '#525252' }}>One-on-one with a provider — not a sales call</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2 }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <span style={{ fontSize: '0.9375rem', color: '#525252' }}>We'll recommend the right labs based on your symptoms</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2 }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <span style={{ fontSize: '0.9375rem', color: '#525252' }}>Your $197 goes directly toward your treatment protocol</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2 }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <span style={{ fontSize: '0.9375rem', color: '#525252' }}>No commitment — see if it's right for you first</span>
+                  </div>
                 </div>
 
-                <div className="res-panels-or">or</div>
-
-                {/* Essential Panel */}
-                <div className={`res-panel-option ${recommendation.panel === 'essential' ? 'res-panel-recommended' : ''}`}>
-                  {recommendation.panel === 'essential' && (
-                    <div className="res-panel-badge">Recommended</div>
-                  )}
-                  <h3 className="res-panel-name">Essential Panel</h3>
-                  <div className="res-panel-price">$350</div>
-                  <p className="res-panel-desc">
-                    A great starting point — covers your hormones, thyroid, and blood sugar.
-                  </p>
-                  <p className="res-panel-includes">20+ biomarkers tested</p>
-                  <button
-                    className="res-panel-cta"
-                    onClick={() => {
-                      setSelectedPanel('essential');
-                      setShowResults(false);
-                      setShowEnergyPayment(true);
-                      initializeEnergyPayment('essential');
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                  >
-                    Select & Pay — $350
-                  </button>
-                </div>
-              </div>
-
-              <div className="res-panels-note">
-                <p>Both panels include your blood draw and a provider review of your results.</p>
+                <button
+                  style={{
+                    width: '100%',
+                    padding: '1rem',
+                    background: '#000',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 0,
+                    fontSize: '1.125rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    marginBottom: '0.75rem',
+                  }}
+                  onClick={() => {
+                    setShowResults(false);
+                    setShowPayment(true);
+                    initializePayment();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                >
+                  Book My Assessment — $197
+                </button>
+                <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: '#a3a3a3', margin: 0 }}>
+                  Your $197 is credited toward treatment — it's not an extra cost.
+                </p>
               </div>
             </div>
 
-            {/* What Happens After You Pay */}
+            {/* What Happens Next */}
             <div className="res-section res-section-last">
               <div className="res-section-label">
                 <div className="res-section-num">4</div>
@@ -2738,29 +2726,11 @@ export default function RangeAssessment() {
               <div className="res-steps">
                 <div className="res-step">
                   <div className="res-step-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                  </div>
-                  <div>
-                    <h4>Review Your Prep Checklist</h4>
-                    <p>Fasting, hydration, and a few easy things to know before your draw.</p>
-                  </div>
-                </div>
-                <div className="res-step">
-                  <div className="res-step-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                   </div>
                   <div>
-                    <h4>Book Your Blood Draw</h4>
-                    <p>Pick a day and time that works for you — mornings are best.</p>
-                  </div>
-                </div>
-                <div className="res-step">
-                  <div className="res-step-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                  </div>
-                  <div>
-                    <h4>Come In for Your Draw</h4>
-                    <p>Visit our Newport Beach office fasted. We handle the rest.</p>
+                    <h4>Book Your Visit</h4>
+                    <p>Pick a day and time that works for you.</p>
                   </div>
                 </div>
                 <div className="res-step">
@@ -2768,8 +2738,26 @@ export default function RangeAssessment() {
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                   </div>
                   <div>
-                    <h4>Review Results Together</h4>
-                    <p>Your provider goes over everything and builds a plan just for you.</p>
+                    <h4>Meet Your Provider</h4>
+                    <p>We'll go over your symptoms, review your history, and figure out exactly what to test.</p>
+                  </div>
+                </div>
+                <div className="res-step">
+                  <div className="res-step-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                  </div>
+                  <div>
+                    <h4>Get Your Labs</h4>
+                    <p>We'll order the right panel for your situation and draw your blood in-house.</p>
+                  </div>
+                </div>
+                <div className="res-step">
+                  <div className="res-step-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  </div>
+                  <div>
+                    <h4>Get Your Plan</h4>
+                    <p>Your provider reviews your results and builds a protocol tailored to you.</p>
                   </div>
                 </div>
               </div>
@@ -2927,7 +2915,7 @@ export default function RangeAssessment() {
   const energyQuestions = [
     {
       id: 'gender',
-      question: 'Which best describes you?',
+      question: 'First, which best describes you?',
       type: 'radio',
       options: [
         { value: 'male', label: 'Male' },
@@ -2936,69 +2924,68 @@ export default function RangeAssessment() {
     },
     {
       id: 'symptoms',
-      question: "What symptoms are you experiencing?",
-      subtitle: "Select all that apply",
+      question: "What's been going on lately?",
+      subtitle: "Pick everything that sounds like you",
       type: 'multiselect',
       options: [
-        { value: 'fatigue', label: 'Fatigue or low energy' },
-        { value: 'brain_fog', label: 'Brain fog or poor focus' },
-        { value: 'weight_gain', label: 'Unexplained weight gain' },
-        { value: 'poor_sleep', label: 'Poor sleep or insomnia' },
-        { value: 'low_libido', label: 'Low libido or sexual function' },
-        { value: 'muscle_loss', label: 'Muscle loss or weakness' },
-        { value: 'mood_changes', label: 'Mood changes, anxiety, or irritability' },
-        { value: 'recovery', label: 'Slow recovery from workouts' }
+        { value: 'fatigue', label: "I'm tired all the time" },
+        { value: 'brain_fog', label: "I can't focus or think clearly" },
+        { value: 'weight_gain', label: "I'm gaining weight for no reason" },
+        { value: 'poor_sleep', label: "I can't sleep well" },
+        { value: 'low_libido', label: 'My sex drive is gone' },
+        { value: 'muscle_loss', label: "I'm losing strength or muscle" },
+        { value: 'mood_changes', label: 'My mood is all over the place' },
+        { value: 'recovery', label: "I can't recover from workouts" }
       ]
     },
     {
       id: 'symptomDuration',
-      question: 'When did you first notice something was off?',
-      type: 'select',
+      question: 'How long have you been feeling this way?',
+      type: 'radio',
       options: [
-        { value: '', label: 'Select one...' },
-        { value: 'less_1_month', label: 'Within the last month' },
-        { value: '1_3_months', label: 'A few months ago' },
-        { value: '3_6_months', label: '3–6 months ago' },
-        { value: '6_12_months', label: '6–12 months ago' },
-        { value: '1_plus_years', label: 'Over a year ago' }
+        { value: 'less_1_month', label: 'Just the last few weeks' },
+        { value: '1_3_months', label: 'A couple months' },
+        { value: '3_6_months', label: 'About 3–6 months' },
+        { value: '6_12_months', label: 'Most of the past year' },
+        { value: '1_plus_years', label: 'Over a year — maybe longer' }
       ]
     },
     {
       id: 'lastLabWork',
-      question: 'When did you last have blood work done?',
+      question: 'Have you had blood work done recently?',
       type: 'radio',
       options: [
-        { value: 'within_60_days', label: 'Within the last 60 days' },
-        { value: '2_6_months', label: '2–6 months ago' },
-        { value: '6_12_months', label: '6–12 months ago' },
+        { value: 'within_60_days', label: 'Yes, in the last 60 days' },
+        { value: '2_6_months', label: 'A few months ago' },
+        { value: '6_12_months', label: 'Sometime in the past year' },
         { value: 'over_year', label: 'Over a year ago' },
-        { value: 'never', label: "Never or don't remember" }
+        { value: 'never', label: "Honestly, I don't remember" }
       ]
     },
     {
       id: 'triedHormoneTherapy',
-      question: 'Have you tried hormone replacement therapy before?',
+      question: 'Have you ever looked into hormone therapy?',
       type: 'radio',
       options: [
-        { value: 'yes', label: 'Yes' },
-        { value: 'no', label: 'No' },
-        { value: 'not_sure', label: "Not sure what this is" }
+        { value: 'yes', label: "Yes, I've tried it" },
+        { value: 'no', label: "No, I haven't" },
+        { value: 'not_sure', label: "I'm not sure what that is" }
       ]
     },
     {
       id: 'goals',
-      question: "What are you hoping to accomplish?",
-      subtitle: "Select all that apply",
+      question: "If we could fix one thing, what would matter most?",
+      subtitle: "Pick as many as you want",
       type: 'multiselect',
       options: [
-        { value: 'more_energy', label: 'More energy throughout the day' },
-        { value: 'better_sleep', label: 'Better, more restful sleep' },
-        { value: 'lose_weight', label: 'Lose weight' },
-        { value: 'build_muscle', label: 'Build or maintain muscle' },
-        { value: 'mental_clarity', label: 'Mental clarity and focus' },
+        { value: 'more_energy', label: 'Have energy that actually lasts' },
+        { value: 'better_sleep', label: 'Sleep through the night' },
+        { value: 'lose_weight', label: 'Lose the weight that won\'t budge' },
+        { value: 'build_muscle', label: 'Build or keep my muscle' },
+        { value: 'mental_clarity', label: 'Think clearly again' },
         { value: 'feel_myself', label: 'Feel like myself again' },
-        { value: 'longevity', label: 'Optimize for longevity' },
-        { value: 'performance', label: 'Athletic or sexual performance' }
+        { value: 'longevity', label: 'Stay healthy long-term' },
+        { value: 'performance', label: 'Perform at my best' }
       ]
     }
   ];
@@ -3045,7 +3032,7 @@ export default function RangeAssessment() {
                 <h2>Let's start with your contact info</h2>
                 <p className="ra-step-desc">
                   {selectedPath === 'energy'
-                    ? "Answer a few questions and we'll show you exactly which lab markers matter for your situation."
+                    ? "Answer a few quick questions and we'll show you exactly what could be going on — and what to do about it."
                     : "This short assessment helps us understand your situation so your provider can evaluate the best options during your visit."
                   }
                 </p>
@@ -3269,7 +3256,7 @@ export default function RangeAssessment() {
                       </>
                     ) : (
                       <>
-                        {selectedPath === 'energy' ? 'See My Lab Recommendation' : 'Submit & Continue to Intake'}
+                        {selectedPath === 'energy' ? 'See My Results' : 'Submit & Continue to Intake'}
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M5 12h14M12 5l7 7-7 7"/>
                         </svg>

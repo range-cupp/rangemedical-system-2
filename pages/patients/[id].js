@@ -815,6 +815,7 @@ export default function PatientProfile() {
   });
   const [docUploading, setDocUploading] = useState(false);
   const [docUploadError, setDocUploadError] = useState(null);
+  const [editingDocDate, setEditingDocDate] = useState(null); // doc id being edited
 
   const [sendingSymptoms, setSendingSymptoms] = useState(false);
   const [symptomsSent, setSymptomsSent] = useState(false);
@@ -3160,6 +3161,24 @@ export default function PatientProfile() {
     } catch (err) {
       console.error('Delete error:', err);
     }
+  };
+
+  const handleUpdateDocDate = async (docId, newDate) => {
+    try {
+      const res = await fetch(`/api/medical-documents?id=${docId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uploaded_at: new Date(newDate + 'T12:00:00').toISOString() }),
+      });
+      if (res.ok) {
+        setMedicalDocuments(medicalDocuments.map(d =>
+          d.id === docId ? { ...d, uploaded_at: new Date(newDate + 'T12:00:00').toISOString() } : d
+        ));
+      }
+    } catch (err) {
+      console.error('Update date error:', err);
+    }
+    setEditingDocDate(null);
   };
 
   // Symptoms handlers
@@ -7861,7 +7880,24 @@ export default function PatientProfile() {
                         </div>
                         {doc.notes && <div style={{ padding: '4px 12px 0', fontSize: 12, color: '#666' }}>{doc.notes}</div>}
                         <div className="document-details">
-                          <span>{formatDate(doc.uploaded_at)}</span>
+                          {editingDocDate === doc.id ? (
+                            <input
+                              type="date"
+                              defaultValue={doc.uploaded_at ? doc.uploaded_at.slice(0, 10) : ''}
+                              autoFocus
+                              onBlur={(e) => {
+                                if (e.target.value) handleUpdateDocDate(doc.id, e.target.value);
+                                else setEditingDocDate(null);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && e.target.value) handleUpdateDocDate(doc.id, e.target.value);
+                                if (e.key === 'Escape') setEditingDocDate(null);
+                              }}
+                              style={{ fontSize: 12, padding: '1px 4px', border: '1px solid #ccc', borderRadius: 4 }}
+                            />
+                          ) : (
+                            <span onClick={() => setEditingDocDate(doc.id)} style={{ cursor: 'pointer', borderBottom: '1px dashed #999' }} title="Click to change date">{formatDate(doc.uploaded_at)}</span>
+                          )}
                           {doc.uploaded_by && <span>by {doc.uploaded_by}</span>}
                           {doc.file_size && <span>{(doc.file_size / 1024).toFixed(0)} KB</span>}
                         </div>

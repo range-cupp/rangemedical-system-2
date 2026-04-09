@@ -9,7 +9,7 @@ const supabase = createClient(
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -113,6 +113,37 @@ export default async function handler(req, res) {
         error: 'Internal server error',
         details: error.message 
       });
+    }
+  }
+
+  if (req.method === 'PATCH') {
+    try {
+      const { id } = req.query;
+      const { uploaded_at } = req.body;
+
+      if (!id) {
+        return res.status(400).json({ success: false, error: 'Missing document id' });
+      }
+      if (!uploaded_at) {
+        return res.status(400).json({ success: false, error: 'Missing uploaded_at' });
+      }
+
+      const { data, error } = await supabase
+        .from('medical_documents')
+        .update({ uploaded_at })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Update error:', error);
+        return res.status(500).json({ success: false, error: 'Failed to update document' });
+      }
+
+      return res.status(200).json({ success: true, document: data });
+    } catch (error) {
+      console.error('Server error:', error);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
     }
   }
 

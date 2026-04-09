@@ -238,6 +238,10 @@ export default async function handler(req, res) {
       smsMessage += `\n⚠️ Side effects: ${side_effects.join(', ')}`;
     }
 
+    if (notes && notes.trim()) {
+      smsMessage += `\n📝 Notes: ${notes.trim()}`;
+    }
+
     if (isPaymentDue) {
       smsMessage += `\n\n💰 PAYMENT DUE`;
     }

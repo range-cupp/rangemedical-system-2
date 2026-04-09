@@ -4,7 +4,7 @@
 // Optional body: { dry_run: true } to preview without making changes
 
 import { createClient } from '@supabase/supabase-js';
-import { autoCreateOrExtendProtocol } from '../../../lib/auto-protocol';
+import { autoCreateOrExtendProtocol } from '../../lib/auto-protocol';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

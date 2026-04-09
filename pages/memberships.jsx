@@ -11,48 +11,172 @@ const MEMBERSHIP_TIERS = [
   { name: 'Performance', monthly: 1299, credits: 2100, bonus: 801 },
 ];
 
-// Categories and which service IDs to show in each
+// Display name overrides (UI only — services.json stays unchanged)
+const DISPLAY_NAMES = {
+  'wl-tirz-d1': 'Weight Loss Program T-2.5',
+  'wl-tirz-d2': 'Weight Loss Program T-5',
+  'wl-tirz-d3': 'Weight Loss Program T-7.5',
+  'wl-tirz-d4': 'Weight Loss Program T-10',
+  'wl-tirz-d5': 'Weight Loss Program T-12.5',
+  'wl-reta-d1': 'Weight Loss Program R-2',
+  'wl-reta-d2': 'Weight Loss Program R-4',
+  'wl-reta-d3': 'Weight Loss Program R-6',
+  'wl-reta-d4': 'Weight Loss Program R-8',
+  'wl-reta-d5': 'Weight Loss Program R-10',
+  'wl-reta-d6': 'Weight Loss Program R-12',
+  'pep-2xblend-p1': 'Tesamorelin/Ipamorelin — Phase 1',
+  'pep-2xblend-p2': 'Tesamorelin/Ipamorelin — Phase 2',
+  'pep-2xblend-p3': 'Tesamorelin/Ipamorelin — Phase 3',
+  'iv-range': 'Range IV',
+  'iv-immune-defense': 'Immune Defense',
+  'iv-energy-vitality': 'Energy & Vitality',
+  'iv-muscle-recovery': 'Muscle Recovery',
+  'iv-detox-cellular': 'Detox & Cellular Repair',
+  'iv-nad-225': '225mg',
+  'iv-nad-500': '500mg',
+  'iv-nad-750': '750mg',
+  'iv-nad-1000': '1000mg',
+  'iv-vitc-25': '25g',
+  'iv-vitc-50': '50g',
+  'iv-vitc-75': '75g',
+  'iv-glutathione-1g': '1g',
+  'iv-glutathione-2g': '2g',
+  'iv-glutathione-3g': '3g',
+  'inj-standard': 'B12, B-Complex, D3, Biotin, Amino Blend, NAC, BCAA',
+  'inj-premium': 'L-Carnitine, Glutathione, MIC-B12/Skinny Shot',
+};
+
+// Categories with nested collapsible sub-groups
+// items = flat selectable list, groups = collapsible sub-sections
 const CALCULATOR_CATEGORIES = [
   {
     label: 'Labs',
-    ids: ['lab-mens-essential', 'lab-mens-elite', 'lab-womens-essential', 'lab-womens-elite'],
+    items: ['lab-mens-essential', 'lab-mens-elite', 'lab-womens-essential', 'lab-womens-elite'],
   },
   {
     label: 'Weight Loss',
-    filter: s => s.category === 'Weight Loss',
+    groups: [
+      {
+        label: 'Tirzepatide',
+        items: ['wl-tirz-d1', 'wl-tirz-d2', 'wl-tirz-d3', 'wl-tirz-d4', 'wl-tirz-d5'],
+      },
+      {
+        label: 'Retatrutide',
+        items: ['wl-reta-d1', 'wl-reta-d2', 'wl-reta-d3', 'wl-reta-d4', 'wl-reta-d5', 'wl-reta-d6'],
+      },
+    ],
   },
   {
     label: 'Hormone Optimization',
-    ids: ['hrt-membership'],
+    items: ['hrt-membership'],
   },
   {
     label: 'Peptides',
-    filter: s => s.category === 'Peptides',
+    groups: [
+      {
+        label: 'BPC-157 / TB-4',
+        items: ['pep-bpc-tb4-10', 'pep-bpc-tb4-20', 'pep-bpc-tb4-30'],
+      },
+      {
+        label: 'Recovery 4-Blend',
+        items: ['pep-recovery-4blend-10', 'pep-recovery-4blend-20', 'pep-recovery-4blend-30'],
+      },
+      {
+        label: 'GHK-Cu',
+        items: ['pep-ghkcu-30', 'pep-ghkcu-cream'],
+      },
+      {
+        label: 'GLOW',
+        items: ['pep-glow-30'],
+      },
+      {
+        label: 'MOTS-C',
+        items: ['pep-motsc-p1', 'pep-motsc-p2'],
+      },
+      {
+        label: 'Tesamorelin/Ipamorelin',
+        items: ['pep-2xblend-p1', 'pep-2xblend-p2', 'pep-2xblend-p3'],
+      },
+      {
+        label: '3X Blend',
+        items: ['pep-3xblend-p1', 'pep-3xblend-p2', 'pep-3xblend-p3'],
+      },
+      {
+        label: '4X Blend',
+        items: ['pep-4xblend-p1', 'pep-4xblend-p2', 'pep-4xblend-p3'],
+      },
+    ],
   },
   {
     label: 'IV Therapy',
-    filter: s => s.category === 'IV Therapy - Standard' || s.category === 'IV Therapy - Specialty',
+    groups: [
+      {
+        label: 'Range IV',
+        items: ['iv-immune-defense', 'iv-energy-vitality', 'iv-muscle-recovery', 'iv-detox-cellular'],
+      },
+      {
+        label: 'NAD+ IV',
+        items: ['iv-nad-225', 'iv-nad-500', 'iv-nad-750', 'iv-nad-1000'],
+      },
+      {
+        label: 'Vitamin C IV',
+        items: ['iv-vitc-25', 'iv-vitc-50', 'iv-vitc-75'],
+      },
+      {
+        label: 'Glutathione IV',
+        items: ['iv-glutathione-1g', 'iv-glutathione-2g', 'iv-glutathione-3g'],
+      },
+      {
+        label: 'Specialty IV',
+        items: ['iv-methylene-blue', 'iv-mb-vitc-mag-combo'],
+      },
+      {
+        label: 'IV Add-Ons',
+        items: ['iv-addon'],
+      },
+    ],
   },
   {
     label: 'Injection Programs',
-    ids: ['inj-standard-10pack', 'inj-premium-10pack', 'inj-nad-50-10pack', 'inj-nad-75-10pack', 'inj-nad-100-10pack', 'inj-nad-125-10pack', 'inj-nad-150-10pack'],
+    items: ['inj-standard-10pack', 'inj-premium-10pack', 'inj-nad-50-10pack', 'inj-nad-75-10pack', 'inj-nad-100-10pack', 'inj-nad-125-10pack', 'inj-nad-150-10pack'],
   },
   {
     label: 'Single Injections',
-    ids: ['inj-standard', 'inj-premium', 'inj-nad-50', 'inj-nad-75', 'inj-nad-100', 'inj-nad-125', 'inj-nad-150', 'inj-cortisone'],
+    groups: [
+      {
+        label: 'Standard Injection',
+        items: ['inj-standard'],
+      },
+      {
+        label: 'Premium Injection',
+        items: ['inj-premium'],
+      },
+      {
+        label: 'NAD+ Injection',
+        items: ['inj-nad-50', 'inj-nad-75', 'inj-nad-100', 'inj-nad-125', 'inj-nad-150'],
+      },
+      {
+        label: 'Cortisone',
+        items: ['inj-cortisone'],
+      },
+    ],
   },
   {
     label: 'Body Therapies',
-    ids: ['hbot-single', 'rlt-single'],
+    items: ['hbot-single', 'rlt-single'],
   },
   {
     label: 'PRP Therapy',
-    ids: ['prp-single'],
+    items: ['prp-single'],
   },
 ];
 
 function formatPrice(n) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+function getDisplayName(svc) {
+  return DISPLAY_NAMES[svc.id] || svc.name;
 }
 
 function CoverageIndicator({ credits, total }) {
@@ -81,11 +205,67 @@ function CoverageIndicator({ credits, total }) {
   );
 }
 
+// Renders a single selectable service row
+function ServiceRow({ svc, selected, onToggle }) {
+  return (
+    <label style={styles.serviceRow}>
+      <div style={styles.checkboxWrap}>
+        <div style={{
+          ...styles.checkbox,
+          ...(selected ? styles.checkboxChecked : {}),
+        }}>
+          {selected && <Check size={12} strokeWidth={3} color="#fff" />}
+        </div>
+        <input
+          type="checkbox"
+          checked={!!selected}
+          onChange={onToggle}
+          style={{ display: 'none' }}
+        />
+      </div>
+      <span style={styles.serviceName}>{getDisplayName(svc)}</span>
+      <span style={styles.servicePrice}>{formatPrice(svc.price)}</span>
+    </label>
+  );
+}
+
+// Collapsible sub-group within a category
+function SubGroup({ label, items, serviceMap, selected, onToggle, expanded, onToggleExpand }) {
+  const resolvedItems = items.map(id => serviceMap[id]).filter(Boolean).filter(s => s.price !== null);
+  if (resolvedItems.length === 0) return null;
+  const selectedCount = resolvedItems.filter(s => selected[s.id]).length;
+
+  return (
+    <div style={styles.subGroup}>
+      <button style={styles.subGroupHeader} onClick={onToggleExpand}>
+        <div style={styles.subGroupLeft}>
+          <span style={styles.subGroupLabel}>{label}</span>
+          {selectedCount > 0 && <span style={styles.subGroupBadge}>{selectedCount}</span>}
+        </div>
+        {expanded ? <ChevronUp size={14} color="#a3a3a3" /> : <ChevronDown size={14} color="#a3a3a3" />}
+      </button>
+      {expanded && (
+        <div style={styles.subGroupItems}>
+          {resolvedItems.map(svc => (
+            <ServiceRow
+              key={svc.id}
+              svc={svc}
+              selected={selected[svc.id]}
+              onToggle={() => onToggle(svc.id)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Memberships({ services }) {
   const [selected, setSelected] = useState({});
   const [expandedCats, setExpandedCats] = useState({ Labs: true, 'Weight Loss': true });
+  const [expandedSubs, setExpandedSubs] = useState({});
   const [labsPaid, setLabsPaid] = useState(false);
-  const [labsPaidType, setLabsPaidType] = useState('essential'); // essential or elite
+  const [labsPaidType, setLabsPaidType] = useState('essential');
   const [showCal, setShowCal] = useState(false);
 
   const serviceMap = useMemo(() => {
@@ -93,20 +273,6 @@ export default function Memberships({ services }) {
     services.forEach(s => { map[s.id] = s; });
     return map;
   }, [services]);
-
-  const categoryGroups = useMemo(() => {
-    return CALCULATOR_CATEGORIES.map(cat => {
-      let items;
-      if (cat.ids) {
-        items = cat.ids.map(id => serviceMap[id]).filter(Boolean);
-      } else if (cat.filter) {
-        items = services.filter(cat.filter);
-      }
-      // Exclude null-price items
-      items = items.filter(s => s.price !== null);
-      return { label: cat.label, items };
-    }).filter(g => g.items.length > 0);
-  }, [services, serviceMap]);
 
   const selectedTotal = useMemo(() => {
     return Object.entries(selected).reduce((sum, [id, checked]) => {
@@ -126,20 +292,46 @@ export default function Memberships({ services }) {
     setExpandedCats(prev => ({ ...prev, [label]: !prev[label] }));
   };
 
-  // Best fit = tier whose credits are closest to (but ideally >= ) the selected total
+  const toggleSubGroup = (key) => {
+    setExpandedSubs(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // Count selected items in a category
+  const countSelected = (cat) => {
+    let count = 0;
+    if (cat.items) {
+      cat.items.forEach(id => { if (selected[id]) count++; });
+    }
+    if (cat.groups) {
+      cat.groups.forEach(g => {
+        g.items.forEach(id => { if (selected[id]) count++; });
+      });
+    }
+    return count;
+  };
+
+  // Check if category has any valid items
+  const catHasItems = (cat) => {
+    if (cat.items) {
+      return cat.items.some(id => serviceMap[id] && serviceMap[id].price !== null);
+    }
+    if (cat.groups) {
+      return cat.groups.some(g => g.items.some(id => serviceMap[id] && serviceMap[id].price !== null));
+    }
+    return false;
+  };
+
   const bestFitIndex = useMemo(() => {
     if (selectedTotal === 0) return -1;
     let best = -1;
     let bestDiff = Infinity;
     MEMBERSHIP_TIERS.forEach((tier, i) => {
       const diff = tier.credits - selectedTotal;
-      // Prefer tiers that cover fully, then closest undershoot
       if (diff >= 0 && diff < bestDiff) {
         best = i;
         bestDiff = diff;
       }
     });
-    // If nothing covers fully, pick the largest tier
     if (best === -1) best = MEMBERSHIP_TIERS.length - 1;
     return best;
   }, [selectedTotal]);
@@ -176,45 +368,54 @@ export default function Memberships({ services }) {
                 <span style={styles.subtotalValue}>{formatPrice(selectedTotal)}</span>
               </div>
 
-              {categoryGroups.map(group => {
-                const isExpanded = expandedCats[group.label] !== false;
-                const groupSelectedCount = group.items.filter(s => selected[s.id]).length;
+              {CALCULATOR_CATEGORIES.filter(cat => catHasItems(cat)).map(cat => {
+                const isExpanded = expandedCats[cat.label] !== false;
+                const selectedCount = countSelected(cat);
                 return (
-                  <div key={group.label} style={styles.catGroup}>
+                  <div key={cat.label} style={styles.catGroup}>
                     <button
                       style={styles.catHeader}
-                      onClick={() => toggleCategory(group.label)}
+                      onClick={() => toggleCategory(cat.label)}
                     >
                       <div style={styles.catHeaderLeft}>
-                        <span style={styles.catLabel}>{group.label}</span>
-                        {groupSelectedCount > 0 && (
-                          <span style={styles.catBadge}>{groupSelectedCount}</span>
+                        <span style={styles.catLabel}>{cat.label}</span>
+                        {selectedCount > 0 && (
+                          <span style={styles.catBadge}>{selectedCount}</span>
                         )}
                       </div>
                       {isExpanded ? <ChevronUp size={16} color="#737373" /> : <ChevronDown size={16} color="#737373" />}
                     </button>
                     {isExpanded && (
                       <div style={styles.catItems}>
-                        {group.items.map(svc => (
-                          <label key={svc.id} style={styles.serviceRow}>
-                            <div style={styles.checkboxWrap}>
-                              <div style={{
-                                ...styles.checkbox,
-                                ...(selected[svc.id] ? styles.checkboxChecked : {}),
-                              }}>
-                                {selected[svc.id] && <Check size={12} strokeWidth={3} color="#fff" />}
-                              </div>
-                              <input
-                                type="checkbox"
-                                checked={!!selected[svc.id]}
-                                onChange={() => toggleService(svc.id)}
-                                style={{ display: 'none' }}
-                              />
-                            </div>
-                            <span style={styles.serviceName}>{svc.name}</span>
-                            <span style={styles.servicePrice}>{formatPrice(svc.price)}</span>
-                          </label>
-                        ))}
+                        {/* Direct items */}
+                        {cat.items && cat.items.map(id => {
+                          const svc = serviceMap[id];
+                          if (!svc || svc.price === null) return null;
+                          return (
+                            <ServiceRow
+                              key={id}
+                              svc={svc}
+                              selected={selected[id]}
+                              onToggle={() => toggleService(id)}
+                            />
+                          );
+                        })}
+                        {/* Sub-groups */}
+                        {cat.groups && cat.groups.map(group => {
+                          const subKey = `${cat.label}::${group.label}`;
+                          return (
+                            <SubGroup
+                              key={subKey}
+                              label={group.label}
+                              items={group.items}
+                              serviceMap={serviceMap}
+                              selected={selected}
+                              onToggle={toggleService}
+                              expanded={!!expandedSubs[subKey]}
+                              onToggleExpand={() => toggleSubGroup(subKey)}
+                            />
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -281,6 +482,7 @@ export default function Memberships({ services }) {
                   const month1Net = labCreditAmount > 0
                     ? Math.max(0, tier.monthly - labCreditAmount)
                     : null;
+                  const remaining = tier.credits - selectedTotal;
 
                   return (
                     <div
@@ -306,6 +508,13 @@ export default function Memberships({ services }) {
 
                       {selectedTotal > 0 && (
                         <CoverageIndicator credits={tier.credits} total={selectedTotal} />
+                      )}
+
+                      {selectedTotal > 0 && remaining > 0 && (
+                        <div style={styles.remaining}>
+                          <span style={styles.remainingValue}>{formatPrice(remaining)}</span>
+                          <span style={styles.remainingLabel}>left over for other services</span>
+                        </div>
                       )}
 
                       {month1Net !== null && (
@@ -393,7 +602,6 @@ export default function Memberships({ services }) {
 export async function getStaticProps() {
   const filePath = path.join(process.cwd(), 'data', 'services.json');
   const raw = fs.readFileSync(filePath, 'utf8');
-  // Strip JS-style comments from JSON
   const cleaned = raw.replace(/\/\/[^\n]*/g, '');
   const data = JSON.parse(cleaned);
   return {
@@ -514,11 +722,48 @@ const styles = {
   catItems: {
     borderTop: '1px solid #f0f0f0',
   },
+  // Sub-group styles
+  subGroup: {
+    borderBottom: '1px solid #f0f0f0',
+  },
+  subGroupHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    padding: '0.65rem 1.25rem',
+    background: '#fafafa',
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+  },
+  subGroupLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.4rem',
+  },
+  subGroupLabel: {
+    fontSize: '0.78rem',
+    fontWeight: 600,
+    color: '#525252',
+  },
+  subGroupBadge: {
+    fontSize: '0.6rem',
+    fontWeight: 700,
+    background: '#525252',
+    color: '#fff',
+    borderRadius: '8px',
+    padding: '1px 6px',
+    lineHeight: 1.4,
+  },
+  subGroupItems: {
+    // items render inside
+  },
   serviceRow: {
     display: 'flex',
     alignItems: 'center',
     gap: '0.75rem',
-    padding: '0.7rem 1.25rem',
+    padding: '0.7rem 1.25rem 0.7rem 1.75rem',
     cursor: 'pointer',
     transition: 'background 0.15s',
     borderBottom: '1px solid #f5f5f5',
@@ -708,9 +953,28 @@ const styles = {
     fontSize: '1rem',
     lineHeight: 1,
   },
+  remaining: {
+    marginTop: '0.625rem',
+    padding: '0.5rem 0.75rem',
+    background: '#f0fdf4',
+    borderRadius: '8px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.125rem',
+  },
+  remainingValue: {
+    fontSize: '1.1rem',
+    fontWeight: 700,
+    color: '#16a34a',
+  },
+  remainingLabel: {
+    fontSize: '0.7rem',
+    fontWeight: 500,
+    color: '#525252',
+  },
   month1: {
-    marginTop: '0.75rem',
-    padding: '0.625rem 0.75rem',
+    marginTop: '0.625rem',
+    padding: '0.5rem 0.75rem',
     background: '#fafafa',
     borderRadius: '8px',
     display: 'flex',

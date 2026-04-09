@@ -11,6 +11,30 @@ const MEMBERSHIP_TIERS = [
   { name: 'Performance', monthly: 1299, credits: 2100, bonus: 801 },
 ];
 
+// 3-month titration schedules based on human clinical trials
+// Tirzepatide: SURMOUNT-1/SURMOUNT-2 trials — 4-week dose escalation
+// Retatrutide: Phase 2 trial (Eli Lilly) — 4-week dose escalation
+const TITRATION_SCHEDULES = {
+  tirzepatide: {
+    label: 'Tirzepatide',
+    trial: 'SURMOUNT-1 / SURMOUNT-2 clinical trials',
+    months: [
+      { month: 1, dose: '2.5mg', id: 'wl-tirz-d1' },
+      { month: 2, dose: '5mg', id: 'wl-tirz-d2' },
+      { month: 3, dose: '7.5mg', id: 'wl-tirz-d3' },
+    ],
+  },
+  retatrutide: {
+    label: 'Retatrutide',
+    trial: 'Phase 2 clinical trial (Eli Lilly, 2023)',
+    months: [
+      { month: 1, dose: '2mg', id: 'wl-reta-d1' },
+      { month: 2, dose: '4mg', id: 'wl-reta-d2' },
+      { month: 3, dose: '6mg', id: 'wl-reta-d3' },
+    ],
+  },
+};
+
 // Display name overrides (UI only — services.json stays unchanged)
 const DISPLAY_NAMES = {
   'wl-tirz-d1': 'Weight Loss Program T-2.5',
@@ -284,6 +308,18 @@ export default function Memberships({ services }) {
 
   const labCreditAmount = labsPaid ? (labsPaidType === 'elite' ? 750 : 350) : 0;
 
+  // Detect if a weight loss program is selected → show titration breakdown
+  const activeTitration = useMemo(() => {
+    const tirzIds = ['wl-tirz-d1', 'wl-tirz-d2', 'wl-tirz-d3', 'wl-tirz-d4', 'wl-tirz-d5'];
+    const retaIds = ['wl-reta-d1', 'wl-reta-d2', 'wl-reta-d3', 'wl-reta-d4', 'wl-reta-d5', 'wl-reta-d6'];
+    const hasTirz = tirzIds.some(id => selected[id]);
+    const hasReta = retaIds.some(id => selected[id]);
+    const results = [];
+    if (hasTirz) results.push(TITRATION_SCHEDULES.tirzepatide);
+    if (hasReta) results.push(TITRATION_SCHEDULES.retatrutide);
+    return results;
+  }, [selected]);
+
   const toggleService = (id) => {
     setSelected(prev => ({ ...prev, [id]: !prev[id] }));
   };
@@ -537,6 +573,84 @@ export default function Memberships({ services }) {
                   );
                 })}
               </div>
+
+              {/* 3-Month Titration Breakdown */}
+              {activeTitration.length > 0 && (
+                <div style={styles.titrationSection}>
+                  <div style={styles.kicker}>3-MONTH COMMITMENT</div>
+                  <h2 style={styles.h2}>Weight Loss Titration Savings</h2>
+                  <p style={styles.titrationSub}>
+                    Memberships require a 3-month minimum. Here's what normal dose titration looks like
+                    over that period — and what you save compared to retail pricing.
+                  </p>
+
+                  {activeTitration.map(schedule => {
+                    const monthlyPrices = schedule.months.map(m => serviceMap[m.id]?.price || 0);
+                    const retailTotal = monthlyPrices.reduce((a, b) => a + b, 0);
+
+                    return (
+                      <div key={schedule.label} style={styles.titrationCard}>
+                        <div style={styles.titrationCardHeader}>
+                          <span style={styles.titrationDrug}>{schedule.label}</span>
+                          <span style={styles.titrationTrial}>Based on {schedule.trial}</span>
+                        </div>
+
+                        {/* Month-by-month table */}
+                        <div style={styles.titrationTable}>
+                          <div style={styles.titrationRow}>
+                            <span style={styles.titrationTh}></span>
+                            <span style={styles.titrationTh}>Dose</span>
+                            <span style={styles.titrationTh}>Retail</span>
+                          </div>
+                          {schedule.months.map(m => (
+                            <div key={m.month} style={styles.titrationRow}>
+                              <span style={styles.titrationTd}>Month {m.month}</span>
+                              <span style={styles.titrationTd}>{m.dose}</span>
+                              <span style={styles.titrationTdPrice}>{formatPrice(serviceMap[m.id]?.price || 0)}</span>
+                            </div>
+                          ))}
+                          <div style={styles.titrationRowTotal}>
+                            <span style={styles.titrationTdBold}>3-Month Retail Total</span>
+                            <span style={styles.titrationTd}></span>
+                            <span style={styles.titrationTdBold}>{formatPrice(retailTotal)}</span>
+                          </div>
+                        </div>
+
+                        {/* Membership comparison */}
+                        <div style={styles.titrationTiers}>
+                          {MEMBERSHIP_TIERS.map(tier => {
+                            const membershipCost = tier.monthly * 3;
+                            const totalCredits = tier.credits * 3;
+                            const savings = retailTotal - membershipCost;
+                            const coversAll = totalCredits >= retailTotal;
+
+                            return (
+                              <div key={tier.name} style={styles.titrationTier}>
+                                <div style={styles.titrationTierHeader}>
+                                  <span style={styles.titrationTierName}>{tier.name}</span>
+                                  <span style={styles.titrationTierCost}>{formatPrice(membershipCost)} over 3 months</span>
+                                </div>
+                                <div style={styles.titrationTierDetails}>
+                                  <span style={styles.titrationTierCredits}>{formatPrice(totalCredits)} in total credits</span>
+                                  {coversAll && savings > 0 && (
+                                    <span style={styles.titrationTierSavings}>You save {formatPrice(savings)} vs. retail</span>
+                                  )}
+                                  {!coversAll && (
+                                    <span style={styles.titrationTierShort}>Credits cover {Math.round((totalCredits / retailTotal) * 100)}% of retail</span>
+                                  )}
+                                  {coversAll && totalCredits > retailTotal && (
+                                    <span style={styles.titrationTierLeftover}>{formatPrice(totalCredits - retailTotal)} left over for other services</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* CTA */}
               <div style={styles.ctaSection}>
@@ -1088,5 +1202,133 @@ const styles = {
     justifyContent: 'center',
     cursor: 'pointer',
     color: '#525252',
+  },
+  // Titration section
+  titrationSection: {
+    marginTop: '2.5rem',
+    paddingTop: '2rem',
+    borderTop: '1px solid #e5e5e5',
+  },
+  titrationSub: {
+    fontSize: '0.9rem',
+    color: '#525252',
+    marginTop: '0.5rem',
+    marginBottom: '1.5rem',
+    lineHeight: 1.5,
+  },
+  titrationCard: {
+    border: '1px solid #e5e5e5',
+    borderRadius: '12px',
+    overflow: 'hidden',
+    marginBottom: '1.25rem',
+  },
+  titrationCardHeader: {
+    padding: '1rem 1.25rem',
+    background: '#fafafa',
+    borderBottom: '1px solid #e5e5e5',
+  },
+  titrationDrug: {
+    fontSize: '1rem',
+    fontWeight: 700,
+    color: '#171717',
+    display: 'block',
+  },
+  titrationTrial: {
+    fontSize: '0.75rem',
+    color: '#737373',
+    marginTop: '0.125rem',
+    display: 'block',
+    fontStyle: 'italic',
+  },
+  titrationTable: {
+    padding: '0',
+  },
+  titrationRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr 1fr',
+    padding: '0.625rem 1.25rem',
+    borderBottom: '1px solid #f0f0f0',
+  },
+  titrationRowTotal: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr 1fr',
+    padding: '0.75rem 1.25rem',
+    background: '#fafafa',
+    borderBottom: '1px solid #e5e5e5',
+  },
+  titrationTh: {
+    fontSize: '0.7rem',
+    fontWeight: 700,
+    color: '#737373',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
+  titrationTd: {
+    fontSize: '0.875rem',
+    color: '#525252',
+  },
+  titrationTdPrice: {
+    fontSize: '0.875rem',
+    fontWeight: 600,
+    color: '#171717',
+  },
+  titrationTdBold: {
+    fontSize: '0.875rem',
+    fontWeight: 700,
+    color: '#171717',
+  },
+  titrationTiers: {
+    padding: '1rem 1.25rem',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.75rem',
+  },
+  titrationTier: {
+    padding: '0.875rem 1rem',
+    borderRadius: '8px',
+    background: '#fafafa',
+    border: '1px solid #f0f0f0',
+  },
+  titrationTierHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '0.375rem',
+  },
+  titrationTierName: {
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    color: '#171717',
+  },
+  titrationTierCost: {
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    color: '#525252',
+  },
+  titrationTierDetails: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.2rem',
+  },
+  titrationTierCredits: {
+    fontSize: '0.8rem',
+    color: '#737373',
+  },
+  titrationTierSavings: {
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    color: '#16a34a',
+  },
+  titrationTierShort: {
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    color: '#ca8a04',
+  },
+  titrationTierLeftover: {
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    color: '#16a34a',
   },
 };

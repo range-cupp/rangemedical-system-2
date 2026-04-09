@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
+import { buildAdaptiveHRTSchedule, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
 import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS, INJECTION_METHODS, HRT_SUPPLY_TYPES, HRT_SECONDARY_MEDICATIONS, PEPTIDE_OPTIONS, WEIGHT_LOSS_MEDICATIONS } from '../../../lib/protocol-config';
 import { PROTOCOL_TYPES, detectProtocolType, getDBProgramType, getDeliveryLabel } from '../../../lib/protocol-types';
 import AdminLayout from '../../../components/AdminLayout';
@@ -384,15 +384,14 @@ export default function ProtocolDetail() {
       }
 
       const firstFollowup = p.first_followup_weeks || 8;
-      const schedule = getHRTLabSchedule(p.start_date, firstFollowup);
-      const matched = matchDrawsToLogs(schedule, logs, patientLabs);
-      setLabSchedule(matched);
+      const schedule = buildAdaptiveHRTSchedule(p.start_date, firstFollowup, logs, patientLabs);
+      setLabSchedule(schedule);
     } catch (err) {
       console.error('Error fetching lab schedule:', err);
       // Still show schedule without completion data
       const firstFollowup = p.first_followup_weeks || 8;
-      const schedule = getHRTLabSchedule(p.start_date, firstFollowup);
-      setLabSchedule(schedule.map(s => ({ ...s, status: 'upcoming', completedDate: null })));
+      const schedule = buildAdaptiveHRTSchedule(p.start_date, firstFollowup);
+      setLabSchedule(schedule);
     }
   };
 

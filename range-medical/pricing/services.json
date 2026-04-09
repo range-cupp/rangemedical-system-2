@@ -41,6 +41,13 @@
     { "id": "inj-nad-100", "category": "Injections", "name": "NAD+ Injection 100mg", "price": 50, "unit": "session" },
     { "id": "inj-nad-125", "category": "Injections", "name": "NAD+ Injection 125mg", "price": 62.50, "unit": "session" },
     { "id": "inj-nad-150", "category": "Injections", "name": "NAD+ Injection 150mg", "price": 75, "unit": "session" },
+    { "id": "inj-standard-10pack", "category": "Injections", "name": "Standard Injection — Monthly Program (Buy 10, Get 12)", "price": 350, "unit": "monthly", "sessions": 12 },
+    { "id": "inj-premium-10pack", "category": "Injections", "name": "Premium Injection — Monthly Program (Buy 10, Get 12)", "price": 500, "unit": "monthly", "sessions": 12 },
+    { "id": "inj-nad-50-10pack", "category": "Injections", "name": "NAD+ 50mg — Monthly Program (Buy 10, Get 12)", "price": 250, "unit": "monthly", "sessions": 12 },
+    { "id": "inj-nad-75-10pack", "category": "Injections", "name": "NAD+ 75mg — Monthly Program (Buy 10, Get 12)", "price": 375, "unit": "monthly", "sessions": 12 },
+    { "id": "inj-nad-100-10pack", "category": "Injections", "name": "NAD+ 100mg — Monthly Program (Buy 10, Get 12)", "price": 500, "unit": "monthly", "sessions": 12 },
+    { "id": "inj-nad-125-10pack", "category": "Injections", "name": "NAD+ 125mg — Monthly Program (Buy 10, Get 12)", "price": 625, "unit": "monthly", "sessions": 12 },
+    { "id": "inj-nad-150-10pack", "category": "Injections", "name": "NAD+ 150mg — Monthly Program (Buy 10, Get 12)", "price": 750, "unit": "monthly", "sessions": 12 },
     { "id": "inj-cortisone", "category": "Injections", "name": "Cortisone Injection + Consult", "price": 250, "unit": "session" },
 
     // ─── HBOT ─────────────────────────────────────────────────────

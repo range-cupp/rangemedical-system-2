@@ -117,6 +117,7 @@ const SUBGROUP_RULES = {
     { label: 'Signature Formulas', match: i => i.name.toLowerCase().startsWith('range iv') && i.name !== 'Range IV' },
     { label: 'Base IV', match: i => i.name === 'Range IV' },
     { label: 'Add-Ons', match: i => i.name.toLowerCase().includes('add-on') },
+    { label: 'Fees', match: i => i.name.toLowerCase().includes('fee') },
     { label: 'Other', match: i => i.name.toLowerCase().includes('exosome') },
   ],
   specialty_iv: [

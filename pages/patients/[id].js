@@ -838,6 +838,7 @@ export default function PatientProfile() {
   const [expandedNotes, setExpandedNotes] = useState({});
   const [noteFilter, setNoteFilter] = useState('clinical');
   const [addNoteCategory, setAddNoteCategory] = useState('internal');
+  const [noteDate, setNoteDate] = useState('');
   const [noteAuthor, setNoteAuthor] = useState('');
   const noteAuthorOptions = NOTE_AUTHORS.reduce((acc, email) => {
     const name = _STAFF_NAMES[email] || email;
@@ -3422,6 +3423,7 @@ export default function PatientProfile() {
           body: noteInput,
           created_by: authorName,
           note_category: addNoteCategory,
+          ...(noteDate ? { note_date: new Date(noteDate + 'T12:00:00').toISOString() } : {}),
         }),
       });
       const data = await res.json();
@@ -3431,6 +3433,7 @@ export default function PatientProfile() {
         setNoteInput('');
         setNoteFormatted('');
         setNoteAuthor('');
+        setNoteDate('');
         stopDictation();
       }
     } catch (error) {
@@ -9760,11 +9763,11 @@ export default function PatientProfile() {
 
         {/* Add Note Modal */}
         {showAddNoteModal && (
-          <div className="modal-overlay" {...overlayClickProps(() => { setShowAddNoteModal(false); stopDictation(); })}>
+          <div className="modal-overlay" {...overlayClickProps(() => { setShowAddNoteModal(false); stopDictation(); setNoteDate(''); })}>
             <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 640 }}>
               <div className="modal-header">
                 <h3>Add Staff Note</h3>
-                <button onClick={() => { setShowAddNoteModal(false); stopDictation(); setNoteInput(''); setNoteFormatted(''); }} className="close-btn">×</button>
+                <button onClick={() => { setShowAddNoteModal(false); stopDictation(); setNoteInput(''); setNoteFormatted(''); setNoteDate(''); }} className="close-btn">×</button>
               </div>
               <div className="modal-body">
                 {/* Category indicator — always internal/staff */}
@@ -9783,18 +9786,30 @@ export default function PatientProfile() {
                   ⚠️ This is for internal staff notes only (reminders, patient experience, operational notes). To document a clinical encounter, close this and use <strong>Log Encounter</strong> instead.
                 </div>
 
-                <div className="form-group" style={{ marginBottom: 12 }}>
-                  <label>Author</label>
-                  <select
-                    value={noteAuthor}
-                    onChange={e => setNoteAuthor(e.target.value)}
-                    style={{ width: '100%', padding: '8px 12px', fontSize: 14, borderRadius: 6, border: '1px solid #d1d5db' }}
-                  >
-                    <option value="">{employee?.name || 'Me'}</option>
-                    {noteAuthorOptions.filter(a => a.name !== employee?.name).map(a => (
-                      <option key={a.email} value={a.email}>{a.name}</option>
-                    ))}
-                  </select>
+                <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                  <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                    <label>Author</label>
+                    <select
+                      value={noteAuthor}
+                      onChange={e => setNoteAuthor(e.target.value)}
+                      style={{ width: '100%', padding: '8px 12px', fontSize: 14, borderRadius: 6, border: '1px solid #d1d5db' }}
+                    >
+                      <option value="">{employee?.name || 'Me'}</option>
+                      {noteAuthorOptions.filter(a => a.name !== employee?.name).map(a => (
+                        <option key={a.email} value={a.email}>{a.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                    <label>Date</label>
+                    <input
+                      type="date"
+                      value={noteDate}
+                      onChange={e => setNoteDate(e.target.value)}
+                      style={{ width: '100%', padding: '8px 12px', fontSize: 14, borderRadius: 6, border: '1px solid #d1d5db' }}
+                      placeholder="Today"
+                    />
+                  </div>
                 </div>
 
                 <div className="form-group">
@@ -9845,7 +9860,7 @@ export default function PatientProfile() {
 
               </div>
               <div className="modal-footer">
-                <button onClick={() => { setShowAddNoteModal(false); setNoteInput(''); setNoteFormatted(''); stopDictation(); }} className="btn-secondary">Cancel</button>
+                <button onClick={() => { setShowAddNoteModal(false); setNoteInput(''); setNoteFormatted(''); setNoteDate(''); stopDictation(); }} className="btn-secondary">Cancel</button>
                 <button
                   onClick={handleSaveNote}
                   disabled={!noteInput.trim() || noteSaving}

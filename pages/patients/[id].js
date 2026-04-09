@@ -561,7 +561,6 @@ export default function PatientProfile() {
   const [refundAmount, setRefundAmount] = useState('');
   const [refundType, setRefundType] = useState('full'); // 'full' or 'partial'
   const [refundLoading, setRefundLoading] = useState(false);
-  const [expandedCharges, setExpandedCharges] = useState({});
 
   // Timeline state
   const [timeline, setTimeline] = useState([]);
@@ -9306,7 +9305,6 @@ export default function PatientProfile() {
                     card_brand: charge.card_brand,
                     card_last4: charge.card_last4,
                     description: charge.description,
-                    receipt_url: charge.receipt_url,
                     purchase_id: charge.purchase_id,
                     line_items: charge.line_items || [],
                   }));
@@ -9331,26 +9329,16 @@ export default function PatientProfile() {
                           return (
                           <div key={charge.key} className="pay-item">
                             <div className="pay-item-info">
-                              <div className="pay-item-title" style={charge.line_items && charge.line_items.length > 0 ? { cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 } : {}}
-                                onClick={charge.line_items && charge.line_items.length > 0 ? () => setExpandedCharges(s => ({ ...s, [charge.key]: !s[charge.key] })) : undefined}
-                              >
-                                {charge.line_items && charge.line_items.length > 0 && (
-                                  <span style={{ display: 'inline-block', width: 10, fontSize: 10, color: '#64748b', transition: 'transform 0.15s', transform: expandedCharges[charge.key] ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
-                                )}
+                              <div className="pay-item-title">
                                 <span>{charge.description || 'Payment'}</span>
                               </div>
-                              {charge.line_items && charge.line_items.length > 0 && expandedCharges[charge.key] && (
-                                <div style={{ margin: '6px 0 2px', padding: '6px 8px', fontSize: 12, color: '#475569', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
+                              {charge.line_items && charge.line_items.length > 0 && (
+                                <div style={{ margin: '4px 0 2px', fontSize: 12, color: '#475569' }}>
                                   {charge.line_items.map((li, idx) => (
-                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '2px 0' }}>
-                                      <span>• {li.name}</span>
+                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '1px 0' }}>
+                                      <span style={{ color: '#64748b' }}>• {li.name}</span>
                                       {li.amount_paid != null && (
-                                        <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-                                          {li.discounted && li.list_amount != null && li.list_amount !== li.amount_paid && (
-                                            <span style={{ color: '#94a3b8', textDecoration: 'line-through', marginRight: 6 }}>${li.list_amount.toFixed(2)}</span>
-                                          )}
-                                          <span style={{ color: '#0f172a', fontWeight: 600 }}>${li.amount_paid.toFixed(2)}</span>
-                                        </span>
+                                        <span style={{ fontVariantNumeric: 'tabular-nums', color: '#475569', fontWeight: 500 }}>${li.amount_paid.toFixed(2)}</span>
                                       )}
                                     </div>
                                   ))}
@@ -9386,8 +9374,8 @@ export default function PatientProfile() {
                                   Refund
                                 </button>
                               )}
-                              {(charge.purchase_id || charge.receipt_url) && (
-                                <a href={charge.purchase_id ? `/api/receipt/${charge.purchase_id}` : charge.receipt_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                              {charge.purchase_id && (
+                                <a href={`/api/receipt/${charge.purchase_id}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
                                   style={{ fontSize: 10, color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>
                                   Receipt
                                 </a>

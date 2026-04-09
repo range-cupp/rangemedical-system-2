@@ -167,9 +167,9 @@ function parseBiomarkers(lines) {
     for (const key of SORTED_KEYS) {
       if (upper.startsWith(key)) {
         const rest = line.slice(key.length);
-        const mVal = rest.match(/^\s*([<>]?\d+\.?\d*)\s*([HL])?/);
+        const mVal = rest.match(/^\s*([<>]?\d{1,3}(?:,\d{3})*\.?\d*)\s*([HL])?/);
         if (mVal) {
-          const valStr = mVal[1].replace(/^[<>]/, '');
+          const valStr = mVal[1].replace(/^[<>]/, '').replace(/,/g, '');
           const val = parseFloat(valStr);
           if (!isNaN(val)) {
             const col = BIOMARKER_MAP[key];

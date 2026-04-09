@@ -153,7 +153,7 @@ function parseDate(dateStr) {
 
 function parseNumeric(value) {
   if (!value) return null;
-  const cleaned = value.toString().trim().replace(/[<>]/g, '');
+  const cleaned = value.toString().trim().replace(/[<>]/g, '').replace(/,/g, '');
   const num = parseFloat(cleaned);
   return isNaN(num) ? null : num;
 }

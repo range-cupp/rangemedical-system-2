@@ -68,13 +68,24 @@ const DISPLAY_NAMES = {
   'iv-glutathione-3g': '3g',
   'inj-standard': 'B12, B-Complex, D3, Biotin, Amino Blend, NAC, BCAA',
   'inj-premium': 'L-Carnitine, Glutathione, MIC-B12/Skinny Shot',
-  'hbot-1x': '1x/Week — 4 sessions/mo',
-  'hbot-2x': '2x/Week — 8 sessions/mo',
-  'hbot-3x': '3x/Week — 12 sessions/mo',
-  'rlt-1x': '1x/Week — 4 sessions/mo',
-  'rlt-2x': '2x/Week — 8 sessions/mo',
-  'rlt-3x': '3x/Week — 12 sessions/mo',
+  'hbot-1x': '1x/Week (4 sessions/mo)',
+  'hbot-2x': '2x/Week (8 sessions/mo)',
+  'hbot-3x': '3x/Week (12 sessions/mo)',
+  'rlt-1x': '1x/Week (4 sessions/mo)',
+  'rlt-2x': '2x/Week (8 sessions/mo)',
+  'rlt-3x': '3x/Week (12 sessions/mo)',
   'combo-3x': '3x/Week — HBOT + RLT each session',
+};
+
+// Membership prices for body therapy frequencies (shown alongside retail)
+const MEMBERSHIP_PRICES = {
+  'hbot-1x': { price: 549, label: 'HBOT Membership' },
+  'hbot-2x': { price: 999, label: 'HBOT Membership' },
+  'hbot-3x': { price: 1399, label: 'HBOT Membership' },
+  'rlt-1x': { price: 399, label: 'RLT Membership' },
+  'rlt-2x': { price: 399, label: 'RLT Membership' },
+  'rlt-3x': { price: 399, label: 'RLT Membership' },
+  'combo-3x': { price: 1999, label: 'Combo Membership' },
 };
 
 // Categories with nested collapsible sub-groups
@@ -251,6 +262,7 @@ function CoverageIndicator({ credits, total }) {
 
 // Renders a single selectable service row
 function ServiceRow({ svc, selected, onToggle }) {
+  const membershipDeal = MEMBERSHIP_PRICES[svc.id];
   return (
     <label style={styles.serviceRow}>
       <div style={styles.checkboxWrap}>
@@ -267,8 +279,20 @@ function ServiceRow({ svc, selected, onToggle }) {
           style={{ display: 'none' }}
         />
       </div>
-      <span style={styles.serviceName}>{getDisplayName(svc)}</span>
-      <span style={styles.servicePrice}>{formatPrice(svc.price)}</span>
+      <div style={styles.serviceNameCol}>
+        <span style={styles.serviceName}>{getDisplayName(svc)}</span>
+        {membershipDeal && (
+          <span style={styles.membershipNote}>
+            {membershipDeal.label}: {formatPrice(membershipDeal.price)}/mo
+          </span>
+        )}
+      </div>
+      <div style={styles.servicePriceCol}>
+        <span style={styles.servicePrice}>{formatPrice(svc.price)}</span>
+        {membershipDeal && (
+          <span style={styles.servicePriceLabel}>retail/mo</span>
+        )}
+      </div>
     </label>
   );
 }
@@ -925,17 +949,43 @@ const styles = {
     background: '#171717',
     borderColor: '#171717',
   },
-  serviceName: {
+  serviceNameCol: {
     flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.15rem',
+    minWidth: 0,
+  },
+  serviceName: {
     fontSize: '0.875rem',
     color: '#171717',
     lineHeight: 1.3,
+  },
+  membershipNote: {
+    fontSize: '0.72rem',
+    fontWeight: 600,
+    color: '#16a34a',
+    lineHeight: 1.3,
+  },
+  servicePriceCol: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: '0.1rem',
+    flexShrink: 0,
   },
   servicePrice: {
     fontSize: '0.875rem',
     fontWeight: 600,
     color: '#525252',
     whiteSpace: 'nowrap',
+  },
+  servicePriceLabel: {
+    fontSize: '0.6rem',
+    fontWeight: 500,
+    color: '#a3a3a3',
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
   },
   labsToggleSection: {
     border: '1px solid #e5e5e5',

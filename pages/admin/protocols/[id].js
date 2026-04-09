@@ -167,6 +167,9 @@ export default function ProtocolDetail() {
   const [enablingWlCheckin, setEnablingWlCheckin] = useState(false);
   const [dripLogs, setDripLogs] = useState([]);
   const [startingDrip, setStartingDrip] = useState(false);
+  const [editingGoalWeight, setEditingGoalWeight] = useState(false);
+  const [goalWeightInput, setGoalWeightInput] = useState('');
+  const [savingGoalWeight, setSavingGoalWeight] = useState(false);
   const [onboardingLogs, setOnboardingLogs] = useState([]);
   const [startingOnboarding, setStartingOnboarding] = useState(false);
   const [secMedPickupModal, setSecMedPickupModal] = useState(null); // { medication, detail }
@@ -263,7 +266,8 @@ export default function ProtocolDetail() {
         injectionMethod: enrichedProtocol.injection_method || '',
         supplyType: enrichedProtocol.supply_type || '',
         scheduledDays: enrichedProtocol.scheduled_days || [],
-        secondaryMedications: enrichedProtocol.secondary_medications ? (typeof enrichedProtocol.secondary_medications === 'string' ? JSON.parse(enrichedProtocol.secondary_medications) : enrichedProtocol.secondary_medications) : []
+        secondaryMedications: enrichedProtocol.secondary_medications ? (typeof enrichedProtocol.secondary_medications === 'string' ? JSON.parse(enrichedProtocol.secondary_medications) : enrichedProtocol.secondary_medications) : [],
+        goalWeight: enrichedProtocol.goal_weight ? parseFloat(enrichedProtocol.goal_weight) : ''
       });
 
       // Build check-in schedule for take-home protocols (NOT HRT — HRT has its own reminder system)
@@ -907,6 +911,11 @@ export default function ProtocolDetail() {
         }
       }
 
+      // Weight loss specific: save goal weight
+      if (isWL && form.goalWeight !== undefined) {
+        saveData.goal_weight = form.goalWeight ? parseFloat(form.goalWeight) : null;
+      }
+
       // Only set total_sessions for non-weight-loss protocols
       if (!isWL) {
         saveData.total_sessions = parseInt(form.duration);
@@ -928,6 +937,25 @@ export default function ProtocolDetail() {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveGoalWeight = async () => {
+    setSavingGoalWeight(true);
+    try {
+      const val = goalWeightInput ? parseFloat(goalWeightInput) : null;
+      const res = await fetch(`/api/admin/protocols/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ goal_weight: val })
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      setEditingGoalWeight(false);
+      fetchProtocol();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingGoalWeight(false);
     }
   };
 
@@ -1679,21 +1707,56 @@ export default function ProtocolDetail() {
                     </div>
                     <div style={{ fontSize: '11px', color: '#9ca3af' }}>lbs ({weightProgress.changePercent}%)</div>
                   </div>
-                  {weightProgress.goalWeight && (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'center', fontSize: '24px', color: '#d1d5db' }}>→</div>
-                      <div>
-                        <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Goal</div>
-                        <div style={{ fontSize: '24px', fontWeight: '700', color: '#3b82f6' }}>{weightProgress.goalWeight}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', fontSize: '24px', color: '#d1d5db' }}>→</div>
+                  <div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Goal</div>
+                    {editingGoalWeight ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                        <input
+                          type="number"
+                          value={goalWeightInput}
+                          onChange={e => setGoalWeightInput(e.target.value)}
+                          style={{ width: '80px', fontSize: '18px', fontWeight: '700', textAlign: 'center', border: '2px solid #3b82f6', borderRadius: '6px', padding: '4px', outline: 'none' }}
+                          placeholder="lbs"
+                          min="80"
+                          max="600"
+                          autoFocus
+                          onKeyDown={e => { if (e.key === 'Enter') handleSaveGoalWeight(); if (e.key === 'Escape') setEditingGoalWeight(false); }}
+                        />
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button onClick={handleSaveGoalWeight} disabled={savingGoalWeight} style={{ fontSize: '11px', padding: '2px 8px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                            {savingGoalWeight ? '...' : 'Save'}
+                          </button>
+                          <button onClick={() => setEditingGoalWeight(false)} style={{ fontSize: '11px', padding: '2px 8px', background: '#f3f4f6', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}>
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : weightProgress.goalWeight ? (
+                      <>
+                        <div
+                          style={{ fontSize: '24px', fontWeight: '700', color: '#3b82f6', cursor: 'pointer' }}
+                          onClick={() => { setGoalWeightInput(String(weightProgress.goalWeight)); setEditingGoalWeight(true); }}
+                          title="Click to edit goal weight"
+                        >
+                          {weightProgress.goalWeight}
+                        </div>
                         <div style={{ fontSize: '11px', color: '#9ca3af' }}>
                           {parseFloat(weightProgress.currentWeight) > weightProgress.goalWeight
                             ? `${(parseFloat(weightProgress.currentWeight) - weightProgress.goalWeight).toFixed(1)} to go`
                             : 'reached!'
                           }
                         </div>
-                      </div>
-                    </>
-                  )}
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => { setGoalWeightInput(''); setEditingGoalWeight(true); }}
+                        style={{ fontSize: '14px', padding: '6px 16px', background: '#eff6ff', color: '#3b82f6', border: '1px dashed #93c5fd', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}
+                      >
+                        Set Goal
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -2359,6 +2422,27 @@ export default function ProtocolDetail() {
                     ) : null}
                   </div>
                 </div>
+
+                {/* Goal Weight (weight loss only) */}
+                {isWeightLoss && (
+                  <div style={styles.section}>
+                    <h3 style={styles.sectionTitle}>Goal Weight</h3>
+                    <div style={styles.field}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <input
+                          type="number"
+                          value={form.goalWeight}
+                          onChange={e => setForm({ ...form, goalWeight: e.target.value })}
+                          style={{ ...styles.input, width: '120px' }}
+                          placeholder="e.g. 180"
+                          min="80"
+                          max="600"
+                        />
+                        <span style={{ color: '#6b7280', fontSize: '14px' }}>lbs</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Status */}
                 <div style={styles.section}>

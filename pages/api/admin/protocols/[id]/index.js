@@ -125,6 +125,9 @@ export default async function handler(req, res) {
       if (b.vial_size !== undefined) updateData.vial_size = b.vial_size;
       if (b.first_followup_weeks !== undefined) updateData.first_followup_weeks = b.first_followup_weeks;
 
+      // Weight loss specific
+      if (b.goal_weight !== undefined) updateData.goal_weight = b.goal_weight;
+
       updateData.updated_at = new Date().toISOString();
 
       // Try old table first

@@ -220,109 +220,109 @@ const biomarkerMapping = {
     fatigue: {
       essential: ['TSH', 'T3, Free', 'T4, Total', 'Testosterone (Free & Total)', 'Vitamin D', 'HbA1c', 'CBC'],
       elite: ['Ferritin', 'Iron & TIBC', 'Vitamin B-12', 'Cortisol'],
-      reason: 'Feeling tired can come from your thyroid, low hormones, or missing vitamins.'
+      reason: "That \"running on fumes\" feeling usually isn't in your head — it's in your bloodwork. Your thyroid, hormones, or vitamin levels could be tanking your energy without you knowing."
     },
     brain_fog: {
       essential: ['TSH', 'T3, Free', 'T4, Total', 'Testosterone (Free & Total)', 'Vitamin D'],
       elite: ['Vitamin B-12', 'Homocysteine', 'Cortisol', 'Ferritin'],
-      reason: 'Trouble focusing is often caused by thyroid or hormone levels being off.'
+      reason: "When you can't finish a thought or keep losing your train mid-sentence, it's usually your thyroid or hormones quietly misfiring — not just stress or aging."
     },
     weight_gain: {
       essential: ['TSH', 'T3, Free', 'T4, Total', 'Insulin, Fasting', 'HbA1c', 'Testosterone (Free & Total)', 'Estradiol'],
       elite: ['Cortisol', 'DHEA-S', 'Lipid Panel (Advanced)'],
-      reason: 'Gaining weight for no clear reason can point to thyroid or blood sugar issues.'
+      reason: "You're eating clean, working out, doing everything right — and the scale won't move. That's not a willpower problem. Your thyroid, insulin, or hormones could be working against you."
     },
     poor_sleep: {
       essential: ['TSH', 'Testosterone (Free & Total)', 'Estradiol'],
       elite: ['Cortisol', 'DHEA-S', 'Magnesium'],
-      reason: 'Bad sleep is often tied to stress hormones or hormone levels being off.'
+      reason: "Waking up at 3am wired, or never feeling rested no matter how long you sleep — that's your stress hormones or sex hormones being out of range."
     },
     low_libido: {
       essential: ['Testosterone (Free & Total)', 'SHBG', 'Estradiol', 'TSH'],
       elite: ['DHEA-S', 'Cortisol', 'Prolactin'],
-      reason: 'Low sex drive is usually linked to testosterone and other key hormones.'
+      reason: "When the drive just disappears — physically and mentally — it's almost always hormonal. Testosterone and a few other key markers tell the full story."
     },
     muscle_loss: {
       essential: ['Testosterone (Free & Total)', 'SHBG'],
       elite: ['IGF-1', 'DHEA-S', 'Cortisol', 'CRP-HS'],
-      reason: 'Losing muscle often means testosterone is low or stress hormones are too high.'
+      reason: "You're putting in the work but your body's not responding. That usually means testosterone is too low or cortisol is too high — your body is breaking down faster than it can build."
     },
     mood_changes: {
       essential: ['TSH', 'T3, Free', 'Testosterone (Free & Total)', 'Vitamin D'],
       elite: ['Vitamin B-12', 'Cortisol', 'DHEA-S', 'Homocysteine'],
-      reason: 'Mood swings can be caused by thyroid issues, hormone levels, or low vitamins.'
+      reason: "Snapping at people you love, feeling off for no reason — that's not just a bad day. Thyroid, hormones, and vitamin levels directly control your mood, and when they're off, you feel it."
     },
     recovery: {
       essential: ['Testosterone (Free & Total)', 'CBC'],
       elite: ['IGF-1', 'Cortisol', 'CRP-HS', 'Ferritin', 'Magnesium'],
-      reason: 'Slow recovery often means hormones or minerals are out of balance.'
+      reason: "When one workout leaves you wrecked for days, your body is telling you something. Low testosterone, high inflammation, or depleted minerals can turn recovery into a wall."
     }
   },
   goals: {
     more_energy: {
       essential: ['TSH', 'T3, Free', 'Testosterone (Free & Total)', 'Vitamin D', 'HbA1c'],
       elite: ['Vitamin B-12', 'Ferritin', 'Iron & TIBC', 'Cortisol'],
-      reason: 'Lasting energy needs your thyroid, hormones, and vitamins working well together.'
+      reason: "Real energy — not caffeine energy — comes from your thyroid, hormones, and vitamins actually working together. When one's off, you feel it all day."
     },
     better_sleep: {
       essential: ['TSH', 'Testosterone (Free & Total)'],
       elite: ['Cortisol', 'Magnesium', 'DHEA-S'],
-      reason: 'Good sleep depends on balanced stress hormones and the right mineral levels.'
+      reason: "Sleeping through the night shouldn't be a luxury. When your cortisol is spiking at the wrong times or your magnesium is depleted, your body literally can't shut down."
     },
     lose_weight: {
       essential: ['TSH', 'T3, Free', 'T4, Total', 'Insulin, Fasting', 'HbA1c', 'Testosterone (Free & Total)', 'Lipid Panel'],
       elite: ['Cortisol', 'CRP-HS', 'Apolipoprotein B'],
-      reason: 'Weight loss works best when your thyroid, blood sugar, and hormones are in check.'
+      reason: "If the weight won't budge no matter what you do, it's not about trying harder. Your thyroid, insulin, and hormones might be quietly sabotaging every effort."
     },
     build_muscle: {
       essential: ['Testosterone (Free & Total)', 'SHBG'],
       elite: ['IGF-1', 'DHEA-S', 'Cortisol', 'CRP-HS'],
-      reason: 'Building muscle needs good testosterone levels and low inflammation.'
+      reason: "You're training hard but your body isn't building. Low testosterone or high inflammation means your body can't keep up with what you're asking it to do."
     },
     mental_clarity: {
       essential: ['TSH', 'T3, Free', 'Testosterone (Free & Total)', 'Vitamin D'],
       elite: ['Vitamin B-12', 'Homocysteine', 'Folate', 'Cortisol'],
-      reason: 'Clear thinking depends on your thyroid and B-vitamins working together.'
+      reason: "That foggy, scattered feeling isn't normal — and it's not just aging. Your thyroid and B-vitamins directly power your brain, and when they drop, so does your sharpness."
     },
     feel_myself: {
       essential: ['Full Hormone Panel', 'Thyroid Panel', 'Metabolic Markers'],
       elite: ['Comprehensive Testing'],
-      reason: 'A full picture helps us find exactly what\'s off so we can fix it.'
+      reason: "When you just don't feel like you anymore, something is off — you're not imagining it. A full panel shows us exactly what shifted so we can get you back."
     },
     longevity: {
       essential: ['Lipid Panel', 'HbA1c', 'Insulin'],
       elite: ['Apolipoprotein B', 'Lipoprotein(a)', 'Homocysteine', 'CRP-HS', 'IGF-1', 'Uric Acid'],
-      reason: 'Living longer and healthier means checking your heart and blood sugar markers closely.'
+      reason: "The stuff that takes people out — heart disease, metabolic issues — shows up in bloodwork years before symptoms do. This is how you stay ahead of it."
     },
     performance: {
       essential: ['Testosterone (Free & Total)', 'SHBG', 'Estradiol', 'CBC'],
       elite: ['IGF-1', 'DHEA-S', 'Cortisol', 'Ferritin', 'Iron & TIBC', 'Magnesium'],
-      reason: 'Peak performance needs strong hormones, good iron levels, and fast recovery.'
+      reason: "Performing at your best means your hormones, iron, and recovery systems are all dialed in. When any of those are off, you hit a ceiling no amount of training can break through."
     }
   }
 };
 
 // Symptom and goal labels for display
 const symptomLabels = {
-  fatigue: 'Fatigue or low energy',
-  brain_fog: 'Brain fog or poor focus',
-  weight_gain: 'Unexplained weight gain',
-  poor_sleep: 'Poor sleep or insomnia',
-  low_libido: 'Low libido or sexual function',
-  muscle_loss: 'Muscle loss or weakness',
-  mood_changes: 'Mood changes or irritability',
-  recovery: 'Slow recovery from workouts'
+  fatigue: "Running on empty by noon",
+  brain_fog: "Forgetting things mid-sentence",
+  weight_gain: "The scale won't budge no matter what",
+  poor_sleep: "Up at 3am staring at the ceiling",
+  low_libido: "Zero drive — in every sense",
+  muscle_loss: "Losing muscle even while training",
+  mood_changes: "Snapping at people for no reason",
+  recovery: "One workout wrecks me for days"
 };
 
 const goalLabels = {
-  more_energy: 'More energy throughout the day',
-  better_sleep: 'Better, more restful sleep',
-  lose_weight: 'Lose weight',
-  build_muscle: 'Build or maintain muscle',
-  mental_clarity: 'Mental clarity and focus',
-  feel_myself: 'Feel like myself again',
-  longevity: 'Optimize for longevity',
-  performance: 'Athletic or sexual performance'
+  more_energy: "Energy that actually lasts",
+  better_sleep: "Sleep through the night",
+  lose_weight: "Lose the weight that won't budge",
+  build_muscle: "Build or keep my muscle",
+  mental_clarity: "Think clearly again",
+  feel_myself: "Feel like myself again",
+  longevity: "Stay healthy long-term",
+  performance: "Perform at my best"
 };
 
 export default function RangeAssessment() {
@@ -2904,14 +2904,14 @@ export default function RangeAssessment() {
       subtitle: "Pick everything that sounds like you",
       type: 'multiselect',
       options: [
-        { value: 'fatigue', label: "I'm tired all the time" },
-        { value: 'brain_fog', label: "I can't focus or think clearly" },
-        { value: 'weight_gain', label: "I'm gaining weight for no reason" },
-        { value: 'poor_sleep', label: "I can't sleep well" },
-        { value: 'low_libido', label: 'My sex drive is gone' },
-        { value: 'muscle_loss', label: "I'm losing strength or muscle" },
-        { value: 'mood_changes', label: 'My mood is all over the place' },
-        { value: 'recovery', label: "I can't recover from workouts" }
+        { value: 'fatigue', label: "I'm running on empty by noon" },
+        { value: 'brain_fog', label: "I forget things mid-sentence" },
+        { value: 'weight_gain', label: "The scale won't budge no matter what I do" },
+        { value: 'poor_sleep', label: "I'm up at 3am staring at the ceiling" },
+        { value: 'low_libido', label: 'Zero drive — in every sense' },
+        { value: 'muscle_loss', label: "I'm losing muscle even though I train" },
+        { value: 'mood_changes', label: "I snap at people I love for no reason" },
+        { value: 'recovery', label: "One workout wrecks me for days" }
       ]
     },
     {

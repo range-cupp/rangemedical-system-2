@@ -3549,7 +3549,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 )}
               </div>
 
-              {/* Modality — required */}
+              {/* Modality — required (hidden if already picked at service selection) */}
+              {!selectedServices.some(s => s.hasModality) && (
               <div style={{ marginTop: '12px' }}>
                 <label style={styles.fieldLabel}>Modality <span style={{ color: '#dc2626' }}>*</span></label>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -3580,6 +3581,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                   <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>Modality is required.</div>
                 )}
               </div>
+              )}
 
               {/* Notes */}
               <div style={{ marginTop: '12px' }}>
@@ -3854,7 +3856,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               )}
             </div>
 
-            {/* Modality — required */}
+            {/* Modality — required (hidden if already picked at service selection) */}
+            {!selectedServices.some(s => s.hasModality) && (
             <div style={{ marginBottom: '12px' }}>
               <label style={styles.fieldLabel}>Modality <span style={{ color: '#dc2626' }}>*</span></label>
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -3885,6 +3888,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>Modality is required.</div>
               )}
             </div>
+            )}
 
             <div style={{ marginBottom: '12px' }}>
               <label style={styles.fieldLabel}>Notes (optional)</label>

@@ -1400,7 +1400,16 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                   }} />
                 )}
               </div>
-              {(height >= 40 || isHovered) && <div style={styles.apptBlockService}>{appt.service_name}</div>}
+              {(height >= 40 || isHovered) && (
+                <div style={styles.apptBlockService}>
+                  {appt.service_name}
+                  {appt.modality && appt.modality !== 'in_clinic' && (
+                    <span style={{ marginLeft: '4px', opacity: 0.8 }}>
+                      {appt.modality === 'phone' ? '📞' : '💻'}
+                    </span>
+                  )}
+                </div>
+              )}
               {(height >= 56 || isHovered) && appt.provider && (
                 <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '2px' }}>{appt.provider}</div>
               )}
@@ -1543,7 +1552,14 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                         }} />
                       )}
                     </div>
-                    <div style={{ fontSize: '12px', opacity: 0.8 }}>{appt.service_name}</div>
+                    <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                      {appt.service_name}
+                      {appt.modality && appt.modality !== 'in_clinic' && (
+                        <span style={{ marginLeft: '3px' }}>
+                          {appt.modality === 'phone' ? '📞' : '💻'}
+                        </span>
+                      )}
+                    </div>
                     <div style={{ fontSize: '12px', opacity: 0.7 }}>
                       {formatTime(appt.start_time)}
                       {appt.provider ? ` · ${appt.provider}` : ''}
@@ -1785,7 +1801,16 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                         {appt.patient_name}
                         {noteBadge(appt.id)}
                       </div>
-                      {height >= 35 && <div style={styles.apptBlockService}>{appt.service_name}</div>}
+                      {height >= 35 && (
+                        <div style={styles.apptBlockService}>
+                          {appt.service_name}
+                          {appt.modality && appt.modality !== 'in_clinic' && (
+                            <span style={{ marginLeft: '4px', opacity: 0.8 }}>
+                              {appt.modality === 'phone' ? '📞' : '💻'}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       {height >= 50 && (
                         <div style={styles.apptBlockTime}>
                           {formatTime(appt.start_time)}
@@ -1973,6 +1998,14 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               <span style={styles.popoverLabel}>Status</span>
               <span>{getStatusBadge(appt.status)}</span>
             </div>
+            {appt.modality && (
+              <div style={styles.popoverRow}>
+                <span style={styles.popoverLabel}>Modality</span>
+                <span style={styles.popoverValue}>
+                  {appt.modality === 'in_clinic' ? '🏥 In Clinic' : appt.modality === 'phone' ? '📞 Telephone' : '💻 Telemedicine'}
+                </span>
+              </div>
+            )}
 
             {/* Forms / Consent checklist — compute live status for use in prep checklist too */}
             {(() => {
@@ -3074,7 +3107,14 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     onClick={() => {
                       setSelectedServices(prev => {
                         if (prev.some(s => s.name === svc.name)) {
-                          return prev.filter(s => s.name !== svc.name);
+                          const next = prev.filter(s => s.name !== svc.name);
+                          // Reset modality if no remaining services need it
+                          if (!next.some(s => s.hasModality)) setModality('');
+                          return next;
+                        }
+                        // When adding a service with restricted modalities, reset if current modality isn't allowed
+                        if (svc.hasModality && svc.allowedModalities && modality && !svc.allowedModalities.includes(modality)) {
+                          setModality('');
                         }
                         return [...prev, svc];
                       });
@@ -3107,6 +3147,47 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             </div>
           )}
           </>}
+
+          {/* Modality selector for consultation services (hasModality) */}
+          {selectedServices.some(s => s.hasModality) && (() => {
+            const modalitySvc = selectedServices.find(s => s.hasModality);
+            const allowed = modalitySvc?.allowedModalities || ['in_clinic', 'phone', 'telemedicine'];
+            const allOptions = [
+              { value: 'in_clinic', label: 'In Clinic', icon: '🏥' },
+              { value: 'phone', label: 'Telephone', icon: '📞' },
+              { value: 'telemedicine', label: 'Telemedicine', icon: '💻' },
+            ];
+            const options = allOptions.filter(o => allowed.includes(o.value));
+            return (
+            <div style={{ marginTop: '12px' }}>
+              <label style={styles.fieldLabel}>Appointment Type <span style={{ color: '#dc2626' }}>*</span></label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {options.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setModality(opt.value)}
+                    style={{
+                      flex: 1,
+                      padding: '12px 8px',
+                      border: modality === opt.value ? '2px solid #000' : '1px solid #d1d5db',
+                      borderRadius: 0,
+                      background: modality === opt.value ? '#f9fafb' : '#fff',
+                      color: '#111',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div style={{ fontSize: '18px', marginBottom: '4px' }}>{opt.icon}</div>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            );
+          })()}
 
           {/* Panel type selector for New Patient Blood Draw */}
           {selectedServices.some(s => s.calcomSlug === 'new-patient-blood-draw') && (
@@ -3152,12 +3233,20 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </div>
               <div style={{ fontSize: '12px', color: '#166534', marginBottom: '10px' }}>
                 {selectedServices.map(s => s.name).join(' + ')}
+                {selectedServices.some(s => s.hasModality) && modality && (
+                  <span style={{ fontWeight: '600' }}>{' · '}{{ in_clinic: 'In Clinic', phone: 'Telephone', telemedicine: 'Telemedicine' }[modality]}</span>
+                )}
               </div>
+              {selectedServices.some(s => s.hasModality) && !modality && (
+                <div style={{ fontSize: '12px', color: '#dc2626', marginBottom: '8px' }}>Select an appointment type above to continue.</div>
+              )}
               <button
                 onClick={() => {
                   const primary = selectedServices[0];
                   setSelectedService(primary);
                   setSelectedProvider(null);
+                  // If consultation service needs modality and none set, stay on step
+                  if (selectedServices.some(s => s.hasModality) && !modality) return;
                   // If ANY service needs blood-draw panel and panel not yet set, stay on step
                   if (selectedServices.some(s => s.calcomSlug === 'new-patient-blood-draw') && !panelType) return;
                   if (selectedServices.length > 1) {

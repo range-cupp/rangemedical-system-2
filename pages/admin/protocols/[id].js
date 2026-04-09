@@ -1680,6 +1680,55 @@ export default function ProtocolDetail() {
             })()}
 
             {/* Weight Progress Card (weight loss only) */}
+            {/* Goal Weight card — show when WL but no weight logs yet */}
+            {!isEditing && isWeightLoss && !weightProgress && (
+              <div style={styles.card}>
+                <h2 style={styles.cardTitle}>⚖️ Goal Weight</h2>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 0' }}>
+                  {editingGoalWeight ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="number"
+                        value={goalWeightInput}
+                        onChange={e => setGoalWeightInput(e.target.value)}
+                        style={{ width: '100px', fontSize: '20px', fontWeight: '700', textAlign: 'center', border: '2px solid #3b82f6', borderRadius: '8px', padding: '8px', outline: 'none' }}
+                        placeholder="lbs"
+                        min="80"
+                        max="600"
+                        autoFocus
+                        onKeyDown={e => { if (e.key === 'Enter') handleSaveGoalWeight(); if (e.key === 'Escape') setEditingGoalWeight(false); }}
+                      />
+                      <span style={{ color: '#6b7280', fontSize: '16px' }}>lbs</span>
+                      <button onClick={handleSaveGoalWeight} disabled={savingGoalWeight} style={{ fontSize: '14px', padding: '8px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>
+                        {savingGoalWeight ? 'Saving...' : 'Save'}
+                      </button>
+                      <button onClick={() => setEditingGoalWeight(false)} style={{ fontSize: '14px', padding: '8px 16px', background: '#f3f4f6', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer' }}>
+                        Cancel
+                      </button>
+                    </div>
+                  ) : protocol?.goal_weight ? (
+                    <div style={{ textAlign: 'center' }}>
+                      <div
+                        style={{ fontSize: '32px', fontWeight: '700', color: '#3b82f6', cursor: 'pointer' }}
+                        onClick={() => { setGoalWeightInput(String(protocol.goal_weight)); setEditingGoalWeight(true); }}
+                        title="Click to edit goal weight"
+                      >
+                        {parseFloat(protocol.goal_weight)} <span style={{ fontSize: '16px', color: '#6b7280', fontWeight: '400' }}>lbs</span>
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '4px' }}>No weight logs yet</div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setGoalWeightInput(''); setEditingGoalWeight(true); }}
+                      style={{ fontSize: '16px', padding: '12px 32px', background: '#eff6ff', color: '#3b82f6', border: '1px dashed #93c5fd', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}
+                    >
+                      Set Goal Weight
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {!isEditing && isWeightLoss && weightProgress && (
               <div style={styles.card}>
                 <h2 style={styles.cardTitle}>⚖️ Weight Progress</h2>

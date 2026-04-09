@@ -391,7 +391,7 @@ export default function Memberships({ services }) {
 }
 
 export async function getStaticProps() {
-  const filePath = path.join(process.cwd(), 'range-medical', 'pricing', 'services.json');
+  const filePath = path.join(process.cwd(), 'data', 'services.json');
   const raw = fs.readFileSync(filePath, 'utf8');
   // Strip JS-style comments from JSON
   const cleaned = raw.replace(/\/\/[^\n]*/g, '');

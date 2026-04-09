@@ -1,0 +1,127 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-03-17",
+  "clinic": "Range Medical — Newport Beach",
+  "services": [
+
+    // ─── LAB PANELS ───────────────────────────────────────────────
+    { "id": "lab-mens-essential", "category": "Lab Panels", "name": "Men's Essential Panel", "price": 350, "unit": "session" },
+    { "id": "lab-mens-elite", "category": "Lab Panels", "name": "Men's Elite Panel", "price": 750, "unit": "session" },
+    { "id": "lab-womens-essential", "category": "Lab Panels", "name": "Women's Essential Panel", "price": 350, "unit": "session" },
+    { "id": "lab-womens-elite", "category": "Lab Panels", "name": "Women's Elite Panel", "price": 750, "unit": "session" },
+    { "id": "lab-mb-prescreening", "category": "Lab Panels", "name": "MB Pre-Screening Panel (G6PD, CMP, CBC)", "price": 125, "unit": "session" },
+
+    // ─── IV THERAPY — STANDARD ────────────────────────────────────
+    { "id": "iv-range", "category": "IV Therapy - Standard", "name": "Range IV", "price": 225, "unit": "session" },
+    { "id": "iv-immune-defense", "category": "IV Therapy - Standard", "name": "Range IV — Immune Defense", "price": 225, "unit": "session" },
+    { "id": "iv-energy-vitality", "category": "IV Therapy - Standard", "name": "Range IV — Energy & Vitality", "price": 225, "unit": "session" },
+    { "id": "iv-muscle-recovery", "category": "IV Therapy - Standard", "name": "Range IV — Muscle Recovery", "price": 225, "unit": "session" },
+    { "id": "iv-detox-cellular", "category": "IV Therapy - Standard", "name": "Range IV — Detox & Cellular Repair", "price": 225, "unit": "session" },
+    { "id": "iv-addon", "category": "IV Therapy - Standard", "name": "IV Add-on", "price": 35, "unit": "addon" },
+
+    // ─── IV THERAPY — SPECIALTY ───────────────────────────────────
+    { "id": "iv-nad-225", "category": "IV Therapy - Specialty", "name": "NAD+ 225mg", "price": 375, "unit": "session" },
+    { "id": "iv-nad-500", "category": "IV Therapy - Specialty", "name": "NAD+ 500mg", "price": 525, "unit": "session" },
+    { "id": "iv-nad-750", "category": "IV Therapy - Specialty", "name": "NAD+ 750mg", "price": 650, "unit": "session" },
+    { "id": "iv-nad-1000", "category": "IV Therapy - Specialty", "name": "NAD+ 1000mg", "price": 775, "unit": "session" },
+    { "id": "iv-vitc-25", "category": "IV Therapy - Specialty", "name": "Vitamin C 25g", "price": 215, "unit": "session" },
+    { "id": "iv-vitc-50", "category": "IV Therapy - Specialty", "name": "Vitamin C 50g", "price": 255, "unit": "session" },
+    { "id": "iv-vitc-75", "category": "IV Therapy - Specialty", "name": "Vitamin C 75g", "price": 330, "unit": "session" },
+    { "id": "iv-glutathione-1g", "category": "IV Therapy - Specialty", "name": "Glutathione 1g", "price": 170, "unit": "session" },
+    { "id": "iv-glutathione-2g", "category": "IV Therapy - Specialty", "name": "Glutathione 2g", "price": 190, "unit": "session" },
+    { "id": "iv-glutathione-3g", "category": "IV Therapy - Specialty", "name": "Glutathione 3g", "price": 215, "unit": "session" },
+    { "id": "iv-mb-vitc-mag-combo", "category": "IV Therapy - Specialty", "name": "MB + Vit C + Mag Combo", "price": 750, "unit": "session" },
+    { "id": "iv-methylene-blue", "category": "IV Therapy - Specialty", "name": "Methylene Blue IV", "price": 450, "unit": "session" },
+
+    // ─── INJECTIONS ───────────────────────────────────────────────
+    { "id": "inj-standard", "category": "Injections", "name": "Standard Injection (B12, B-Complex, D3, Biotin, Amino Blend, NAC, BCAA)", "price": 35, "unit": "session" },
+    { "id": "inj-premium", "category": "Injections", "name": "Premium Injection (L-Carnitine, Glutathione, MIC-B12/Skinny Shot)", "price": 50, "unit": "session" },
+    { "id": "inj-nad-50", "category": "Injections", "name": "NAD+ Injection 50mg", "price": 25, "unit": "session" },
+    { "id": "inj-nad-75", "category": "Injections", "name": "NAD+ Injection 75mg", "price": 37.50, "unit": "session" },
+    { "id": "inj-nad-100", "category": "Injections", "name": "NAD+ Injection 100mg", "price": 50, "unit": "session" },
+    { "id": "inj-nad-125", "category": "Injections", "name": "NAD+ Injection 125mg", "price": 62.50, "unit": "session" },
+    { "id": "inj-nad-150", "category": "Injections", "name": "NAD+ Injection 150mg", "price": 75, "unit": "session" },
+    { "id": "inj-standard-10pack", "category": "Injections", "name": "Standard Injection — Monthly Program (Buy 10, Get 12)", "price": 350, "unit": "monthly", "sessions": 12 },
+    { "id": "inj-premium-10pack", "category": "Injections", "name": "Premium Injection — Monthly Program (Buy 10, Get 12)", "price": 500, "unit": "monthly", "sessions": 12 },
+    { "id": "inj-nad-50-10pack", "category": "Injections", "name": "NAD+ 50mg — Monthly Program (Buy 10, Get 12)", "price": 250, "unit": "monthly", "sessions": 12 },
+    { "id": "inj-nad-75-10pack", "category": "Injections", "name": "NAD+ 75mg — Monthly Program (Buy 10, Get 12)", "price": 375, "unit": "monthly", "sessions": 12 },
+    { "id": "inj-nad-100-10pack", "category": "Injections", "name": "NAD+ 100mg — Monthly Program (Buy 10, Get 12)", "price": 500, "unit": "monthly", "sessions": 12 },
+    { "id": "inj-nad-125-10pack", "category": "Injections", "name": "NAD+ 125mg — Monthly Program (Buy 10, Get 12)", "price": 625, "unit": "monthly", "sessions": 12 },
+    { "id": "inj-nad-150-10pack", "category": "Injections", "name": "NAD+ 150mg — Monthly Program (Buy 10, Get 12)", "price": 750, "unit": "monthly", "sessions": 12 },
+    { "id": "inj-cortisone", "category": "Injections", "name": "Cortisone Injection + Consult", "price": 250, "unit": "session" },
+
+    // ─── HBOT ─────────────────────────────────────────────────────
+    { "id": "hbot-single", "category": "HBOT", "name": "HBOT — Single Session", "price": 185, "unit": "session" },
+    { "id": "hbot-5pack", "category": "HBOT", "name": "HBOT — 5-Session Pack", "price": 850, "unit": "package", "price_per_unit": 170, "sessions": 5 },
+    { "id": "hbot-10pack", "category": "HBOT", "name": "HBOT — 10-Session Pack", "price": 1600, "unit": "package", "price_per_unit": 160, "sessions": 10 },
+    { "id": "hbot-member-session", "category": "HBOT", "name": "HBOT — Additional Member Session", "price": 150, "unit": "session" },
+    { "id": "hbot-membership-1x", "category": "HBOT", "name": "HBOT Membership — 1x/Week", "price": 549, "unit": "monthly" },
+    { "id": "hbot-membership-2x", "category": "HBOT", "name": "HBOT Membership — 2x/Week", "price": 999, "unit": "monthly" },
+    { "id": "hbot-membership-3x", "category": "HBOT", "name": "HBOT Membership — 3x/Week", "price": 1399, "unit": "monthly" },
+
+    // ─── RED LIGHT THERAPY ────────────────────────────────────────
+    { "id": "rlt-single", "category": "Red Light Therapy", "name": "RLT — Single Session", "price": 85, "unit": "session" },
+    { "id": "rlt-5pack", "category": "Red Light Therapy", "name": "RLT — 5-Pack", "price": 375, "unit": "package", "price_per_unit": 75, "sessions": 5 },
+    { "id": "rlt-10pack", "category": "Red Light Therapy", "name": "RLT — 10-Pack", "price": 600, "unit": "package", "price_per_unit": 60, "sessions": 10 },
+    { "id": "rlt-member-session", "category": "Red Light Therapy", "name": "RLT — Additional Member Session", "price": 50, "unit": "session" },
+    { "id": "rlt-membership", "category": "Red Light Therapy", "name": "RLT Membership", "price": 399, "unit": "monthly", "sessions_included": 12 },
+
+    // ─── HBOT + RLT COMBO MEMBERSHIPS ────────────────────────────
+    { "id": "combo-membership-1x", "category": "HBOT+RLT Combo", "name": "Combo — 1x/Week", "price": 899, "unit": "monthly" },
+    { "id": "combo-membership-2x", "category": "HBOT+RLT Combo", "name": "Combo — 2x/Week", "price": 1499, "unit": "monthly" },
+    { "id": "combo-membership-3x", "category": "HBOT+RLT Combo", "name": "Combo — 3x/Week", "price": 1999, "unit": "monthly" },
+
+    // ─── PACKAGES ─────────────────────────────────────────────────
+    { "id": "pkg-six-week-reset", "category": "Packages", "name": "Six-Week Cellular Energy Reset", "price": 3999, "unit": "package" },
+    { "id": "pkg-maintenance-4wk", "category": "Packages", "name": "Cellular Energy Maintenance (4-Week)", "price": 599, "unit": "package" },
+    { "id": "pkg-maintenance-premium-4wk", "category": "Packages", "name": "Cellular Energy Maintenance Premium (4-Week)", "price": 799, "unit": "package" },
+
+    // ─── PRP THERAPY ──────────────────────────────────────────────
+    { "id": "prp-single", "category": "PRP Therapy", "name": "PRP — Single Injection", "price": 750, "unit": "session" },
+    { "id": "prp-3pack", "category": "PRP Therapy", "name": "PRP — 3-Injection Pack", "price": 1800, "unit": "package", "price_per_unit": 600, "sessions": 3 },
+
+    // ─── HRT ──────────────────────────────────────────────────────
+    { "id": "hrt-membership", "category": "HRT", "name": "HRT Membership", "price": 250, "unit": "monthly" },
+
+    // ─── WEIGHT LOSS (GLP-1) ──────────────────────────────────────
+    { "id": "wl-semaglutide", "category": "Weight Loss", "name": "Semaglutide", "price": 350, "unit": "monthly" },
+    { "id": "wl-tirz-d1", "category": "Weight Loss", "name": "Tirzepatide — Dose 1", "price": 399, "unit": "monthly" },
+    { "id": "wl-tirz-d2", "category": "Weight Loss", "name": "Tirzepatide — Dose 2", "price": 549, "unit": "monthly" },
+    { "id": "wl-tirz-d3", "category": "Weight Loss", "name": "Tirzepatide — Dose 3", "price": 599, "unit": "monthly" },
+    { "id": "wl-tirz-d4", "category": "Weight Loss", "name": "Tirzepatide — Dose 4", "price": 649, "unit": "monthly" },
+    { "id": "wl-tirz-d5", "category": "Weight Loss", "name": "Tirzepatide — Dose 5", "price": 699, "unit": "monthly" },
+    { "id": "wl-reta-d1", "category": "Weight Loss", "name": "Retatrutide — Dose 1", "price": 499, "unit": "monthly" },
+    { "id": "wl-reta-d2", "category": "Weight Loss", "name": "Retatrutide — Dose 2", "price": 599, "unit": "monthly" },
+    { "id": "wl-reta-d3", "category": "Weight Loss", "name": "Retatrutide — Dose 3", "price": 699, "unit": "monthly" },
+    { "id": "wl-reta-d4", "category": "Weight Loss", "name": "Retatrutide — Dose 4", "price": 749, "unit": "monthly" },
+    { "id": "wl-reta-d5", "category": "Weight Loss", "name": "Retatrutide — Dose 5", "price": 799, "unit": "monthly" },
+    { "id": "wl-reta-d6", "category": "Weight Loss", "name": "Retatrutide — Dose 6", "price": 859, "unit": "monthly" },
+
+    // ─── PEPTIDE PROTOCOLS ────────────────────────────────────────
+    { "id": "pep-bpc-tb4-10", "category": "Peptides", "name": "BPC-157 / TB-4 — 10-Day", "price": 250, "unit": "protocol" },
+    { "id": "pep-bpc-tb4-20", "category": "Peptides", "name": "BPC-157 / TB-4 — 20-Day", "price": 450, "unit": "protocol" },
+    { "id": "pep-bpc-tb4-30", "category": "Peptides", "name": "BPC-157 / TB-4 — 30-Day", "price": 675, "unit": "protocol" },
+    { "id": "pep-recovery-4blend-10", "category": "Peptides", "name": "Recovery 4-Blend — 10-Day", "price": 275, "unit": "protocol" },
+    { "id": "pep-recovery-4blend-20", "category": "Peptides", "name": "Recovery 4-Blend — 20-Day", "price": 500, "unit": "protocol" },
+    { "id": "pep-recovery-4blend-30", "category": "Peptides", "name": "Recovery 4-Blend — 30-Day", "price": 725, "unit": "protocol" },
+    { "id": "pep-ghkcu-30", "category": "Peptides", "name": "GHK-Cu — 30-Day", "price": 250, "unit": "protocol" },
+    { "id": "pep-ghkcu-cream", "category": "Peptides", "name": "GHK-Cu Cream", "price": 299, "unit": "monthly" },
+    { "id": "pep-glow-30", "category": "Peptides", "name": "GLOW — 30-Day", "price": 400, "unit": "protocol" },
+    { "id": "pep-motsc-p1", "category": "Peptides", "name": "MOTS-C Phase 1", "price": 400, "unit": "protocol" },
+    { "id": "pep-motsc-p2", "category": "Peptides", "name": "MOTS-C Phase 2", "price": 700, "unit": "protocol" },
+    { "id": "pep-2xblend-p1", "category": "Peptides", "name": "2X Blend — Phase 1", "price": 400, "unit": "protocol" },
+    { "id": "pep-2xblend-p2", "category": "Peptides", "name": "2X Blend — Phase 2", "price": 450, "unit": "protocol" },
+    { "id": "pep-2xblend-p3", "category": "Peptides", "name": "2X Blend — Phase 3", "price": 500, "unit": "protocol" },
+    { "id": "pep-3xblend-p1", "category": "Peptides", "name": "3X Blend — Phase 1", "price": 425, "unit": "protocol" },
+    { "id": "pep-3xblend-p2", "category": "Peptides", "name": "3X Blend — Phase 2", "price": 475, "unit": "protocol" },
+    { "id": "pep-3xblend-p3", "category": "Peptides", "name": "3X Blend — Phase 3", "price": 525, "unit": "protocol" },
+    { "id": "pep-4xblend-p1", "category": "Peptides", "name": "4X Blend — Phase 1", "price": 450, "unit": "protocol" },
+    { "id": "pep-4xblend-p2", "category": "Peptides", "name": "4X Blend — Phase 2", "price": 500, "unit": "protocol" },
+    { "id": "pep-4xblend-p3", "category": "Peptides", "name": "4X Blend — Phase 3", "price": 550, "unit": "protocol" },
+
+    // ─── OTHER ────────────────────────────────────────────────────
+    { "id": "other-gi-stool", "category": "Other", "name": "GI Effects Stool Test", "price": 999, "unit": "session" },
+    { "id": "other-exosome-iv", "category": "Other", "name": "Exosome IV", "price": null, "unit": "consultation", "notes": "Price by consultation" }
+
+  ]
+}

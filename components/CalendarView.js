@@ -191,6 +191,11 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [prepNotesSaved, setPrepNotesSaved] = useState(false);
   const [prepNotesTimer, setPrepNotesTimer] = useState(null);
 
+  // Provider Briefing side panel
+  const [showPrepPanel, setShowPrepPanel] = useState(false);
+  const [prepBriefing, setPrepBriefing] = useState(null);
+  const [loadingPrepBriefing, setLoadingPrepBriefing] = useState(false);
+
   // Photo ID viewer state
   const [photoIdViewer, setPhotoIdViewer] = useState(null); // { url, title }
 
@@ -370,6 +375,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       setPrepNotesSaved(false);
       setPrepSaving({});
       setShowIntakePanel(false);
+      setShowPrepPanel(false);
+      setPrepBriefing(null);
     }
   }, [selectedAppt?.id]);
 
@@ -1810,9 +1817,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
     return (
       <div style={styles.popoverOverlay} {...overlayClickProps(() => { setSelectedAppt(null); setRescheduleAppt(null); setPhotoIdViewer(null); setLabDocs(null); })}>
-        <div ref={popoverRef} style={{ ...styles.popover, ...(showIntakePanel ? { width: '820px', display: 'flex' } : {}) }} onClick={e => e.stopPropagation()}>
+        <div ref={popoverRef} style={{ ...styles.popover, ...((showIntakePanel || showPrepPanel) ? { width: '820px', display: 'flex' } : {}) }} onClick={e => e.stopPropagation()}>
           {/* Main appointment column */}
-          <div style={showIntakePanel ? { width: '420px', flexShrink: 0, overflow: 'auto', maxHeight: '80vh' } : {}}>
+          <div style={(showIntakePanel || showPrepPanel) ? { width: '420px', flexShrink: 0, overflow: 'auto', maxHeight: '80vh' } : {}}>
           <div style={styles.popoverHeader}>
             <h3 style={{ margin: 0, fontSize: '16px' }}>Appointment Details</h3>
             <button onClick={() => { setSelectedAppt(null); setRescheduleAppt(null); setPhotoIdViewer(null); setLabDocs(null); }} style={styles.closeBtn}>&times;</button>
@@ -2032,7 +2039,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             {/* Medical Intake toggle button */}
             {appt.patient_id && apptPatientInfo && (apptPatientInfo.intakes || []).length > 0 && (
               <button
-                onClick={() => setShowIntakePanel(!showIntakePanel)}
+                onClick={() => { setShowIntakePanel(!showIntakePanel); if (!showIntakePanel) setShowPrepPanel(false); }}
                 style={{
                   width: '100%', margin: '10px 0 0', padding: '8px 12px',
                   background: showIntakePanel ? '#f0f9ff' : '#fff',
@@ -2043,6 +2050,37 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               >
                 <span>Medical Intake</span>
                 <span style={{ fontSize: '11px', color: '#999' }}>{showIntakePanel ? '← Hide' : 'View →'}</span>
+              </button>
+            )}
+
+            {/* Prep / Provider Briefing panel toggle */}
+            {appt.patient_id && (
+              <button
+                onClick={() => {
+                  const opening = !showPrepPanel;
+                  setShowPrepPanel(opening);
+                  if (opening) {
+                    setShowIntakePanel(false);
+                    // Fetch briefing if not already loaded
+                    if (!prepBriefing && !loadingPrepBriefing) {
+                      setLoadingPrepBriefing(true);
+                      fetch(`/api/appointments/${appt.id}/briefing`)
+                        .then(r => r.json())
+                        .then(data => { setPrepBriefing(data.briefing); setLoadingPrepBriefing(false); })
+                        .catch(() => setLoadingPrepBriefing(false));
+                    }
+                  }
+                }}
+                style={{
+                  width: '100%', margin: '10px 0 0', padding: '8px 12px',
+                  background: showPrepPanel ? '#fefce8' : '#fff',
+                  border: `1px solid ${showPrepPanel ? '#fde68a' : '#e5e5e5'}`,
+                  fontSize: '12px', fontWeight: '600', color: showPrepPanel ? '#92400e' : '#374151',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}
+              >
+                <span>Prep / Provider Briefing</span>
+                <span style={{ fontSize: '11px', color: '#999' }}>{showPrepPanel ? '← Hide' : 'View →'}</span>
               </button>
             )}
 
@@ -2534,6 +2572,142 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       </button>
                     </div>
                   )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── Provider Briefing Side Panel ── */}
+          {showPrepPanel && (() => {
+            const sectionLabelStyle = { fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', marginBottom: '6px' };
+            const rowStyle = { display: 'flex', borderBottom: '1px solid #f0f0f0', padding: '8px 0' };
+            const labelStyle = { width: '120px', flexShrink: 0, fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#888' };
+            const valueStyle = { fontSize: '13px', color: '#1a1a1a', lineHeight: '1.5', flex: 1 };
+
+            if (loadingPrepBriefing || !prepBriefing) {
+              return (
+                <div style={{ width: '400px', borderLeft: '1px solid #e5e5e5', padding: '16px 20px', overflow: 'auto', maxHeight: '80vh', background: '#fafafa' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>Provider Briefing</h3>
+                    <button onClick={() => setShowPrepPanel(false)} style={{ border: 'none', background: 'none', fontSize: '18px', cursor: 'pointer', color: '#888' }}>&times;</button>
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#999' }}>{loadingPrepBriefing ? 'Loading briefing…' : 'No briefing data available.'}</div>
+                </div>
+              );
+            }
+
+            const b = prepBriefing;
+            const isInPerson = b.modality !== 'telemedicine' && b.modality !== 'phone';
+            const fmtDate = (iso) => {
+              if (!iso) return '—';
+              try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' }); }
+              catch { return iso; }
+            };
+            const fmtDateOnly = (iso) => {
+              if (!iso) return '—';
+              const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+              if (!m) return fmtDate(iso);
+              const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+              return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+            };
+
+            const dobLine = b.patient?.dob
+              ? `${fmtDateOnly(b.patient.dob)}${b.patient.age != null ? ` (age ${b.patient.age})` : ''}`
+              : '—';
+            const reasonParts = [];
+            if (b.reason_for_visit) reasonParts.push(b.reason_for_visit);
+            if (b.patient_goals) reasonParts.push(`Goals: ${b.patient_goals}`);
+            const reasonText = reasonParts.length ? reasonParts.join(' · ') : '—';
+            const lastVisitText = b.last_visit
+              ? `${fmtDate(b.last_visit.date)} — ${b.last_visit.service || 'Visit'}${b.last_visit.provider ? ` (${b.last_visit.provider})` : ''}`
+              : 'No prior visit on record';
+            const diagnosesText = b.diagnoses?.length ? b.diagnoses.join('; ') : (b.has_intake ? 'None reported on intake' : '—');
+
+            const rows = [
+              ['Name', b.patient?.name || '—'],
+              ['DOB', dobLine],
+              ['Reason / Goals', reasonText],
+              ['Last Visit', lastVisitText],
+              ['Diagnoses', diagnosesText],
+              ['Medications', b.medications || (b.has_intake ? '—' : 'No intake on file')],
+              ['Allergies', b.allergies || (b.has_intake ? '—' : 'No intake on file')],
+              ['How Heard', b.how_heard || '—'],
+            ];
+            if (isInPerson) {
+              const v = b.latest_vitals;
+              let vitalsText = 'No vitals on file';
+              if (v) {
+                const parts = [];
+                if (v.blood_pressure_systolic && v.blood_pressure_diastolic) parts.push(`BP ${v.blood_pressure_systolic}/${v.blood_pressure_diastolic}`);
+                if (v.heart_rate) parts.push(`HR ${v.heart_rate}`);
+                if (v.weight_lbs || v.weight) parts.push(`Wt ${v.weight_lbs || v.weight} lbs`);
+                if (v.temperature) parts.push(`Temp ${v.temperature}`);
+                if (v.oxygen_saturation) parts.push(`SpO₂ ${v.oxygen_saturation}%`);
+                if (parts.length) vitalsText = `${parts.join(' · ')} (${fmtDate(v.recorded_at)})`;
+              }
+              rows.push(['Latest Vitals', vitalsText]);
+              rows.push(['Mood', 'Assess at check-in']);
+              rows.push(['Previous Plan', b.last_visit?.visit_reason || b.last_visit?.service || '—']);
+            }
+
+            return (
+              <div style={{ width: '400px', borderLeft: '1px solid #e5e5e5', overflow: 'auto', maxHeight: '80vh', background: '#fafafa' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e5e5', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#fafafa', zIndex: 1 }}>
+                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>Provider Briefing</h3>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      {isInPerson ? 'In-Person' : 'Telemedicine'}
+                    </span>
+                    <button onClick={() => setShowPrepPanel(false)} style={{ border: 'none', background: 'none', fontSize: '18px', cursor: 'pointer', color: '#888' }}>&times;</button>
+                  </div>
+                </div>
+                <div style={{ padding: '16px 20px' }}>
+                  {rows.map(([label, value]) => (
+                    <div key={label} style={rowStyle}>
+                      <div style={labelStyle}>{label}</div>
+                      <div style={valueStyle}>{value}</div>
+                    </div>
+                  ))}
+                  {!b.has_intake && (
+                    <div style={{ marginTop: '10px', fontSize: '11px', fontWeight: '600', color: '#92400e', background: '#fef3c7', padding: '6px 10px' }}>
+                      No medical intake on file
+                    </div>
+                  )}
+                  {/* Print for Provider button */}
+                  <button
+                    onClick={async () => {
+                      // Mark provider_briefed and open full prep page in new tab for printing
+                      try {
+                        await fetch(`/api/appointments/${appt.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ provider_briefed: true }),
+                        });
+                        setSelectedAppt(prev => prev ? { ...prev, provider_briefed: true } : prev);
+                        setAppointments(prev => prev.map(a => a.id === appt.id ? { ...a, provider_briefed: true } : a));
+                      } catch {}
+                      window.open(`/admin/appointments/${appt.id}/prep`, '_blank');
+                    }}
+                    style={{
+                      width: '100%', marginTop: '16px', padding: '8px 0',
+                      background: '#111', color: '#fff', border: 'none',
+                      fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                      textTransform: 'uppercase', letterSpacing: '0.04em',
+                    }}
+                  >
+                    Print for Provider
+                  </button>
+                  {/* Link to full prep page */}
+                  <button
+                    onClick={() => window.open(`/admin/appointments/${appt.id}/prep`, '_blank')}
+                    style={{
+                      width: '100%', marginTop: '8px', padding: '8px',
+                      background: '#f9fafb', border: '1px solid #e5e5e5',
+                      fontSize: '12px', color: '#374151', cursor: 'pointer', fontWeight: '500',
+                    }}
+                  >
+                    Open Full Prep Page
+                  </button>
                 </div>
               </div>
             );

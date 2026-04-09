@@ -630,11 +630,11 @@ export default function Memberships({ services }) {
                                   <span style={styles.titrationTierName}>{tier.name}</span>
                                   <span style={styles.titrationTierCost}>
                                     <span style={styles.titrationTierCostLabel}>You pay</span>
-                                    {formatPrice(membershipCost)}
+                                    <span style={styles.titrationTierCostAmount}>{formatPrice(tier.monthly)}/mo × 3 = {formatPrice(membershipCost)}</span>
                                   </span>
                                 </div>
                                 <div style={styles.titrationTierDetails}>
-                                  <span style={styles.titrationTierCredits}>{formatPrice(totalCredits)} in total credits</span>
+                                  <span style={styles.titrationTierCredits}>{formatPrice(tier.credits)}/mo × 3 = {formatPrice(totalCredits)} in credits</span>
                                   {coversAll && savings > 0 && (
                                     <span style={styles.titrationTierSavings}>You save {formatPrice(savings)} vs. retail</span>
                                   )}
@@ -1319,6 +1319,11 @@ const styles = {
     color: '#a3a3a3',
     textTransform: 'uppercase',
     letterSpacing: '0.06em',
+  },
+  titrationTierCostAmount: {
+    fontSize: '0.85rem',
+    fontWeight: 700,
+    color: '#171717',
   },
   titrationTierDetails: {
     display: 'flex',

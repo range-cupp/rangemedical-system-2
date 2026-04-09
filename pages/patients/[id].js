@@ -9090,7 +9090,7 @@ export default function PatientProfile() {
               {/* Payments Sub-tabs */}
               <div className="pay-tabs">
                 {[
-                  { key: 'subscriptions', label: `Subscriptions${subscriptions.length > 0 ? ` (${subscriptions.filter(s => s.status === 'active' || s.status === 'past_due').length})` : ''}` },
+                  { key: 'subscriptions', label: `Subscriptions${(() => { const count = stripeSubscriptions.length > 0 ? stripeSubscriptions.filter(s => s.status === 'active' || s.status === 'past_due' || (s.pause_collection && s.status === 'active')).length : subscriptions.filter(s => s.status === 'active' || s.status === 'past_due').length; return count > 0 ? ` (${count})` : ''; })()}` },
                   { key: 'invoices', label: 'Invoices' },
                   { key: 'purchases', label: 'Purchases' },
                   { key: 'cards', label: `Cards${savedCards.length > 0 ? ` (${savedCards.length})` : ''}` },

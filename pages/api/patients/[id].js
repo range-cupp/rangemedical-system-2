@@ -329,11 +329,21 @@ export default async function handler(req, res) {
       }
 
       // Stripe lazy sync — fire and forget, don't block the response
-      if (patient.stripe_customer_id) {
+      // Auto-link Stripe customer by email if stripe_customer_id is missing
+      {
+        let stripeCustomerId = patient.stripe_customer_id;
         (async () => {
           try {
+            if (!stripeCustomerId && patient.email) {
+              const existing = await stripe.customers.list({ email: patient.email, limit: 1 });
+              if (existing.data.length > 0) {
+                stripeCustomerId = existing.data[0].id;
+                await supabase.from('patients').update({ stripe_customer_id: stripeCustomerId }).eq('id', id);
+              }
+            }
+            if (!stripeCustomerId) return;
             const stripeSubs = await stripe.subscriptions.list({
-              customer: patient.stripe_customer_id,
+              customer: stripeCustomerId,
               limit: 100,
               expand: ['data.latest_invoice'],
             });
@@ -366,7 +376,7 @@ export default async function handler(req, res) {
                   ...record,
                   patient_id: id,
                   stripe_subscription_id: sub.id,
-                  stripe_customer_id: patient.stripe_customer_id,
+                  stripe_customer_id: stripeCustomerId,
                   description: sub.metadata?.description || price?.nickname || 'Subscription',
                   service_category: sub.metadata?.service_category || null,
                   started_at: sub.start_date ? new Date(sub.start_date * 1000).toISOString() : null,

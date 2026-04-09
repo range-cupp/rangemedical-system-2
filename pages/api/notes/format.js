@@ -4,6 +4,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { getFormatPromptForNoteType } from '../../../lib/encounter-templates';
+import { getStaffRole } from '../../../lib/staff-config';
 
 const BASE_RULES = `Rules:
 - Keep the same meaning and intent — do NOT add information that wasn't in the original
@@ -15,12 +16,19 @@ const BASE_RULES = `Rules:
 - Do not use ## or other heading markdown — only **bold** for headers
 - If the input is already clean and organized, make minimal changes`;
 
+// Tone guidance based on author's role
+const ROLE_TONE = {
+  provider: '', // providers (NPs, MDs) — default clinical tone, no extra guidance needed
+  clinical: `The author is a registered nurse. Write in a clinical but observational tone — document what was done, observed, or communicated. Do not write as if the author is making diagnoses or medical decisions.`,
+  admin: `The author is non-clinical staff (front desk, management, operations). Write in a clear, professional, conversational tone — NOT clinical or provider-like. Do not use clinical terminology, assessment language, or phrases like "patient presents with" or "plan of care." Just clean up the note into clear, organized language appropriate for an internal staff memo.`,
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { raw_text, note_type, vitals } = req.body;
+  const { raw_text, note_type, vitals, author_email, note_context } = req.body;
 
   if (!raw_text || !raw_text.trim()) {
     return res.status(400).json({ error: 'raw_text is required' });
@@ -35,27 +43,38 @@ export default async function handler(req, res) {
       apiKey: process.env.ANTHROPIC_API_KEY,
     });
 
+    // Determine author role for tone adjustment
+    const authorRole = getStaffRole(author_email);
+    const roleTone = ROLE_TONE[authorRole] || '';
+
     // Build system prompt based on note type
     let systemPrompt;
 
-    if (note_type && note_type !== 'progress') {
+    // Staff notes from non-provider/non-clinical authors get a simpler formatter
+    if (note_context === 'staff_note' && authorRole === 'admin') {
+      systemPrompt = `You are a note formatter for Range Medical, a regenerative medicine clinic. Your job is to take messy, raw, or dictated text and clean it up into a professional internal staff note.
+
+${roleTone}
+
+${BASE_RULES}`;
+    } else if (note_type && note_type !== 'progress') {
       const typePrompt = getFormatPromptForNoteType(note_type);
       systemPrompt = `You are a clinical note formatter for Range Medical, a regenerative medicine clinic. Your job is to take messy, raw, or dictated text and clean it up into a professional, structured clinical note.
 
-${typePrompt}
+${roleTone ? roleTone + '\n\n' : ''}${typePrompt}
 
 ${BASE_RULES}`;
     } else {
       // Default adaptive formatting (original behavior)
-      systemPrompt = `You are a clinical note formatter for Range Medical, a regenerative medicine clinic. Your job is to take messy, raw, or dictated text and clean it up into a professional note.
+      systemPrompt = `You are a ${authorRole === 'admin' ? 'note' : 'clinical note'} formatter for Range Medical, a regenerative medicine clinic. Your job is to take messy, raw, or dictated text and clean it up into a professional note.
 
-Adapt your format to match the content:
+${roleTone ? roleTone + '\n\n' : ''}Adapt your format to match the content:
 
-For CLINICAL VISIT NOTES (treatments, visits, procedures), use sections like:
+${authorRole !== 'admin' ? `For CLINICAL VISIT NOTES (treatments, visits, procedures), use sections like:
 VISIT SUMMARY • TREATMENT • VITALS • ASSESSMENT • PLAN
 Only include sections that have relevant information from the input.
 
-For GENERAL NOTES (phone calls, follow-ups, reminders, observations, conversations), just clean up the language into clear, organized paragraphs or bullet points. Do not force clinical sections onto non-clinical content.
+` : ''}For GENERAL NOTES (phone calls, follow-ups, reminders, observations, conversations), just clean up the language into clear, organized paragraphs or bullet points. Do not force clinical sections onto non-clinical content.
 
 ${BASE_RULES}`;
     }

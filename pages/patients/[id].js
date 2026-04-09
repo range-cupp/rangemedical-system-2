@@ -3369,7 +3369,7 @@ export default function PatientProfile() {
       const res = await fetch('/api/notes/format', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ raw_text: noteInput }),
+        body: JSON.stringify({ raw_text: noteInput, author_email: noteAuthor || undefined, note_context: 'staff_note' }),
       });
       const data = await res.json();
       if (data.formatted) {

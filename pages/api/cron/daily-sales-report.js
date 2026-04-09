@@ -21,21 +21,13 @@ const REPORT_RECIPIENTS = [
 ];
 
 // Actual dollars received for a single purchase row.
-// Mirrors displayAmt() in /pages/admin/purchases/index.js so the daily report
-// matches the admin Purchases page totals.
-//
-// GHL webhooks store amount_paid as the FULL invoice payment, duplicated across
-// every line item on a multi-item invoice. Naively summing amount_paid across
-// rows would multi-count those invoices. Rules:
-//   - amount_paid is explicitly 0   → comp, count as $0
-//   - 0 < amount_paid < amount      → real discount/partial pay, use amount_paid
-//   - amount_paid >= amount or null → use per-line amount (avoids GHL duplication)
+// amount_paid is the source of truth for what the patient was charged:
+//   - amount_paid present (including 0 for comps) → use it
+//   - amount_paid null on a legacy row            → fall back to amount
 function rowAmount(p) {
-  const amt = parseFloat(p.amount) || 0;
   const paid = parseFloat(p.amount_paid);
-  if (p.amount_paid === 0 || p.amount_paid === '0') return 0;
-  if (!isNaN(paid) && paid > 0 && paid < amt) return paid;
-  return amt;
+  if (!isNaN(paid)) return paid;
+  return parseFloat(p.amount) || 0;
 }
 
 export default async function handler(req, res) {

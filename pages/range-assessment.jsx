@@ -2560,38 +2560,38 @@ export default function RangeAssessment() {
           <meta name="robots" content="noindex, nofollow" />
         </Head>
 
-        <section className="res-page">
-          <div className="res-wrap">
+        <section style={{ background: '#fff', padding: '3rem 1.5rem 4rem' }}>
+          <div style={{ maxWidth: 640, margin: '0 auto' }}>
 
             {/* Header */}
-            <div className="res-header">
-              <span className="res-kicker">Your Personalized Results</span>
-              <h1>{formData.firstName}, Here's What We Found</h1>
-              <p className="res-intro">
+            <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+              <span style={{ display: 'inline-block', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#737373', marginBottom: '0.75rem' }}>Your Personalized Results</span>
+              <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem', lineHeight: 1.2 }}>{formData.firstName}, Here's What We Found</h1>
+              <p style={{ fontSize: '1rem', color: '#525252', lineHeight: 1.7, margin: 0 }}>
                 You've been dealing with this for {durationLabel}. Based on your answers, there are real reasons you feel the way you do — and they're fixable. Here's what's likely going on.
               </p>
             </div>
 
             {/* SECTION 1: What You Told Us */}
-            <div className="res-section">
-              <div className="res-section-label">
-                <div className="res-section-num">1</div>
-                <span>What You Told Us</span>
+            <div style={{ marginBottom: '2.5rem', paddingBottom: '2.5rem', borderBottom: '1px solid #e5e5e5' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                <div style={{ width: 28, height: 28, background: '#171717', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8125rem', flexShrink: 0 }}>1</div>
+                <span style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717' }}>What You Told Us</span>
               </div>
-              <div className="res-told-grid">
-                <div className="res-told-col">
-                  <h4>Your Symptoms</h4>
-                  <div className="res-told-tags">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                <div>
+                  <h4 style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#737373', margin: '0 0 0.625rem' }}>Your Symptoms</h4>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
                     {recommendation.symptoms.map(s => (
-                      <span key={s} className="res-told-tag">{symptomLabels[s]}</span>
+                      <span key={s} style={{ display: 'inline-block', fontSize: '0.8125rem', fontWeight: 500, color: '#171717', background: '#f5f5f5', padding: '0.375rem 0.75rem', border: '1px solid #e5e5e5' }}>{symptomLabels[s]}</span>
                     ))}
                   </div>
                 </div>
-                <div className="res-told-col">
-                  <h4>Your Goals</h4>
-                  <div className="res-told-tags">
+                <div>
+                  <h4 style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#737373', margin: '0 0 0.625rem' }}>Your Goals</h4>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
                     {recommendation.goals.map(g => (
-                      <span key={g} className="res-told-tag res-told-tag-goal">{goalLabels[g]}</span>
+                      <span key={g} style={{ display: 'inline-block', fontSize: '0.8125rem', fontWeight: 500, color: '#166534', background: '#f0fdf4', padding: '0.375rem 0.75rem', border: '1px solid #bbf7d0' }}>{goalLabels[g]}</span>
                     ))}
                   </div>
                 </div>
@@ -2599,17 +2599,17 @@ export default function RangeAssessment() {
 
               {/* Labs Notice - if they have recent labs */}
               {formData.lastLabWork === 'within_60_days' && (
-                <div className="res-labs-notice">
-                  <div className="res-labs-notice-header">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <div style={{ background: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 100%)', border: '1px solid #fde047', padding: '1.25rem', marginTop: '1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.625rem' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a16207" strokeWidth="2">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                       <polyline points="14 2 14 8 20 8"/>
                       <line x1="16" y1="13" x2="8" y2="13"/>
                       <line x1="16" y1="17" x2="8" y2="17"/>
                     </svg>
-                    <span>Already have recent labs?</span>
+                    <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#854d0e' }}>Already have recent labs?</span>
                   </div>
-                  <p className="res-labs-notice-text">
+                  <p style={{ fontSize: '0.875rem', color: '#a16207', lineHeight: 1.6, margin: 0 }}>
                     Bring them to your assessment — we'll review what you have and only order what's missing.
                   </p>
                 </div>
@@ -2617,10 +2617,10 @@ export default function RangeAssessment() {
             </div>
 
             {/* SECTION 2: Why You Feel This Way */}
-            <div className="res-section">
-              <div className="res-section-label">
-                <div className="res-section-num">2</div>
-                <span>Why You Might Feel This Way</span>
+            <div style={{ marginBottom: '2.5rem', paddingBottom: '2.5rem', borderBottom: '1px solid #e5e5e5' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                <div style={{ width: 28, height: 28, background: '#171717', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8125rem', flexShrink: 0 }}>2</div>
+                <span style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717' }}>Why You Might Feel This Way</span>
               </div>
 
               <p style={{ fontSize: '1rem', color: '#525252', lineHeight: 1.7, margin: '0 0 1.5rem' }}>
@@ -2628,37 +2628,37 @@ export default function RangeAssessment() {
               </p>
 
               {/* Why These Matter */}
-              <div className="res-reasons-list">
+              <div style={{ marginBottom: '1.5rem' }}>
                 {recommendation.reasons.slice(0, 4).map((item, i) => (
-                  <div key={i} className="res-reason">
-                    <h4>{item.type === 'symptom' ? symptomLabels[item.key] : goalLabels[item.key]}</h4>
-                    <p>{item.reason}</p>
+                  <div key={i} style={{ padding: '0.875rem 0', borderBottom: i < Math.min(recommendation.reasons.length, 4) - 1 ? '1px solid #f0f0f0' : 'none' }}>
+                    <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#171717', margin: '0 0 0.25rem' }}>{item.type === 'symptom' ? symptomLabels[item.key] : goalLabels[item.key]}</h4>
+                    <p style={{ fontSize: '0.875rem', color: '#525252', lineHeight: 1.6, margin: 0 }}>{item.reason}</p>
                   </div>
                 ))}
               </div>
 
               {/* Biomarkers - educational */}
-              <div className="res-markers-box">
-                <h4>Markers That Would Tell Us Exactly What's Off</h4>
-                <div className="res-markers">
+              <div style={{ background: '#fafafa', padding: '1.25rem' }}>
+                <h4 style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#171717', margin: '0 0 0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Markers That Would Tell Us Exactly What's Off</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.75rem' }}>
                   {recommendation.essentialMarkers.slice(0, 10).map((marker, i) => (
-                    <span key={i} className="res-marker">{marker}</span>
+                    <span key={i} style={{ display: 'inline-block', fontSize: '0.75rem', fontWeight: 500, color: '#171717', background: '#fff', padding: '0.375rem 0.625rem', border: '1px solid #e5e5e5' }}>{marker}</span>
                   ))}
                   {recommendation.eliteMarkers.slice(0, 6).map((marker, i) => (
-                    <span key={`elite-${i}`} className="res-marker res-marker-elite">{marker}</span>
+                    <span key={`elite-${i}`} style={{ display: 'inline-block', fontSize: '0.75rem', fontWeight: 500, color: '#fff', background: '#171717', padding: '0.375rem 0.625rem', border: '1px solid #171717' }}>{marker}</span>
                   ))}
                 </div>
-                <p className="res-markers-more">
+                <p style={{ fontSize: '0.8125rem', color: '#737373', margin: 0 }}>
                   These are the labs your provider would review during your assessment to pinpoint the cause and build your plan.
                 </p>
               </div>
             </div>
 
             {/* SECTION 3: Book Your Assessment */}
-            <div className="res-section">
-              <div className="res-section-label">
-                <div className="res-section-num">3</div>
-                <span>Your Next Step</span>
+            <div style={{ marginBottom: '2.5rem', paddingBottom: '2.5rem', borderBottom: '1px solid #e5e5e5' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                <div style={{ width: 28, height: 28, background: '#171717', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8125rem', flexShrink: 0 }}>3</div>
+                <span style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717' }}>Your Next Step</span>
               </div>
 
               <div style={{ background: '#fafafa', border: '1px solid #e5e5e5', padding: '2rem', marginBottom: '1.5rem' }}>
@@ -2718,61 +2718,37 @@ export default function RangeAssessment() {
             </div>
 
             {/* What Happens Next */}
-            <div className="res-section res-section-last">
-              <div className="res-section-label">
-                <div className="res-section-num">4</div>
-                <span>What Happens Next</span>
+            <div style={{ marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                <div style={{ width: 28, height: 28, background: '#171717', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8125rem', flexShrink: 0 }}>4</div>
+                <span style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717' }}>What Happens Next</span>
               </div>
-              <div className="res-steps">
-                <div className="res-step">
-                  <div className="res-step-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                {[
+                  { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>, title: 'Book Your Visit', desc: 'Pick a day and time that works for you.' },
+                  { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, title: 'Meet Your Provider', desc: "We'll go over your symptoms, review your history, and figure out exactly what to test." },
+                  { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>, title: 'Get Your Labs', desc: "We'll order the right panel for your situation and draw your blood in-house." },
+                  { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>, title: 'Get Your Plan', desc: 'Your provider reviews your results and builds a protocol tailored to you.' },
+                ].map((step, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ width: 40, height: 40, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{step.icon}</div>
+                    <div>
+                      <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#171717', margin: '0 0 0.25rem' }}>{step.title}</h4>
+                      <p style={{ fontSize: '0.875rem', color: '#525252', lineHeight: 1.6, margin: 0 }}>{step.desc}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4>Book Your Visit</h4>
-                    <p>Pick a day and time that works for you.</p>
-                  </div>
-                </div>
-                <div className="res-step">
-                  <div className="res-step-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                  </div>
-                  <div>
-                    <h4>Meet Your Provider</h4>
-                    <p>We'll go over your symptoms, review your history, and figure out exactly what to test.</p>
-                  </div>
-                </div>
-                <div className="res-step">
-                  <div className="res-step-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                  </div>
-                  <div>
-                    <h4>Get Your Labs</h4>
-                    <p>We'll order the right panel for your situation and draw your blood in-house.</p>
-                  </div>
-                </div>
-                <div className="res-step">
-                  <div className="res-step-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                  </div>
-                  <div>
-                    <h4>Get Your Plan</h4>
-                    <p>Your provider reviews your results and builds a protocol tailored to you.</p>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
             {/* Contact */}
-            <div className="res-contact">
-              <p>Questions? Call us at <a href="tel:9499973988">(949) 997-3988</a></p>
-              <p className="res-location">Range Medical · 1901 Westcliff Dr, Newport Beach</p>
+            <div style={{ textAlign: 'center', paddingTop: '1.5rem', borderTop: '1px solid #e5e5e5' }}>
+              <p style={{ fontSize: '0.9375rem', color: '#525252', margin: '0 0 0.25rem' }}>Questions? Call us at <a href="tel:9499973988" style={{ color: '#171717', fontWeight: 600 }}>(949) 997-3988</a></p>
+              <p style={{ fontSize: '0.8125rem', color: '#a3a3a3', margin: 0 }}>Range Medical · 1901 Westcliff Dr, Newport Beach</p>
             </div>
 
           </div>
         </section>
-
-        <style jsx>{resultsStyles}</style>
       </Layout>
     );
   }

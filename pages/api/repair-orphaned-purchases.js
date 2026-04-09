@@ -18,6 +18,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const dryRun = req.body?.dry_run === true;
+  const since = req.body?.since || '2025-12-01'; // Default: only recent purchases, not old GHL imports
 
   try {
     // Find all purchases that should have protocols but don't
@@ -26,7 +27,7 @@ export default async function handler(req, res) {
       .select('id, patient_id, purchase_date, medication, item_name, category, amount_paid, payment_method')
       .is('protocol_id', null)
       .in('category', PROTOCOL_CATEGORIES)
-      .gte('purchase_date', '2025-01-01')
+      .gte('purchase_date', since)
       .order('purchase_date', { ascending: true });
 
     if (error) return res.status(500).json({ error: error.message });

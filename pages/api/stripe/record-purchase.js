@@ -286,6 +286,7 @@ export default async function handler(req, res) {
     }
 
     // Auto-create/extend protocol and link to purchase before responding
+    const protocolCategories = ['weight_loss', 'hrt', 'peptide', 'hbot', 'red_light', 'iv_therapy', 'specialty_iv', 'injection_pack', 'nad_injection', 'regenerative'];
     if (service_category && service_name) {
       try {
         await autoCreateOrExtendProtocol({
@@ -300,8 +301,14 @@ export default async function handler(req, res) {
           trackingNumber: tracking_number || null,
         });
       } catch (err) {
-        console.error('Auto-protocol failed:', err);
+        console.error(`Auto-protocol FAILED for purchase ${data.id} (${service_category}/${service_name}):`, err);
+        // If this category should have a protocol and it failed, log a visible warning
+        if (protocolCategories.includes(service_category)) {
+          console.error(`⚠️ ORPHANED PURCHASE: ${data.id} — ${service_name} for patient ${patient_id}. Auto-protocol creation failed. Run /api/admin/repair-orphaned-purchases to fix.`);
+        }
       }
+    } else if (protocolCategories.includes(service_category)) {
+      console.error(`⚠️ ORPHANED PURCHASE: ${data.id} — missing service_name for category ${service_category}. Protocol not created.`);
     }
 
     return res.status(200).json({ purchase: data });

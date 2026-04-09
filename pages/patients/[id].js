@@ -570,6 +570,9 @@ export default function PatientProfile() {
   // UI state
   const [activeTab, setActiveTab] = useState('chart');
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
+  const [aptNoteEditing, setAptNoteEditing] = useState(null); // appointment id being edited
+  const [aptNoteText, setAptNoteText] = useState('');
+  const [aptNoteSaving, setAptNoteSaving] = useState(false);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [expandedProtocols, setExpandedProtocols] = useState({});
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -1040,6 +1043,28 @@ export default function PatientProfile() {
       alert('Failed to update status');
     } finally {
       setUpdatingAptStatus(null);
+    }
+  };
+
+  const saveAptNote = async (apt) => {
+    setAptNoteSaving(true);
+    try {
+      const res = await fetch('/api/appointments/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: apt.id, table: apt._table || 'appointments', notes: aptNoteText }),
+      });
+      if (!res.ok) {
+        alert('Failed to save note');
+        return;
+      }
+      setAppointments(prev => prev.map(a => a.id === apt.id ? { ...a, notes: aptNoteText } : a));
+      setAptNoteEditing(null);
+    } catch (err) {
+      console.error('Save apt note error:', err);
+      alert('Failed to save note');
+    } finally {
+      setAptNoteSaving(false);
     }
   };
 
@@ -4795,40 +4820,106 @@ export default function PatientProfile() {
                         };
                         const status = (apt.status || 'scheduled').toLowerCase();
                         const sc = statusColors[status] || statusColors.scheduled;
+                        const isEditingNote = aptNoteEditing === apt.id;
                         return (
-                          <div key={apt.id} style={{
-                            display: 'flex', alignItems: 'center', gap: '12px',
-                            padding: '10px 12px', marginBottom: '4px',
-                            background: isToday ? '#eff6ff' : '#f8fafc',
-                            border: isToday ? '1px solid #93c5fd' : '1px solid #f1f5f9',
-                            borderRadius: 0,
-                          }}
-                          >
-                            <div style={{ minWidth: '56px', textAlign: 'center', flexShrink: 0 }}>
-                              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: isToday ? '#2563eb' : isTomorrow ? '#d97706' : '#64748b' }}>
-                                {isToday ? 'Today' : isTomorrow ? 'Tomorrow' : aptDate.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'America/Los_Angeles' })}
-                              </div>
-                              <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
-                                {aptDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })}
-                              </div>
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>
-                                {apt.calendar_name || 'Appointment'}
-                              </div>
-                              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                                {aptDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' })}
-                                {apt.duration_minutes ? ` · ${apt.duration_minutes} min` : ''}
-                                {apt.provider ? ` · ${apt.provider}` : ''}
-                              </div>
-                            </div>
-                            <span style={{
-                              padding: '2px 8px', fontSize: '10px', fontWeight: 700,
-                              textTransform: 'uppercase', letterSpacing: '0.5px',
-                              background: sc.bg, color: sc.text,
+                          <div key={apt.id} style={{ marginBottom: '4px' }}>
+                            <div style={{
+                              display: 'flex', alignItems: 'center', gap: '12px',
+                              padding: '10px 12px',
+                              background: isToday ? '#eff6ff' : '#f8fafc',
+                              border: isToday ? '1px solid #93c5fd' : '1px solid #f1f5f9',
+                              borderRadius: 0,
                             }}>
-                              {status.replace('_', ' ')}
-                            </span>
+                              <div style={{ minWidth: '56px', textAlign: 'center', flexShrink: 0 }}>
+                                <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: isToday ? '#2563eb' : isTomorrow ? '#d97706' : '#64748b' }}>
+                                  {isToday ? 'Today' : isTomorrow ? 'Tomorrow' : aptDate.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'America/Los_Angeles' })}
+                                </div>
+                                <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+                                  {aptDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })}
+                                </div>
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>
+                                  {apt.calendar_name || 'Appointment'}
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                                  {aptDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' })}
+                                  {apt.duration_minutes ? ` · ${apt.duration_minutes} min` : ''}
+                                  {apt.provider ? ` · ${apt.provider}` : ''}
+                                </div>
+                                {apt.notes && !isEditingNote && (
+                                  <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px', fontStyle: 'italic' }}>
+                                    {apt.notes}
+                                  </div>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => {
+                                  if (isEditingNote) {
+                                    setAptNoteEditing(null);
+                                  } else {
+                                    setAptNoteText(apt.notes || '');
+                                    setAptNoteEditing(apt.id);
+                                  }
+                                }}
+                                title={apt.notes ? 'Edit note' : 'Add note'}
+                                style={{
+                                  background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
+                                  color: apt.notes ? '#2563eb' : '#94a3b8', fontSize: '16px', flexShrink: 0,
+                                }}
+                              >
+                                {apt.notes ? '\u270E' : '\u2709'}
+                              </button>
+                              <span style={{
+                                padding: '2px 8px', fontSize: '10px', fontWeight: 700,
+                                textTransform: 'uppercase', letterSpacing: '0.5px',
+                                background: sc.bg, color: sc.text, flexShrink: 0,
+                              }}>
+                                {status.replace('_', ' ')}
+                              </span>
+                            </div>
+                            {isEditingNote && (
+                              <div style={{
+                                padding: '8px 12px', background: '#f8fafc',
+                                borderTop: '1px dashed #e2e8f0',
+                                display: 'flex', gap: '8px', alignItems: 'center',
+                              }}>
+                                <input
+                                  type="text"
+                                  value={aptNoteText}
+                                  onChange={e => setAptNoteText(e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') saveAptNote(apt); if (e.key === 'Escape') setAptNoteEditing(null); }}
+                                  placeholder="Add a note..."
+                                  autoFocus
+                                  style={{
+                                    flex: 1, padding: '6px 10px', fontSize: '13px',
+                                    border: '1px solid #cbd5e1', borderRadius: '4px',
+                                    outline: 'none',
+                                  }}
+                                />
+                                <button
+                                  onClick={() => saveAptNote(apt)}
+                                  disabled={aptNoteSaving}
+                                  style={{
+                                    padding: '6px 14px', fontSize: '12px', fontWeight: 600,
+                                    background: '#2563eb', color: '#fff', border: 'none',
+                                    borderRadius: '4px', cursor: 'pointer',
+                                  }}
+                                >
+                                  {aptNoteSaving ? 'Saving...' : 'Save'}
+                                </button>
+                                <button
+                                  onClick={() => setAptNoteEditing(null)}
+                                  style={{
+                                    padding: '6px 10px', fontSize: '12px',
+                                    background: 'none', color: '#64748b', border: '1px solid #e2e8f0',
+                                    borderRadius: '4px', cursor: 'pointer',
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
                           </div>
                         );
                       })}

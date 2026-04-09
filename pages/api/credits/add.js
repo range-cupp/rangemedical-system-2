@@ -42,13 +42,16 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to add credit' });
   }
 
-  // Recalculate cached balance from ledger (sum all entries for this patient)
+  // Recalculate cached balance from ledger (exclude expired credits)
   const { data: allEntries } = await supabase
     .from('patient_credits')
-    .select('amount_cents')
+    .select('amount_cents, expires_at')
     .eq('patient_id', patient_id);
 
-  const total = (allEntries || []).reduce((acc, r) => acc + r.amount_cents, 0);
+  const now = new Date().toISOString();
+  const total = (allEntries || [])
+    .filter(r => !r.expires_at || r.expires_at > now)
+    .reduce((acc, r) => acc + r.amount_cents, 0);
 
   await supabase
     .from('patients')

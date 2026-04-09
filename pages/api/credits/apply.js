@@ -39,15 +39,26 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: 'Patient not found' });
   }
 
-  if (patient.account_credit_cents < amount_cents) {
+  // Calculate active balance (exclude expired credits)
+  const { data: allEntries } = await supabase
+    .from('patient_credits')
+    .select('amount_cents, expires_at')
+    .eq('patient_id', patient_id);
+
+  const now = new Date().toISOString();
+  const activeBalance = (allEntries || [])
+    .filter(r => !r.expires_at || r.expires_at > now)
+    .reduce((acc, r) => acc + r.amount_cents, 0);
+
+  if (activeBalance < amount_cents) {
     return res.status(400).json({
       error: 'Insufficient credit balance',
-      available_cents: patient.account_credit_cents,
+      available_cents: activeBalance,
       requested_cents: amount_cents,
     });
   }
 
-  const new_balance = patient.account_credit_cents - amount_cents;
+  const new_balance = activeBalance - amount_cents;
 
   // Insert debit ledger entry (negative amount)
   const { data: entry, error: insertError } = await supabase

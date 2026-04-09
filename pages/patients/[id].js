@@ -679,6 +679,7 @@ export default function PatientProfile() {
   const [addCreditSaving, setAddCreditSaving] = useState(false);
   const [creditBalanceCents, setCreditBalanceCents] = useState(0);
   const [creditBalanceLoaded, setCreditBalanceLoaded] = useState(false);
+  const [creditExpiresAt, setCreditExpiresAt] = useState(null);
   const [creditHistory, setCreditHistory] = useState([]);
   const [creditHistoryLoading, setCreditHistoryLoading] = useState(false);
   const [deletingCreditId, setDeletingCreditId] = useState(null);
@@ -1388,6 +1389,7 @@ export default function PatientProfile() {
         const data = await res.json();
         setCreditBalanceCents(data.balance_cents || 0);
         setCreditBalanceLoaded(true);
+        setCreditExpiresAt(data.expires_at || null);
         setCreditHistory(data.history || []);
       }
     } catch (err) {
@@ -4083,15 +4085,24 @@ export default function PatientProfile() {
                       💳 {savedCards[0].brand.toUpperCase()} ····{savedCards[0].last4}
                     </span>
                   )}
-                  {creditBalanceLoaded && creditBalanceCents > 0 && (
-                    <span className="blooio-badge" style={{
-                      backgroundColor: '#dcfce7',
-                      color: '#166534',
-                      cursor: 'pointer',
-                    }} onClick={() => setShowAddCreditModal(true)} title="Account credit balance">
-                      🎁 ${(creditBalanceCents / 100).toFixed(2)} credit
-                    </span>
-                  )}
+                  {creditBalanceLoaded && creditBalanceCents > 0 && (() => {
+                    let expiryLabel = '';
+                    if (creditExpiresAt) {
+                      const daysLeft = Math.ceil((new Date(creditExpiresAt) - new Date()) / (1000 * 60 * 60 * 24));
+                      if (daysLeft <= 0) expiryLabel = ' — expired';
+                      else if (daysLeft === 1) expiryLabel = ' — expires tomorrow';
+                      else expiryLabel = ` — ${daysLeft}d left`;
+                    }
+                    return (
+                      <span className="blooio-badge" style={{
+                        backgroundColor: '#dcfce7',
+                        color: '#166534',
+                        cursor: 'pointer',
+                      }} onClick={() => setShowAddCreditModal(true)} title={creditExpiresAt ? `Credit expires ${new Date(creditExpiresAt).toLocaleDateString()}` : 'Account credit balance'}>
+                        🎁 ${(creditBalanceCents / 100).toFixed(2)} credit{expiryLabel}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -11348,9 +11359,20 @@ export default function PatientProfile() {
               </div>
               <div className="modal-body">
                 {/* Balance banner */}
-                <div style={{ background: creditBalanceCents > 0 ? '#f0fdf4' : '#f9fafb', border: `1px solid ${creditBalanceCents > 0 ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 0, padding: '10px 14px', marginBottom: 20, fontSize: 14, color: creditBalanceCents > 0 ? '#166534' : '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>Current balance</span>
-                  <strong style={{ fontSize: 16 }}>${(creditBalanceCents / 100).toFixed(2)}</strong>
+                <div style={{ background: creditBalanceCents > 0 ? '#f0fdf4' : '#f9fafb', border: `1px solid ${creditBalanceCents > 0 ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 0, padding: '10px 14px', marginBottom: 20, fontSize: 14, color: creditBalanceCents > 0 ? '#166534' : '#6b7280' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>Current balance</span>
+                    <strong style={{ fontSize: 16 }}>${(creditBalanceCents / 100).toFixed(2)}</strong>
+                  </div>
+                  {creditExpiresAt && (() => {
+                    const daysLeft = Math.ceil((new Date(creditExpiresAt) - new Date()) / (1000 * 60 * 60 * 24));
+                    if (daysLeft <= 0) return null;
+                    return (
+                      <div style={{ marginTop: 6, fontSize: 12, color: daysLeft <= 2 ? '#dc2626' : '#92400e' }}>
+                        Expires {new Date(creditExpiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ({daysLeft === 1 ? 'tomorrow' : `${daysLeft} days left`})
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Add credit form */}

@@ -428,6 +428,72 @@ export default async function handler(req, res) {
       }
     }
 
+    // Award assessment credit ($197) with 7-day expiry if patient paid
+    if (supabase && patientId && leadId) {
+      try {
+        // Check if this assessment was paid
+        const { data: leadData } = await supabase
+          .from('assessment_leads')
+          .select('payment_status, payment_amount_cents')
+          .eq('id', leadId)
+          .single();
+
+        if (leadData?.payment_status === 'paid' && leadData.payment_amount_cents > 0) {
+          // Check if credit was already awarded for this lead (prevent duplicates)
+          const { data: existingCredit } = await supabase
+            .from('patient_credits')
+            .select('id')
+            .eq('patient_id', patientId)
+            .eq('source', `assessment:${leadId}`)
+            .maybeSingle();
+
+          if (!existingCredit) {
+            const creditAmountCents = leadData.payment_amount_cents;
+            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+            const { error: creditInsertError } = await supabase
+              .from('patient_credits')
+              .insert({
+                patient_id: patientId,
+                amount_cents: creditAmountCents,
+                type: 'add',
+                reason: 'assessment',
+                description: `Assessment credit — expires ${new Date(expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })}`,
+                source: `assessment:${leadId}`,
+                expires_at: expiresAt,
+                created_by: 'system',
+              });
+
+            if (!creditInsertError) {
+              // Recalculate cached balance (only non-expired credits)
+              const { data: allEntries } = await supabase
+                .from('patient_credits')
+                .select('amount_cents, expires_at')
+                .eq('patient_id', patientId);
+
+              const now = new Date().toISOString();
+              const validTotal = (allEntries || [])
+                .filter(r => !r.expires_at || r.expires_at > now)
+                .reduce((acc, r) => acc + r.amount_cents, 0);
+
+              await supabase
+                .from('patients')
+                .update({ account_credit_cents: validTotal })
+                .eq('id', patientId);
+
+              console.log(`Assessment credit awarded: $${(creditAmountCents / 100).toFixed(2)} to patient ${patientId}, expires ${expiresAt}`);
+            } else {
+              console.error('Assessment credit insert error:', creditInsertError);
+            }
+          } else {
+            console.log(`Assessment credit already awarded for lead ${leadId}`);
+          }
+        }
+      } catch (creditError) {
+        console.error('Assessment credit error:', creditError);
+      }
+    }
+
     return;
 
   } catch (error) {

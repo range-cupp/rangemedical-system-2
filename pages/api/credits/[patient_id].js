@@ -35,13 +35,16 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to delete credit entry' });
     }
 
-    // Recalculate balance from remaining ledger entries
+    // Recalculate balance from remaining ledger entries (exclude expired)
     const { data: remaining } = await supabase
       .from('patient_credits')
-      .select('amount_cents')
+      .select('amount_cents, expires_at')
       .eq('patient_id', patient_id);
 
-    const newBalance = (remaining || []).reduce((acc, r) => acc + r.amount_cents, 0);
+    const nowStr = new Date().toISOString();
+    const newBalance = (remaining || [])
+      .filter(r => !r.expires_at || r.expires_at > nowStr)
+      .reduce((acc, r) => acc + r.amount_cents, 0);
 
     const { error: updateError } = await supabase
       .from('patients')
@@ -85,11 +88,34 @@ export default async function handler(req, res) {
     console.error('[credits/balance] history error:', historyError);
   }
 
+  // Calculate active balance (exclude expired credits)
+  const now = new Date().toISOString();
+  const activeBalance = (history || [])
+    .filter(r => !r.expires_at || r.expires_at > now)
+    .reduce((acc, r) => acc + r.amount_cents, 0);
+
+  // Sync cached balance if it drifted (e.g., credits expired since last calc)
+  if (activeBalance !== patient.account_credit_cents) {
+    await supabase
+      .from('patients')
+      .update({ account_credit_cents: activeBalance })
+      .eq('id', patient_id);
+  }
+
+  // Find the earliest expiring active credit for display
+  const expiringCredits = (history || []).filter(r =>
+    r.type === 'add' && r.expires_at && r.expires_at > now
+  );
+  const earliestExpiry = expiringCredits.length > 0
+    ? expiringCredits.reduce((earliest, r) => r.expires_at < earliest ? r.expires_at : earliest, expiringCredits[0].expires_at)
+    : null;
+
   return res.status(200).json({
     patient_id: patient.id,
     patient_name: `${patient.first_name} ${patient.last_name}`,
-    balance_cents: patient.account_credit_cents,
-    balance_dollars: (patient.account_credit_cents / 100).toFixed(2),
+    balance_cents: activeBalance,
+    balance_dollars: (activeBalance / 100).toFixed(2),
+    expires_at: earliestExpiry,
     history: history || [],
   });
 }

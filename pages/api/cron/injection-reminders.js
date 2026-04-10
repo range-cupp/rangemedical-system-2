@@ -10,6 +10,9 @@ import { createClient } from '@supabase/supabase-js';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../../lib/blooio-optin';
 
+// Peptide protocols get weekly check-ins (peptide-weekly-checkin.js), not daily injection reminders
+const PEPTIDE_CATEGORIES = ['peptide'];
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -135,6 +138,12 @@ export default async function handler(req, res) {
     }
 
     for (const protocol of (protocols || [])) {
+      // Peptide protocols are handled by peptide-weekly-checkin cron, not here
+      if (PEPTIDE_CATEGORIES.includes(protocol.category)) {
+        results.skipped.push({ patient: protocol.patient_name, reason: 'Peptide — uses weekly check-in' });
+        continue;
+      }
+
       // Skip if reminders not enabled for this protocol type
       if (!protocol.checkin_reminder_enabled && !protocol.peptide_reminders_enabled) {
         results.skipped.push({ patient: protocol.patient_name, reason: 'Reminders not enabled' });

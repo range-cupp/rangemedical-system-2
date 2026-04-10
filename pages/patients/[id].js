@@ -547,6 +547,8 @@ export default function PatientProfile() {
   const [dispenseDosage, setDispenseDosage] = useState('');
   const [customDoseMode, setCustomDoseMode] = useState(false);
   const [customDoseValue, setCustomDoseValue] = useState('');
+  const [editCustomDoseMode, setEditCustomDoseMode] = useState(false);
+  const [editCustomDoseValue, setEditCustomDoseValue] = useState('');
   const [fulfillmentMethod, setFulfillmentMethod] = useState('in_clinic');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [dosingNotes, setDosingNotes] = useState('');
@@ -2662,6 +2664,8 @@ export default function PatientProfile() {
 
   const openEditModal = (protocol) => {
     setSelectedProtocol(protocol);
+    setEditCustomDoseMode(false);
+    setEditCustomDoseValue('');
 
     // Normalize delivery method (at_home → take_home for consistency)
     let deliveryMethod = protocol.delivery_method || '';
@@ -10607,10 +10611,30 @@ export default function PatientProfile() {
                         doseOptions = [peptide.startingDose, peptide.maxDose];
                       }
                     }
-                    return (
-                      <select value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}>
+                    return editCustomDoseMode ? (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input
+                          type="text"
+                          placeholder="e.g. 330mcg"
+                          value={editCustomDoseValue}
+                          onChange={e => setEditCustomDoseValue(e.target.value)}
+                          autoFocus
+                          style={{ flex: 1, padding: '8px 10px', fontSize: '14px', border: '2px solid #2563eb', borderRadius: 4, background: '#eff6ff' }}
+                        />
+                        <button onClick={() => { if (editCustomDoseValue.trim()) { setEditForm({...editForm, selectedDose: editCustomDoseValue.trim()}); setEditCustomDoseMode(false); } }} style={{ padding: '8px 14px', fontSize: '13px', fontWeight: 600, background: '#111', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>Set</button>
+                        <button onClick={() => { setEditCustomDoseMode(false); setEditCustomDoseValue(''); }} style={{ padding: '8px 10px', fontSize: '13px', background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer' }}>Cancel</button>
+                      </div>
+                    ) : (
+                      <select value={doseOptions.includes(editForm.selectedDose) ? editForm.selectedDose : (editForm.selectedDose ? '__current__' : '')} onChange={e => {
+                        if (e.target.value === '__custom__') { setEditCustomDoseMode(true); setEditCustomDoseValue(''); }
+                        else if (e.target.value !== '__current__') setEditForm({...editForm, selectedDose: e.target.value});
+                      }}>
                         <option value="">Select dose...</option>
+                        {editForm.selectedDose && !doseOptions.includes(editForm.selectedDose) && (
+                          <option value="__current__">{editForm.selectedDose} (current)</option>
+                        )}
                         {doseOptions.map(d => <option key={d} value={d}>{d}</option>)}
+                        <option value="__custom__">Other (custom dose)...</option>
                       </select>
                     );
                   })() : selectedProtocol.category === 'hrt' ? (

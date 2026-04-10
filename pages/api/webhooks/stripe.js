@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import { sendSMS } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import { autoCreateOrExtendProtocol } from '../../../lib/auto-protocol';
+import { createProtocol } from '../../../lib/create-protocol';
 import { todayPacific } from '../../../lib/date-utils';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -176,33 +177,30 @@ async function creditFreeRangeIV(patientId, invoiceId) {
     console.log(`Expired ${oldIds.length} unused Range IV perk(s) for patient ${patientId}`);
   }
 
-  // Create the IV protocol (1 session)
-  const { data: protocol, error } = await supabase
-    .from('protocols')
-    .insert({
-      patient_id: patientId,
-      program_name: 'Range IV — HRT Membership Perk',
-      program_type: 'iv_therapy',
-      medication: 'Range IV',
-      total_sessions: 1,
-      sessions_used: 0,
-      status: 'active',
-      delivery_method: 'in_clinic',
-      start_date: today,
-      end_date: endDate.toISOString().split('T')[0],
-      notes: `Complimentary Range IV — HRT Membership Perk. Auto-credited on ${today}.`,
-      created_at: new Date().toISOString(),
-    })
-    .select('id')
-    .single();
+  // Create the IV protocol (1 session) via centralized function
+  const result = await createProtocol({
+    patient_id: patientId,
+    program_name: 'Range IV — HRT Membership Perk',
+    program_type: 'iv_therapy',
+    medication: 'Range IV',
+    total_sessions: 1,
+    sessions_used: 0,
+    delivery_method: 'in_clinic',
+    start_date: today,
+    end_date: endDate.toISOString().split('T')[0],
+    notes: `Complimentary Range IV — HRT Membership Perk. Auto-credited on ${today}.`,
+  }, {
+    source: 'hrt-membership-perk',
+    skipDuplicateCheck: true, // perk is already guarded by month check above
+  });
 
-  if (error) {
-    console.error('Range IV credit error:', error);
+  if (!result.success) {
+    console.error('Range IV credit error:', result.error);
     return null;
   }
 
-  console.log(`Range IV credited for patient ${patientId} (protocol ${protocol.id})`);
-  return protocol.id;
+  console.log(`Range IV credited for patient ${patientId} (protocol ${result.protocol.id})`);
+  return result.protocol.id;
 }
 
 // Send the patient an email about their free Range IV

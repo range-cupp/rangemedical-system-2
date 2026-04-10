@@ -5,15 +5,13 @@
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../../lib/comms-log';
 import { isWeightLossType, isHRTType, isRecoveryPeptide, isGHPeptide } from '../../../../lib/protocol-config';
-import { findDuplicateProtocol } from '../../../../lib/duplicate-prevention';
-import crypto from 'crypto';
+import { createProtocol } from '../../../../lib/create-protocol';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const GHL_API_KEY = process.env.GHL_API_KEY;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
 
 // Protocol type configurations
@@ -74,22 +72,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // ===== DUPLICATE PREVENTION =====
-    // Check for existing active protocol with same type + medication
-    // Skipped when force=true (user confirmed they want to create a second protocol)
-    if (patient_id && !force) {
-      const existingProtocol = await findDuplicateProtocol(patient_id, protocolType, medication);
-      if (existingProtocol) {
-        return res.status(409).json({
-          error: 'Active protocol already exists',
-          details: `Patient already has an active ${protocolType} protocol (${existingProtocol.medication || existingProtocol.program_name}). Use the existing protocol instead.`,
-          existing_protocol_id: existingProtocol.id
-        });
-      }
-    }
-
     const config = PROTOCOL_CONFIGS[protocolType] || {};
-    const accessToken = crypto.randomBytes(32).toString('hex');
 
     // Calculate end date for time-bound protocols
     let endDate = null;
@@ -97,10 +80,7 @@ export default async function handler(req, res) {
 
     if (protocolType === 'peptide') {
       const days = parseInt(duration) || 30;
-      // Use explicit totalSessions from POS if provided (e.g., 20 inj for 5-on/2-off),
-      // otherwise fall back to calendar days
       sessions = totalSessions ? parseInt(totalSessions) : days;
-      // Twice daily = supply lasts half as long
       const effectiveDays = frequency === '2x_daily' ? Math.ceil(days / 2) : days;
       const end = new Date(startDate);
       end.setDate(end.getDate() + effectiveDays - 1);
@@ -108,7 +88,6 @@ export default async function handler(req, res) {
     } else if (protocolType === 'red_light' || protocolType === 'hbot') {
       sessions = parseInt(totalSessions) || 1;
     }
-    // HRT and weight_loss are ongoing (no end date)
 
     // Calculate supply for HRT
     let supplyQuantity = null;
@@ -120,10 +99,9 @@ export default async function handler(req, res) {
         supplyQuantity = 8;
         supplyRemaining = 8;
       } else if (supplyType === 'vial') {
-        supplyQuantity = 10; // ml
+        supplyQuantity = 10;
         supplyRemaining = 10;
       }
-      // Extract dose from dosage string (e.g., "0.3ml/60mg" -> 60)
       const doseMatch = dosage?.match(/(\d+)mg/);
       if (doseMatch) {
         dosePerInjection = parseInt(doseMatch[1]);
@@ -142,7 +120,6 @@ export default async function handler(req, res) {
     let protocolName = '';
     if (protocolType === 'peptide') {
       const days = parseInt(duration) || 30;
-      // For 90-day protocols (monthly payments), label as "90-Day" program
       const durationLabel = days >= 90 ? '90' : days;
       if (isGHPeptide(medication)) {
         protocolName = `${durationLabel}-Day GH Protocol`;
@@ -161,58 +138,59 @@ export default async function handler(req, res) {
       protocolName = `HBOT (${totalSessions} sessions)`;
     }
 
-    // Create the protocol
-    const { data: protocol, error: protocolError } = await supabase
-      .from('protocols')
-      .insert({
-        patient_id: patient_id || null,
-        ghl_contact_id: ghl_contact_id || null,
-        patient_name: patientName,
-        patient_phone: patientPhone,
-        patient_email: patientEmail,
+    // Create the protocol via centralized function
+    const result = await createProtocol({
+      patient_id: patient_id || null,
+      ghl_contact_id: ghl_contact_id || null,
+      patient_name: patientName,
+      patient_phone: patientPhone,
+      patient_email: patientEmail,
 
-        program_name: protocolName,
-        medication,
-        selected_dose: dosage,
-        frequency,
-        delivery_method: deliveryMethod,
+      program_name: protocolName,
+      program_type: protocolType,
+      medication,
+      selected_dose: dosage,
+      frequency,
+      delivery_method: deliveryMethod,
 
-        start_date: startDate,
-        end_date: endDate,
-        total_sessions: sessions,
-        sessions_used: 0,
-        
-        continuous_days_started: protocolType === 'peptide' ? startDate : null,
-        continuous_days_used: 0,
-        
-        supply_type: supplyType || null,
-        supply_dispensed_date: supplyDispensedDate || null,
-        supply_quantity: supplyQuantity,
-        supply_remaining: supplyRemaining,
-        dose_per_injection: dosePerInjection,
-        
-        current_dose: currentDose || dosage,
-        injections_at_current_dose: 0,
-        
-        baseline_labs_due: baselineLabsDate ? null : startDate,
-        baseline_labs_completed: !!baselineLabsDate,
-        baseline_labs_date: baselineLabsDate || null,
-        followup_labs_due: followupLabsDue,
-        
-        program_type: protocolType,
-        peptide_reminders_enabled: protocolType === 'peptide' ? true : null,
+      start_date: startDate,
+      end_date: endDate,
+      total_sessions: sessions,
+      sessions_used: 0,
 
-        status: 'active',
-        access_token: accessToken,
-        notes
-      })
-      .select()
-      .single();
+      continuous_days_started: protocolType === 'peptide' ? startDate : null,
+      continuous_days_used: 0,
 
-    if (protocolError) {
-      console.error('Protocol create error:', protocolError);
+      supply_type: supplyType || null,
+      supply_dispensed_date: supplyDispensedDate || null,
+      supply_quantity: supplyQuantity,
+      supply_remaining: supplyRemaining,
+      dose_per_injection: dosePerInjection,
+
+      current_dose: currentDose || dosage,
+
+      peptide_reminders_enabled: protocolType === 'peptide' ? true : null,
+
+      notes,
+    }, {
+      source: 'admin-protocols-create',
+      force: !!force,
+    });
+
+    if (!result.success) {
+      if (result.duplicate) {
+        return res.status(409).json({
+          error: 'Active protocol already exists',
+          details: `Patient already has an active ${protocolType} protocol. Use the existing protocol instead.`,
+          existing_protocol_id: result.duplicate.protocolId || result.duplicate.protocol?.id,
+        });
+      }
+      console.error('Protocol create error:', result.error);
       return res.status(500).json({ error: 'Failed to create protocol' });
     }
+
+    const protocol = result.protocol;
+    const accessToken = protocol.access_token;
 
     // Create scheduled sessions for peptides
     if (protocolType === 'peptide' && sessions) {

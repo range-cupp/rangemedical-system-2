@@ -3,6 +3,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { createProtocol } from '../../../lib/create-protocol';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -89,34 +90,31 @@ export default async function handler(req, res) {
       medicationName = peptide?.name;
     }
 
-    // Create the protocol as completed
-    const { data: protocol, error: protocolError } = await supabase
-      .from('protocols')
-      .insert({
-        patient_id: patientId,
-        program_name: programName,
-        program_type: programType,
-        medication: medicationName,
-        selected_dose: selectedDose || null,
-        frequency: frequency || null,
-        delivery_method: deliveryMethod || null,
-        start_date: startDate || null,
-        end_date: calculatedEndDate,
-        status: 'completed',
-        notes: notes,
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    // Create the protocol as completed via centralized function
+    const result = await createProtocol({
+      patient_id: patientId,
+      program_name: programName,
+      program_type: programType,
+      medication: medicationName,
+      selected_dose: selectedDose || null,
+      frequency: frequency || null,
+      delivery_method: deliveryMethod || null,
+      start_date: startDate || null,
+      end_date: calculatedEndDate,
+      status: 'completed',
+      notes,
+    }, {
+      source: 'add-completed',
+      skipDuplicateCheck: true, // historical entries don't need duplicate checks
+    });
 
-    if (protocolError) {
-      console.error('Protocol creation error:', protocolError);
-      throw protocolError;
+    if (!result.success) {
+      throw new Error(result.error);
     }
 
-    res.status(200).json({ 
-      success: true, 
-      protocol,
+    res.status(200).json({
+      success: true,
+      protocol: result.protocol,
       message: `Completed protocol added: ${programName}`
     });
 

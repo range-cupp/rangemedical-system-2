@@ -11,6 +11,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { isWeightLossType } from '../../../lib/protocol-config';
+import { createProtocol } from '../../../lib/create-protocol';
 import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
@@ -1352,37 +1353,34 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
     const hrtType = isHRT ? (isFemale ? 'female' : 'male') : null;
 
     const isWL = isWeightLossType(programType);
-    const { data: protocol, error } = await supabase
-      .from('protocols')
-      .insert({
-        patient_id,
-        program_type: isWL ? 'weight_loss' : programType,
-        program_name: isHRT ? 'HRT Protocol' : isWL ? 'Weight Loss Protocol' : (medication || getCategoryDisplayName(category)),
-        medication: medication || null,
-        selected_dose: dosage || null,
-        frequency: isWL ? 'Weekly' : null,
-        status: 'active',
-        start_date: logDate,
-        end_date: nextDate.toISOString().split('T')[0],
-        last_refill_date: logDate,
-        last_visit_date: logDate,
-        next_expected_date: nextDate.toISOString().split('T')[0],
-        supply_type: supply_type || null,
-        hrt_type: hrtType,
-        secondary_medications: isHRT ? '[]' : null,
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    const result = await createProtocol({
+      patient_id,
+      program_type: isWL ? 'weight_loss' : programType,
+      program_name: isHRT ? 'HRT Protocol' : isWL ? 'Weight Loss Protocol' : (medication || getCategoryDisplayName(category)),
+      medication: medication || null,
+      selected_dose: dosage || null,
+      frequency: isWL ? 'Weekly' : null,
+      start_date: logDate,
+      end_date: nextDate.toISOString().split('T')[0],
+      last_refill_date: logDate,
+      last_visit_date: logDate,
+      next_expected_date: nextDate.toISOString().split('T')[0],
+      supply_type: supply_type || null,
+      hrt_type: hrtType,
+      secondary_medications: isHRT ? '[]' : null,
+    }, {
+      source: 'service-log',
+      skipDuplicateCheck: true, // service log fallback — protocol should exist but doesn't
+    });
 
-    if (error) {
-      console.error('Error creating protocol:', error);
+    if (!result.success) {
+      console.error('Error creating protocol:', result.error);
       return { created: false, reason: 'Error creating protocol' };
     }
 
     return {
       created: true,
-      protocol_id: protocol.id,
+      protocol_id: result.protocol.id,
       next_expected_date: nextDate.toISOString().split('T')[0],
       medication,
       dosage
@@ -1406,37 +1404,33 @@ async function createProtocolFromSession(patient_id, category, programType, logD
     const hrtTypeSession = isHRT ? (isFemaleSession ? 'female' : 'male') : null;
 
     const isWLSession = isWeightLossType(programType);
-    const { data: protocol, error } = await supabase
-      .from('protocols')
-      .insert({
-        patient_id,
-        program_type: isWLSession ? 'weight_loss' : programType,
-        program_name: isHRT ? 'HRT Protocol' : isWLSession ? 'Weight Loss Protocol' : (medication || getCategoryDisplayName(category)),
-        medication: medication || null,
-        selected_dose: dosage || null,
-        frequency: isWLSession ? 'Weekly' : null,
-        status: 'active',
-        start_date: logDate,
-        last_visit_date: logDate,
-        next_expected_date: nextExpectedDate,
-        delivery_method: 'in_clinic',
-        sessions_used: 1,
-        injections_completed: 1,
-        hrt_type: hrtTypeSession,
-        secondary_medications: isHRT ? '[]' : null,
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    const result = await createProtocol({
+      patient_id,
+      program_type: isWLSession ? 'weight_loss' : programType,
+      program_name: isHRT ? 'HRT Protocol' : isWLSession ? 'Weight Loss Protocol' : (medication || getCategoryDisplayName(category)),
+      medication: medication || null,
+      selected_dose: dosage || null,
+      frequency: isWLSession ? 'Weekly' : null,
+      start_date: logDate,
+      last_visit_date: logDate,
+      next_expected_date: nextExpectedDate,
+      delivery_method: 'in_clinic',
+      sessions_used: 1,
+      hrt_type: hrtTypeSession,
+      secondary_medications: isHRT ? '[]' : null,
+    }, {
+      source: 'service-log',
+      skipDuplicateCheck: true,
+    });
 
-    if (error) {
-      console.error('Error creating protocol:', error);
+    if (!result.success) {
+      console.error('Error creating protocol:', result.error);
       return { created: false, reason: 'Error creating protocol' };
     }
 
     return {
       created: true,
-      protocol_id: protocol.id,
+      protocol_id: result.protocol.id,
       next_expected_date: nextExpectedDate,
       medication,
       dosage

@@ -1,16 +1,10 @@
 // /pages/api/protocols/create.js
-// Create a new protocol
-// Range Medical - 2026-01-17
+// Create a new protocol — delegates to lib/create-protocol.js
+// Range Medical
 
-import { createClient } from '@supabase/supabase-js';
 import { isWeightLossType, isHRTType } from '../../../lib/protocol-config';
-import { findDuplicateProtocol, findProtocolForPurchase } from '../../../lib/duplicate-prevention';
+import { createProtocol } from '../../../lib/create-protocol';
 import { todayPacific } from '../../../lib/date-utils';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -19,8 +13,6 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body;
-    console.log('Create protocol request:', JSON.stringify(body, null, 2));
-
     const {
       patient_id,
       ghl_contact_id,
@@ -42,78 +34,35 @@ export default async function handler(req, res) {
     if (!patient_id) {
       return res.status(400).json({ error: 'Patient ID is required' });
     }
-
     if (!program_type) {
       return res.status(400).json({ error: 'Protocol type is required' });
     }
 
-    // ===== DUPLICATE PREVENTION =====
-    // Guard 1: If linked to a purchase that already has a protocol, return it
-    if (purchase_id) {
-      const existingProtocolId = await findProtocolForPurchase(purchase_id);
-      if (existingProtocolId) {
-        return res.status(409).json({
-          error: 'Protocol already exists for this purchase',
-          details: `Purchase already linked to protocol ${existingProtocolId}. Use "View Protocol" instead.`,
-          existing_protocol_id: existingProtocolId
-        });
-      }
-    }
-
-    // Guard 2: Check for existing active protocol with same type + medication
-    if (patient_id) {
-      const existingProtocol = await findDuplicateProtocol(patient_id, program_type, medication);
-      if (existingProtocol) {
-        // Link purchase to existing protocol if applicable
-        if (purchase_id) {
-          await supabase.from('purchases').update({
-            protocol_id: existingProtocol.id,
-            protocol_created: true
-          }).eq('id', purchase_id);
-        }
-        return res.status(409).json({
-          error: 'Active protocol already exists',
-          details: `Patient already has an active ${program_type} protocol (${existingProtocol.medication || existingProtocol.program_name}). Use the existing protocol instead.`,
-          existing_protocol_id: existingProtocol.id
-        });
-      }
-    }
-
-    // Calculate end date based on protocol type
+    // ── Calculate end date based on protocol type ──────────────────────────
     let end_date = null;
     let duration_days = null;
-
-    // Resolve the display program name (may be normalized for peptides)
     let resolved_program_name = program_name;
 
     if (program_name) {
-      // Parse program name for duration (e.g., "7 Day", "10 Day", "30 Day")
       const match = program_name.match(/(\d+)\s*Day/i);
       if (match) {
         duration_days = parseInt(match[1]);
-        // Normalize bare duration names for peptide protocols → "Peptide Therapy - X Days"
         if (program_type === 'peptide' && /^(\d+\s*Day|Peptide\s*-\s*\d+\s*Day)$/i.test(program_name)) {
           resolved_program_name = `Peptide Therapy - ${match[1]} Days`;
         }
       }
     }
 
-    // Session-based protocols (IV, HBOT, RLT, Injection)
     if (['iv', 'hbot', 'rlt', 'injection'].includes(program_type) && total_sessions) {
       duration_days = total_sessions * 7;
     }
-
-    // Weight loss defaults to 4 weeks if not specified
     if (isWeightLossType(program_type) && !duration_days) {
       duration_days = 28;
     }
-
-    // HRT has no end date (ongoing)
     if (isHRTType(program_type)) {
       duration_days = null;
     }
 
-    // Calculate end date
     const startDateValue = start_date || todayPacific();
     if (duration_days && startDateValue) {
       const startD = new Date(startDateValue + 'T00:00:00');
@@ -122,105 +71,54 @@ export default async function handler(req, res) {
       end_date = endD.toISOString().split('T')[0];
     }
 
-    // IV protocols: auto-generate program name as "Medication - X Pack"
     if (program_type === 'iv' && medication && total_sessions) {
       resolved_program_name = `${medication} - ${total_sessions} Pack`;
     }
 
-    // Build protocol record - only include columns that exist in the table
-    const isHRT = isHRTType(program_type);
-    const isWL = isWeightLossType(program_type);
-    const protocolData = {
+    // ── Create via centralized function ────────────────────────────────────
+    const result = await createProtocol({
       patient_id,
-      program_type: isWL ? 'weight_loss' : program_type,
-      program_name: isHRT ? 'HRT Protocol' : isWL ? 'Weight Loss Protocol' : program_type === 'peptide' ? 'Peptide Protocol' : (resolved_program_name || getProgramName(program_type)),
-      medication: medication || null,
-      selected_dose: dose || null,
-      starting_dose: dose || null,
+      ghl_contact_id,
+      program_type: isWeightLossType(program_type) ? 'weight_loss' : program_type,
+      program_name: resolved_program_name,
+      medication,
+      selected_dose: dose,
+      starting_dose: dose,
       frequency: frequency || getDefaultFrequency(program_type),
       delivery_method: delivery_method || 'in_clinic',
-      supply_type: supply_type || null,
+      supply_type,
       total_sessions: (program_type === 'peptide' && delivery_method === 'take_home') ? null : (total_sessions ? parseInt(total_sessions) : null),
-      sessions_used: 0,
       start_date: startDateValue,
       end_date,
-      status: 'active',
-      notes: notes || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+      notes,
+      hrt_type,
+      secondary_medications,
+    }, {
+      source: 'protocols-create',
+      purchaseId: purchase_id,
+    });
 
-    // HRT-specific fields
-    if (isHRT) {
-      protocolData.hrt_type = hrt_type || 'male';
-      protocolData.secondary_medications = secondary_medications ? (typeof secondary_medications === 'string' ? secondary_medications : JSON.stringify(secondary_medications)) : '[]';
-    }
-
-    console.log('Inserting protocol:', JSON.stringify(protocolData, null, 2));
-
-    // Insert protocol
-    const { data: protocol, error } = await supabase
-      .from('protocols')
-      .insert(protocolData)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Supabase error creating protocol:', error);
-      return res.status(500).json({ 
-        error: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
-    }
-
-    console.log('Protocol created:', protocol?.id);
-
-    // If linked to a purchase, mark it as protocol_created in purchases table
-    if (purchase_id && protocol) {
-      const { error: purchaseError } = await supabase
-        .from('purchases')
-        .update({
-          protocol_created: true,
-          protocol_id: protocol.id
-        })
-        .eq('id', purchase_id);
-      
-      if (purchaseError) {
-        console.error('Error updating purchase:', purchaseError);
-        // Don't fail - just log
-      } else {
-        console.log('Purchase marked as protocol_created:', purchase_id);
+    if (!result.success) {
+      // Duplicate — return 409
+      if (result.duplicate) {
+        return res.status(409).json({
+          error: result.error,
+          existing_protocol_id: result.duplicate.protocolId || result.duplicate.protocol?.id
+        });
       }
+      return res.status(500).json({ error: result.error });
     }
 
     return res.status(200).json({
       success: true,
-      protocol,
+      protocol: result.protocol,
       message: 'Protocol created successfully'
     });
 
   } catch (err) {
     console.error('Create protocol error:', err);
-    return res.status(500).json({ 
-      error: err.message,
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-    });
+    return res.status(500).json({ error: err.message });
   }
-}
-
-function getProgramName(type) {
-  const names = {
-    weight_loss: 'Weight Loss Protocol',
-    peptide: 'Peptide Therapy',
-    hrt: 'HRT Protocol',
-    iv: 'IV Therapy',
-    hbot: 'HBOT',
-    rlt: 'Red Light Therapy',
-    injection: 'Injection Therapy'
-  };
-  return names[type] || 'Protocol';
 }
 
 function getDefaultFrequency(type) {

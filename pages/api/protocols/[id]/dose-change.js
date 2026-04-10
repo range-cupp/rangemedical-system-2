@@ -18,6 +18,7 @@
 //   }
 
 import { createClient } from '@supabase/supabase-js';
+import { createProtocol, closeProtocol } from '../../../../lib/create-protocol';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -128,35 +129,43 @@ export default async function handler(req, res) {
       });
     }
 
-    // 4. Close old protocol → historic
-    const { error: closeErr } = await supabase
+    // 4. Close old protocol → historic via centralized function
+    const closeNotes = `Closed ${effDate} — dose changed to ${selected_dose}${
+      reason ? ` (${reason})` : ''
+    }${remainingMl != null ? `. ${remainingMl}ml carried to new protocol.` : ''}`;
+
+    // Save dose_history on the old protocol before closing
+    await supabase
       .from('protocols')
-      .update({
-        status: 'historic',
-        end_date: effDate,
-        dose_history: oldHistory,
-        notes: [
-          current.notes,
-          `Closed ${effDate} — dose changed to ${selected_dose}${
-            reason ? ` (${reason})` : ''
-          }${remainingMl != null ? `. ${remainingMl}ml carried to new protocol.` : ''}`,
-        ]
-          .filter(Boolean)
-          .join('\n'),
-        updated_at: new Date().toISOString(),
-      })
+      .update({ dose_history: oldHistory })
       .eq('id', id);
 
-    if (closeErr) {
-      console.error('Failed to close old protocol:', closeErr);
-      return res.status(500).json({ error: closeErr.message });
+    const closeResult = await closeProtocol(id, 'historic', {
+      endDate: effDate,
+      notes: closeNotes,
+    });
+
+    if (!closeResult.success) {
+      console.error('Failed to close old protocol:', closeResult.error);
+      return res.status(500).json({ error: closeResult.error });
     }
 
     // 5. Build new protocol payload — copy clinical/admin fields from parent,
     //    override dose-related ones.
-    const newProtocol = {
+    let nextExpectedDate = null;
+    const newVialMl = vialMlFromSupplyType(current.supply_type);
+    if (newVialMl && newDosePerInj > 0 && newIpw > 0) {
+      const supplyMl = remainingMl != null ? remainingMl : newVialMl;
+      const supplyDays = Math.round(
+        (supplyMl / (newDosePerInj * newIpw)) * 7
+      );
+      const nextDate = new Date(effDate + 'T12:00:00');
+      nextDate.setDate(nextDate.getDate() + supplyDays);
+      nextExpectedDate = nextDate.toISOString().split('T')[0];
+    }
+
+    const result = await createProtocol({
       patient_id: current.patient_id,
-      category: current.category,
       program_type: current.program_type,
       program_name: current.program_name,
       medication: current.medication,
@@ -169,21 +178,18 @@ export default async function handler(req, res) {
       hrt_reminder_schedule: current.hrt_reminder_schedule,
       first_followup_weeks: current.first_followup_weeks,
       secondary_medications: current.secondary_medications,
-      secondary_medication_details: current.secondary_medication_details,
       // New dose fields
       selected_dose,
-      dose: selected_dose,
       injections_per_week: newIpw,
       dose_per_injection: newDosePerInj,
       // Lifecycle
-      status: 'active',
       start_date: effDate,
-      last_refill_date: effDate, // base for next_expected_date math
+      last_refill_date: effDate,
+      next_expected_date: nextExpectedDate,
       // Versioning
       parent_protocol_id: id,
       dose_change_reason: reason || null,
-      starting_supply_ml: remainingMl, // null if we couldn't compute (treat as fresh)
-      // Seed dose_history with the new starting dose
+      starting_supply_ml: remainingMl,
       dose_history: [
         {
           date: effDate,
@@ -192,35 +198,23 @@ export default async function handler(req, res) {
           notes: reason || 'Dose change',
         },
       ],
-    };
+    }, {
+      source: 'dose-change',
+      parentProtocolId: id,
+      skipDuplicateCheck: true, // dose change always creates a new protocol
+    });
 
-    // 6. Recalculate next_expected_date for the new protocol if we have the math
-    const newVialMl = vialMlFromSupplyType(current.supply_type);
-    if (newVialMl && newDosePerInj > 0 && newIpw > 0) {
-      const supplyMl = remainingMl != null ? remainingMl : newVialMl;
-      const supplyDays = Math.round(
-        (supplyMl / (newDosePerInj * newIpw)) * 7
-      );
-      const nextDate = new Date(effDate + 'T12:00:00');
-      nextDate.setDate(nextDate.getDate() + supplyDays);
-      newProtocol.next_expected_date = nextDate.toISOString().split('T')[0];
-    }
-
-    const { data: created, error: createErr } = await supabase
-      .from('protocols')
-      .insert(newProtocol)
-      .select()
-      .single();
-
-    if (createErr) {
-      console.error('Failed to create new protocol:', createErr);
+    if (!result.success) {
+      console.error('Failed to create new protocol:', result.error);
       // Try to roll back the close
       await supabase
         .from('protocols')
         .update({ status: current.status, end_date: current.end_date })
         .eq('id', id);
-      return res.status(500).json({ error: createErr.message });
+      return res.status(500).json({ error: result.error });
     }
+
+    const created = result.protocol;
 
     return res.status(200).json({
       success: true,

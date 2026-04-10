@@ -1,9 +1,10 @@
 // /pages/api/admin/protocols.js
-// Protocol creation API - Range Medical
+// Protocol CRUD API - Range Medical
+// POST now delegates creation to lib/create-protocol.js
 import { createClient } from '@supabase/supabase-js';
-import { isRecoveryPeptide, isGHPeptide, isWeightLossType, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
+import { isWeightLossType } from '../../../lib/protocol-config';
 import { getHRTLabSchedule, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
-import { findDuplicateProtocol } from '../../../lib/duplicate-prevention';
+import { createProtocol } from '../../../lib/create-protocol';
 import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
@@ -46,59 +47,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // ===== DUPLICATE PREVENTION =====
-    // If creating from a purchase, check if that purchase already has a protocol linked
-    // This prevents double-creation when auto-protocol (from POS) runs AND user manually creates
-    if (purchase_id) {
-      const { data: existingPurchase } = await supabase
-        .from('purchases')
-        .select('id, protocol_id, protocol_created')
-        .eq('id', purchase_id)
-        .single();
-
-      if (existingPurchase?.protocol_id) {
-        return res.status(409).json({
-          error: 'Protocol already exists for this purchase',
-          details: `Purchase already linked to protocol ${existingPurchase.protocol_id}. Use "View Protocol" instead.`,
-          existing_protocol_id: existingPurchase.protocol_id
-        });
-      }
-    }
-
-    // Guard 2: Check for existing active protocol with same type + medication
-    // Resolve patient_id first for the check
-    let preCheckPatientId = patient_id;
-    if (!preCheckPatientId && ghl_contact_id) {
-      const { data: preCheckPatient } = await supabase
-        .from('patients')
-        .select('id')
-        .eq('ghl_contact_id', ghl_contact_id)
-        .maybeSingle();
-      if (preCheckPatient) preCheckPatientId = preCheckPatient.id;
-    }
-
-    if (preCheckPatientId) {
-      const existingProtocol = await findDuplicateProtocol(preCheckPatientId, program_type, medication);
-      if (existingProtocol) {
-        // Link purchase to existing protocol if applicable
-        if (purchase_id) {
-          await supabase.from('purchases').update({
-            protocol_id: existingProtocol.id,
-            protocol_created: true
-          }).eq('id', purchase_id);
-        }
-        return res.status(409).json({
-          error: 'Active protocol already exists',
-          details: `Patient already has an active ${program_type} protocol (${existingProtocol.medication || existingProtocol.program_name}). Use the existing protocol instead.`,
-          existing_protocol_id: existingProtocol.id
-        });
-      }
-    }
-
-    // Generate a placeholder ghl_contact_id if not provided (for old/manual entries)
-    const effectiveGhlContactId = ghl_contact_id || `manual_${Date.now()}_${patient_name.replace(/\s+/g, '_').toLowerCase()}`;
-
-    // If patient_id not provided, look it up from patients table
+    // Resolve patient_id if not provided
     let resolvedPatientId = patient_id;
     if (!resolvedPatientId && ghl_contact_id) {
       const { data: patient } = await supabase
@@ -106,115 +55,14 @@ export default async function handler(req, res) {
         .select('id')
         .eq('ghl_contact_id', ghl_contact_id)
         .maybeSingle();
-      
-      if (patient) {
-        resolvedPatientId = patient.id;
-      }
+      if (patient) resolvedPatientId = patient.id;
     }
 
-    // Generate access token
-    const crypto = require('crypto');
-    const accessToken = crypto.randomBytes(16).toString('hex');
+    const effectiveGhlContactId = ghl_contact_id || `manual_${Date.now()}_${patient_name.replace(/\s+/g, '_').toLowerCase()}`;
 
-    // ===== 90-DAY CYCLE TRACKING =====
-    // For recovery peptides (BPC-157, Thymosin Beta-4, etc.) and GH peptides,
-    // track consecutive days across protocols with a shared cycle_start_date.
-    // Max 90 days per cycle, then mandatory off period.
-    let cycleStartDate = null;
-    const isRecovery = isRecoveryPeptide(medication);
-    const isGH = isGHPeptide(medication);
-
-    if ((isRecovery || isGH) && resolvedPatientId) {
-      const maxDays = isGH ? GH_CYCLE_MAX_DAYS : RECOVERY_CYCLE_MAX_DAYS;
-      const offDays = isGH ? GH_CYCLE_OFF_DAYS : RECOVERY_CYCLE_OFF_DAYS;
-      const filterFn = isGH ? isGHPeptide : isRecoveryPeptide;
-
-      // Fetch existing peptide protocols for this patient
-      const { data: existingProtocols } = await supabase
-        .from('protocols')
-        .select('id, medication, start_date, end_date, status, cycle_start_date')
-        .eq('patient_id', resolvedPatientId)
-        .not('status', 'in', '("cancelled","merged")')
-        .order('start_date', { ascending: false });
-
-      // Filter to matching peptide type
-      const matchingProtocols = (existingProtocols || []).filter(p => filterFn(p.medication));
-
-      if (matchingProtocols.length === 0) {
-        // No prior cycle — start fresh
-        cycleStartDate = start_date || todayPacific();
-      } else {
-        // Find protocols with cycle_start_date set, or infer from dates
-        const withCycle = matchingProtocols.filter(p => p.cycle_start_date);
-
-        if (withCycle.length > 0) {
-          // Use the latest existing cycle
-          const latestCycleDate = withCycle.sort((a, b) => b.cycle_start_date.localeCompare(a.cycle_start_date))[0].cycle_start_date;
-          const cycleProtocols = withCycle.filter(p => p.cycle_start_date === latestCycleDate);
-
-          // Calculate days used in this cycle
-          let cycleDaysUsed = 0;
-          for (const p of cycleProtocols) {
-            const s = new Date(p.start_date + 'T12:00:00');
-            const e = p.end_date ? new Date(p.end_date + 'T12:00:00') : new Date();
-            cycleDaysUsed += Math.max(0, Math.round((e - s) / (1000 * 60 * 60 * 24)));
-          }
-
-          if (cycleDaysUsed >= maxDays) {
-            // Cycle exhausted — check if off period has passed
-            const latestEnd = cycleProtocols
-              .filter(p => p.end_date)
-              .map(p => new Date(p.end_date + 'T12:00:00'))
-              .sort((a, b) => b - a)[0];
-
-            const offEnd = latestEnd ? new Date(latestEnd) : new Date();
-            offEnd.setDate(offEnd.getDate() + offDays);
-
-            if (new Date() >= offEnd) {
-              // Off period passed — start new cycle
-              cycleStartDate = start_date || todayPacific();
-            } else {
-              // Still in off period — start new cycle anyway but warn (handled by client)
-              cycleStartDate = start_date || todayPacific();
-            }
-          } else {
-            // Cycle not exhausted — continue same cycle
-            cycleStartDate = latestCycleDate;
-          }
-        } else {
-          // No cycle_start_date on existing protocols — infer from earliest matching protocol
-          const earliest = matchingProtocols.sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
-
-          // Calculate total days across all matching protocols
-          let totalDaysUsed = 0;
-          let latestEndDate = null;
-          for (const p of matchingProtocols) {
-            const s = new Date(p.start_date + 'T12:00:00');
-            const e = p.end_date ? new Date(p.end_date + 'T12:00:00') : new Date();
-            totalDaysUsed += Math.max(0, Math.round((e - s) / (1000 * 60 * 60 * 24)));
-            if (!latestEndDate || e > latestEndDate) latestEndDate = e;
-          }
-
-          if (totalDaysUsed >= maxDays) {
-            // Inferred cycle exhausted — start new cycle
-            cycleStartDate = start_date || todayPacific();
-          } else {
-            // Continue inferred cycle — use earliest start_date as cycle start
-            cycleStartDate = earliest.start_date;
-            // Backfill cycle_start_date on existing matching protocols
-            for (const p of matchingProtocols) {
-              await supabase
-                .from('protocols')
-                .update({ cycle_start_date: earliest.start_date })
-                .eq('id', p.id);
-            }
-          }
-        }
-      }
-    }
-
-    // Create protocol — use actual DB column names only
-    const protocolData = {
+    // Create protocol via centralized function
+    // createProtocol handles: validation, duplicate prevention, cycle tracking, access_token, defaults
+    const result = await createProtocol({
       patient_id: resolvedPatientId,
       ghl_contact_id: effectiveGhlContactId,
       patient_name,
@@ -223,8 +71,8 @@ export default async function handler(req, res) {
       program_name: isHRTProtocol(program_type) ? 'HRT Protocol' : isWeightLossType(program_type) ? 'Weight Loss Protocol' : program_type === 'peptide' ? 'Peptide Protocol' : (program_name || program_type),
       program_type,
       medication,
-      hrt_type: isHRTProtocol(program_type) ? (hrt_type || 'male') : null,
-      secondary_medications: typeof secondary_medications === 'string' ? secondary_medications : JSON.stringify(secondary_medications),
+      hrt_type,
+      secondary_medications,
       selected_dose,
       frequency,
       delivery_method,
@@ -233,25 +81,33 @@ export default async function handler(req, res) {
       end_date: end_date || null,
       notes: notes || null,
       status: status || 'active',
-      access_token: accessToken,
-      sessions_used: 0,
       num_vials: body.num_vials ? parseInt(body.num_vials) : null,
       doses_per_vial: body.doses_per_vial ? parseInt(body.doses_per_vial) : null,
-      cycle_start_date: cycleStartDate,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+    }, {
+      source: 'admin-protocols',
+      purchaseId: purchase_id,
+    });
 
-    const { data: protocol, error: protocolError } = await supabase
-      .from('protocols')
-      .insert(protocolData)
-      .select()
-      .single();
-
-    if (protocolError) {
-      console.error('Protocol creation error:', protocolError);
-      return res.status(500).json({ error: 'Failed to create protocol', details: protocolError.message });
+    if (!result.success) {
+      if (result.duplicate) {
+        // Link purchase to existing protocol if applicable
+        if (purchase_id && result.duplicate.protocol?.id) {
+          await supabase.from('purchases').update({
+            protocol_id: result.duplicate.protocol.id,
+            protocol_created: true
+          }).eq('id', purchase_id);
+        }
+        return res.status(409).json({
+          error: 'Active protocol already exists',
+          details: result.error,
+          existing_protocol_id: result.duplicate.protocolId || result.duplicate.protocol?.id
+        });
+      }
+      console.error('Protocol creation error:', result.error);
+      return res.status(500).json({ error: 'Failed to create protocol', details: result.error });
     }
+
+    const protocol = result.protocol;
 
     // Create protocol_sessions for the injection calendar
     const totalDays = body.duration_days || total_sessions || 10;
@@ -261,7 +117,7 @@ export default async function handler(req, res) {
     for (let i = 1; i <= totalDays; i++) {
       const sessionDate = new Date(startDateObj);
       sessionDate.setDate(startDateObj.getDate() + i - 1);
-      
+
       sessions.push({
         protocol_id: protocol.id,
         session_number: i,
@@ -274,26 +130,9 @@ export default async function handler(req, res) {
       const { error: sessionsError } = await supabase
         .from('protocol_sessions')
         .insert(sessions);
-      
+
       if (sessionsError) {
         console.log('Note: Could not create protocol_sessions (table may not exist):', sessionsError.message);
-        // Don't fail - table might not exist yet
-      }
-    }
-
-    // Link purchase to protocol if provided — set BOTH protocol_id AND protocol_created
-    if (purchase_id) {
-      const { error: purchaseError } = await supabase
-        .from('purchases')
-        .update({
-          protocol_id: protocol.id,
-          protocol_created: true
-        })
-        .eq('id', purchase_id);
-
-      if (purchaseError) {
-        console.error('Failed to link purchase:', purchaseError);
-        // Don't fail the whole request, protocol was created successfully
       }
     }
 
@@ -302,7 +141,7 @@ export default async function handler(req, res) {
     // 8 weeks after start, then every 12 weeks x 3 (at 20, 32, 44 weeks)
     if (isHRTProtocol(program_type) && resolvedPatientId) {
       try {
-        const labSchedule = getHRTLabSchedule(protocolData.start_date, 8);
+        const labSchedule = getHRTLabSchedule(protocol.start_date, 8);
         // Skip the "Initial Labs" (day 0) — only create the follow-up draws
         const followUpLabs = labSchedule.filter(draw => draw.label !== 'Initial Labs');
 
@@ -314,7 +153,7 @@ export default async function handler(req, res) {
           delivery_method: 'follow_up',
           status: 'draw_scheduled',
           start_date: draw.targetDate,
-          notes: `Auto-scheduled from HRT Protocol (started ${protocolData.start_date}). ${draw.weekLabel}.`,
+          notes: `Auto-scheduled from HRT Protocol (started ${protocol.start_date}). ${draw.weekLabel}.`,
         }));
 
         if (labEntries.length > 0) {

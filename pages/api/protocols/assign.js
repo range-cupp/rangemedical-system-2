@@ -7,9 +7,10 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { syncProtocolToGHL } from '../../../lib/ghl-sync';
 import { WL_DRIP_EMAILS, personalizeEmail } from '../../../lib/wl-drip-emails';
-import { isRecoveryPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, isGHPeptide, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS, getCycleConfig, isWeightLossType, isHRTType } from '../../../lib/protocol-config';
+import { isWeightLossType, isHRTType } from '../../../lib/protocol-config';
 import { logComm } from '../../../lib/comms-log';
 import { calculateNextExpectedDate } from '../../../lib/auto-protocol';
+import { createProtocol } from '../../../lib/create-protocol';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { isInQuietHours } from '../../../lib/quiet-hours';
 import { todayPacific } from '../../../lib/date-utils';
@@ -438,268 +439,108 @@ export default async function handler(req, res) {
       medicationName = templateNameLower.includes('elite') ? 'Elite' : 'Essential';
     }
 
-    // ============================================
-    // PEPTIDE CYCLE TRACKING (Recovery + GH)
-    // ============================================
-    let cycleStartDate = null;
-    const cycleConfig = getCycleConfig(medicationName);
-    if (cycleConfig) {
-      const filterFn = cycleConfig.type === 'recovery' ? isRecoveryPeptide : isGHPeptide;
-      const maxDays = cycleConfig.maxDays;
-      const offDays = cycleConfig.offDays;
+    // Cycle tracking is handled by createProtocol() internally
 
-      // Query existing peptide protocols with cycle_start_date for this patient
-      const { data: existingCycleProtocols } = await supabase
-        .from('protocols')
-        .select('id, medication, start_date, end_date, status, cycle_start_date')
-        .eq('patient_id', finalPatientId)
-        .eq('program_type', 'peptide')
-        .not('status', 'in', '("cancelled","merged")')
-        .not('cycle_start_date', 'is', null)
-        .order('cycle_start_date', { ascending: false });
-
-      // Filter to only the same peptide type (recovery or GH)
-      const matchingProtocols = (existingCycleProtocols || []).filter(p => filterFn(p.medication));
-
-      if (matchingProtocols.length === 0) {
-        // No prior cycle — start a new one
-        cycleStartDate = startDate;
-      } else {
-        // Find the latest cycle
-        const latestCycleDate = matchingProtocols[0].cycle_start_date;
-        const cycleProtocols = matchingProtocols.filter(p => p.cycle_start_date === latestCycleDate);
-
-        // Sum days used in this cycle
-        let cycleDaysUsed = 0;
-        for (const p of cycleProtocols) {
-          const s = new Date(p.start_date + 'T12:00:00');
-          const e = p.end_date ? new Date(p.end_date + 'T12:00:00') : new Date();
-          cycleDaysUsed += Math.max(0, Math.round((e - s) / (1000 * 60 * 60 * 24)));
-        }
-
-        if (cycleDaysUsed < maxDays) {
-          // Cycle not exhausted — continue same cycle
-          cycleStartDate = latestCycleDate;
-        } else {
-          // Cycle exhausted — check if off period has passed
-          const latestEnd = cycleProtocols
-            .filter(p => p.end_date)
-            .map(p => new Date(p.end_date + 'T12:00:00'))
-            .sort((a, b) => b - a)[0];
-
-          if (latestEnd) {
-            const offEnd = new Date(latestEnd);
-            offEnd.setDate(offEnd.getDate() + offDays);
-            // Whether off period passed or not, start a new cycle (warning only, no block)
-            cycleStartDate = startDate;
-          } else {
-            cycleStartDate = startDate;
-          }
-        }
-      }
-    }
-
-    // ============================================
-    // DUPLICATE PREVENTION — Check ALL program types for existing active
-    // protocol with same medication. For take-home HRT/WL/peptide, extend
-    // the protocol. For others, just return existing (no duplicate).
-    // ============================================
-    {
-      const { data: existingProtocols } = await supabase
-        .from('protocols')
-        .select('*')
-        .eq('patient_id', finalPatientId)
-        .eq('program_type', programType)
-        .eq('status', 'active');
-
-      // Find a matching protocol (same medication if specified)
-      const matchingProtocol = (existingProtocols || []).find(p => {
-        if (medicationName && p.medication) {
-          // Normalize: "BPC-157 + Thymosin Beta-4" should match "BPC-157/TB4 (Thymosin Beta 4)"
-          const intakeMed = medicationName.toLowerCase().replace(/[^a-z0-9]/g, '');
-          const existingMed = p.medication.toLowerCase().replace(/[^a-z0-9]/g, '');
-          return intakeMed === existingMed || intakeMed.includes(existingMed) || existingMed.includes(intakeMed);
-        }
-        return true; // If no medication specified, match any active protocol of this type
-      });
-
-      if (matchingProtocol) {
-        const takeHomeTypes = ['hrt', 'weight_loss', 'peptide'];
-        const shouldExtend = takeHomeTypes.includes(programType) && deliveryMethod !== 'in_clinic';
-
-        if (shouldExtend) {
-          console.log(`Duplicate prevention: Found existing active ${programType} protocol ${matchingProtocol.id} for patient ${finalPatientId}. Extending instead of creating new.`);
-
-          // Calculate new end date (extend by 30 days)
-          const currentEndDate = matchingProtocol.end_date ? new Date(matchingProtocol.end_date + 'T12:00:00') : new Date();
-          const today = new Date();
-          const startFrom = currentEndDate < today ? today : currentEndDate;
-          const newEnd = new Date(startFrom);
-          newEnd.setDate(newEnd.getDate() + 30);
-          const newEndDate = newEnd.toISOString().split('T')[0];
-
-          // Extend the existing protocol
-          const { data: updatedProtocol, error: updateError } = await supabase
-            .from('protocols')
-            .update({
-              end_date: newEndDate,
-              last_payment_date: todayPacific(),
-              status: 'active',
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', matchingProtocol.id)
-            .select()
-            .single();
-
-          if (updateError) {
-            console.error('Error extending existing protocol:', updateError);
-            throw updateError;
-          }
-
-          // Link purchase to existing protocol
-          if (purchaseId) {
-            await supabase
-              .from('purchases')
-              .update({
-                protocol_id: matchingProtocol.id,
-                protocol_created: true
-              })
-              .eq('id', purchaseId);
-          }
-
-          // Create a payment log entry
-          await supabase
-            .from('protocol_logs')
-            .insert({
-              protocol_id: matchingProtocol.id,
-              patient_id: finalPatientId,
-              log_type: 'payment',
-              log_date: todayPacific(),
-              notes: `Monthly payment recorded (auto-linked from purchase). New end date: ${newEndDate}`
-            });
-
-          return res.status(200).json({
-            success: true,
-            linkedToExisting: true,
-            protocol: updatedProtocol,
-            message: `Linked to existing ${programType} protocol and extended end date to ${newEndDate}`
-          });
-        } else {
-          // Non-extendable types (IV, HBOT, RLT, injection packs, labs) —
-          // Don't create a duplicate, link purchase to existing and return it
-          console.log(`Duplicate prevention: Found existing active ${programType} protocol ${matchingProtocol.id} for patient ${finalPatientId}. Returning existing instead of creating duplicate.`);
-
-          if (purchaseId) {
-            await supabase
-              .from('purchases')
-              .update({
-                protocol_id: matchingProtocol.id,
-                protocol_created: true
-              })
-              .eq('id', purchaseId);
-          }
-
-          return res.status(200).json({
-            success: true,
-            linkedToExisting: true,
-            protocol: matchingProtocol,
-            message: `Linked to existing ${programType} protocol (duplicate prevented)`
-          });
-        }
-      }
-    }
-
-    // Create the protocol
-    const { data: protocol, error: protocolError } = await supabase
-      .from('protocols')
-      .insert({
-        patient_id: finalPatientId,
-        program_name: programName,
-        program_type: programType,
-        medication: medicationName,
-        selected_dose: selectedDose || null,
-        starting_dose: selectedDose || null, // Track initial dose for WL protocols
-        frequency: frequency || template?.frequency,
-        delivery_method: deliveryMethod || template?.delivery_method || (programType === 'injection' ? 'in_clinic' : null),
-        start_date: startDate,
-        end_date: endDate,
-        total_sessions: finalTotalSessions,
-        sessions_used: 0,
-        status: programType === 'labs' ? 'awaiting_results' : (isSingle ? 'completed' : 'active'),
-        notes: notes,
-        // Peptide vial specific fields
-        num_vials: numVials ? parseInt(numVials) : null,
-        doses_per_vial: dosesPerVial ? parseInt(dosesPerVial) : null,
-        // Weight loss specific fields
-        pickup_frequency: pickupFrequencyDays || null,
-        injection_frequency: injectionFrequencyDays || null,
-        injection_day: injectionDay || null,
-        checkin_reminder_enabled: checkinReminderEnabled || false,
-        peptide_reminders_enabled: programType === 'peptide' ? true : false,
-        // HRT vial-specific fields
-        dose_per_injection: dosePerInjection ? parseFloat(dosePerInjection) : null,
-        injections_per_week: injectionsPerWeek ? parseInt(injectionsPerWeek) : null,
-        vial_size: vialSize ? parseFloat(vialSize) : null,
-        supply_type: supplyType || null,
-        // HRT additional fields
-        hrt_type: hrtType || null,
-        injection_method: injectionMethod || null,
-        hrt_reminders_enabled: hrtRemindersEnabled || false,
-        hrt_reminder_schedule: hrtReminderSchedule || null,
-        hrt_followup_date: followupDate || null,
-        secondary_medications: secondaryMedications && secondaryMedications.length > 0 ? JSON.stringify(secondaryMedications) : '[]',
-        last_refill_date: startDate, // Initialize refill date to start date
-        next_expected_date: (() => {
-          // For HRT take-home, calculate next supply date from initial quantity
-          if (programType === 'hrt' && hrtInitialQuantity && (deliveryMethod || 'take_home') === 'take_home') {
-            const perWeek = injectionsPerWeek ? parseInt(injectionsPerWeek) : 2;
-            const qty = parseInt(hrtInitialQuantity);
-            const weeksSupply = qty / perWeek;
-            const supplyDays = Math.round(weeksSupply * 7);
-            const nextDate = new Date(startDate + 'T12:00:00');
-            nextDate.setDate(nextDate.getDate() + supplyDays);
-            return nextDate.toISOString().split('T')[0];
-          }
-          return calculateNextExpectedDate({
-            protocolType: programType,
-            startDate,
-            supplyType: supplyType || null,
-            pickupFrequency: pickupFrequencyDays || null,
-            dosePerInjection: dosePerInjection || null,
-            injectionsPerWeek: injectionsPerWeek || null,
-          });
-        })(),
-        cycle_start_date: cycleStartDate,
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (protocolError) {
-      console.error('Protocol creation error:', protocolError);
-      throw protocolError;
-    }
-
-    // Link purchase to protocol - set BOTH protocol_id and protocol_created
-    if (purchaseId) {
-      console.log('Linking purchase to protocol:', purchaseId, '->', protocol.id);
-      
-      const { data: updatedPurchase, error: updateError } = await supabase
-        .from('purchases')
-        .update({ 
-          protocol_id: protocol.id,
-          protocol_created: true
-        })
-        .eq('id', purchaseId)
-        .select();
-      
-      if (updateError) {
-        console.error('Error updating purchase:', updateError);
-      } else {
-        console.log('Purchase linked successfully:', updatedPurchase);
-      }
+    // Calculate next_expected_date
+    let nextExpectedDate = null;
+    if (programType === 'hrt' && hrtInitialQuantity && (deliveryMethod || 'take_home') === 'take_home') {
+      const perWeek = injectionsPerWeek ? parseInt(injectionsPerWeek) : 2;
+      const qty = parseInt(hrtInitialQuantity);
+      const weeksSupply = qty / perWeek;
+      const supplyDays = Math.round(weeksSupply * 7);
+      const nextDate = new Date(startDate + 'T12:00:00');
+      nextDate.setDate(nextDate.getDate() + supplyDays);
+      nextExpectedDate = nextDate.toISOString().split('T')[0];
     } else {
-      console.warn('No purchaseId provided - purchase will remain in pipeline');
+      nextExpectedDate = calculateNextExpectedDate({
+        protocolType: programType,
+        startDate,
+        supplyType: supplyType || null,
+        pickupFrequency: pickupFrequencyDays || null,
+        dosePerInjection: dosePerInjection || null,
+        injectionsPerWeek: injectionsPerWeek || null,
+      });
+    }
+
+    // Create the protocol via centralized function
+    // createProtocol handles: validation, duplicate prevention, cycle tracking, access_token
+    const result = await createProtocol({
+      patient_id: finalPatientId,
+      program_name: programName,
+      program_type: programType,
+      medication: medicationName,
+      selected_dose: selectedDose || null,
+      starting_dose: selectedDose || null,
+      frequency: frequency || template?.frequency,
+      delivery_method: deliveryMethod || template?.delivery_method || (programType === 'injection' ? 'in_clinic' : null),
+      start_date: startDate,
+      end_date: endDate,
+      total_sessions: finalTotalSessions,
+      sessions_used: 0,
+      status: programType === 'labs' ? 'awaiting_results' : (isSingle ? 'completed' : 'active'),
+      notes: notes,
+      // Peptide vial specific fields
+      num_vials: numVials ? parseInt(numVials) : null,
+      doses_per_vial: dosesPerVial ? parseInt(dosesPerVial) : null,
+      // Weight loss specific fields
+      pickup_frequency: pickupFrequencyDays || null,
+      injection_frequency: injectionFrequencyDays || null,
+      injection_day: injectionDay || null,
+      checkin_reminder_enabled: checkinReminderEnabled || false,
+      peptide_reminders_enabled: programType === 'peptide' ? true : false,
+      // HRT vial-specific fields
+      dose_per_injection: dosePerInjection ? parseFloat(dosePerInjection) : null,
+      injections_per_week: injectionsPerWeek ? parseInt(injectionsPerWeek) : null,
+      vial_size: vialSize ? parseFloat(vialSize) : null,
+      supply_type: supplyType || null,
+      // HRT additional fields
+      hrt_type: hrtType || null,
+      injection_method: injectionMethod || null,
+      hrt_reminders_enabled: hrtRemindersEnabled || false,
+      hrt_reminder_schedule: hrtReminderSchedule || null,
+      hrt_followup_date: followupDate || null,
+      secondary_medications: secondaryMedications && secondaryMedications.length > 0 ? JSON.stringify(secondaryMedications) : '[]',
+      last_refill_date: startDate,
+      next_expected_date: nextExpectedDate,
+    }, {
+      source: 'protocols-assign',
+      purchaseId,
+    });
+
+    if (!result.success) {
+      if (result.duplicate) {
+        // For duplicates, link purchase to existing and return it
+        const existingId = result.duplicate.protocolId || result.duplicate.protocol?.id;
+        if (purchaseId && existingId) {
+          await supabase.from('purchases').update({
+            protocol_id: existingId,
+            protocol_created: true,
+          }).eq('id', purchaseId);
+        }
+
+        // Fetch the existing protocol for the response
+        const { data: existingProtocol } = await supabase
+          .from('protocols')
+          .select('*')
+          .eq('id', existingId)
+          .single();
+
+        return res.status(200).json({
+          success: true,
+          linkedToExisting: true,
+          protocol: existingProtocol,
+          message: `Linked to existing ${programType} protocol (duplicate prevented)`
+        });
+      }
+      console.error('Protocol creation error:', result.error);
+      throw new Error(result.error);
+    }
+
+    const protocol = result.protocol;
+
+    // Purchase linking is handled by createProtocol, but log for debugging
+    if (purchaseId) {
+      console.log('Purchase linked to protocol:', purchaseId, '->', protocol.id);
     }
 
     // ============================================

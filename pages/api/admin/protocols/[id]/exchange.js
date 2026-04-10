@@ -3,8 +3,8 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
-import { isRecoveryPeptide, isGHPeptide, isWeightLossType } from '../../../../../lib/protocol-config';
-import crypto from 'crypto';
+import { isGHPeptide, isRecoveryPeptide, isWeightLossType } from '../../../../../lib/protocol-config';
+import { createProtocol, closeProtocol } from '../../../../../lib/create-protocol';
 import { todayPacific } from '../../../../../lib/date-utils';
 
 const supabase = createClient(
@@ -95,51 +95,49 @@ export default async function handler(req, res) {
       endDate = end.toISOString().split('T')[0];
     }
 
-    const accessToken = crypto.randomBytes(32).toString('hex');
+    // 5. Create the new protocol via centralized function
+    const result = await createProtocol({
+      patient_id: oldProtocol.patient_id,
+      ghl_contact_id: oldProtocol.ghl_contact_id,
+      patient_name: oldProtocol.patient_name,
+      patient_phone: oldProtocol.patient_phone,
+      patient_email: oldProtocol.patient_email,
 
-    // 5. Create the new protocol
-    const { data: newProtocol, error: createErr } = await supabase
-      .from('protocols')
-      .insert({
-        patient_id: oldProtocol.patient_id,
-        ghl_contact_id: oldProtocol.ghl_contact_id,
-        patient_name: oldProtocol.patient_name,
-        patient_phone: oldProtocol.patient_phone,
-        patient_email: oldProtocol.patient_email,
+      program_name: protocolName,
+      medication,
+      selected_dose: dosage || null,
+      frequency: freq,
+      delivery_method: deliveryMethod || oldProtocol.delivery_method,
 
-        program_name: protocolName,
-        medication,
-        selected_dose: dosage || null,
-        frequency: freq,
-        delivery_method: deliveryMethod || oldProtocol.delivery_method,
+      start_date: today,
+      end_date: endDate,
+      total_sessions: sessions,
+      sessions_used: 0,
 
-        start_date: today,
-        end_date: endDate,
-        total_sessions: sessions,
-        sessions_used: 0,
+      continuous_days_started: pType === 'peptide' ? today : null,
+      continuous_days_used: 0,
 
-        continuous_days_started: pType === 'peptide' ? today : null,
-        continuous_days_used: 0,
+      program_type: pType,
+      notes: `Exchanged from ${oldProtocol.program_name || oldProtocol.medication} — ${reason}${reasonNote ? ': ' + reasonNote : ''}`,
 
-        program_type: pType,
-        status: 'active',
-        access_token: accessToken,
-        notes: `Exchanged from ${oldProtocol.program_name || oldProtocol.medication} — ${reason}${reasonNote ? ': ' + reasonNote : ''}`,
+      // Exchange tracking
+      exchanged_from: oldProtocol.id,
+      exchange_reason: reason,
+      exchange_date: today,
 
-        // Exchange tracking
-        exchanged_from: oldProtocol.id,
-        exchange_reason: reason,
-        exchange_date: today,
+      peptide_reminders_enabled: pType === 'peptide' ? true : null,
+    }, {
+      source: 'exchange',
+      parentProtocolId: oldProtocol.id,
+      skipDuplicateCheck: true, // exchange always creates a new protocol
+    });
 
-        peptide_reminders_enabled: pType === 'peptide' ? true : null
-      })
-      .select()
-      .single();
-
-    if (createErr) {
-      console.error('Exchange create error:', createErr);
+    if (!result.success) {
+      console.error('Exchange create error:', result.error);
       return res.status(500).json({ error: 'Failed to create new protocol' });
     }
+
+    const newProtocol = result.protocol;
 
     // 6. Create scheduled sessions for peptides
     if (pType === 'peptide' && sessions) {
@@ -161,21 +159,22 @@ export default async function handler(req, res) {
       await supabase.from('protocol_sessions').insert(sessionInserts);
     }
 
-    // 7. Mark old protocol as exchanged
-    const { error: updateErr } = await supabase
-      .from('protocols')
-      .update({
-        status: 'exchanged',
-        exchanged_to: newProtocol.id,
-        exchange_reason: reason,
-        exchange_date: today
-      })
-      .eq('id', oldProtocol.id);
+    // 7. Mark old protocol as exchanged via centralized function
+    const closeResult = await closeProtocol(oldProtocol.id, 'exchanged', {
+      replacedByProtocolId: newProtocol.id,
+      notes: `Exchanged to ${medication} — ${reason}${reasonNote ? ': ' + reasonNote : ''}`,
+    });
 
-    if (updateErr) {
-      console.error('Exchange update error:', updateErr);
+    if (!closeResult.success) {
+      console.error('Exchange update error:', closeResult.error);
       // New protocol was created, so we still return success but warn
     }
+
+    // Also set exchange fields on old protocol
+    await supabase
+      .from('protocols')
+      .update({ exchange_reason: reason, exchange_date: today })
+      .eq('id', oldProtocol.id);
 
     // 8. Log a service log entry for the exchange
     await supabase.from('service_logs').insert({

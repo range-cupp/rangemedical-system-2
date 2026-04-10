@@ -59,7 +59,7 @@ export default async function handler(req, res) {
     // Find active peptide protocol
     const { data: protocol } = await supabase
       .from('protocols')
-      .select('id, medication, primary_peptide, selected_dose, dose_amount, program_name, start_date, end_date, duration_days')
+      .select('id, medication, selected_dose, program_name, start_date, end_date')
       .eq('patient_id', patient.id)
       .eq('status', 'active')
       .or('program_type.eq.peptide,program_name.ilike.%peptide%')
@@ -100,8 +100,8 @@ export default async function handler(req, res) {
       },
       protocol: protocol ? {
         id: protocol.id,
-        medication: protocol.primary_peptide || protocol.medication || 'Recovery Peptide',
-        dose: protocol.dose_amount || protocol.selected_dose || null,
+        medication: protocol.medication || 'Recovery Peptide',
+        dose: protocol.selected_dose || null,
         program_name: protocol.program_name,
         current_day: currentDay,
         total_days: totalDays

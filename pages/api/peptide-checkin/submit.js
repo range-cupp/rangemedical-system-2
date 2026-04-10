@@ -112,8 +112,8 @@ export default async function handler(req, res) {
         category: 'peptide',
         entry_type: 'checkin',
         entry_date: today,
-        medication: protocol.medication || protocol.primary_peptide || 'Recovery Peptide',
-        dosage: protocol.selected_dose || protocol.dose_amount || null,
+        medication: protocol.medication || 'Recovery Peptide',
+        dosage: protocol.selected_dose || null,
         notes: logNotes
       });
 

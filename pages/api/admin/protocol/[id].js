@@ -38,30 +38,28 @@ export default async function handler(req, res) {
       updated_at: new Date().toISOString()
     };
     
-    // Explicitly handle each field
-    if (req.body.injection_location !== undefined) {
-      updateData.injection_location = req.body.injection_location;
-      console.log('Setting injection_location:', req.body.injection_location);
+    // Map field names to actual DB columns
+    // Ghost names (primary_peptide, dose_amount, dose_frequency, injection_location)
+    // don't exist as columns — map them to real ones
+    if (req.body.injection_location !== undefined || req.body.delivery_method !== undefined) {
+      updateData.delivery_method = req.body.delivery_method ?? req.body.injection_location;
+      console.log('Setting delivery_method:', updateData.delivery_method);
     }
     if (req.body.status !== undefined) {
       updateData.status = req.body.status;
       console.log('Setting status:', req.body.status);
     }
-    if (req.body.primary_peptide !== undefined) {
-      updateData.primary_peptide = req.body.primary_peptide;
-      console.log('Setting primary_peptide:', req.body.primary_peptide);
+    if (req.body.primary_peptide !== undefined || req.body.medication !== undefined) {
+      updateData.medication = req.body.medication ?? req.body.primary_peptide;
+      console.log('Setting medication:', updateData.medication);
     }
-    if (req.body.secondary_peptide !== undefined) {
-      updateData.secondary_peptide = req.body.secondary_peptide;
-      console.log('Setting secondary_peptide:', req.body.secondary_peptide);
+    if (req.body.dose_amount !== undefined || req.body.selected_dose !== undefined) {
+      updateData.selected_dose = req.body.selected_dose ?? req.body.dose_amount;
+      console.log('Setting selected_dose:', updateData.selected_dose);
     }
-    if (req.body.dose_amount !== undefined) {
-      updateData.dose_amount = req.body.dose_amount;
-      console.log('Setting dose_amount:', req.body.dose_amount);
-    }
-    if (req.body.dose_frequency !== undefined) {
-      updateData.dose_frequency = req.body.dose_frequency;
-      console.log('Setting dose_frequency:', req.body.dose_frequency);
+    if (req.body.dose_frequency !== undefined || req.body.frequency !== undefined) {
+      updateData.frequency = req.body.frequency ?? req.body.dose_frequency;
+      console.log('Setting frequency:', updateData.frequency);
     }
     if (req.body.start_date !== undefined) {
       updateData.start_date = req.body.start_date || null;

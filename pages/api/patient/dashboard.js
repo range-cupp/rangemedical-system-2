@@ -124,23 +124,26 @@ export default async function handler(req, res) {
         }
         return {
           id: p.id,
-          protocol_name: p.program_name, // alias for frontend
+          protocol_name: p.program_name,
           program_name: p.program_name,
-          primary_peptide: p.primary_peptide,
-          secondary_peptide: p.secondary_peptide,
+          // Canonical names (real DB columns)
+          medication: p.medication,
+          selected_dose: p.selected_dose,
+          frequency: p.frequency,
+          delivery_method: p.delivery_method,
+          // Aliases for frontend backward compat (mirror real values)
+          primary_peptide: p.medication,
+          dose_amount: p.selected_dose,
+          dose_frequency: p.frequency,
+          injection_location: p.delivery_method,
           status: p.status,
-          dose: p.dose_amount,
-          dose_amount: p.dose_amount,
-          frequency: p.dose_frequency,
-          dose_frequency: p.dose_frequency,
-          duration_days: p.duration_days,
-          injection_location: p.injection_location,
+          dose: p.selected_dose,
           days_remaining: daysRemaining,
           start_date: p.start_date,
           end_date: p.end_date,
-          next_refill_date: p.next_refill_date,
-          special_instructions: p.special_instructions,
-          injections_completed: p.injections_completed || 0
+          last_refill_date: p.last_refill_date,
+          notes: p.notes,
+          injections_completed: p.sessions_used || 0
         };
       });
     }

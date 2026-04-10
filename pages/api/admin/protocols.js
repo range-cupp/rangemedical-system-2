@@ -438,12 +438,12 @@ export default async function handler(req, res) {
       total_sessions: b.total_sessions,
       status: b.status,
       notes: b.notes,
-      // Map to actual DB column names
-      medication: b.medication || b.primary_peptide,
+      // Real DB column names
+      medication: b.medication,
       secondary_medications: b.secondary_medications || '[]',
-      selected_dose: b.selected_dose || b.dose_amount,
-      frequency: b.frequency || b.dose_frequency,
-      delivery_method: b.delivery_method || b.injection_location,
+      selected_dose: b.selected_dose,
+      frequency: b.frequency,
+      delivery_method: b.delivery_method,
       num_vials: b.num_vials !== undefined ? (b.num_vials ? parseInt(b.num_vials) : null) : undefined,
       doses_per_vial: b.doses_per_vial !== undefined ? (b.doses_per_vial ? parseInt(b.doses_per_vial) : null) : undefined,
       updated_at: new Date().toISOString()

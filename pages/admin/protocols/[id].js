@@ -64,19 +64,24 @@ function normalizeProtocol(p) {
     if (calculated > 0) durationDays = calculated;
   }
 
+  const medication = p.medication || null;
+  const selected_dose = p.selected_dose || p.starting_dose || null;
+  const frequency = normalizeFrequencyValue(p.frequency);
+  const delivery_method = p.delivery_method || null;
+
   return {
     ...p,
-    // Normalize to actual DB column names (single source of truth)
-    medication: p.medication || p.primary_peptide || null,
-    selected_dose: p.selected_dose || p.dose_amount || p.starting_dose || null,
-    frequency: normalizeFrequencyValue(p.frequency || p.dose_frequency),
-    delivery_method: p.delivery_method || p.injection_location || null,
-    // Also keep legacy aliases for backwards compat in view templates
-    primary_peptide: p.medication || p.primary_peptide || null,
-    dose_amount: p.selected_dose || p.dose_amount || p.starting_dose || null,
-    dose_frequency: normalizeFrequencyValue(p.frequency || p.dose_frequency),
-    injection_location: p.delivery_method || p.injection_location || null,
-    // Duration (computed from multiple sources)
+    // Canonical names (real DB columns)
+    medication,
+    selected_dose,
+    frequency,
+    delivery_method,
+    // Legacy aliases — point to same values so old view code still works
+    primary_peptide: medication,
+    dose_amount: selected_dose,
+    dose_frequency: frequency,
+    injection_location: delivery_method,
+    // Duration (computed)
     duration_days: durationDays || null,
     total_days: durationDays || null
   };

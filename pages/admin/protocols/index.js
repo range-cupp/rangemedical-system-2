@@ -568,7 +568,7 @@ export default function ProtocolsPage() {
               </td>
               <td style={styles.td}><span style={{ fontSize: 13 }}>{p.patients?.phone || '\u2014'}</span></td>
               <td style={styles.td}>
-                <div style={{ fontSize: 13, fontWeight: 500 }}>{p.medication || p.primary_peptide || '\u2014'}</div>
+                <div style={{ fontSize: 13, fontWeight: 500 }}>{p.medication || '\u2014'}</div>
               </td>
               <td style={styles.td}><span style={{ fontSize: 13 }}>{p.selected_dose || '\u2014'}</span></td>
               <td style={styles.td}>
@@ -736,7 +736,7 @@ export default function ProtocolsPage() {
                 )}
               </td>
               <td style={styles.td}>
-                <div>{protocol.medication || protocol.primary_peptide || protocol.selected_dose || '\u2014'}</div>
+                <div>{protocol.medication || protocol.selected_dose || '\u2014'}</div>
                 {cat === 'hrt' && (() => {
                   try {
                     const sec = typeof protocol.secondary_medications === 'string'

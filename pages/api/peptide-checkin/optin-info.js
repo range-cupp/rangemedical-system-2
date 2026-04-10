@@ -58,7 +58,7 @@ export default async function handler(req, res) {
     // Find active peptide protocol — prefer specific protocol_id if given
     let protocolQuery = supabase
       .from('protocols')
-      .select('id, medication, primary_peptide, program_name, start_date, end_date, total_days, total_sessions, peptide_reminders_enabled')
+      .select('id, medication, program_name, start_date, end_date, total_sessions, peptide_reminders_enabled')
       .eq('patient_id', patient.id)
       .eq('status', 'active')
       .or('program_type.eq.peptide,program_name.ilike.%peptide%')
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
     if (protocol_id) {
       protocolQuery = supabase
         .from('protocols')
-        .select('id, medication, primary_peptide, program_name, start_date, end_date, total_days, total_sessions, peptide_reminders_enabled')
+        .select('id, medication, program_name, start_date, end_date, total_sessions, peptide_reminders_enabled')
         .eq('id', protocol_id)
         .single();
     }
@@ -89,9 +89,9 @@ export default async function handler(req, res) {
         },
         protocol: {
           id: protocol.id,
-          medication: protocol.primary_peptide || protocol.medication || 'Recovery Peptide',
+          medication: protocol.medication || 'Recovery Peptide',
           program_name: protocol.program_name,
-          total_days: protocol.total_days || protocol.total_sessions || null
+          total_days: protocol.total_sessions || null
         },
         already_opted_in: true
       });
@@ -100,7 +100,7 @@ export default async function handler(req, res) {
     // Calculate total days for display
     let totalDays = null;
     if (protocol) {
-      totalDays = protocol.total_days || protocol.total_sessions;
+      totalDays = protocol.total_sessions;
       if (!totalDays && protocol.start_date && protocol.end_date) {
         const startParts = protocol.start_date.split('-');
         const endParts = protocol.end_date.split('-');
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
       },
       protocol: protocol ? {
         id: protocol.id,
-        medication: protocol.primary_peptide || protocol.medication || 'Recovery Peptide',
+        medication: protocol.medication || 'Recovery Peptide',
         program_name: protocol.program_name,
         total_days: totalDays
       } : null,

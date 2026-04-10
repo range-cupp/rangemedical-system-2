@@ -14,7 +14,7 @@ export default function CycleProgressCard({ protocol }) {
   const [cycleData, setCycleData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const medication = protocol?.primary_peptide || protocol?.medication || '';
+  const medication = protocol?.medication || '';
   const cycleType = isRecoveryPeptide(medication) ? 'recovery' : isGHPeptide(medication) ? 'gh' : null;
   const maxDays = cycleType === 'gh' ? GH_CYCLE_MAX_DAYS : RECOVERY_CYCLE_MAX_DAYS;
   const offLabel = cycleType === 'gh' ? '4-week' : '2-week';

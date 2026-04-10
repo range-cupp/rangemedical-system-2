@@ -207,10 +207,10 @@ export default async function handler(req, res) {
 
     // Enhance peptide protocols with injection data
     const activePeptideProtocols = activePeptideProtocolsRaw.map(protocol => {
-      let expectedInjections = protocol.duration_days || 10;
-      if (protocol.dose_frequency === 'Every other day') {
+      let expectedInjections = protocol.total_sessions || 10;
+      if (protocol.frequency === 'Every other day') {
         expectedInjections = Math.ceil(expectedInjections / 2);
-      } else if (protocol.dose_frequency?.includes('5 days on')) {
+      } else if (protocol.frequency?.includes('5 days on')) {
         expectedInjections = Math.round(expectedInjections * 5 / 7);
       }
       return {
@@ -222,8 +222,8 @@ export default async function handler(req, res) {
 
     // Enhance weight loss protocols with injection data
     const activeWeightLossProtocols = activeWeightLossProtocolsRaw.map(protocol => {
-      const weeks = Math.ceil((protocol.duration_days || 30) / 7);
-      const expectedInjections = protocol.dose_frequency === '2x weekly' ? weeks * 2 : weeks;
+      const weeks = Math.ceil((protocol.total_sessions || 30) / 7);
+      const expectedInjections = protocol.frequency === '2x weekly' ? weeks * 2 : weeks;
       return {
         ...protocol,
         injections_completed: injectionCounts[protocol.id] || 0,

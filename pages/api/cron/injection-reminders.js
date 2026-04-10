@@ -119,12 +119,13 @@ export default async function handler(req, res) {
 
     // Get active TAKE-HOME protocols with reminders enabled
     // In-clinic patients don't need injection reminders
+    // Real columns: delivery_method (not injection_location),
+    //   checkin_reminder_enabled/peptide_reminders_enabled (not reminders_enabled)
     const { data: protocols, error: protocolsError } = await supabase
       .from('protocols')
       .select('*')
       .eq('status', 'active')
-      .eq('reminders_enabled', true)
-      .eq('injection_location', 'take_home')
+      .eq('delivery_method', 'take_home')
       .lte('start_date', todayStr)
       .gte('end_date', todayStr)
       .not('patient_id', 'is', null);
@@ -134,11 +135,19 @@ export default async function handler(req, res) {
     }
 
     for (const protocol of (protocols || [])) {
+      // Skip if reminders not enabled for this protocol type
+      if (!protocol.checkin_reminder_enabled && !protocol.peptide_reminders_enabled) {
+        results.skipped.push({ patient: protocol.patient_name, reason: 'Reminders not enabled' });
+        continue;
+      }
+
       // Check if today is an injection day for this protocol
-      if (!isInjectionDay(protocol.start_date, protocol.dose_frequency)) {
+      // Real column is 'frequency' (not 'dose_frequency')
+      const freq = protocol.frequency;
+      if (!isInjectionDay(protocol.start_date, freq)) {
         results.skipped.push({
           patient: protocol.patient_name,
-          reason: `Not injection day (${protocol.dose_frequency})`
+          reason: `Not injection day (${freq})`
         });
         continue;
       }
@@ -168,12 +177,12 @@ export default async function handler(req, res) {
       // Send reminder
       const firstName = getFirstName(protocol.patient_name);
       const trackerUrl = `https://app.range-medical.com/track/${protocol.access_token}`;
-      const isWeightLoss = protocol.dose_frequency === '1x weekly' || protocol.dose_frequency === '2x weekly';
-      
+      const isWeightLoss = freq === '1x weekly' || freq === '2x weekly';
+
       let message;
       if (isWeightLoss) {
         const weekNum = Math.ceil(dayNumber / 7);
-        if (protocol.dose_frequency === '2x weekly') {
+        if (freq === '2x weekly') {
           const isSecondShot = ((dayNumber - 1) % 7) >= 3;
           message = `Hi ${firstName}! It's injection day (Week ${weekNum}, ${isSecondShot ? 'shot 2' : 'shot 1'}) for your weight loss program. Log it when done: ${trackerUrl} - Range Medical`;
         } else {

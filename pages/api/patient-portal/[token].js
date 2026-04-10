@@ -45,21 +45,21 @@ export default async function handler(req, res) {
           ghl_contact_id: protocol.ghl_contact_id
         };
 
-        const totalDays = protocol.total_sessions || protocol.total_days || protocol.duration_days || 10;
-        
+        const totalDays = protocol.total_sessions || 10;
+
         protocols.push({
           id: protocol.id,
           protocol_name: protocol.program_name || `${totalDays}-Day Recovery Protocol`,
-          medication: protocol.primary_peptide,
-          dosage: protocol.dose_amount,
-          frequency: protocol.dose_frequency || 'daily',
-          delivery_method: protocol.injection_location || 'take_home',
+          medication: protocol.medication,
+          dosage: protocol.selected_dose,
+          frequency: protocol.frequency || 'daily',
+          delivery_method: protocol.delivery_method || 'take_home',
           start_date: protocol.start_date,
           end_date: protocol.end_date,
           total_sessions: totalDays,
-          sessions_completed: protocol.injections_completed || 0,
+          sessions_completed: protocol.sessions_used || 0,
           status: protocol.status,
-          special_instructions: protocol.special_instructions,
+          notes: protocol.notes,
           category: 'peptide',
           checkin_type: 'recovery',
           checkin_due: true
@@ -87,21 +87,21 @@ export default async function handler(req, res) {
         };
 
         for (const p of oldProtocols) {
-          const totalDays = p.total_sessions || p.total_days || p.duration_days || 10;
+          const totalDays = p.total_sessions || 10;
 
           protocols.push({
             id: p.id,
             protocol_name: p.program_name || `${totalDays}-Day Recovery Protocol`,
-            medication: p.primary_peptide,
-            dosage: p.dose_amount,
-            frequency: p.dose_frequency || 'daily',
-            delivery_method: p.injection_location || 'take_home',
+            medication: p.medication,
+            dosage: p.selected_dose,
+            frequency: p.frequency || 'daily',
+            delivery_method: p.delivery_method || 'take_home',
             start_date: p.start_date,
             end_date: p.end_date,
             total_sessions: totalDays,
-            sessions_completed: p.injections_completed || 0,
+            sessions_completed: p.sessions_used || 0,
             status: p.status,
-            special_instructions: p.special_instructions,
+            notes: p.notes,
             category: 'peptide',
             checkin_type: 'recovery',
             checkin_due: true

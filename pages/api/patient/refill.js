@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   // Find protocol by access token
   const { data: protocol, error: protocolError } = await supabase
     .from('protocols')
-    .select('id, ghl_contact_id, patient_name, patient_phone, program_name, primary_peptide')
+    .select('id, ghl_contact_id, patient_name, patient_phone, program_name, medication')
     .eq('access_token', token)
     .single();
     

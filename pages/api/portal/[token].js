@@ -84,16 +84,16 @@ export default async function handler(req, res) {
       blocks.push({
         id: p.id,
         block_type: getBlockType(p.program_type),
-        name: p.primary_peptide || p.program_name || 'Protocol',
-        dose: p.dose_amount,
-        frequency: p.dose_frequency,
-        total_sessions: p.total_sessions || p.total_days || 10,
-        sessions_completed: completedLogs.length || p.injections_completed || 0,
+        name: p.medication || p.program_name || 'Protocol',
+        dose: p.selected_dose,
+        frequency: p.frequency,
+        total_sessions: p.total_sessions || 10,
+        sessions_completed: completedLogs.length || p.sessions_used || 0,
         start_date: p.start_date,
         end_date: p.end_date,
         status: p.status,
         injection_logs: completedLogs,
-        description: getPeptideDescription(p.primary_peptide)
+        description: getPeptideDescription(p.medication)
       });
     }
 

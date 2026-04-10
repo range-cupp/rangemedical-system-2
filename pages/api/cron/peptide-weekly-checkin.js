@@ -105,6 +105,26 @@ export default async function handler(req, res) {
         continue;
       }
 
+      // Skip if patient texted US in the last 2 days (inbound = they're already engaged)
+      // Only inbound counts — outbound appointment reminders etc. shouldn't suppress check-ins
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      const twoDaysAgoStr = twoDaysAgo.toISOString();
+
+      const { data: recentInbound } = await supabase
+        .from('comms_log')
+        .select('id')
+        .eq('patient_id', protocol.patient_id)
+        .eq('channel', 'sms')
+        .eq('direction', 'inbound')
+        .gte('created_at', twoDaysAgoStr)
+        .limit(1);
+
+      if (recentInbound?.length) {
+        results.skipped.push({ patient: protocol.patient_name, reason: 'Patient texted us recently (last 2 days)' });
+        continue;
+      }
+
       // Get patient phone
       const { data: patient } = await supabase
         .from('patients')

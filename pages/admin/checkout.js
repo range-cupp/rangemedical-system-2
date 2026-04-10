@@ -195,6 +195,7 @@ function CheckoutInner() {
   const [cartWarning, setCartWarning] = useState('');
   const [cartOpen, setCartOpen] = useState(false);
   const [consentBlock, setConsentBlock] = useState('');
+  const [consentSendStatus, setConsentSendStatus] = useState(''); // '' | 'sending' | 'sent' | 'error'
 
   // ── Cart-wide discount ──
   const [cartDiscountType, setCartDiscountType] = useState('none');
@@ -361,7 +362,7 @@ function CheckoutInner() {
   }, [patient?.id]);
 
   // Clear consent block when cart changes
-  useEffect(() => { setConsentBlock(''); }, [cartItems]);
+  useEffect(() => { setConsentBlock(''); setConsentSendStatus(''); }, [cartItems]);
 
   // ── Load saved cards + credit when entering payment ──
   useEffect(() => {
@@ -1538,6 +1539,49 @@ function CheckoutInner() {
       if (byEmail && byEmail.length > 0) return true;
     }
     return false;
+  }
+
+  // Send weight-loss consent form to patient via SMS
+  async function sendWeightLossConsent() {
+    if (!patient?.phone) {
+      setConsentBlock('No phone number on file for this patient — cannot send consent form via text.');
+      return;
+    }
+    setConsentSendStatus('sending');
+    try {
+      const digits = patient.phone.replace(/\D/g, '');
+      const phone = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
+      const firstName = (patient.first_name || patient.name?.split(' ')[0] || '').trim();
+      const res = await fetch('/api/send-forms-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone,
+          firstName: firstName || null,
+          formIds: ['weight-loss'],
+          patientId: patient.id || null,
+          patientName: patient.name || null,
+          patientEmail: patient.email || null,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to send');
+      }
+      setConsentSendStatus('sent');
+    } catch (e) {
+      console.error('Send WL consent error:', e);
+      setConsentSendStatus('error');
+    }
+  }
+
+  // Re-check if consent has been completed and unlock checkout
+  async function recheckConsent() {
+    const hasConsent = await checkWeightLossConsent();
+    if (hasConsent) {
+      setConsentBlock('');
+      setConsentSendStatus('');
+    }
   }
 
   // Gate checkout — enforce consent requirements before proceeding
@@ -2864,8 +2908,36 @@ function CheckoutInner() {
                     <div style={styles.cartWarningMsg}>{cartWarning}</div>
                   )}
                   {consentBlock && (
-                    <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', color: '#991b1b', marginBottom: '12px', lineHeight: '1.4' }}>
-                      ⚠️ {consentBlock}
+                    <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '12px 14px', fontSize: '13px', color: '#991b1b', marginBottom: '12px', lineHeight: '1.4' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: consentSendStatus === 'sent' ? '0' : '10px' }}>
+                        <span>⚠️</span>
+                        <span>{consentBlock}</span>
+                      </div>
+                      {consentSendStatus === 'sent' ? (
+                        <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '6px', padding: '8px 12px', fontSize: '13px', color: '#166534' }}>
+                            ✓ Consent form sent to {patient?.phone}
+                          </div>
+                          <button
+                            onClick={recheckConsent}
+                            style={{ background: '#000', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', width: '100%' }}
+                          >
+                            Patient Completed It — Recheck
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          {patient?.phone && (
+                            <button
+                              onClick={sendWeightLossConsent}
+                              disabled={consentSendStatus === 'sending'}
+                              style={{ background: '#000', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 14px', fontSize: '13px', fontWeight: 600, cursor: consentSendStatus === 'sending' ? 'wait' : 'pointer', opacity: consentSendStatus === 'sending' ? 0.6 : 1, flex: 1 }}
+                            >
+                              {consentSendStatus === 'sending' ? 'Sending...' : consentSendStatus === 'error' ? 'Retry — Send Consent Form' : `Text Consent Form to ${patient.phone}`}
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 

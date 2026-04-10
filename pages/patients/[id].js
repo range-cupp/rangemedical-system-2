@@ -11435,7 +11435,7 @@ export default function PatientProfile() {
                     <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, fontSize: 13 }}>Note (optional)</label>
                     <input
                       type="text"
-                      placeholder="e.g. Gift from JP Perarie"
+                      placeholder="e.g. Referral credit, gift, promo"
                       value={addCreditNote}
                       onChange={e => setAddCreditNote(e.target.value)}
                       style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}

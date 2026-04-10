@@ -56,7 +56,7 @@ export default async function handler(req, res) {
     // Gather ALL active peptide protocols for this patient
     const { data: allProtocols } = await supabase
       .from('protocols')
-      .select('id, medication, program_name, category, status, total_sessions, delivery_method, supply_type, num_vials, secondary_medications, secondary_medication_details')
+      .select('id, medication, program_name, category, status, total_sessions, delivery_method, supply_type, num_vials, secondary_medications, secondary_medication_details, selected_dose, frequency')
       .eq('patient_id', protocol.patient_id)
       .eq('status', 'active')
       .in('category', ['peptide', 'recovery', 'longevity', 'gh_blend', 'skin', 'neuro', 'immune', 'sexual_health', 'injection', 'hrt']);
@@ -102,7 +102,7 @@ export default async function handler(req, res) {
             days = p.num_vials * (catalogEntry.daysPerVial || catalogEntry.injectionsPerVial);
           }
         }
-        vialEntries.push({ vialId, days, delivery });
+        vialEntries.push({ vialId, days, delivery, dose: p.selected_dose || '', freq: p.frequency || '' });
       }
       protocolIds.push(p.id);
     }
@@ -118,6 +118,7 @@ export default async function handler(req, res) {
     }
 
     // Build consolidated guide URL with enhanced format: v=motsc.20.vial,ghk_cu.30.vial
+    // Dose and frequency are passed as separate query params keyed by vial ID
     const vParam = vialEntries.map(e => {
       const parts = [e.vialId];
       if (e.days) parts.push(e.days);
@@ -125,7 +126,17 @@ export default async function handler(req, res) {
       parts.push(e.delivery);
       return parts.join('.');
     }).join(',');
-    const guideUrl = `https://www.range-medical.com/peptide-guide?v=${vParam}`;
+    // Build dose/freq params from protocol data
+    const doseParams = vialEntries
+      .filter(e => e.dose)
+      .map(e => `d_${e.vialId}=${encodeURIComponent(e.dose)}`)
+      .join('&');
+    const freqParams = vialEntries
+      .filter(e => e.freq)
+      .map(e => `f_${e.vialId}=${encodeURIComponent(e.freq)}`)
+      .join('&');
+    const extraParams = [doseParams, freqParams].filter(Boolean).join('&');
+    const guideUrl = `https://www.range-medical.com/peptide-guide?v=${vParam}${extraParams ? '&' + extraParams : ''}`;
     const guideMessage = `Hi ${firstName}! Here's your personalized peptide guide with ${vialEntries.some(e => e.delivery === 'vial') ? 'reconstitution and ' : ''}injection instructions: ${guideUrl} - Range Medical`;
 
     // Blooio two-step: first contact cannot include links

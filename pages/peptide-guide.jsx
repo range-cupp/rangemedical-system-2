@@ -5,6 +5,7 @@ import { VIAL_CATALOG } from '../lib/vial-catalog';
 
 // Parse enhanced format: v=motsc.20.vial,ghk_cu.30.prefilled
 // Also supports legacy: vials=motsc,ghk_cu
+// Protocol-specific dose/frequency passed as d_<vialId> and f_<vialId> query params
 function parseVialParams(query) {
   // Enhanced format
   if (query.v) {
@@ -17,7 +18,16 @@ function parseVialParams(query) {
       const delivery = 'vial';
       const catalog = VIAL_CATALOG.find(v => v.id === vialId);
       if (!catalog) return null;
-      return { ...catalog, protocolDays: days, delivery };
+      // Override dosage/frequency with protocol-specific values if provided
+      const protocolDose = query[`d_${vialId}`] || null;
+      const protocolFreq = query[`f_${vialId}`] || null;
+      return {
+        ...catalog,
+        protocolDays: days,
+        delivery,
+        dosage: protocolDose || catalog.dosage,
+        frequency: protocolFreq || catalog.frequency,
+      };
     }).filter(Boolean);
   }
   // Legacy format

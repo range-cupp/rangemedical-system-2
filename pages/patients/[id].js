@@ -7003,6 +7003,8 @@ export default function PatientProfile() {
                                   );
                                   const seen = new Set();
                                   const entries = [];
+                                  const doseParams = [];
+                                  const freqParams = [];
                                   for (const p of allProtos) {
                                     const vid = getVialIdForMedication(p.medication, p.program_name);
                                     if (vid && !seen.has(vid)) {
@@ -7015,9 +7017,12 @@ export default function PatientProfile() {
                                         if (cat && (cat.daysPerVial || cat.injectionsPerVial)) days = p.num_vials * (cat.daysPerVial || cat.injectionsPerVial);
                                       }
                                       entries.push(`${vid}.${days}.${del}`);
+                                      if (p.selected_dose) doseParams.push(`d_${vid}=${encodeURIComponent(p.selected_dose)}`);
+                                      if (p.frequency) freqParams.push(`f_${vid}=${encodeURIComponent(p.frequency)}`);
                                     }
                                   }
-                                  const previewUrl = entries.length > 0 ? `https://www.range-medical.com/peptide-guide?v=${entries.join(',')}` : null;
+                                  const extraParams = [...doseParams, ...freqParams].filter(Boolean).join('&');
+                                  const previewUrl = entries.length > 0 ? `https://www.range-medical.com/peptide-guide?v=${entries.join(',')}${extraParams ? '&' + extraParams : ''}` : null;
                                   if (!previewUrl) return null;
                                   return (
                                     <div className="px-actions">
@@ -7128,6 +7133,8 @@ export default function PatientProfile() {
                                         );
                                         const seen = new Set();
                                         const entries = [];
+                                        const doseParams = [];
+                                        const freqParams = [];
                                         for (const p of allPeptideProtos) {
                                           const vialId = getVialIdForMedication(p.medication, p.program_name);
                                           if (vialId && !seen.has(vialId)) {
@@ -7143,13 +7150,16 @@ export default function PatientProfile() {
                                               }
                                             }
                                             entries.push(`${vialId}.${days}.${delivery}`);
+                                            if (p.selected_dose) doseParams.push(`d_${vialId}=${encodeURIComponent(p.selected_dose)}`);
+                                            if (p.frequency) freqParams.push(`f_${vialId}=${encodeURIComponent(p.frequency)}`);
                                           }
                                         }
                                         if (entries.length === 0) {
                                           const fallback = getVialIdForMedication(protocol.medication, protocol.program_name);
                                           if (fallback) entries.push(`${fallback}.0.vial`);
                                         }
-                                        return entries.length > 0 ? `https://www.range-medical.com/peptide-guide?v=${entries.join(',')}` : null;
+                                        const extraParams = [...doseParams, ...freqParams].filter(Boolean).join('&');
+                                        return entries.length > 0 ? `https://www.range-medical.com/peptide-guide?v=${entries.join(',')}${extraParams ? '&' + extraParams : ''}` : null;
                                       };
                                       const previewUrl = buildGuidePreviewUrl();
                                       return (

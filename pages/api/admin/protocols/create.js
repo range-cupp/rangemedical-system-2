@@ -62,6 +62,7 @@ export default async function handler(req, res) {
       supplyDispensedDate,
       currentDose,
       baselineLabsDate,
+      goalWeight,
       notes,
       initial_journey_stage,  // Optional: skip to a specific journey stage (e.g. 'dispensed' for POS purchases)
       source,                  // Optional: 'pos', 'admin', etc.
@@ -168,6 +169,8 @@ export default async function handler(req, res) {
       dose_per_injection: dosePerInjection,
 
       current_dose: currentDose || dosage,
+
+      goal_weight: goalWeight ? parseFloat(goalWeight) : null,
 
       peptide_reminders_enabled: protocolType === 'peptide' ? true : null,
 

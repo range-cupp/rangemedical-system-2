@@ -102,7 +102,8 @@ export default function NewProtocol() {
     
     // Weight loss specific
     currentDose: '',
-    
+    goalWeight: '',
+
     // Labs
     baselineLabsDate: '',
     
@@ -502,6 +503,27 @@ export default function NewProtocol() {
                     <p style={styles.labNote}>
                       Follow-up labs will be scheduled 6-8 weeks from start date.
                     </p>
+                  </section>
+                )}
+
+                {/* Goal Weight for Weight Loss */}
+                {form.protocolType === 'weight_loss' && (
+                  <section style={styles.section}>
+                    <h2 style={styles.sectionTitle}>Goal Weight</h2>
+                    <div style={styles.grid}>
+                      <div style={styles.field}>
+                        <label style={styles.label}>Goal Weight (lbs)</label>
+                        <input
+                          type="number"
+                          value={form.goalWeight}
+                          onChange={e => setForm({ ...form, goalWeight: e.target.value })}
+                          style={styles.input}
+                          placeholder="e.g. 170"
+                          step="0.1"
+                        />
+                        <p style={styles.hint}>Optional — can also be set later on the protocol detail page</p>
+                      </div>
+                    </div>
                   </section>
                 )}
 

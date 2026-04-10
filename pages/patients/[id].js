@@ -521,7 +521,7 @@ export default function PatientProfile() {
   const [vitalsHistory, setVitalsHistory] = useState([]);
   const [vitalsDisplayCount, setVitalsDisplayCount] = useState(5);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
-  const [vitalsModalData, setVitalsModalData] = useState({ weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
+  const [vitalsModalData, setVitalsModalData] = useState({ recorded_at: '', weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
   const [vitalsModalSaving, setVitalsModalSaving] = useState(false);
   const [editingVitalsId, setEditingVitalsId] = useState(null);
   const [commsLog, setCommsLog] = useState([]);
@@ -970,7 +970,7 @@ export default function PatientProfile() {
       const vitalsData = await vitalsRes.json();
       setVitalsHistory(vitalsData.vitals || []);
       setShowVitalsModal(false);
-      setVitalsModalData({ weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
+      setVitalsModalData({ recorded_at: '', weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
       setEditingVitalsId(null);
     } catch (err) {
       alert('Error deleting vitals: ' + err.message);
@@ -1006,6 +1006,7 @@ export default function PatientProfile() {
           respiratory_rate: vitalsModalData.respiratory_rate,
           o2_saturation: vitalsModalData.o2_saturation,
           recorded_by: currentUser,
+          recorded_at: vitalsModalData.recorded_at || undefined,
         }),
       });
       if (!res.ok) throw new Error('Failed to save vitals');
@@ -1014,7 +1015,7 @@ export default function PatientProfile() {
       const vitalsData = await vitalsRes.json();
       setVitalsHistory(vitalsData.vitals || []);
       setShowVitalsModal(false);
-      setVitalsModalData({ weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
+      setVitalsModalData({ recorded_at: '', weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
       setEditingVitalsId(null);
     } catch (err) {
       alert('Error saving vitals: ' + err.message);
@@ -5126,7 +5127,9 @@ export default function PatientProfile() {
                           onClick={() => {
                             // Pre-fill height from last vitals if available
                             const lastHeight = vitalsHistory.find(v => v.height_inches)?.height_inches || '';
-                            setVitalsModalData({ weight_lbs: '', height_inches: lastHeight, bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
+                            const now = new Date();
+                            const pacificDate = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+                            setVitalsModalData({ recorded_at: pacificDate, weight_lbs: '', height_inches: lastHeight, bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
                             setEditingVitalsId(null);
                             setShowVitalsModal(true);
                           }}
@@ -5152,7 +5155,9 @@ export default function PatientProfile() {
                               const isLatest = i === displayVitals.length - 1;
                               return (
                                 <th key={v.id || i} title="Click to edit" onClick={() => {
+                                  const recDate = v.recorded_at ? new Date(v.recorded_at).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }) : '';
                                   setVitalsModalData({
+                                    recorded_at: recDate,
                                     weight_lbs: v.weight_lbs ?? '',
                                     height_inches: v.height_inches ?? '',
                                     bp_systolic: v.bp_systolic ?? '',
@@ -14458,6 +14463,15 @@ export default function PatientProfile() {
               </div>
             </div>
             <div style={{ padding: '20px 24px' }}>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Date</label>
+                <input
+                  type="date"
+                  value={vitalsModalData.recorded_at}
+                  onChange={e => setVitalsModalData(d => ({ ...d, recorded_at: e.target.value }))}
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Weight (lbs)</label>

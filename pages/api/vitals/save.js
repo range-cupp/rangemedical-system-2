@@ -35,7 +35,8 @@ export default async function handler(req, res) {
       pulse,
       respiratory_rate,
       o2_saturation,
-      recorded_by
+      recorded_by,
+      recorded_at
     } = req.body;
 
     if (!patient_id) {
@@ -63,12 +64,10 @@ export default async function handler(req, res) {
       o2_saturation: parseNum(o2_saturation),
       bmi,
       recorded_by: recorded_by || null,
-      recorded_at: new Date().toISOString()
+      recorded_at: recorded_at
+        ? new Date(recorded_at + 'T12:00:00-07:00').toISOString()
+        : new Date().toISOString()
     };
-    // Preserve original recorded_at when editing an existing record
-    if (id) {
-      delete vitalsData.recorded_at;
-    }
 
     // Check if vitals already exist for this appointment
     let existingId = id || null;

@@ -7,6 +7,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Search, ChevronRight, Check, Package, Syringe, Clock, User, AlertTriangle, CreditCard, Plus } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
+import { supabase } from '../lib/supabase';
 import {
   TESTOSTERONE_DOSES,
   WEIGHT_LOSS_MEDICATIONS,
@@ -204,6 +205,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   const [result, setResult] = useState(null);
   const [results, setResults] = useState([]); // results for each cart item
   const [error, setError] = useState('');
+  const [consentBlock, setConsentBlock] = useState(''); // consent form required message
 
   // Reset on open
   useEffect(() => {
@@ -258,6 +260,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setResult(null);
     setResults([]);
     setError('');
+    setConsentBlock('');
   }
 
   function resetItemFields() {
@@ -464,6 +467,47 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   // Build all items to process (cart items already added + nothing else — all items are in cart now)
   function getAllCheckoutItems() {
     return [...cartItems];
+  }
+
+  // Check if cart has weight loss items and patient has a signed weight loss consent
+  async function checkWeightLossConsent(items) {
+    const hasWL = items.some(i => i.category?.id === 'weight_loss');
+    if (!hasWL) return true; // no WL items, no consent needed
+
+    // Check consents table for weight-loss consent linked to this patient
+    const { data } = await supabase
+      .from('consents')
+      .select('id')
+      .eq('patient_id', selectedPatient.id)
+      .eq('consent_type', 'weight-loss')
+      .limit(1);
+
+    if (data && data.length > 0) return true;
+
+    // Fallback: check by email
+    if (selectedPatient.email) {
+      const { data: byEmail } = await supabase
+        .from('consents')
+        .select('id')
+        .ilike('email', selectedPatient.email)
+        .eq('consent_type', 'weight-loss')
+        .limit(1);
+      if (byEmail && byEmail.length > 0) return true;
+    }
+
+    return false;
+  }
+
+  // Gate step 4 transition — enforce consent requirements before review
+  async function goToReview(pendingItems) {
+    setConsentBlock('');
+    const items = pendingItems || cartItems;
+    const hasConsent = await checkWeightLossConsent(items);
+    if (!hasConsent) {
+      setConsentBlock('Weight loss consent form required before checkout. Please have the patient complete the weight loss consent form first.');
+      return;
+    }
+    setStep(4);
   }
 
   // Calculate discounted price in cents for a cart item
@@ -989,8 +1033,14 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                       ))}
                     </div>
                   ))}
+                  {consentBlock && (
+                    <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '12px 14px', marginTop: '12px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                      <AlertTriangle size={18} style={{ color: '#dc2626', flexShrink: 0, marginTop: '1px' }} />
+                      <span style={{ fontSize: '13px', color: '#991b1b', lineHeight: '1.4' }}>{consentBlock}</span>
+                    </div>
+                  )}
                   <button
-                    onClick={() => setStep(4)}
+                    onClick={() => goToReview()}
                     style={{ ...styles.primaryBtn, marginTop: '12px' }}
                   >
                     Review Checkout ({cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}) →
@@ -1807,7 +1857,26 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                     {editingItemId ? 'Update Item' : `+ Add to Cart${cartItems.length > 0 ? ` (${cartItems.length})` : ''}`}
                   </button>
                   <button
-                    onClick={() => { addToCart(); setStep(4); }}
+                    onClick={() => {
+                      const pendingItem = {
+                        id: editingItemId || Date.now(),
+                        category: selectedCategory,
+                        medication, dosage, supplyType, quantity, duration, weight,
+                        entryType, notes, administeredBy, verifiedBy,
+                        lotNumber, expirationDate, fulfillmentMethod, trackingNumber,
+                        selectedProtocol, coverageType, coverageOverride, coverage,
+                        selectedService, paymentMethod, selectedCardId,
+                        discountType, discountValue,
+                        itemQty: itemQty || 1,
+                        shippingAmount: shippingAmount || '',
+                        wlAddons: [...wlAddons],
+                      };
+                      const allItems = editingItemId
+                        ? cartItems.map(i => i.id === editingItemId ? pendingItem : i)
+                        : [...cartItems, pendingItem];
+                      addToCart();
+                      goToReview(allItems);
+                    }}
                     disabled={!medication && !['hbot', 'red_light', 'labs', 'prp', 'packages', 'combo_membership'].includes(selectedCategory?.id)}
                     style={{
                       ...styles.primaryBtn,
@@ -1817,6 +1886,12 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                   >
                     Review Checkout →
                   </button>
+                </div>
+              )}
+              {consentBlock && (
+                <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '12px 14px', marginTop: '12px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                  <AlertTriangle size={18} style={{ color: '#dc2626', flexShrink: 0, marginTop: '1px' }} />
+                  <span style={{ fontSize: '13px', color: '#991b1b', lineHeight: '1.4' }}>{consentBlock}</span>
                 </div>
               )}
             </div>

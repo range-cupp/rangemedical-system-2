@@ -156,7 +156,7 @@ async function handleInboundMessage(body) {
         patient_name: staffMember.name,
       };
       if (messageId) inboundRow.twilio_message_sid = messageId;
-      await supabase.from('comms_log').insert(inboundRow).catch(() => {});
+      await supabase.from('comms_log').insert(inboundRow).catch(err => { console.error('comms_log error:', err.message); });
 
       // Process through staff bot and get response
       let botResponse;
@@ -184,7 +184,7 @@ async function handleInboundMessage(body) {
         patient_name: staffMember.name,
       };
       if (sendResult.messageSid) outboundRow.twilio_message_sid = sendResult.messageSid;
-      await supabase.from('comms_log').insert(outboundRow).catch(() => {});
+      await supabase.from('comms_log').insert(outboundRow).catch(err => { console.error('comms_log error:', err.message); });
 
       // Staff message handled — do not continue to patient flow
       return;
@@ -390,14 +390,14 @@ async function handleInboundMessage(body) {
         };
         if (linkResult.messageSid) linkRow.twilio_message_sid = linkResult.messageSid;
 
-        await supabase.from('comms_log').insert(linkRow).catch(() => {});
+        await supabase.from('comms_log').insert(linkRow).catch(err => { console.error('comms_log error:', err.message); });
 
         // Mark original prompt as replied (prevents duplicate link sends)
         await supabase
           .from('comms_log')
           .update({ status: 'replied' })
           .eq('id', pendingPrompt.id)
-          .catch(() => {});
+          .catch(err => { console.error('comms_log error:', err.message); });
 
         if (linkResult.success) {
           console.log(`HRT IV scheduling link sent to ${patient.name} (${senderPhone}) via Blooio`);
@@ -466,14 +466,14 @@ async function handleInboundMessage(body) {
           twilioMessageSid: prepResult.messageSid || null,
           provider: 'blooio',
           direction: 'outbound',
-        }).catch(() => {});
+        }).catch(err => { console.error('comms_log error:', err.message); });
 
         // Mark the original reminder as replied (prevents duplicate sends)
         await supabase
           .from('comms_log')
           .update({ status: 'replied' })
           .eq('id', pendingReminder.id)
-          .catch(() => {});
+          .catch(err => { console.error('comms_log error:', err.message); });
 
         if (prepResult.success) {
           console.log(`Lab prep instructions sent to ${patient.name} (${senderPhone}) via Blooio`);

@@ -77,7 +77,7 @@ export default async function handler(req, res) {
       patientName: req.body?.firstName,
       status: 'error',
       errorMessage: error.message,
-    }).catch(() => {});
+    }).catch(err => { console.error('logComm error:', err.message); });
 
     return res.status(500).json({ error: 'Something went wrong' });
   }

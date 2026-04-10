@@ -145,7 +145,7 @@ export default async function handler(req, res) {
           .update({ needs_response: false })
           .eq('patient_id', patient_id)
           .eq('needs_response', true)
-          .catch(() => {});
+          .catch(err => { console.error('comms_log update error:', err.message); });
       }
 
       if (!result.success) throw new Error(result.error || 'Failed to send');

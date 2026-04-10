@@ -2,76 +2,92 @@
   "cleanUrls": true,
   "crons": [
     {
-      "path": "/api/cron/link-forms",
-      "schedule": "0 6,18 * * *"
-    },
-    {
-      "path": "/api/cron/complete-protocols",
-      "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/cron/wl-midpoint-reminder",
-      "schedule": "0 16 * * *"
-    },
-    {
-      "path": "/api/cron/weekly-checkin-reminder",
-      "schedule": "0 16 * * *"
-    },
-    {
-      "path": "/api/cron/wl-drip-emails",
-      "schedule": "0 15 * * *"
-    },
-    {
-      "path": "/api/cron/injection-reminders",
-      "schedule": "0 16 * * *"
-    },
-    {
-      "path": "/api/cron/hrt-lab-reminders",
-      "schedule": "0 16 * * *"
-    },
-    {
-      "path": "/api/cron/hrt-injection-reminders",
-      "schedule": "0 16 * * *"
-    },
-    {
-      "path": "/api/cron/oxygen-daily",
-      "schedule": "0 15 * * *"
-    },
-    {
-      "path": "/api/cron/hrt-iv-reminders",
-      "schedule": "0 16 * * *"
-    },
-    {
-      "path": "/api/cron/send-notifications",
-      "schedule": "0 15,16 * * *"
-    },
-    {
-      "path": "/api/cron/hrt-onboarding-emails",
-      "schedule": "0 15 * * *"
+      "path": "/api/cron/staff-prep-alert",
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/cron/wl-daily-report",
       "schedule": "0 2 * * *"
     },
     {
-      "path": "/api/cron/iv-followup",
-      "schedule": "0 18 * * *"
-    },
-    {
       "path": "/api/cron/task-digest",
-      "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron/lab-prep-reminder",
-      "schedule": "0 16 * * *"
-    },
-    {
-      "path": "/api/cron/start-funnel-nudge",
-      "schedule": "0 16 * * *"
+      "schedule": "15 2 * * *"
     },
     {
       "path": "/api/cron/daily-sales-report",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/lab-review-followup",
+      "schedule": "15 3 * * *"
+    },
+    {
+      "path": "/api/cron/link-forms",
+      "schedule": "0 6,18 * * *"
+    },
+    {
+      "path": "/api/cron/sync-google-reviews",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/complete-protocols",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/data-audit-digest",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/wl-drip-emails",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron/hrt-onboarding-emails",
+      "schedule": "5 15 * * *"
+    },
+    {
+      "path": "/api/cron/oxygen-daily",
+      "schedule": "10 15 * * *"
+    },
+    {
+      "path": "/api/cron/send-notifications",
+      "schedule": "15 15 * * *"
+    },
+    {
+      "path": "/api/cron/wl-midpoint-reminder",
+      "schedule": "50 15 * * *"
+    },
+    {
+      "path": "/api/cron/injection-reminders",
+      "schedule": "55 15 * * *"
+    },
+    {
+      "path": "/api/cron/hrt-injection-reminders",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/hrt-lab-reminders",
+      "schedule": "5 16 * * *"
+    },
+    {
+      "path": "/api/cron/hrt-iv-reminders",
+      "schedule": "10 16 * * *"
+    },
+    {
+      "path": "/api/cron/lab-prep-reminder",
+      "schedule": "15 16 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-checkin-reminder",
+      "schedule": "20 16 * * *"
+    },
+    {
+      "path": "/api/cron/start-funnel-nudge",
+      "schedule": "25 16 * * *"
+    },
+    {
+      "path": "/api/cron/trial-expiration",
+      "schedule": "30 16 * * *"
     },
     {
       "path": "/api/cron/birthday-sms",
@@ -79,27 +95,11 @@
     },
     {
       "path": "/api/cron/appointment-reminder",
-      "schedule": "0 17 * * *"
+      "schedule": "10 17 * * *"
     },
     {
-      "path": "/api/cron/trial-expiration",
-      "schedule": "0 16 * * *"
-    },
-    {
-      "path": "/api/cron/staff-prep-alert",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/lab-review-followup",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/sync-google-reviews",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/data-audit-digest",
-      "schedule": "0 14 * * *"
+      "path": "/api/cron/iv-followup",
+      "schedule": "0 18 * * *"
     }
   ]
 }

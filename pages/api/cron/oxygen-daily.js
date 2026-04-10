@@ -126,7 +126,7 @@ export default async function handler(req, res) {
           patientName: sub.first_name,
           status: 'error',
           errorMessage: sendError.message,
-        }).catch(() => {});
+        }).catch(logErr => { console.error('logComm error in oxygen-daily:', logErr.message); });
 
         results.push({ email: sub.email, day: nextDay, status: 'error', error: sendError.message });
       }

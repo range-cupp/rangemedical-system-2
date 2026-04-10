@@ -292,7 +292,7 @@ async function sendRangeIVPerkEmail(patientId) {
       patientName: patient.name,
       status: 'error',
       errorMessage: err.message,
-    }).catch(() => {});
+    }).catch(err => { console.error('logComm error:', err.message); });
   }
 }
 
@@ -356,7 +356,9 @@ async function processHRTMembershipPerk(invoice) {
     .single();
 
   const smsMessage = `💉 HRT Perk: Free Range IV credited for ${patient?.name || 'Unknown'}`;
-  await sendSMS({ to: OWNER_PHONE, message: smsMessage }).catch(() => {});
+  await sendSMS({ to: OWNER_PHONE, message: smsMessage }).catch(err => {
+    console.error('HRT perk owner SMS failed:', err.message);
+  });
 
   // Send patient scheduling prompt SMS
   if (patient?.phone) {
@@ -382,7 +384,7 @@ async function processHRTMembershipPerk(invoice) {
       twilioMessageSid: promptResult.messageSid || null,
       provider: promptResult.provider || null,
       direction: 'outbound',
-    }).catch(() => {});
+    }).catch(err => { console.error('logComm error:', err.message); });
 
     if (promptResult.success) {
       console.log(`HRT IV scheduling prompt sent to ${patient.name} (${patient.phone})`);
@@ -469,6 +471,21 @@ export default async function handler(req, res) {
         }
       }
 
+      // Idempotency: check if we've already processed this checkout session
+      const paymentIntentId = session.payment_intent || null;
+      if (paymentIntentId) {
+        const { data: existingPurchases } = await supabase
+          .from('purchases')
+          .select('id')
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .limit(1);
+
+        if (existingPurchases?.length) {
+          console.log(`Webhook idempotency: purchases already exist for PI ${paymentIntentId}, skipping`);
+          return res.status(200).json({ received: true, skipped: 'duplicate' });
+        }
+      }
+
       // Process each line item → purchase record + auto-protocol
       for (const item of lineItems.data) {
         const product = item.price?.product;
@@ -538,6 +555,13 @@ export default async function handler(req, res) {
             console.log(`Auto-protocol triggered for Payment Link purchase: ${serviceName} (patient: ${patientId})`);
           } catch (protoErr) {
             console.error('Auto-protocol from Payment Link failed:', protoErr.message);
+            // Flag the purchase so staff knows it needs manual protocol assignment
+            await supabase
+              .from('purchases')
+              .update({ status: 'needs_protocol' })
+              .eq('id', purchase.id)
+              .then(() => {})
+              .catch(flagErr => console.error('Failed to flag purchase:', flagErr.message));
           }
         } else if (!patientId) {
           console.log(`Payment Link purchase unlinked — no patient match for ${customerEmail}`);

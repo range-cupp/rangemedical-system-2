@@ -139,7 +139,7 @@ export default async function handler(req, res) {
             phone: phone,
             status: 'pending',
             source: 'start-hrt-onboarding'
-          }).then(() => {}).catch(() => {});
+          }).then(() => {}).catch(err => { console.error('notification queue error:', err.message); });
           console.log(`HRT onboarding SMS queued for ${patient.name} (quiet hours)`);
         } else {
           const smsResult = await sendSMS({

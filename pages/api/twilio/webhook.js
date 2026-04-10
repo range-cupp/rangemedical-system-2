@@ -170,14 +170,14 @@ export default async function handler(req, res) {
             twilioMessageSid: linkResult.messageSid || null,
             provider: linkResult.provider || null,
             direction: 'outbound',
-          }).catch(() => {});
+          }).catch(err => { console.error('comms_log error:', err.message); });
 
           // Mark the original prompt as replied (prevents duplicate link sends)
           await supabase
             .from('comms_log')
             .update({ status: 'replied' })
             .eq('id', pendingPrompt.id)
-            .catch(() => {});
+            .catch(err => { console.error('comms_log error:', err.message); });
 
           if (linkResult.success) {
             console.log(`HRT IV scheduling link sent to ${patient.name} (${From})`);
@@ -249,14 +249,14 @@ export default async function handler(req, res) {
             twilioMessageSid: prepResult.messageSid || null,
             provider: prepResult.provider || null,
             direction: 'outbound',
-          }).catch(() => {});
+          }).catch(err => { console.error('comms_log error:', err.message); });
 
           // Mark the original reminder as replied (prevents duplicate sends)
           await supabase
             .from('comms_log')
             .update({ status: 'replied' })
             .eq('id', pendingReminder.id)
-            .catch(() => {});
+            .catch(err => { console.error('comms_log error:', err.message); });
 
           if (prepResult.success) {
             console.log(`Lab prep instructions sent to ${patient.name} (${From})`);

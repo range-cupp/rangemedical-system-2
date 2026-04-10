@@ -113,7 +113,7 @@ async function sendReceiptEmail(purchase) {
     await logComm({ channel: 'email', messageType: 'receipt', message: `Receipt for ${amountLabel} — ${purchase.item_name}`, source: 'record-purchase', patientId: purchase.patient_id, patientName: patient.name, recipient: patient.email, subject: subjectLine });
   } catch (err) {
     console.error('Receipt email error:', err);
-    await logComm({ channel: 'email', messageType: 'receipt', message: `Receipt failed for purchase ${purchase.id}`, source: 'record-purchase', patientId: purchase.patient_id, status: 'error', errorMessage: err.message }).catch(() => {});
+    await logComm({ channel: 'email', messageType: 'receipt', message: `Receipt failed for purchase ${purchase.id}`, source: 'record-purchase', patientId: purchase.patient_id, status: 'error', errorMessage: err.message }).catch(err => { console.error('logComm error:', err.message); });
   }
 }
 

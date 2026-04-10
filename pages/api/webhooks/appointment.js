@@ -6,6 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { todayPacific } from '../../../lib/date-utils';
+import { WEIGHT_LOSS_PROGRAM_TYPES, HRT_PROGRAM_TYPES, PEPTIDE_PROGRAM_TYPES } from '../../../lib/protocol-config';
 // addGHLNote/sendStaffSMS removed — session tracking now via Service Log only
 
 const supabase = createClient(
@@ -207,7 +208,7 @@ export default async function handler(req, res) {
           .eq('patient_id', patient.id)
           .eq('delivery_method', 'in_clinic')
           .eq('status', 'active')
-          .in('program_type', ['weight_loss', 'hrt', 'peptide'])
+          .in('program_type', [...WEIGHT_LOSS_PROGRAM_TYPES, ...HRT_PROGRAM_TYPES, ...PEPTIDE_PROGRAM_TYPES])
           .order('created_at', { ascending: false })
           .limit(1);
 

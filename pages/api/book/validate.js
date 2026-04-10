@@ -2,6 +2,7 @@
 // Validates a protocol access_token and returns patient info + active in-clinic protocols
 
 import { createClient } from '@supabase/supabase-js';
+import { HRT_PROGRAM_TYPES, WEIGHT_LOSS_PROGRAM_TYPES } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -87,7 +88,7 @@ export default async function handler(req, res) {
       .eq('patient_id', patientId)
       .eq('status', 'active')
       .eq('delivery_method', 'in_clinic')
-      .in('program_type', ['hrt', 'weight_loss']);
+      .in('program_type', [...HRT_PROGRAM_TYPES, ...WEIGHT_LOSS_PROGRAM_TYPES]);
 
     // Build booking options from all active in-clinic protocols
     const bookingOptions = [];

@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { buildAdaptiveHRTSchedule } from '../../../lib/hrt-lab-schedule';
+import { HRT_PROGRAM_TYPES } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -163,7 +164,7 @@ export default async function handler(req, res) {
       supabase
         .from('protocols')
         .select('id, patient_id, program_name, start_date, status, first_followup_weeks, patients(id, name, first_name, last_name, phone)')
-        .in('program_type', ['hrt', 'hrt_male', 'hrt_female'])
+        .in('program_type', HRT_PROGRAM_TYPES)
         .in('status', ['active', 'completed'])
         .not('start_date', 'is', null),
     ]);

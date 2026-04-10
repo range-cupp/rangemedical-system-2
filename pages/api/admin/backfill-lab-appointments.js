@@ -4,6 +4,7 @@
 // CREATED: 2026-01-26 - FIXED VERSION
 
 import { createClient } from '@supabase/supabase-js';
+import { HRT_PROGRAM_TYPES, WEIGHT_LOSS_PROGRAM_TYPES } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -242,7 +243,7 @@ export default async function handler(req, res) {
             .from('protocols')
             .select('id, program_type')
             .eq('patient_id', patient.id)
-            .in('program_type', ['hrt', 'weight_loss'])
+            .in('program_type', [...HRT_PROGRAM_TYPES, ...WEIGHT_LOSS_PROGRAM_TYPES])
             .order('created_at', { ascending: false })
             .limit(1)
             .single();

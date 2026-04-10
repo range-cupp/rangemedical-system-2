@@ -4,6 +4,7 @@
 // GET = preview, POST = sync
 
 import { createClient } from '@supabase/supabase-js';
+import { BODY_THERAPY_TYPES } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -84,7 +85,7 @@ export default async function handler(req, res) {
           ghl_contact_id
         )
       `)
-      .in('program_type', ['hbot', 'rlt', 'iv', 'injection', 'iv_therapy', 'red_light', 'injection_pack'])
+      .in('program_type', BODY_THERAPY_TYPES)
       .not('total_sessions', 'is', null);
 
     if (patientId) {

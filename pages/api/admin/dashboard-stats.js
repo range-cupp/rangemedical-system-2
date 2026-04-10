@@ -3,6 +3,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { PEPTIDE_PROGRAM_TYPES_ALL, WEIGHT_LOSS_PROGRAM_TYPES } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -115,7 +116,7 @@ export default async function handler(req, res) {
         .from('protocols')
         .select('id, patient_name, program_name, program_type, start_date, end_date, duration_days, injections_completed, access_token')
         .eq('status', 'active')
-        .in('program_type', ['peptide', 'gh_peptide', 'peptide_vial', 'recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'injection_clinic', 'jumpstart_10day', 'recovery_10day', 'month_30day'])
+        .in('program_type', PEPTIDE_PROGRAM_TYPES_ALL)
         .order('end_date', { ascending: true, nullsFirst: false })
         .limit(15),
       
@@ -124,7 +125,7 @@ export default async function handler(req, res) {
         .from('protocols')
         .select('id, patient_name, program_name, program_type, start_date, end_date, duration_days, injections_completed, access_token')
         .eq('status', 'active')
-        .in('program_type', ['weight_loss_program', 'weight_loss_injection'])
+        .in('program_type', WEIGHT_LOSS_PROGRAM_TYPES)
         .order('end_date', { ascending: true, nullsFirst: false })
         .limit(15),
       

@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { getProtocolTracking } from '../../../lib/protocol-tracking';
+import { PEPTIDE_PROGRAM_TYPES } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -40,7 +41,7 @@ async function getPeptidePipeline(req, res) {
         created_at, updated_at, peptide_reminders_enabled,
         patients (id, name, first_name, last_name, phone, email)
       `)
-      .in('program_type', ['peptide', 'gh_peptide', 'peptide_vial'])
+      .in('program_type', PEPTIDE_PROGRAM_TYPES)
       .in('status', ['active', 'paused'])
       .order('end_date', { ascending: true, nullsFirst: false });
 
@@ -205,7 +206,7 @@ async function updatePeptideProtocol(req, res) {
       .from('protocols')
       .update(updates)
       .eq('id', id)
-      .in('program_type', ['peptide', 'gh_peptide', 'peptide_vial'])
+      .in('program_type', PEPTIDE_PROGRAM_TYPES)
       .select()
       .single();
 
@@ -227,7 +228,7 @@ async function removePeptideProtocol(req, res) {
       .from('protocols')
       .update({ status: 'cancelled', updated_at: new Date().toISOString() })
       .eq('id', id)
-      .in('program_type', ['peptide', 'gh_peptide', 'peptide_vial']);
+      .in('program_type', PEPTIDE_PROGRAM_TYPES);
 
     if (error) return res.status(400).json({ error: error.message });
     return res.status(200).json({ success: true });

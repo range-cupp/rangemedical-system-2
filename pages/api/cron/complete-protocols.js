@@ -6,6 +6,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { PEPTIDE_PROGRAM_TYPES, IV_PROGRAM_TYPES } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -101,7 +102,7 @@ export default async function handler(req, res) {
           .from('protocols')
           .select('id')
           .eq('patient_id', protocol.patient_id)
-          .in('program_type', ['peptide', 'gh_peptide', 'peptide_vial'])
+          .in('program_type', PEPTIDE_PROGRAM_TYPES)
           .eq('status', 'active')
           .gt('start_date', protocol.end_date)
           .limit(1);
@@ -155,7 +156,7 @@ export default async function handler(req, res) {
       .from('protocols')
       .select('id, program_name, total_sessions, sessions_used')
       .eq('status', 'active')
-      .in('program_type', ['iv', 'iv_therapy', 'iv_sessions'])
+      .in('program_type', IV_PROGRAM_TYPES)
       .not('total_sessions', 'is', null)
       .filter('total_sessions', 'lte', 1);
 

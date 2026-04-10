@@ -2,6 +2,7 @@
 // Upload lab PDF for a patient - No external dependencies version
 
 import { createClient } from '@supabase/supabase-js';
+import { HRT_PROGRAM_TYPES } from '../../../../lib/protocol-config';
 
 export const config = {
   api: {
@@ -110,7 +111,7 @@ export default async function handler(req, res) {
         .from('protocols')
         .select('id, start_date, first_followup_weeks')
         .eq('patient_id', patientId)
-        .in('program_type', ['hrt', 'hrt_male', 'hrt_female'])
+        .in('program_type', HRT_PROGRAM_TYPES)
         .in('status', ['active', 'completed']);
 
       if (hrtProtos && hrtProtos.length > 0) {

@@ -178,6 +178,30 @@ export default function PeptideGuide() {
           </div>
         </section>
 
+        {/* Benefits */}
+        <section className="pg-section">
+          <div className="pg-container">
+            <div className="v2-label"><span className="v2-dot" /> WHY THIS PROTOCOL</div>
+            <h2>EXPECTED BENEFITS</h2>
+            <div className="pg-divider"></div>
+            <p className="pg-body-text">Here&apos;s what each peptide in your protocol is designed to do and the benefits patients typically experience.</p>
+
+            {items.map((v, i) => (
+              <div key={`benefits-${v.id}-${i}`} style={{ marginBottom: items.length > 1 && i < items.length - 1 ? '2.5rem' : 0 }}>
+                {items.length > 1 && <h3 className="pg-benefits-name">{v.name}</h3>}
+                <p className="pg-body-text" style={{ marginBottom: '1rem' }}>{v.description}</p>
+                {v.benefits && v.benefits.length > 0 && (
+                  <ul className="pg-benefits-list">
+                    {v.benefits.map((b, bi) => (
+                      <li key={bi}>{b}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Supplies */}
         <section className="pg-section">
           <div className="pg-container">
@@ -576,6 +600,12 @@ const styles = `
   .pg-vial-row-highlight { background: #fafafa; }
   .pg-vial-row-highlight span:last-child { font-weight: 700; }
   .pg-vial-card-desc { padding: 1.25rem 1.75rem; margin: 0; font-size: 0.85rem; color: #737373; line-height: 1.6; border-top: 1px solid #e0e0e0; background: #fafafa; }
+
+  .pg-benefits-name { font-size: 1.25rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; margin-bottom: 0.5rem; }
+  .pg-benefits-list { list-style: none; padding: 0; margin: 0; }
+  .pg-benefits-list li { padding: 0.6rem 0; padding-left: 1.5rem; position: relative; font-size: 1rem; color: #404040; line-height: 1.6; border-bottom: 1px solid #f0f0f0; }
+  .pg-benefits-list li:last-child { border-bottom: none; }
+  .pg-benefits-list li::before { content: '\\2713'; position: absolute; left: 0; color: #2E6B35; font-weight: 700; }
 
   .pg-steps-list { margin-top: 2rem; }
   .pg-step-item { display: flex; gap: 1rem; padding: 1.25rem 0; border-bottom: 1px solid rgba(255,255,255,0.08); }

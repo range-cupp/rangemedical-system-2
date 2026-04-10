@@ -246,7 +246,7 @@ async function updateProtocol(id, updates, res) {
   if (updateData.selected_dose !== undefined) {
     // Normalize dose format: ensure it has "mg" suffix if it's a number
     let dose = updateData.selected_dose;
-    if (dose && !isNaN(parseFloat(dose)) && !dose.toString().toLowerCase().includes('mg') && !dose.toString().toLowerCase().includes('ml')) {
+    if (dose && !isNaN(parseFloat(dose)) && !dose.toString().toLowerCase().match(/mg|mcg|ml|iu|unit/)) {
       dose = dose + 'mg';
     }
     updateData.selected_dose = dose;

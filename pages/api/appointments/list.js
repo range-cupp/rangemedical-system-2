@@ -44,6 +44,38 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: error.message });
     }
 
+    // Auto-inherit id_verified from patient id_on_file
+    const unverifiedWithPatient = (appointments || []).filter(a => !a.id_verified && a.patient_id);
+    if (unverifiedWithPatient.length > 0) {
+      const patientIds = [...new Set(unverifiedWithPatient.map(a => a.patient_id))];
+      const { data: patients } = await supabase
+        .from('patients')
+        .select('id, id_on_file')
+        .in('id', patientIds)
+        .eq('id_on_file', true);
+
+      if (patients?.length) {
+        const idOnFileSet = new Set(patients.map(p => p.id));
+        const apptIdsToUpdate = unverifiedWithPatient
+          .filter(a => idOnFileSet.has(a.patient_id))
+          .map(a => a.id);
+
+        if (apptIdsToUpdate.length > 0) {
+          await supabase
+            .from('appointments')
+            .update({ id_verified: true })
+            .in('id', apptIdsToUpdate);
+
+          // Reflect in response
+          for (const apt of appointments) {
+            if (apptIdsToUpdate.includes(apt.id)) {
+              apt.id_verified = true;
+            }
+          }
+        }
+      }
+    }
+
     return res.status(200).json({ appointments });
   } catch (error) {
     console.error('List appointments error:', error);

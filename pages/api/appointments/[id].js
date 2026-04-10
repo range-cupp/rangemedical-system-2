@@ -25,6 +25,23 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Appointment not found' });
       }
 
+      // Auto-inherit id_verified from patient's id_on_file
+      if (!appointment.id_verified && appointment.patient_id) {
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('id_on_file')
+          .eq('id', appointment.patient_id)
+          .single();
+
+        if (patient?.id_on_file) {
+          await supabase
+            .from('appointments')
+            .update({ id_verified: true })
+            .eq('id', id);
+          appointment.id_verified = true;
+        }
+      }
+
       const { data: events } = await supabase
         .from('appointment_events')
         .select('*')
@@ -130,6 +147,14 @@ export default async function handler(req, res) {
       if (error) {
         console.error('Patch appointment error:', error);
         return res.status(500).json({ error: error.message });
+      }
+
+      // When ID is verified, persist id_on_file on the patient so future appointments auto-inherit
+      if (updates.id_verified === true && data.patient_id) {
+        await supabase
+          .from('patients')
+          .update({ id_on_file: true })
+          .eq('id', data.patient_id);
       }
 
       return res.status(200).json({ appointment: data });

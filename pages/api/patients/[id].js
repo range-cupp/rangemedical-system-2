@@ -409,9 +409,8 @@ export default async function handler(req, res) {
         };
 
         const isWeightLoss = (protocol.program_type || '').toLowerCase().includes('weight');
-        const isPeptideProto = (protocol.program_type || '').toLowerCase() === 'peptide';
         const isHRT = (protocol.program_type || '').toLowerCase() === 'hrt';
-        const neverAutoComplete = isWeightLoss || isPeptideProto || isHRT;
+        const neverAutoComplete = isWeightLoss || isHRT;
         const isCompleted =
           protocol.status === 'completed' ||
           protocol.status === 'historic' ||

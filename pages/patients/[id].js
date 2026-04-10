@@ -651,8 +651,6 @@ export default function PatientProfile() {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [generatingChart, setGeneratingChart] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
-  const [referralInviteSending, setReferralInviteSending] = useState(false);
-  const [referralInviteSent, setReferralInviteSent] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletePreview, setDeletePreview] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -4160,36 +4158,6 @@ export default function PatientProfile() {
                 title="Print full patient chart"
               >
                 🖨️ <span className="toolbar-label">{generatingChart ? 'Generating...' : 'Print'}</span>
-              </button>
-              <button
-                onClick={async () => {
-                  if (!patient?.phone) { alert('No phone number on file for this patient.'); return; }
-                  setReferralInviteSending(true);
-                  try {
-                    const firstName = patient.first_name || patient.name?.split(' ')[0] || '';
-                    await fetch('/api/twilio/send-sms', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        patient_id: patient.id,
-                        to: patient.phone,
-                        message: `Hey ${firstName} — we set up a way for you to refer people to Range Medical. Tap the link below, enter your info, and you'll get your own personal referral link you can text to anyone:\n\nhttps://range-medical.com/refer/join\n\nTakes about 15 seconds. After that, we'll text you your link so you always have it.`,
-                        message_type: 'referral_invite',
-                      }),
-                    });
-                    setReferralInviteSent(true);
-                    setTimeout(() => setReferralInviteSent(false), 3000);
-                  } catch (err) {
-                    console.error('Referral invite error:', err);
-                    alert('Failed to send. Try again.');
-                  }
-                  setReferralInviteSending(false);
-                }}
-                disabled={referralInviteSending}
-                className="toolbar-btn toolbar-btn-orange"
-                title="Send referral invite text"
-              >
-                🤝 <span className="toolbar-label">{referralInviteSent ? '✓ Sent' : referralInviteSending ? 'Sending...' : 'Referral'}</span>
               </button>
             </div>
             {(() => {

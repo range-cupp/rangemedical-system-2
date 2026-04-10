@@ -8,6 +8,7 @@ import Head from 'next/head';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import AdminLayout from '../../components/AdminLayout';
+import { supabase } from '../../lib/supabase';
 import { formatPrice } from '../../lib/pos-pricing';
 import {
   TESTOSTERONE_DOSES,
@@ -193,6 +194,7 @@ function CheckoutInner() {
   const [cartItems, setCartItems] = useState([]);
   const [cartWarning, setCartWarning] = useState('');
   const [cartOpen, setCartOpen] = useState(false);
+  const [consentBlock, setConsentBlock] = useState('');
 
   // ── Cart-wide discount ──
   const [cartDiscountType, setCartDiscountType] = useState('none');
@@ -357,6 +359,9 @@ function CheckoutInner() {
       .then(data => setRecentCharges(data.charges || []))
       .catch(() => setRecentCharges([]));
   }, [patient?.id]);
+
+  // Clear consent block when cart changes
+  useEffect(() => { setConsentBlock(''); }, [cartItems]);
 
   // ── Load saved cards + credit when entering payment ──
   useEffect(() => {
@@ -1506,6 +1511,48 @@ function CheckoutInner() {
       }
     }
     return results;
+  }
+
+  // Check if cart has weight loss items and patient has a signed weight-loss consent
+  async function checkWeightLossConsent() {
+    const hasWL = cartItems.some(i => i.category === 'weight_loss');
+    if (!hasWL) return true;
+    if (!patient?.id) return true;
+
+    const { data } = await supabase
+      .from('consents')
+      .select('id')
+      .eq('patient_id', patient.id)
+      .eq('consent_type', 'weight-loss')
+      .limit(1);
+    if (data && data.length > 0) return true;
+
+    // Fallback: check by email
+    if (patient.email) {
+      const { data: byEmail } = await supabase
+        .from('consents')
+        .select('id')
+        .ilike('email', patient.email)
+        .eq('consent_type', 'weight-loss')
+        .limit(1);
+      if (byEmail && byEmail.length > 0) return true;
+    }
+    return false;
+  }
+
+  // Gate checkout — enforce consent requirements before proceeding
+  async function proceedToCheckout() {
+    setConsentBlock('');
+    const hasConsent = await checkWeightLossConsent();
+    if (!hasConsent) {
+      setConsentBlock('Weight loss consent form required before checkout. Please have the patient complete the weight loss consent form first.');
+      return;
+    }
+    if (hasOnlyFreeDispenseItems()) {
+      processDispenseOnly();
+    } else {
+      setStep('payment');
+    }
   }
 
   // Dispense-only checkout (no payment needed)
@@ -2816,6 +2863,11 @@ function CheckoutInner() {
                   {cartWarning && (
                     <div style={styles.cartWarningMsg}>{cartWarning}</div>
                   )}
+                  {consentBlock && (
+                    <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', color: '#991b1b', marginBottom: '12px', lineHeight: '1.4' }}>
+                      ⚠️ {consentBlock}
+                    </div>
+                  )}
 
                   {/* Skip receipt toggle (shown for dispense-only) */}
                   {canProceedToPayment() && hasOnlyFreeDispenseItems() && (
@@ -2830,13 +2882,7 @@ function CheckoutInner() {
                     <div style={styles.cartActions}>
                       <button
                         style={styles.primaryBtn}
-                        onClick={() => {
-                          if (hasOnlyFreeDispenseItems()) {
-                            processDispenseOnly();
-                          } else {
-                            setStep('payment');
-                          }
-                        }}
+                        onClick={proceedToCheckout}
                       >
                         {hasOnlyFreeDispenseItems()
                           ? 'Complete Checkout — Dispense Only'

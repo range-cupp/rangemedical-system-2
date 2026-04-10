@@ -6321,7 +6321,14 @@ export default function PatientProfile() {
                                       <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                         <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                                        <YAxis domain={['dataMin - 2', 'dataMax + 2']} tick={{ fontSize: 12 }} unit=" lbs" width={65} />
+                                        <YAxis domain={[
+                                          (dataMin) => {
+                                            const gw = protocol.goal_weight ? parseFloat(protocol.goal_weight) : null;
+                                            const min = gw ? Math.min(dataMin, gw) : dataMin;
+                                            return min - 2;
+                                          },
+                                          'dataMax + 2'
+                                        ]} tick={{ fontSize: 12 }} unit=" lbs" width={65} />
                                         <Tooltip
                                           formatter={(value) => [`${value} lbs`, 'Weight']}
                                           labelFormatter={(label) => label}
@@ -6337,13 +6344,32 @@ export default function PatientProfile() {
                                             label={{ value: `💰 ${pm.qty}x`, position: 'top', fontSize: 10, fill: '#16a34a', fontWeight: 700 }}
                                           />
                                         ))}
+                                        {protocol.goal_weight && (
+                                          <ReferenceLine
+                                            y={parseFloat(protocol.goal_weight)}
+                                            stroke="#3b82f6"
+                                            strokeDasharray="6 3"
+                                            strokeWidth={1.5}
+                                            label={{ value: `Goal: ${protocol.goal_weight} lbs`, position: 'right', fontSize: 11, fill: '#3b82f6', fontWeight: 600 }}
+                                          />
+                                        )}
                                         <Line type="monotone" dataKey="weight" stroke="#1e40af" strokeWidth={2} dot={{ r: 4, fill: '#1e40af' }} activeDot={{ r: 6 }} />
                                       </LineChart>
                                     </ResponsiveContainer>
-                                    {paymentMarkers.length > 0 && (
-                                      <div style={{ fontSize: 10, color: '#16a34a', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                        <span style={{ borderLeft: '2px dashed #16a34a', height: 10, display: 'inline-block' }} />
-                                        = Payment / delivery
+                                    {(paymentMarkers.length > 0 || protocol.goal_weight) && (
+                                      <div style={{ fontSize: 10, marginTop: 2, display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        {paymentMarkers.length > 0 && (
+                                          <span style={{ color: '#16a34a', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                            <span style={{ borderLeft: '2px dashed #16a34a', height: 10, display: 'inline-block' }} />
+                                            = Payment / delivery
+                                          </span>
+                                        )}
+                                        {protocol.goal_weight && (
+                                          <span style={{ color: '#3b82f6', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                            <span style={{ borderBottom: '2px dashed #3b82f6', width: 12, display: 'inline-block' }} />
+                                            = Goal weight ({protocol.goal_weight} lbs)
+                                          </span>
+                                        )}
                                       </div>
                                     )}
                                   </div>

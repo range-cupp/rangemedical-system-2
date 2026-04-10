@@ -7203,6 +7203,12 @@ export default function PatientProfile() {
                                       <span className="px-stat-value">{protocol.frequency}</span>
                                     </div>
                                   )}
+                                  {(lastPickup || protocol.last_refill_date) && (
+                                    <div className="px-stat">
+                                      <span className="px-stat-label">Last Pickup</span>
+                                      <span className="px-stat-value">{formatShortDate(lastPickup?.entry_date || protocol.last_refill_date)}</span>
+                                    </div>
+                                  )}
                                 </div>
                                 {/* HRT Dosage Timeline */}
                                 {protocol.start_date && (() => {
@@ -7258,8 +7264,12 @@ export default function PatientProfile() {
                                       const ld = new Date(l.entry_date + 'T12:00:00');
                                       return ld >= weekStart && ld < weekEnd && (l.entry_type === 'injection' || l.entry_type === 'session');
                                     });
+                                    const weekPickups = protoServiceLogs.filter(l => {
+                                      const ld = new Date(l.entry_date + 'T12:00:00');
+                                      return ld >= weekStart && ld < weekEnd && l.entry_type === 'pickup';
+                                    });
 
-                                    weeks.push({ num: w + 1, weekStart, weekStr, activeDose, mg, ipw, weeklyTotal, isDoseChange, isFuture, weekLogs });
+                                    weeks.push({ num: w + 1, weekStart, weekStr, activeDose, mg, ipw, weeklyTotal, isDoseChange, isFuture, weekLogs, weekPickups });
                                   }
 
                                   // Determine if we should show collapsed (>12 weeks)
@@ -7326,10 +7336,19 @@ export default function PatientProfile() {
                                                 <td style={{ padding: '5px 8px' }}>
                                                   {week.isFuture ? (
                                                     <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Upcoming</span>
-                                                  ) : week.weekLogs.length > 0 ? (
-                                                    <span style={{ color: '#16a34a' }}>{'\u2713'} {week.weekLogs.length} inj</span>
                                                   ) : (
-                                                    <span style={{ color: '#d1d5db' }}>{'\u2014'}</span>
+                                                    <span>
+                                                      {week.weekPickups.length > 0 && (
+                                                        <span style={{ color: '#7c3aed', fontWeight: 600, marginRight: week.weekLogs.length > 0 ? 6 : 0 }}>
+                                                          📦 Pickup
+                                                        </span>
+                                                      )}
+                                                      {week.weekLogs.length > 0 ? (
+                                                        <span style={{ color: '#16a34a' }}>{'\u2713'} {week.weekLogs.length} inj</span>
+                                                      ) : week.weekPickups.length === 0 ? (
+                                                        <span style={{ color: '#d1d5db' }}>{'\u2014'}</span>
+                                                      ) : null}
+                                                    </span>
                                                   )}
                                                 </td>
                                               </tr>

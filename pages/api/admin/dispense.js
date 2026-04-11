@@ -76,10 +76,16 @@ function getRefillIntervalDays(protocol) {
   return 30;
 }
 
+// DEPRECATED: Use /api/medication-checkout instead.
+// This endpoint is kept for backward compatibility but all new dispense flows
+// should go through the unified medication-checkout API which enforces
+// controlled substance dual verification and sends receipt emails.
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  console.warn('[DEPRECATED] /api/admin/dispense called — use /api/medication-checkout instead');
 
   try {
     const {

@@ -3,9 +3,12 @@
 // Range Medical System V2
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
 import { TESTOSTERONE_DOSES, WEIGHT_LOSS_DOSAGES, getDoseOptions, getPeptideVialSupply } from '../../lib/protocol-config';
+
+const MedicationCheckoutModal = dynamic(() => import('../../components/MedicationCheckoutModal'), { ssr: false });
 
 // Friendly labels for supply types
 const SUPPLY_LABELS = {
@@ -174,19 +177,9 @@ export default function MedicationsPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [search, setSearch] = useState('');
 
-  // Dispense modal state
-  const [dispensingProtocol, setDispensingProtocol] = useState(null);
-  const [dispenseDate, setDispenseDate] = useState('');
-  const [selectedSupplyType, setSelectedSupplyType] = useState('');
-  const [dispenseDosage, setDispenseDosage] = useState('');
-  const [customDoseMode, setCustomDoseMode] = useState(false);
-  const [customDoseValue, setCustomDoseValue] = useState('');
-  const [fulfillmentMethod, setFulfillmentMethod] = useState('in_clinic');
-  const [trackingNumber, setTrackingNumber] = useState('');
-  const [dosingNotes, setDosingNotes] = useState('');
-  const [refillOverride, setRefillOverride] = useState(''); // '' = auto, or number of days
-  const [logging, setLogging] = useState(false);
-  const [logResult, setLogResult] = useState(null);
+  // Checkout modal state (unified dispense flow)
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [checkoutPatient, setCheckoutPatient] = useState(null);
   const [dismissing, setDismissing] = useState(null); // protocol id being dismissed
 
   useEffect(() => {
@@ -230,100 +223,13 @@ export default function MedicationsPage() {
     }
   };
 
+  // Open checkout modal with patient pre-selected
   const openDispenseModal = (med) => {
-    setDispensingProtocol(med);
-    setDispenseDate(new Date().toISOString().split('T')[0]);
-    // Default supply type based on protocol type
-    const pt = (med.program_type || '').toLowerCase();
-    if (pt.includes('weight_loss')) {
-      // Default to 1 injection for weight loss — staff picks how many they're dispensing
-      setSelectedSupplyType('wl_1');
-    } else if (pt === 'peptide') {
-      // Default to first vial supply option if available
-      const vialSupply = getPeptideVialSupply(med.medication || med.program_name || '');
-      setSelectedSupplyType(vialSupply ? vialSupply.options[0].value : '');
-    } else if (pt.includes('hrt')) {
-      // HRT — default to their current supply type, or prefilled_2week as fallback
-      const currentSupply = (med.supply_type || '').toLowerCase();
-      if (currentSupply.includes('vial')) {
-        setSelectedSupplyType(currentSupply.includes('5') ? 'vial_5ml' : 'vial_10ml');
-      } else if (currentSupply.startsWith('prefilled')) {
-        setSelectedSupplyType(currentSupply);
-      } else {
-        setSelectedSupplyType('prefilled_2week');
-      }
-    } else {
-      setSelectedSupplyType(med.supply_type || '');
-    }
-    setDispenseDosage(med.dosage || '');
-    setCustomDoseMode(false);
-    setCustomDoseValue('');
-    setFulfillmentMethod('in_clinic');
-    setTrackingNumber('');
-    setDosingNotes('');
-    setRefillOverride('');
-    setLogResult(null);
-  };
-
-  const handleDispense = async () => {
-    if (!dispensingProtocol || !dispenseDate) return;
-    setLogging(true);
-    setLogResult(null);
-    try {
-      const currentInterval = refillOverride ? parseInt(refillOverride) : getIntervalForSupply(selectedSupplyType, dispensingProtocol);
-      const res = await fetch('/api/admin/dispense', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          protocol_id: dispensingProtocol.id,
-          patient_id: dispensingProtocol.patient_id,
-          patient_name: dispensingProtocol.patient_name,
-          dispense_date: dispenseDate,
-          refill_interval_days: currentInterval,
-          dosage_override: dispenseDosage !== dispensingProtocol.dosage ? dispenseDosage : null,
-          quantity: selectedSupplyType.startsWith('wl_') ? parseInt(selectedSupplyType.split('_')[1]) : 1,
-          supply_type_override: selectedSupplyType !== dispensingProtocol.supply_type ? selectedSupplyType : null,
-          fulfillment_method: fulfillmentMethod,
-          tracking_number: fulfillmentMethod === 'overnight' ? trackingNumber : null,
-          dosing_notes: dosingNotes || null,
-        }),
-      });
-      if (res.status === 409) {
-        setLogResult({ success: false, message: 'Already dispensed for this date' });
-        return;
-      }
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to dispense');
-      setLogResult({
-        success: true,
-        message: `Dispensed — next refill ${formatDate(data.next_expected_date)} (+${data.interval_days}d)`,
-      });
-      setTimeout(() => {
-        fetchMedications();
-        setDispensingProtocol(null);
-        setLogResult(null);
-      }, 2000);
-    } catch (err) {
-      setLogResult({ success: false, message: err.message });
-    } finally {
-      setLogging(false);
-    }
-  };
-
-  // Compute the preview next refill date based on selected supply type or refill override
-  const getActiveInterval = () => {
-    if (!dispensingProtocol) return null;
-    if (refillOverride) return parseInt(refillOverride);
-    return getIntervalForSupply(selectedSupplyType, dispensingProtocol);
-  };
-
-  const previewNextRefill = () => {
-    if (!dispensingProtocol || !dispenseDate) return null;
-    const interval = getActiveInterval();
-    if (!interval) return null;
-    const next = new Date(dispenseDate + 'T12:00:00');
-    next.setDate(next.getDate() + interval);
-    return next.toISOString().split('T')[0];
+    setCheckoutPatient({
+      id: med.patient_id,
+      name: med.patient_name,
+    });
+    setShowCheckoutModal(true);
   };
 
   // Category matching helper
@@ -353,8 +259,6 @@ export default function MedicationsPage() {
       month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles',
     });
   };
-
-  const previewDate = previewNextRefill();
 
   return (
     <AdminLayout title="Medications">
@@ -580,315 +484,14 @@ export default function MedicationsPage() {
         </div>
       )}
 
-      {/* Dispense Modal */}
-      {dispensingProtocol && (
-        <div style={s.overlay} {...overlayClickProps(() => { setDispensingProtocol(null); setLogResult(null); })}>
-          <div style={s.modal} onClick={e => e.stopPropagation()}>
-            <div style={s.modalHeader}>
-              <h3 style={{ margin: 0, fontSize: '16px' }}>Dispense Medication</h3>
-              <button onClick={() => { setDispensingProtocol(null); setLogResult(null); }} style={s.modalClose}>×</button>
-            </div>
-            <div style={{ padding: '20px' }}>
-              {/* Patient */}
-              <div style={s.fieldRow}>
-                <div style={s.fieldLabel}>Patient</div>
-                <div style={s.fieldValue}>{dispensingProtocol.patient_name}</div>
-              </div>
-
-              {/* Medication */}
-              <div style={s.fieldRow}>
-                <div style={s.fieldLabel}>Medication</div>
-                <div style={s.fieldValue}>{dispensingProtocol.medication || dispensingProtocol.program_name}</div>
-              </div>
-
-              {/* Dosage — dropdown if options exist, otherwise static */}
-              {dispensingProtocol.dosage && (() => {
-                const doseOptions = getDispenseDoseOptions(dispensingProtocol);
-                if (doseOptions && doseOptions.length > 0) {
-                  return (
-                    <div style={{ ...s.fieldRow, flexDirection: 'column', alignItems: 'stretch' }}>
-                      <div style={s.fieldLabel}>Dosage</div>
-                      {customDoseMode ? (
-                        <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                          <input
-                            type="text"
-                            placeholder="e.g. 0.275ml / 55mg"
-                            value={customDoseValue}
-                            onChange={e => setCustomDoseValue(e.target.value)}
-                            autoFocus
-                            style={{
-                              flex: 1, padding: '10px 12px', fontSize: '14px', fontWeight: 600,
-                              border: '2px solid #2563eb', borderRadius: 0, fontFamily: 'inherit',
-                              color: '#111', background: '#eff6ff', outline: 'none',
-                            }}
-                          />
-                          <button
-                            onClick={() => {
-                              if (customDoseValue.trim()) {
-                                setDispenseDosage(customDoseValue.trim());
-                                setCustomDoseMode(false);
-                              }
-                            }}
-                            style={{
-                              padding: '10px 16px', fontSize: '13px', fontWeight: 600,
-                              background: '#111', color: '#fff', border: 'none', borderRadius: 0,
-                              cursor: 'pointer',
-                            }}
-                          >Set</button>
-                          <button
-                            onClick={() => { setCustomDoseMode(false); setCustomDoseValue(''); }}
-                            style={{
-                              padding: '10px 12px', fontSize: '13px', fontWeight: 600,
-                              background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb',
-                              borderRadius: 0, cursor: 'pointer',
-                            }}
-                          >Cancel</button>
-                        </div>
-                      ) : (
-                        <select
-                          value={dispenseDosage}
-                          onChange={e => {
-                            if (e.target.value === '__custom__') {
-                              setCustomDoseMode(true);
-                              setCustomDoseValue('');
-                            } else {
-                              setDispenseDosage(e.target.value);
-                            }
-                          }}
-                          style={{
-                            width: '100%', padding: '10px 12px', fontSize: '14px', fontWeight: 600,
-                            border: dispenseDosage !== dispensingProtocol.dosage ? '2px solid #f59e0b' : '1px solid #e5e7eb',
-                            borderRadius: 0, fontFamily: 'inherit', color: '#111',
-                            background: dispenseDosage !== dispensingProtocol.dosage ? '#fffbeb' : '#fff',
-                            cursor: 'pointer', outline: 'none', marginTop: '6px',
-                            appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath d=\'M6 8L1 3h10z\' fill=\'%236b7280\'/%3E%3C/svg%3E")',
-                            backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
-                            paddingRight: '32px',
-                          }}
-                        >
-                          {/* Include current dose if not in options list */}
-                          {!doseOptions.some(d => d.value === dispenseDosage) && dispenseDosage && (
-                            <option value={dispenseDosage}>{dispenseDosage} (current)</option>
-                          )}
-                          {doseOptions.map(d => (
-                            <option key={d.value} value={d.value}>{d.label}</option>
-                          ))}
-                          <option value="__custom__">Custom dose...</option>
-                        </select>
-                      )}
-                      {dispenseDosage !== dispensingProtocol.dosage && !customDoseMode && (
-                        <div style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 600, marginTop: '4px' }}>
-                          Changed from {dispensingProtocol.dosage}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-                // No dropdown options — show static
-                return (
-                  <div style={s.fieldRow}>
-                    <div style={s.fieldLabel}>Dosage</div>
-                    <div style={s.fieldValue}>{dispenseDosage}</div>
-                  </div>
-                );
-              })()}
-
-              {/* Supply Type Selector */}
-              {(() => {
-                const options = getSupplyOptions(dispensingProtocol);
-                const pt = (dispensingProtocol.program_type || '').toLowerCase();
-                const vialInfo = pt === 'peptide' ? getPeptideVialSupply(dispensingProtocol.medication || dispensingProtocol.program_name || '') : null;
-                if (options) {
-                  return (
-                    <div style={{ ...s.fieldRow, flexDirection: 'column', alignItems: 'stretch' }}>
-                      <div style={s.fieldLabel}>
-                        {vialInfo ? `Vial Supply (${vialInfo.vialSize})` : 'Supply Type'}
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
-                        {options.map(opt => (
-                          <button
-                            key={opt.value}
-                            onClick={() => setSelectedSupplyType(opt.value)}
-                            style={{
-                              padding: '8px 16px',
-                              borderRadius: 0,
-                              fontSize: '13px',
-                              fontWeight: 600,
-                              fontFamily: 'inherit',
-                              cursor: 'pointer',
-                              border: selectedSupplyType === opt.value ? '2px solid #2563eb' : '1px solid #e5e7eb',
-                              background: selectedSupplyType === opt.value ? '#eff6ff' : '#fff',
-                              color: selectedSupplyType === opt.value ? '#2563eb' : '#374151',
-                              transition: 'all 0.15s',
-                            }}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                }
-                // No selectable options — show static supply info
-                return dispensingProtocol.supply_type ? (
-                  <div style={s.fieldRow}>
-                    <div style={s.fieldLabel}>Supply</div>
-                    <div style={s.fieldValue}>{formatSupplyInfo(dispensingProtocol)}</div>
-                  </div>
-                ) : null;
-              })()}
-
-              {/* Refill Cycle */}
-              <div style={s.fieldRow}>
-                <div style={s.fieldLabel}>Refill Cycle</div>
-                <div style={{ ...s.fieldValue, color: '#2563eb', fontWeight: 600 }}>
-                  {formatIntervalLabel(getActiveInterval())}
-                </div>
-              </div>
-
-              {/* Date Picker */}
-              <div style={{ ...s.fieldRow, flexDirection: 'column', alignItems: 'stretch' }}>
-                <div style={s.fieldLabel}>Dispense Date</div>
-                <input
-                  type="date"
-                  value={dispenseDate}
-                  onChange={e => setDispenseDate(e.target.value)}
-                  max={new Date().toISOString().split('T')[0]}
-                  style={s.dateInput}
-                />
-              </div>
-
-              {/* Dosing Notes — for split dosing schedules */}
-              {dispensingProtocol && ['weight_loss'].includes((dispensingProtocol.program_type || '').toLowerCase()) && (
-                <div style={{ marginBottom: '14px' }}>
-                  <div style={s.fieldLabel}>Dosing Schedule (optional)</div>
-                  <input
-                    type="text"
-                    placeholder="e.g. 2mg x 2wks → 4mg x 2wks"
-                    value={dosingNotes}
-                    onChange={e => setDosingNotes(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit', color: '#111' }}
-                  />
-                </div>
-              )}
-
-              {/* Refill Cycle Override */}
-              <div style={{ marginBottom: '14px' }}>
-                <div style={s.fieldLabel}>Refill Due In</div>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {[
-                    { label: 'Auto', value: '' },
-                    { label: '1 week', value: '7' },
-                    { label: '2 weeks', value: '14' },
-                    { label: '4 weeks', value: '28' },
-                    { label: '6 weeks', value: '42' },
-                    { label: '8 weeks', value: '56' },
-                  ].map(opt => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setRefillOverride(opt.value)}
-                      style={{
-                        padding: '7px 14px', borderRadius: 0, fontSize: '13px', fontWeight: '500',
-                        cursor: 'pointer', fontFamily: 'inherit',
-                        border: refillOverride === opt.value ? '2px solid #111' : '1px solid #ddd',
-                        background: refillOverride === opt.value ? '#111' : '#fff',
-                        color: refillOverride === opt.value ? '#fff' : '#666',
-                      }}
-                    >
-                      {opt.label}{opt.value === '' && getIntervalForSupply(selectedSupplyType, dispensingProtocol) ? ` (${getIntervalForSupply(selectedSupplyType, dispensingProtocol)}d)` : ''}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Preview: Next Refill */}
-              {previewDate && (
-                <div style={s.previewBox}>
-                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Next refill will be set to:</div>
-                  <div style={{ fontSize: '18px', fontWeight: 700, color: '#111' }}>
-                    {formatDate(previewDate)}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#2563eb', marginTop: '2px' }}>
-                    {getActiveInterval()} days from {formatDate(dispenseDate)}
-                  </div>
-                </div>
-              )}
-
-              {/* Fulfillment Method */}
-              {dispensingProtocol && ['hrt', 'weight_loss', 'peptide'].includes((dispensingProtocol.program_type || '').toLowerCase()) && (
-                <div style={{ marginBottom: '14px', padding: '12px', background: '#f8f9fa', borderRadius: 0, border: '1px solid #e9ecef' }}>
-                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#555', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fulfillment</div>
-                  <div style={{ display: 'flex', gap: '8px', marginBottom: fulfillmentMethod === 'overnight' ? '10px' : '0' }}>
-                    <button
-                      type="button"
-                      onClick={() => setFulfillmentMethod('in_clinic')}
-                      style={{
-                        flex: 1, padding: '8px 12px', borderRadius: 0, fontSize: '13px', fontWeight: '500', cursor: 'pointer',
-                        border: fulfillmentMethod === 'in_clinic' ? '2px solid #2E75B6' : '1px solid #ddd',
-                        background: fulfillmentMethod === 'in_clinic' ? '#EBF3FB' : '#fff',
-                        color: fulfillmentMethod === 'in_clinic' ? '#2E75B6' : '#666',
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      Picked Up In Clinic
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFulfillmentMethod('overnight')}
-                      style={{
-                        flex: 1, padding: '8px 12px', borderRadius: 0, fontSize: '13px', fontWeight: '500', cursor: 'pointer',
-                        border: fulfillmentMethod === 'overnight' ? '2px solid #e67e22' : '1px solid #ddd',
-                        background: fulfillmentMethod === 'overnight' ? '#FFF5EB' : '#fff',
-                        color: fulfillmentMethod === 'overnight' ? '#e67e22' : '#666',
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      Overnighted
-                    </button>
-                  </div>
-                  {fulfillmentMethod === 'overnight' && (
-                    <input
-                      type="text"
-                      placeholder="Tracking number (optional)"
-                      value={trackingNumber}
-                      onChange={e => setTrackingNumber(e.target.value)}
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit' }}
-                    />
-                  )}
-                </div>
-              )}
-
-              {/* Result */}
-              {logResult && (
-                <div style={{
-                  padding: '10px 14px', borderRadius: 0, marginBottom: '12px', fontSize: '13px',
-                  background: logResult.success ? '#f0fdf4' : '#fef2f2',
-                  color: logResult.success ? '#16a34a' : '#dc2626',
-                  border: logResult.success ? '1px solid #bbf7d0' : '1px solid #fecaca',
-                }}>
-                  {logResult.message}
-                </div>
-              )}
-
-              {/* Dispense Button */}
-              <button
-                onClick={handleDispense}
-                disabled={logging || logResult?.success || !dispenseDate}
-                style={{
-                  width: '100%', padding: '14px', border: 'none', borderRadius: 0,
-                  background: logResult?.success ? '#e5e7eb' : '#000',
-                  color: logResult?.success ? '#9ca3af' : '#fff',
-                  fontSize: '15px', fontWeight: 600,
-                  cursor: logging || logResult?.success ? 'default' : 'pointer',
-                  fontFamily: 'inherit', marginTop: '4px',
-                }}
-              >
-                {logging ? 'Dispensing...' : logResult?.success ? '✓ Dispensed' : 'Dispense & Log Pickup'}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Medication Checkout Modal (unified dispense flow) */}
+      {showCheckoutModal && (
+        <MedicationCheckoutModal
+          isOpen={showCheckoutModal}
+          onClose={() => { setShowCheckoutModal(false); setCheckoutPatient(null); }}
+          preselectedPatient={checkoutPatient}
+          onCheckoutComplete={() => { setShowCheckoutModal(false); setCheckoutPatient(null); fetchMedications(); }}
+        />
       )}
     </AdminLayout>
   );

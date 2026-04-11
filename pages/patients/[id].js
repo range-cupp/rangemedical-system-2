@@ -59,124 +59,8 @@ const EncounterQuickView = dynamic(() => import('../../components/EncounterQuick
 const ServiceLogContent = dynamic(() => import('../../components/ServiceLogContent'), { ssr: false });
 const EmailComposeModal = dynamic(() => import('../../components/EmailComposeModal'), { ssr: false });
 const SMSComposeModal = dynamic(() => import('../../components/SMSComposeModal'), { ssr: false });
+const MedicationCheckoutModal = dynamic(() => import('../../components/MedicationCheckoutModal'), { ssr: false });
 import { PROTOCOL_TYPES, getHRTMedication, getHRTConcentration } from '../../lib/protocol-types';
-
-// ─── Dispense helpers (mirrored from medications.js) ─────────────────────────
-
-const SUPPLY_LABELS = {
-  prefilled_1week: '1-Week Prefilled',
-  prefilled_1: '1-Week Prefilled',
-  prefilled_2week: '2-Week Prefilled',
-  prefilled_4week: '4-Week Prefilled',
-  vial_5ml: '5ml Vial',
-  vial_10ml: '10ml Vial',
-  vial: 'Vial',
-  pellet: 'Pellets',
-  oral_30day: '30-Day Oral',
-  in_clinic: 'In-Clinic',
-};
-
-function formatIntervalLabel(days) {
-  if (!days) return '';
-  if (days === 7) return '7d (weekly)';
-  if (days === 14) return '14d (biweekly)';
-  if (days === 28) return '28d (4 weeks)';
-  if (days === 30) return '30d (monthly)';
-  if (days === 120) return '120d (4 months)';
-  const weeks = Math.round(days / 7);
-  if (weeks >= 4 && days % 7 === 0) return `${days}d (~${weeks} weeks)`;
-  return `${days}d`;
-}
-
-function getDispenseDoseOptions(med) {
-  const pt = (med.program_type || med.category || '').toLowerCase();
-  const programName = (med.program_name || med.medication || '').toLowerCase();
-  if (pt.includes('hrt')) {
-    const allFields = `${med.program_name || ''} ${med.medication || ''} ${med.program_type || ''} ${med.hrt_type || ''}`.toLowerCase();
-    const isFemale = allFields.includes('female') || allFields.includes('women');
-    const doses = isFemale ? TESTOSTERONE_DOSES.female : TESTOSTERONE_DOSES.male;
-    return doses.map(d => ({ value: d.value, label: d.label }));
-  }
-  if (pt.includes('weight_loss')) {
-    const medName = med.medication || '';
-    const doses = WEIGHT_LOSS_DOSAGES[medName];
-    if (doses) return doses.map(d => ({ value: d, label: d }));
-  }
-  if (pt === 'peptide') {
-    const doses = getDoseOptions('peptide', med.medication);
-    if (doses) return doses.map(d => ({ value: d, label: d }));
-  }
-  return null;
-}
-
-function getDispenseSupplyOptions(med) {
-  const pt = (med.program_type || med.category || '').toLowerCase();
-  if (pt.includes('hrt')) {
-    return [
-      { value: 'prefilled_1week', label: '1-Week Prefilled', days: 7 },
-      { value: 'prefilled_2week', label: '2-Week Prefilled', days: 14 },
-      { value: 'prefilled_4week', label: '4-Week Prefilled', days: 28 },
-      { value: 'vial_5ml', label: '5ml Vial', days: null },
-      { value: 'vial_10ml', label: '10ml Vial', days: null },
-    ];
-  }
-  if (pt.includes('weight_loss')) {
-    return [
-      { value: 'wl_1', label: '1 Injection (1 week)', days: 7 },
-      { value: 'wl_2', label: '2 Injections (2 weeks)', days: 14 },
-      { value: 'wl_3', label: '3 Injections (3 weeks)', days: 21 },
-      { value: 'wl_4', label: '4 Injections (4 weeks)', days: 28 },
-    ];
-  }
-  if (pt === 'peptide') {
-    const vialSupply = getPeptideVialSupply(med.medication || med.program_name || '');
-    if (vialSupply) return vialSupply.options;
-  }
-  return null;
-}
-
-function parseDoseMl(selectedDose) {
-  if (!selectedDose) return null;
-  const weeksMatch = selectedDose.match(/\((\d+)\s*weeks?\)/i);
-  if (weeksMatch) return { weeks: parseInt(weeksMatch[1]) };
-  if (/vial\s*\(\d+ml/i.test(selectedDose)) return null;
-  const atMlMatch = selectedDose.match(/@\s*(\d+\.?\d*)\s*ml/i);
-  if (atMlMatch) return { ml: parseFloat(atMlMatch[1]) };
-  const mlMatch = selectedDose.match(/(\d+\.?\d*)\s*ml/i);
-  if (mlMatch) {
-    const ml = parseFloat(mlMatch[1]);
-    if (ml < 2) return { ml };
-  }
-  return null;
-}
-
-function getIntervalForSupply(supplyValue, med) {
-  const pt = (med.program_type || med.category || '').toLowerCase();
-  const prefillDays = { prefilled_1week: 7, prefilled_1: 7, prefilled_2week: 14, prefilled_4week: 28 };
-  if (prefillDays[supplyValue]) return prefillDays[supplyValue];
-  if (supplyValue === 'wl_1' || supplyValue === 'weekly') return 7;
-  if (supplyValue === 'wl_2' || supplyValue === 'every_2_weeks') return 14;
-  if (supplyValue === 'wl_3') return 21;
-  if (supplyValue === 'wl_4' || supplyValue === 'monthly') return 28;
-  if (supplyValue && supplyValue.startsWith('peptide_')) {
-    const days = parseInt(supplyValue.replace('peptide_', '').replace('d', ''));
-    if (!isNaN(days)) return days;
-  }
-  if (supplyValue === 'vial_5ml' || supplyValue === 'vial_10ml') {
-    const vialMl = supplyValue === 'vial_5ml' ? 5 : 10;
-    const parsed = parseDoseMl(med.selected_dose || med.dosage);
-    if (parsed?.weeks) return parsed.weeks * 7;
-    if (parsed?.ml) {
-      const isSubQ = (med.injection_method || '').toLowerCase() === 'subq';
-      const injectionsPerWeek = isSubQ ? 7 : 2;
-      const mlPerWeek = parsed.ml * injectionsPerWeek;
-      const weeks = vialMl / mlPerWeek;
-      return Math.round(weeks * 7);
-    }
-    return supplyValue === 'vial_5ml' ? 42 : 84;
-  }
-  return med.refill_interval_days || 28;
-}
 
 // Parse **bold** markdown into React elements
 // Convert **bold** markdown → HTML for contentEditable display
@@ -541,23 +425,13 @@ export default function PatientProfile() {
   const [cycleInfo, setCycleInfo] = useState(null);
   const [ghCycleInfo, setGhCycleInfo] = useState(null);
 
-  // Dispense modal state
-  const [dispensingProtocol, setDispensingProtocol] = useState(null);
-  const [dispenseDate, setDispenseDate] = useState('');
-  const [selectedSupplyType, setSelectedSupplyType] = useState('');
-  const [dispenseDosage, setDispenseDosage] = useState('');
-  const [customDoseMode, setCustomDoseMode] = useState(false);
-  const [customDoseValue, setCustomDoseValue] = useState('');
+  // Checkout modal state (unified dispense flow via MedicationCheckoutModal)
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+
+  // Protocol edit modal — custom dose helpers
   const [editCustomDoseMode, setEditCustomDoseMode] = useState(false);
   const [editCustomDoseValue, setEditCustomDoseValue] = useState('');
-  const [fulfillmentMethod, setFulfillmentMethod] = useState('in_clinic');
-  const [trackingNumber, setTrackingNumber] = useState('');
-  const [dosingNotes, setDosingNotes] = useState('');
-  const [splitDoseMode, setSplitDoseMode] = useState(false);
-  const [splitDoses, setSplitDoses] = useState([]);
-  const [refillOverride, setRefillOverride] = useState('');
-  const [dispensing, setDispensing] = useState(false);
-  const [dispenseResult, setDispenseResult] = useState(null);
+
 
   // Refund modal state
   const [refundingCharge, setRefundingCharge] = useState(null);
@@ -2617,100 +2491,6 @@ export default function PatientProfile() {
     setSendingWlLink(null);
   };
 
-  // ─── Dispense from protocol card ───────────────────────────────────────────
-  const openDispenseModal = (protocol) => {
-    setDispensingProtocol(protocol);
-    setDispenseDate(new Date().toISOString().split('T')[0]);
-    const pt = (protocol.program_type || protocol.category || '').toLowerCase();
-    if (pt.includes('weight_loss')) {
-      setSelectedSupplyType('wl_1');
-    } else if (pt === 'peptide') {
-      const vialSupply = getPeptideVialSupply(protocol.medication || protocol.program_name || '');
-      setSelectedSupplyType(vialSupply ? vialSupply.options[0].value : '');
-    } else if (pt.includes('hrt')) {
-      const currentSupply = (protocol.supply_type || '').toLowerCase();
-      if (currentSupply.includes('vial')) {
-        setSelectedSupplyType(currentSupply.includes('5') ? 'vial_5ml' : 'vial_10ml');
-      } else if (currentSupply.startsWith('prefilled')) {
-        setSelectedSupplyType(currentSupply);
-      } else {
-        setSelectedSupplyType('prefilled_2week');
-      }
-    } else {
-      setSelectedSupplyType(protocol.supply_type || '');
-    }
-    setDispenseDosage(protocol.selected_dose || protocol.dosage || '');
-    setCustomDoseMode(false);
-    setCustomDoseValue('');
-    setFulfillmentMethod('in_clinic');
-    setTrackingNumber('');
-    setDosingNotes('');
-    setSplitDoseMode(false);
-    setSplitDoses([]);
-    setRefillOverride('');
-    setDispenseResult(null);
-  };
-
-  const handleDispense = async () => {
-    if (!dispensingProtocol || !dispenseDate) return;
-    setDispensing(true);
-    setDispenseResult(null);
-    try {
-      const currentInterval = refillOverride ? parseInt(refillOverride) : getIntervalForSupply(selectedSupplyType, dispensingProtocol);
-      const res = await fetch('/api/admin/dispense', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          protocol_id: dispensingProtocol.id,
-          patient_id: patient.id,
-          patient_name: patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim(),
-          dispense_date: dispenseDate,
-          refill_interval_days: currentInterval,
-          dosage_override: dispenseDosage !== (dispensingProtocol.selected_dose || dispensingProtocol.dosage) ? dispenseDosage : null,
-          quantity: selectedSupplyType.startsWith('wl_') ? parseInt(selectedSupplyType.split('_')[1]) : 1,
-          supply_type_override: selectedSupplyType !== dispensingProtocol.supply_type ? selectedSupplyType : null,
-          fulfillment_method: fulfillmentMethod,
-          tracking_number: fulfillmentMethod === 'overnight' ? trackingNumber : null,
-          dosing_notes: dosingNotes || null,
-        }),
-      });
-      if (res.status === 409) {
-        setDispenseResult({ success: false, message: 'Already dispensed for this date' });
-        return;
-      }
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to dispense');
-      setDispenseResult({
-        success: true,
-        message: `Dispensed — next refill ${formatShortDate(data.next_expected_date)} (+${data.interval_days}d)`,
-      });
-      setTimeout(() => {
-        fetchPatient();
-        setDispensingProtocol(null);
-        setDispenseResult(null);
-      }, 2000);
-    } catch (err) {
-      setDispenseResult({ success: false, message: err.message });
-    } finally {
-      setDispensing(false);
-    }
-  };
-
-  const getDispenseActiveInterval = () => {
-    if (!dispensingProtocol) return null;
-    if (refillOverride) return parseInt(refillOverride);
-    return getIntervalForSupply(selectedSupplyType, dispensingProtocol);
-  };
-
-  const dispensePreviewNextRefill = () => {
-    if (!dispensingProtocol || !dispenseDate) return null;
-    const interval = getDispenseActiveInterval();
-    if (!interval) return null;
-    const next = new Date(dispenseDate + 'T12:00:00');
-    next.setDate(next.getDate() + interval);
-    return next.toISOString().split('T')[0];
-  };
-
   const openEditModal = (protocol) => {
     setSelectedProtocol(protocol);
     setEditCustomDoseMode(false);
@@ -4251,7 +4031,7 @@ export default function PatientProfile() {
             <div className="toolbar-divider" />
             <div className="toolbar-group">
               <button onClick={() => setShowBookingModal(true)} className="toolbar-btn toolbar-btn-blue" title="Book appointment">📅 <span className="toolbar-label">Book</span></button>
-              <button onClick={() => router.push(`/admin/checkout?patient_id=${patient.id}&patient_name=${encodeURIComponent(patient.name || `${patient.first_name} ${patient.last_name}`)}`)} className="toolbar-btn toolbar-btn-green" title="Checkout / Dispense / Charge">💳 <span className="toolbar-label">Checkout</span></button>
+              <button onClick={() => setShowCheckoutModal(true)} className="toolbar-btn toolbar-btn-green" title="Checkout / Dispense / Charge">💳 <span className="toolbar-label">Checkout</span></button>
               <button onClick={() => setShowAddCreditModal(true)} className="toolbar-btn toolbar-btn-credit" title="Add account credit">🎁 <span className="toolbar-label">Credit</span></button>
               <button onClick={() => { setShowSendFormsModal(true); setSendFormsSelected(new Set()); setSendGuidesSelected(new Set()); setSendFormsResult(null); setSendFormsTab('guides'); setSendGuidesCategory('all'); }} className="toolbar-btn" title="Send guides">📖 <span className="toolbar-label">Guides</span></button>
             </div>
@@ -15397,8 +15177,18 @@ export default function PatientProfile() {
         session={session}
       />
 
-      {/* Dispense Modal */}
-      {dispensingProtocol && (
+      {/* Medication Checkout Modal (unified dispense flow) */}
+      {showCheckoutModal && (
+        <MedicationCheckoutModal
+          isOpen={showCheckoutModal}
+          onClose={() => setShowCheckoutModal(false)}
+          preselectedPatient={patient ? { id: patient.id, name: patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim(), email: patient.email, phone: patient.phone } : null}
+          onCheckoutComplete={() => { setShowCheckoutModal(false); fetchPatient(); }}
+        />
+      )}
+
+      {/* OLD Dispense Modal — REMOVED, replaced by MedicationCheckoutModal above */}
+      {false && (
         <div className="modal-overlay" {...overlayClickProps(() => { setDispensingProtocol(null); setDispenseResult(null); })}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
             <div className="modal-header">

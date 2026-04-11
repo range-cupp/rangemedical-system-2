@@ -19,6 +19,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { createProtocol, closeProtocol } from '../../../../lib/create-protocol';
+import { DOSE_APPROVAL_STAFF } from '../../../../lib/staff-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -57,6 +58,7 @@ export default async function handler(req, res) {
     injections_per_week,
     dose_per_injection,
     reason,
+    approved_by_email,  // email of approving provider (required for dose increases on HRT/WL)
   } = req.body || {};
 
   if (!selected_dose || !injections_per_week) {
@@ -82,6 +84,37 @@ export default async function handler(req, res) {
 
     if (loadErr || !current) {
       return res.status(404).json({ error: 'Protocol not found' });
+    }
+
+    // ── Dose increase approval check (HRT / weight loss) ──
+    // If this is a dose INCREASE, it must be approved by an authorized provider (Dr. Burgess)
+    const isHRT = (current.program_type || '').toLowerCase().includes('hrt');
+    const isWL = (current.program_type || '').toLowerCase().includes('weight_loss');
+    if (isHRT || isWL) {
+      const oldMl = parseMlFromDose(current.selected_dose);
+      const newMl = parseMlFromDose(selected_dose);
+      const oldIpw = current.injections_per_week || 2;
+
+      // Dose increase = higher ml per injection OR more injections per week
+      const isDoseIncrease =
+        (newMl && oldMl && newMl > oldMl) ||
+        (newIpw > oldIpw) ||
+        (newMl && oldMl && newMl === oldMl && newIpw > oldIpw);
+
+      if (isDoseIncrease) {
+        if (!approved_by_email) {
+          return res.status(400).json({
+            error: 'Dose increases on HRT/weight loss require provider approval. Please select the approving provider.',
+            requires_approval: true,
+          });
+        }
+        if (!DOSE_APPROVAL_STAFF.includes(approved_by_email.toLowerCase())) {
+          return res.status(403).json({
+            error: 'Only Dr. Damien Burgess can approve dose increases for HRT and weight loss protocols.',
+            requires_approval: true,
+          });
+        }
+      }
     }
 
     // 2. Compute remaining supply on the old protocol.

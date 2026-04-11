@@ -30,7 +30,7 @@ async function handleList(req, res) {
     try {
       const { data: employees, error } = await supabase
         .from('employees')
-        .select('id, name, title, is_active, calcom_user_id')
+        .select('id, email, name, title, is_active, calcom_user_id')
         .order('name');
 
       if (error) throw error;

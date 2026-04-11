@@ -563,27 +563,28 @@ function useUnreadTasks(employeeId, router) {
   return { taskCount, overdueCount, taskToast, dismissTaskToast };
 }
 
+// group: 'medical' = clinical sidebar, 'business' = operations sidebar, undefined = show in both
 const NAV_ITEMS = [
   { href: '/admin', label: 'Dashboard', icon: 'grid' },
-  { href: '/admin/sales-pipeline', label: 'Sales Pipeline', icon: 'trending-down' },
-  { href: '/admin/referrals', label: 'Referrals', icon: 'user-plus' },
+  { href: '/admin/sales-pipeline', label: 'Sales Pipeline', icon: 'trending-down', group: 'business' },
+  { href: '/admin/referrals', label: 'Referrals', icon: 'user-plus', group: 'business' },
   { href: '/admin/patients', label: 'Patients', icon: 'users' },
-  { href: '/admin/schedule', label: 'Schedule', icon: 'calendar' },
-  { href: '/admin/checkout', label: 'Checkout', icon: 'shopping-bag' },
-  { href: '/admin/quotes', label: 'Quotes', icon: 'file-text' },
-  { href: '/admin/payments', label: 'Payments', icon: 'credit-card' },
+  { href: '/admin/schedule', label: 'Schedule', icon: 'calendar', group: 'medical' },
+  { href: '/admin/checkout', label: 'Checkout', icon: 'shopping-bag', group: 'business' },
+  { href: '/admin/quotes', label: 'Quotes', icon: 'file-text', group: 'business' },
+  { href: '/admin/payments', label: 'Payments', icon: 'credit-card', group: 'business' },
   { href: '/admin/communications', label: 'Communications', icon: 'message' },
-  { href: '/admin/email-campaigns', label: 'Email Campaigns', icon: 'mail', adminOnly: true },
-  { href: '/admin/google-reviews', label: 'Google Reviews', icon: 'star', adminOnly: true },
-  { href: '/admin/tasks', label: 'Tasks', icon: 'check-square' },
-  { href: '/staff-chat', label: 'Assistant', icon: 'message' },
-  { href: '/admin/send-forms', label: 'Send Forms', icon: 'file-text' },
-  { href: '/admin/peptide-guide', label: 'Peptide Guide', icon: 'flask' },
-  { href: '/admin/snippets', label: 'Snippets', icon: 'file-text' },
-  { href: '/admin/provider-schedule', label: 'Staff Hours', icon: 'clock' },
-  { href: '/admin/employees', label: 'Employees', icon: 'user-check', permission: 'can_manage_employees' },
-  { href: '/admin/employee-activity', label: 'Employee Activity', icon: 'activity', permission: 'can_manage_employees' },
-  { href: '/admin/data-health', label: 'Data Health', icon: 'activity', adminOnly: true },
+  { href: '/admin/email-campaigns', label: 'Email Campaigns', icon: 'mail', adminOnly: true, group: 'business' },
+  { href: '/admin/google-reviews', label: 'Google Reviews', icon: 'star', adminOnly: true, group: 'business' },
+  { href: '/admin/tasks', label: 'Tasks', icon: 'check-square', group: 'business' },
+  { href: '/staff-chat', label: 'Assistant', icon: 'message', group: 'business' },
+  { href: '/admin/send-forms', label: 'Send Forms', icon: 'file-text', group: 'medical' },
+  { href: '/admin/peptide-guide', label: 'Peptide Guide', icon: 'flask', group: 'business' },
+  { href: '/admin/snippets', label: 'Snippets', icon: 'file-text', group: 'business' },
+  { href: '/admin/provider-schedule', label: 'Staff Hours', icon: 'clock', group: 'business' },
+  { href: '/admin/employees', label: 'Employees', icon: 'user-check', permission: 'can_manage_employees', group: 'business' },
+  { href: '/admin/employee-activity', label: 'Employee Activity', icon: 'activity', permission: 'can_manage_employees', group: 'business' },
+  { href: '/admin/data-health', label: 'Data Health', icon: 'activity', adminOnly: true, group: 'business' },
   { href: '/admin/settings', label: 'Settings', icon: 'settings' }
 ];
 
@@ -735,13 +736,14 @@ const MOBILE_TABS = [
   { href: '#more', label: 'More', icon: 'menu' },
 ];
 
-export default function AdminLayout({ children, title = 'Admin', actions, hideHeader = false }) {
+export default function AdminLayout({ children, title = 'Admin', actions, hideHeader = false, viewMode = null }) {
   const router = useRouter();
   const currentPath = router.pathname;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [editNav, setEditNav] = useState(false);
   const [hiddenNav, setHiddenNav] = useState([]);
+  const [globalViewMode, setGlobalViewMode] = useState('both'); // 'medical' | 'business' | 'both'
   const { unreadCount, toast, dismissToast } = useUnreadNotifications(router);
   useNewPatientNotifications(router);
   const { purchaseCount, purchaseToast, dismissPurchaseToast } = useNewPurchaseNotifications(router);
@@ -765,6 +767,23 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
     } catch {}
   }, [hiddenStorageKey]);
 
+  // Global view mode — persisted per user in localStorage
+  const viewModeStorageKey = employee?.id ? `sidebar_viewmode_${employee.id}` : null;
+  useEffect(() => {
+    if (!viewModeStorageKey) return;
+    try {
+      const saved = localStorage.getItem(viewModeStorageKey);
+      if (saved && ['medical', 'business', 'both'].includes(saved)) setGlobalViewMode(saved);
+    } catch {}
+  }, [viewModeStorageKey]);
+
+  const setAndPersistViewMode = (mode) => {
+    setGlobalViewMode(mode);
+    if (viewModeStorageKey) {
+      try { localStorage.setItem(viewModeStorageKey, mode); } catch {}
+    }
+  };
+
   // Show nothing while checking auth
   if (authLoading || !isAuthenticated) {
     return (
@@ -781,6 +800,12 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
     return hasPermission(item.permission);
   });
 
+  // Filter by viewMode: page-level viewMode (patient profile) takes priority, else use global
+  const effectiveViewMode = viewMode || (globalViewMode !== 'both' ? globalViewMode : null);
+  const contextFilteredItems = effectiveViewMode
+    ? permittedNavItems.filter(item => !item.group || item.group === effectiveViewMode)
+    : permittedNavItems;
+
   const persistHidden = (next) => {
     setHiddenNav(next);
     if (hiddenStorageKey) {
@@ -791,8 +816,8 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
   const unhideItem = (href) => persistHidden(hiddenNav.filter(h => h !== href));
 
   const visibleNavItems = editNav
-    ? permittedNavItems
-    : permittedNavItems.filter(item => !hiddenNav.includes(item.href));
+    ? contextFilteredItems
+    : contextFilteredItems.filter(item => !hiddenNav.includes(item.href));
   const hiddenNavList = permittedNavItems.filter(item => hiddenNav.includes(item.href));
 
   return (
@@ -907,6 +932,40 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
           </nav>
 
           <div style={styles.sidebarFooter}>
+            {/* Global View Mode Toggle */}
+            <div style={{
+              display: 'flex',
+              gap: 0,
+              marginBottom: '8px',
+              borderRadius: '6px',
+              overflow: 'hidden',
+              border: '1px solid rgba(255,255,255,0.2)',
+            }}>
+              {[
+                { key: 'medical', label: '🏥', title: 'Medical' },
+                { key: 'both', label: 'All', title: 'All' },
+                { key: 'business', label: '💼', title: 'Business' },
+              ].map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => setAndPersistViewMode(opt.key)}
+                  title={opt.title}
+                  style={{
+                    flex: 1,
+                    padding: '5px 0',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: globalViewMode === opt.key ? 'rgba(255,255,255,0.25)' : 'transparent',
+                    color: globalViewMode === opt.key ? '#fff' : 'rgba(255,255,255,0.5)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
             <button
               onClick={() => setEditNav(v => !v)}
               style={{

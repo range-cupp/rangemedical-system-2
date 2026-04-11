@@ -8,6 +8,7 @@ import { X, Search, ChevronRight, Check, Package, Syringe, Clock, User, AlertTri
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import { supabase } from '../lib/supabase';
+import { CONTROLLED_DISPENSE_STAFF } from '../lib/staff-config';
 import {
   TESTOSTERONE_DOSES,
   WEIGHT_LOSS_MEDICATIONS,
@@ -297,6 +298,18 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   }
 
   function addToCart() {
+    // Controlled substance validation — testosterone requires dual verification
+    if (selectedCategory?.id === 'testosterone') {
+      if (!administeredBy || !verifiedBy) {
+        setError('Controlled substance: Both "Dispensed By" and "Verified By" are required for testosterone.');
+        return;
+      }
+      if (administeredBy === verifiedBy) {
+        setError('Dispensing and verifying staff must be different people.');
+        return;
+      }
+    }
+
     const item = {
       id: editingItemId || Date.now(), // keep same id when editing
       category: selectedCategory,
@@ -1540,14 +1553,30 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
               )}
 
               {/* Staff / dispensing details */}
-              {['testosterone', 'weight_loss'].includes(selectedCategory?.id) ? (
+              {['testosterone', 'weight_loss'].includes(selectedCategory?.id) ? (() => {
+                const isControlled = selectedCategory?.id === 'testosterone';
+                // For testosterone (controlled substance), only authorized medical staff can dispense/verify
+                const authorizedStaff = isControlled
+                  ? employees.filter(emp => emp.email && CONTROLLED_DISPENSE_STAFF.includes(emp.email.toLowerCase()))
+                  : employees;
+                const verifierStaff = authorizedStaff.filter(emp => {
+                  const name = emp.name || `${emp.first_name} ${emp.last_name}`;
+                  return name !== administeredBy;
+                });
+                return (
                 <>
+                  {isControlled && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 6, marginBottom: 8 }}>
+                      <AlertTriangle size={16} style={{ color: '#d97706', flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, color: '#92400e', fontWeight: 500 }}>Controlled substance — dual verification required by authorized medical staff</span>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: '12px' }}>
                     <div style={{ ...styles.fieldGroup, flex: 1 }}>
-                      <label style={styles.label}>Dispensed By</label>
-                      <select value={administeredBy} onChange={e => setAdministeredBy(e.target.value)} style={styles.select}>
-                        <option value="">Select staff...</option>
-                        {employees.map(emp => (
+                      <label style={styles.label}>Dispensed By {isControlled && <span style={{ color: '#dc2626' }}>*</span>}</label>
+                      <select value={administeredBy} onChange={e => setAdministeredBy(e.target.value)} style={{ ...styles.select, ...(isControlled && !administeredBy ? { borderColor: '#f59e0b' } : {}) }}>
+                        <option value="">{isControlled ? 'Select authorized staff...' : 'Select staff...'}</option>
+                        {authorizedStaff.map(emp => (
                           <option key={emp.id || emp.name} value={emp.name || `${emp.first_name} ${emp.last_name}`}>
                             {emp.name || `${emp.first_name} ${emp.last_name}`}
                           </option>
@@ -1555,13 +1584,10 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                       </select>
                     </div>
                     <div style={{ ...styles.fieldGroup, flex: 1 }}>
-                      <label style={styles.label}>Verified By (2nd eyes)</label>
-                      <select value={verifiedBy} onChange={e => setVerifiedBy(e.target.value)} style={styles.select}>
-                        <option value="">Select staff...</option>
-                        {employees.filter(emp => {
-                          const name = emp.name || `${emp.first_name} ${emp.last_name}`;
-                          return name !== administeredBy;
-                        }).map(emp => (
+                      <label style={styles.label}>Verified By (2nd eyes) {isControlled && <span style={{ color: '#dc2626' }}>*</span>}</label>
+                      <select value={verifiedBy} onChange={e => setVerifiedBy(e.target.value)} style={{ ...styles.select, ...(isControlled && !verifiedBy ? { borderColor: '#f59e0b' } : {}) }}>
+                        <option value="">{isControlled ? 'Select 2nd authorized staff...' : 'Select staff...'}</option>
+                        {verifierStaff.map(emp => (
                           <option key={emp.id || emp.name} value={emp.name || `${emp.first_name} ${emp.last_name}`}>
                             {emp.name || `${emp.first_name} ${emp.last_name}`}
                           </option>
@@ -1570,7 +1596,8 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                     </div>
                   </div>
                 </>
-              ) : (
+                );
+              })() : (
                 <div style={styles.fieldGroup}>
                   <label style={styles.label}>Checked Out By</label>
                   <select value={administeredBy} onChange={e => setAdministeredBy(e.target.value)} style={styles.select}>

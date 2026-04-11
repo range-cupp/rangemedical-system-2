@@ -94,7 +94,7 @@ async function handleGet(req, res, employee) {
 }
 
 async function handlePost(req, res, employee) {
-  const { title, description, assigned_to, patient_id, patient_name, priority, due_date } = req.body;
+  const { title, description, assigned_to, patient_id, patient_name, priority, due_date, task_category } = req.body;
 
   // Support both single ID (string) and multiple IDs (array)
   const assignees = Array.isArray(assigned_to) ? assigned_to : [assigned_to];
@@ -112,6 +112,7 @@ async function handlePost(req, res, employee) {
     patient_name: patient_name || null,
     priority: priority || 'medium',
     due_date: due_date || null,
+    task_category: task_category || 'business',
     status: 'pending',
   }));
 

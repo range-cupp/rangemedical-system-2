@@ -47,7 +47,7 @@ import { VIAL_CATALOG } from '../../lib/vial-catalog';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import CycleProgressCard from '../../components/CycleProgressCard';
-import { STAFF_DISPLAY_NAMES as _STAFF_NAMES, getStaffDisplayName, AUTHOR_ALIASES as _AUTHOR_ALIASES, isNoteAuthor as _isNoteAuthor, isAdmin as _isStaffAdmin, ADMIN_EMAILS, NOTE_AUTHORS } from '../../lib/staff-config';
+import { STAFF_DISPLAY_NAMES as _STAFF_NAMES, getStaffDisplayName, AUTHOR_ALIASES as _AUTHOR_ALIASES, isNoteAuthor as _isNoteAuthor, isAdmin as _isStaffAdmin, ADMIN_EMAILS, NOTE_AUTHORS, DOSE_APPROVAL_STAFF, canApproveDoseChange } from '../../lib/staff-config';
 
 // Lazy-load heavy components that aren't needed on initial render
 const CalendarView = dynamic(() => import('../../components/CalendarView'), { ssr: false });
@@ -490,7 +490,7 @@ export default function PatientProfile() {
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [creatingTask, setCreatingTask] = useState(false);
   const [taskEmployees, setTaskEmployees] = useState([]);
-  const [taskForm, setTaskForm] = useState({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '' });
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '', task_category: 'business' });
   const [taskListening, setTaskListening] = useState(false);
   const [taskDictationTarget, setTaskDictationTarget] = useState('title');
   const [taskFormatting, setTaskFormatting] = useState(false);
@@ -571,6 +571,7 @@ export default function PatientProfile() {
   const [timelineFilter, setTimelineFilter] = useState('all');
 
   // UI state
+  const [viewMode, setViewMode] = useState('medical'); // 'medical' | 'business'
   const [activeTab, setActiveTab] = useState('chart');
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [aptNoteEditing, setAptNoteEditing] = useState(null); // appointment id being edited
@@ -590,6 +591,12 @@ export default function PatientProfile() {
   const [sendGuidesSelected, setSendGuidesSelected] = useState(new Set());
   const [sendGuidesCategory, setSendGuidesCategory] = useState('all');
   const [sendGuidesSearch, setSendGuidesSearch] = useState('');
+  // Medication add/edit modal (admin only)
+  const [showMedEditModal, setShowMedEditModal] = useState(false);
+  const [medEditMode, setMedEditMode] = useState('add'); // 'add' | 'edit'
+  const [medEditForm, setMedEditForm] = useState({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: '' });
+  const [medEditSaving, setMedEditSaving] = useState(false);
+
   const [pinnedNoteExpanded, setPinnedNoteExpanded] = useState(false);
   const [pinnedNoteOverflows, setPinnedNoteOverflows] = useState(false);
   const pinnedNoteRef = useRef(null);
@@ -669,7 +676,7 @@ export default function PatientProfile() {
   // HRT Dose Change modal state
   const [showDoseChangeModal, setShowDoseChangeModal] = useState(false);
   const [doseChangeProtocol, setDoseChangeProtocol] = useState(null);
-  const [doseChangeForm, setDoseChangeForm] = useState({ date: '', dose: '', injectionsPerWeek: 2, notes: '' });
+  const [doseChangeForm, setDoseChangeForm] = useState({ date: '', dose: '', injectionsPerWeek: 2, notes: '', approvedByEmail: '' });
   const [doseChangeSaving, setDoseChangeSaving] = useState(false);
 
   // Add Credit modal state
@@ -1498,8 +1505,26 @@ export default function PatientProfile() {
     setShowDoseChangeModal(true);
   };
 
+  // Detect dose increase for approval requirement
+  const isDoseIncrease = (() => {
+    if (!doseChangeProtocol || !doseChangeForm.dose) return false;
+    const parseMl = (s) => { const m = (s || '').match(/(\d+\.?\d*)\s*ml/i); return m ? parseFloat(m[1]) : null; };
+    const oldMl = parseMl(doseChangeProtocol.selected_dose);
+    const newMl = parseMl(doseChangeForm.dose);
+    const oldIpw = doseChangeProtocol.injections_per_week || 2;
+    const newIpw = parseInt(doseChangeForm.injectionsPerWeek) || 2;
+    return (newMl && oldMl && newMl > oldMl) || (newIpw > oldIpw);
+  })();
+
   const handleSaveDoseChange = async () => {
     if (!doseChangeForm.date || !doseChangeForm.dose) return;
+
+    // If dose increase, require approval
+    if (isDoseIncrease && !doseChangeForm.approvedByEmail) {
+      alert('Dose increases require provider approval from Dr. Damien Burgess.');
+      return;
+    }
+
     setDoseChangeSaving(true);
     try {
       // Provider dose change: closes the current protocol as `historic` and
@@ -1513,11 +1538,20 @@ export default function PatientProfile() {
           selected_dose: doseChangeForm.dose,
           injections_per_week: parseInt(doseChangeForm.injectionsPerWeek) || 2,
           reason: doseChangeForm.notes || '',
+          approved_by_email: isDoseIncrease ? doseChangeForm.approvedByEmail : undefined,
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed');
+      if (!res.ok) {
+        if (data.requires_approval) {
+          alert(data.error);
+          setDoseChangeSaving(false);
+          return;
+        }
+        throw new Error(data.error || 'Failed');
+      }
       setShowDoseChangeModal(false);
+      setDoseChangeForm({ date: '', dose: '', injectionsPerWeek: 2, notes: '', approvedByEmail: '' });
       fetchPatient();
     } catch (err) {
       alert('Failed to save dose change: ' + (err.message || ''));
@@ -1735,12 +1769,13 @@ export default function PatientProfile() {
           patient_name: patient ? `${patient.first_name} ${patient.last_name}` : null,
           priority: taskForm.priority,
           due_date: taskForm.due_date || null,
+          task_category: taskForm.task_category || 'business',
         }),
       });
       const data = await res.json();
       if (data.success) {
         setShowCreateTask(false);
-        setTaskForm({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '' });
+        setTaskForm({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '', task_category: 'business' });
         fetchPatient();
       }
     } catch {}
@@ -4034,7 +4069,7 @@ export default function PatientProfile() {
   };
 
   return (
-    <AdminLayout title="Patient Profile" hideHeader>
+    <AdminLayout title="Patient Profile" hideHeader viewMode={viewMode}>
       <Head>
         <title>{getPatientDisplayName()} | Range Medical</title>
       </Head>
@@ -4117,7 +4152,7 @@ export default function PatientProfile() {
                       backgroundColor: '#dbeafe',
                       color: '#1e40af',
                       cursor: 'pointer',
-                    }} onClick={() => { setActiveTab('billing'); setPaymentsSubTab('cards'); }}>
+                    }} onClick={() => { setViewMode('business'); setActiveTab('billing'); setPaymentsSubTab('cards'); }}>
                       💳 {savedCards[0].brand.toUpperCase()} ····{savedCards[0].last4}
                     </span>
                   )}
@@ -4143,19 +4178,17 @@ export default function PatientProfile() {
               </div>
             </div>
           </div>
-          {/* Action Toolbar */}
+          {/* Action Toolbar — Medical */}
+          {viewMode === 'medical' && (
           <div className="header-toolbar">
             <div className="toolbar-group">
               {patient.phone && <button onClick={() => setSmsModalOpen(true)} className="toolbar-btn" title="Send text message">💬 <span className="toolbar-label">SMS</span></button>}
               {patient.phone && <a href={`tel:${patient.phone}`} className="toolbar-btn" title="Call patient">📞 <span className="toolbar-label">Call</span></a>}
               {patient.email && <button onClick={() => setEmailModalOpen(true)} className="toolbar-btn" title="Send email">✉️ <span className="toolbar-label">Email</span></button>}
-              <button onClick={() => { setShowSendFormsModal(true); setSendFormsSelected(new Set()); setSendGuidesSelected(new Set()); setSendFormsResult(null); setSendFormsTab('forms'); setSendGuidesCategory('all'); }} className="toolbar-btn" title="Send forms">📋 <span className="toolbar-label">Forms</span></button>
             </div>
             <div className="toolbar-divider" />
             <div className="toolbar-group">
-<button onClick={() => setShowBookingModal(true)} className="toolbar-btn toolbar-btn-blue" title="Book appointment">📅 <span className="toolbar-label">Book</span></button>
-              <button onClick={() => router.push(`/admin/checkout?patient_id=${patient.id}&patient_name=${encodeURIComponent(patient.name || `${patient.first_name} ${patient.last_name}`)}`)} className="toolbar-btn toolbar-btn-green" title="Checkout / Dispense / Charge">💳 <span className="toolbar-label">Checkout</span></button>
-              <button onClick={() => setShowAddCreditModal(true)} className="toolbar-btn toolbar-btn-credit" title="Add account credit">🎁 <span className="toolbar-label">Credit</span></button>
+              <button onClick={() => { setShowSendFormsModal(true); setSendFormsSelected(new Set()); setSendGuidesSelected(new Set()); setSendFormsResult(null); setSendFormsTab('forms'); setSendGuidesCategory('all'); }} className="toolbar-btn" title="Send forms">📋 <span className="toolbar-label">Forms</span></button>
               <button
                 onClick={async () => {
                   setGeneratingChart(true);
@@ -4199,6 +4232,36 @@ export default function PatientProfile() {
                 <>
                   <div className="toolbar-dropdown-overlay" onClick={() => setShowMoreMenu(false)} />
                   <div className="toolbar-dropdown">
+                    <button className="toolbar-dropdown-item toolbar-dropdown-danger" onClick={() => { setShowMoreMenu(false); handleDeletePatient(); }}>🗑️ Delete Patient</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          )}
+
+          {/* Action Toolbar — Business */}
+          {viewMode === 'business' && (
+          <div className="header-toolbar">
+            <div className="toolbar-group">
+              {patient.phone && <button onClick={() => setSmsModalOpen(true)} className="toolbar-btn" title="Send text message">💬 <span className="toolbar-label">SMS</span></button>}
+              {patient.phone && <a href={`tel:${patient.phone}`} className="toolbar-btn" title="Call patient">📞 <span className="toolbar-label">Call</span></a>}
+              {patient.email && <button onClick={() => setEmailModalOpen(true)} className="toolbar-btn" title="Send email">✉️ <span className="toolbar-label">Email</span></button>}
+            </div>
+            <div className="toolbar-divider" />
+            <div className="toolbar-group">
+              <button onClick={() => setShowBookingModal(true)} className="toolbar-btn toolbar-btn-blue" title="Book appointment">📅 <span className="toolbar-label">Book</span></button>
+              <button onClick={() => router.push(`/admin/checkout?patient_id=${patient.id}&patient_name=${encodeURIComponent(patient.name || `${patient.first_name} ${patient.last_name}`)}`)} className="toolbar-btn toolbar-btn-green" title="Checkout / Dispense / Charge">💳 <span className="toolbar-label">Checkout</span></button>
+              <button onClick={() => setShowAddCreditModal(true)} className="toolbar-btn toolbar-btn-credit" title="Add account credit">🎁 <span className="toolbar-label">Credit</span></button>
+              <button onClick={() => { setShowSendFormsModal(true); setSendFormsSelected(new Set()); setSendGuidesSelected(new Set()); setSendFormsResult(null); setSendFormsTab('guides'); setSendGuidesCategory('all'); }} className="toolbar-btn" title="Send guides">📖 <span className="toolbar-label">Guides</span></button>
+            </div>
+            <div className="toolbar-divider" />
+            <div className="toolbar-group" style={{ position: 'relative' }}>
+              <button onClick={() => setShowMoreMenu(!showMoreMenu)} className="toolbar-btn toolbar-btn-more" title="More actions">⋯</button>
+              {showMoreMenu && (
+                <>
+                  <div className="toolbar-dropdown-overlay" onClick={() => setShowMoreMenu(false)} />
+                  <div className="toolbar-dropdown">
                     {ghlLink && <a href={ghlLink} target="_blank" rel="noopener noreferrer" className="toolbar-dropdown-item" onClick={() => setShowMoreMenu(false)}>🔗 Open in GoHighLevel</a>}
                     <button className="toolbar-dropdown-item toolbar-dropdown-danger" onClick={() => { setShowMoreMenu(false); handleDeletePatient(); }}>🗑️ Delete Patient</button>
                   </div>
@@ -4206,6 +4269,7 @@ export default function PatientProfile() {
               )}
             </div>
           </div>
+          )}
 
           {/* Demographics Toggle */}
           <div className="demographics-toggle-row">
@@ -4497,8 +4561,24 @@ export default function PatientProfile() {
           )}
         </header>
 
-        {/* Last Medication Activity Banner — pickups + in-clinic injections per active protocol */}
-        {!loading && (() => {
+        {/* Top-Level View Mode Toggle: Medical / Business */}
+        <div className="view-mode-toggle">
+          <button
+            className={`view-mode-btn${viewMode === 'medical' ? ' active' : ''}`}
+            onClick={() => { setViewMode('medical'); setActiveTab('chart'); }}
+          >
+            <span className="view-mode-icon">🏥</span> Medical
+          </button>
+          <button
+            className={`view-mode-btn${viewMode === 'business' ? ' active' : ''}`}
+            onClick={() => { setViewMode('business'); setActiveTab('billing'); }}
+          >
+            <span className="view-mode-icon">💼</span> Business
+          </button>
+        </div>
+
+        {/* Medical-only: Synopsis sections (medication activity, pinned notes, lab alerts) */}
+        {viewMode === 'medical' && !loading && (() => {
           const rows = [];
           (activeProtocols || []).forEach(proto => {
             const protoLogs = (serviceLogs || [])
@@ -4644,8 +4724,8 @@ export default function PatientProfile() {
           );
         })()}
 
-        {/* Pinned Note */}
-        {pinnedNote && (
+        {/* Pinned Note — Medical only */}
+        {viewMode === 'medical' && pinnedNote && (
           <section style={{
             background: '#fffbeb',
             border: '1px solid #fde68a',
@@ -4707,8 +4787,8 @@ export default function PatientProfile() {
           </section>
         )}
 
-        {/* Patient Synopsis Card */}
-        {!loading && patient && (
+        {/* Patient Synopsis Card — Medical only */}
+        {viewMode === 'medical' && !loading && patient && (
           <section className="synopsis-card">
             {/* Blood Draw / HRT Status */}
             {(() => {
@@ -4774,16 +4854,39 @@ export default function PatientProfile() {
           </section>
         )}
 
+        {/* Quick-links — Medical mode only */}
+        {viewMode === 'medical' && (
+          <div className="view-quick-links">
+            <button
+              className="view-comms-link"
+              onClick={() => { setViewMode('business'); setActiveTab('messages'); }}
+            >
+              💬 View Communications{(() => { const c = commsLog.filter(c => c.direction === 'inbound' && c.status !== 'read').length; return c > 0 ? ` (${c} unread)` : ''; })()}
+            </button>
+            <button
+              className="view-comms-link"
+              onClick={() => { setViewMode('business'); setActiveTab('notes'); }}
+            >
+              📝 View Staff Notes{notes.length > 0 ? ` (${notes.length})` : ''}
+            </button>
+          </div>
+        )}
+
         {/* Tab Navigation */}
         <nav className="px-tabs">
-          {[
-            { key: 'chart', label: 'Chart', icon: '📋', count: stats.activeCount || 0 },
-            { key: 'notes', label: 'Notes', icon: '📝', count: notes.length || 0 },
+          {(viewMode === 'medical' ? [
+            { key: 'chart', label: 'Profile', icon: '📋' },
+            { key: 'encounters', label: 'Encounters', icon: '🗓️' },
+            { key: 'medications', label: 'Medications', icon: '💊', count: stats.activeCount || 0 },
             { key: 'labs', label: 'Labs', icon: '🔬' },
-            { key: 'messages', label: 'Messages', icon: '💬', count: commsLog.filter(c => c.direction === 'inbound' && c.status !== 'read').length || 0 },
+            { key: 'records', label: 'Documents', icon: '📄', count: (intakes.length + consents.length + medicalDocuments.length) || 0 },
+            { key: 'tasks', label: 'Tasks', icon: '✅', count: patientTasks.filter(t => (t.task_category || 'business') === 'medical' && t.status === 'pending').length || 0 },
+          ] : [
             { key: 'billing', label: 'Billing', icon: '💳' },
-            { key: 'records', label: 'Records', icon: '📄', count: (intakes.length + consents.length + medicalDocuments.length + patientTasks.filter(t => t.status === 'pending').length) || 0 },
-          ].map(tab => (
+            { key: 'messages', label: 'Messages', icon: '💬', count: commsLog.filter(c => c.direction === 'inbound' && c.status !== 'read').length || 0 },
+            { key: 'notes', label: 'Staff Notes', icon: '📝', count: notes.length || 0 },
+            { key: 'tasks', label: 'Tasks', icon: '✅', count: patientTasks.filter(t => (t.task_category || 'business') === 'business' && t.status === 'pending').length || 0 },
+          ]).map(tab => (
             <button
               key={tab.key}
               className={activeTab === tab.key ? 'active' : ''}
@@ -5014,62 +5117,6 @@ export default function PatientProfile() {
 
               {/* Energy & Recovery Balance */}
               <EnergyPackBalance patientId={patient?.id} />
-
-              {/* Recent Messages Preview */}
-              <section className="card" style={{ marginBottom: '16px' }}>
-                <div className="card-header">
-                  <h3>Recent Messages</h3>
-                  <button onClick={() => setActiveTab('messages')} className="btn-text">View All →</button>
-                </div>
-                {commsLog.length === 0 ? (
-                  <div className="empty" style={{ padding: '20px 16px', textAlign: 'center' }}>No messages yet</div>
-                ) : (
-                  <div style={{ padding: '0 16px 12px' }}>
-                    {commsLog.slice(0, 5).map(msg => (
-                      <div
-                        key={msg.id}
-                        onClick={() => setActiveTab('messages')}
-                        style={{
-                          display: 'flex', alignItems: 'flex-start', gap: '10px',
-                          padding: '10px 12px', marginBottom: '6px',
-                          background: msg.direction === 'inbound' ? '#f0f9ff' : '#f8fafc',
-                          borderRadius: 0, border: '1px solid #e2e8f0',
-                          cursor: 'pointer', transition: 'background 0.15s',
-                        }}
-                        onMouseOver={e => e.currentTarget.style.background = '#eef2ff'}
-                        onMouseOut={e => e.currentTarget.style.background = msg.direction === 'inbound' ? '#f0f9ff' : '#f8fafc'}
-                      >
-                        <span style={{ fontSize: '16px', marginTop: '2px', flexShrink: 0 }}>
-                          {msg.channel === 'sms' ? '💬' : msg.channel === 'email' ? '📧' : msg.channel === 'call' ? '📞' : '💬'}
-                        </span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                            <span style={{
-                              fontSize: '12px', fontWeight: 600,
-                              color: msg.direction === 'inbound' ? '#0369a1' : '#64748b',
-                            }}>
-                              {msg.direction === 'inbound' ? 'Patient' : 'Range Medical'}
-                              {msg.channel === 'email' && msg.subject ? ` — ${msg.subject}` : ''}
-                            </span>
-                            <span style={{ fontSize: '11px', color: '#94a3b8', flexShrink: 0 }}>
-                              {new Date(msg.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}
-                              {' '}
-                              {new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' , timeZone: 'America/Los_Angeles' })}
-                            </span>
-                          </div>
-                          <div style={{
-                            fontSize: '13px', color: '#374151', lineHeight: '1.4',
-                            overflow: 'hidden', textOverflow: 'ellipsis',
-                            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                          }}>
-                            {(msg.message || msg.subject || '(no content)').replace(/<[^>]*>/g, '').substring(0, 200)}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
 
               {/* Vitals Flowsheet + Weight Chart (Practice Fusion style) */}
               {(() => {
@@ -5502,57 +5549,91 @@ export default function PatientProfile() {
                 );
               })()}
 
-              {/* Recent Documents (Intakes + Consents) */}
-              {(intakes.length > 0 || consents.length > 0) && (
-                <section className="card">
-                  <div className="card-header">
-                    <h3>Recent Documents</h3>
-                    <button onClick={() => setActiveTab('records')} className="btn-text">View All →</button>
-                  </div>
-                  <div className="intake-list">
-                    {consents.slice(0, 2).map(consent => (
-                      <div key={consent.id} className="intake-row">
-                        <span className="intake-icon">
-                          {consent.consent_type === 'hipaa' ? '🔒' :
-                           consent.consent_type === 'hrt' ? '💉' :
-                           consent.consent_type === 'peptide' ? '🧬' : '📝'}
-                        </span>
-                        <div className="intake-info">
-                          <strong>{consent.consent_type ? consent.consent_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).replace(/Hipaa/g, 'HIPAA') : 'Consent'}</strong>
-                          <span>{formatDate(consent.submitted_at)} {consent.consent_given ? '• Signed' : '• Pending'}</span>
-                        </div>
-                        {consent.pdf_url && <button className="btn-text" onClick={e => { e.stopPropagation(); openPdfViewer(consent.pdf_url, `${consent.consent_type || 'Consent'} Form`); }}>View</button>}
-                      </div>
-                    ))}
-                    {intakes.slice(0, 2).map(intake => (
-                      <div key={intake.id} className="intake-row" onClick={() => { setSelectedIntake(intake); setShowIntakeModal(true); }}>
-                        <span className="intake-icon">📋</span>
-                        <div className="intake-info">
-                          <strong>Medical Intake</strong>
-                          <span>{formatDate(intake.submitted_at)}</span>
-                        </div>
-                        <span className="intake-arrow">→</span>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
+              {/* Recent Documents removed — use Documents tab */}
             </>
           )}
 
-          {/* Medications Tab */}
-          {activeTab === 'records' && (
+          {/* Medications Tab — derived from protocols + manual entries */}
+          {activeTab === 'medications' && (() => {
+            // Derive active medications from active protocols
+            const protocolMeds = [];
+            (activeProtocols || []).forEach(proto => {
+              const catStyle = getCategoryStyle(proto.category);
+              const medName = proto.medication || getProtocolDisplayName(proto);
+              const dose = proto.selected_dose || proto.starting_dose || '';
+              const freq = proto.frequency || '';
+              const supply = proto.supply_type ? proto.supply_type.replace(/_/g, ' ') : '';
+              protocolMeds.push({
+                id: `proto-${proto.id}`,
+                medication_name: medName,
+                strength: dose,
+                sig: [freq, supply].filter(Boolean).join(' · '),
+                start_date: proto.start_date,
+                source: proto.category ? proto.category.toUpperCase() : 'Protocol',
+                catStyle,
+                is_active: true,
+                from_protocol: true,
+                protocol_id: proto.id,
+              });
+              // Add secondary medications (HRT — Gonadorelin, HCG, Nandrolone)
+              if (proto.secondary_medication_details) {
+                try {
+                  const secondaries = typeof proto.secondary_medication_details === 'string'
+                    ? JSON.parse(proto.secondary_medication_details) : proto.secondary_medication_details;
+                  (secondaries || []).forEach((sec, i) => {
+                    protocolMeds.push({
+                      id: `proto-sec-${proto.id}-${i}`,
+                      medication_name: sec.medication || sec.name,
+                      strength: sec.dosage || sec.dose || '',
+                      sig: sec.frequency || '',
+                      start_date: proto.start_date,
+                      source: 'HRT',
+                      catStyle,
+                      is_active: true,
+                      from_protocol: true,
+                      protocol_id: proto.id,
+                    });
+                  });
+                } catch {}
+              }
+            });
+
+            // Derive discontinued medications from completed/historic protocols
+            const closedProtocolMeds = [];
+            [...(completedProtocols || []), ...(historicProtocols || [])].forEach(proto => {
+              const medName = proto.medication || getProtocolDisplayName(proto);
+              const dose = proto.selected_dose || proto.starting_dose || '';
+              closedProtocolMeds.push({
+                id: `proto-closed-${proto.id}`,
+                medication_name: medName,
+                strength: dose,
+                stop_date: proto.end_date || proto.updated_at,
+                discontinued_reason: proto.status === 'completed' ? 'Protocol completed' : 'Protocol ended',
+                from_protocol: true,
+              });
+            });
+
+            // Combine: protocol-derived + manually added
+            const allActiveMeds = [...protocolMeds, ...medications.filter(m => m.is_active)];
+            const allDiscontinuedMeds = [...closedProtocolMeds, ...medications.filter(m => !m.is_active)];
+
+            return (
             <>
               {/* Active Medications */}
               <section className="card">
                 <div className="card-header">
-                  <h3>Active Medications ({medications.filter(m => m.is_active).length})</h3>
+                  <h3>Active Medications ({allActiveMeds.length})</h3>
+                  {employee?.is_admin && (
+                    <button className="btn-primary-sm" onClick={() => { setMedEditMode('add'); setMedEditForm({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: '' }); setShowMedEditModal(true); }}>
+                      + Add Medication
+                    </button>
+                  )}
                 </div>
-                {medications.filter(m => m.is_active).length === 0 ? (
+                {allActiveMeds.length === 0 ? (
                   <div className="empty">No active medications</div>
                 ) : (
                   <div style={{ padding: '0 16px 12px' }}>
-                    {medications.filter(m => m.is_active).map(med => (
+                    {allActiveMeds.map(med => (
                       <div key={med.id} style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                         padding: '12px 14px', marginBottom: '8px',
@@ -5571,18 +5652,32 @@ export default function PatientProfile() {
                           <div style={{ display: 'flex', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
                             {med.start_date && (
                               <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                                Started {new Date(med.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
+                                Started {new Date(med.start_date + (med.start_date.includes('T') ? '' : 'T12:00:00')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })}
                               </span>
                             )}
                             {med.source && (
-                              <span style={{ fontSize: '11px', color: '#94a3b8' }}>Source: {med.source}</span>
+                              <span style={{
+                                fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: 0,
+                                background: med.catStyle?.bg || '#f1f5f9',
+                                color: med.catStyle?.text || '#475569',
+                              }}>{med.source}</span>
+                            )}
+                            {med.from_protocol && (
+                              <span style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic' }}>via protocol</span>
                             )}
                           </div>
                         </div>
-                        <span style={{
-                          padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600,
-                          background: '#dcfce7', color: '#166534', whiteSpace: 'nowrap',
-                        }}>Active</span>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                          <span style={{
+                            padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600,
+                            background: '#dcfce7', color: '#166534', whiteSpace: 'nowrap',
+                          }}>Active</span>
+                          {employee?.is_admin && !med.from_protocol && (
+                            <button onClick={() => { setMedEditMode('edit'); setMedEditForm(med); setShowMedEditModal(true); }} style={{
+                              background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
+                            }} title="Edit medication">✏️</button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -5595,7 +5690,7 @@ export default function PatientProfile() {
                   <h3>Prescriptions ({prescriptions.length})</h3>
                 </div>
                 {prescriptions.length === 0 ? (
-                  <div className="empty">No prescriptions on file</div>
+                  <div className="empty">No prescriptions on file — e-prescribing coming soon</div>
                 ) : (
                   <div style={{ padding: '0 16px 12px' }}>
                     {prescriptions.map(rx => (
@@ -5618,7 +5713,7 @@ export default function PatientProfile() {
                             {rx.days_supply && <span style={{ fontSize: '11px', color: '#64748b' }}>{rx.days_supply}-day supply</span>}
                             {rx.created_by && <span style={{ fontSize: '11px', color: '#94a3b8' }}>by {rx.created_by.split('@')[0]}</span>}
                             <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                              {new Date(rx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
+                              {new Date(rx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })}
                             </span>
                           </div>
                           {rx.is_controlled && (
@@ -5639,13 +5734,13 @@ export default function PatientProfile() {
               </section>
 
               {/* Discontinued Medications */}
-              {medications.filter(m => !m.is_active).length > 0 && (
+              {allDiscontinuedMeds.length > 0 && (
                 <section className="card">
                   <div className="card-header">
-                    <h3 style={{ color: '#94a3b8' }}>Discontinued ({medications.filter(m => !m.is_active).length})</h3>
+                    <h3 style={{ color: '#94a3b8' }}>Discontinued ({allDiscontinuedMeds.length})</h3>
                   </div>
                   <div style={{ padding: '0 16px 12px' }}>
-                    {medications.filter(m => !m.is_active).map(med => (
+                    {allDiscontinuedMeds.map(med => (
                       <div key={med.id} style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                         padding: '10px 14px', marginBottom: '6px',
@@ -5657,8 +5752,9 @@ export default function PatientProfile() {
                             {med.strength && <span> {med.strength}</span>}
                           </div>
                           <div style={{ display: 'flex', gap: '12px', marginTop: '4px', flexWrap: 'wrap' }}>
-                            {med.stop_date && <span style={{ fontSize: '11px', color: '#94a3b8' }}>Stopped {new Date(med.stop_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}</span>}
+                            {med.stop_date && <span style={{ fontSize: '11px', color: '#94a3b8' }}>Stopped {new Date(med.stop_date + (med.stop_date.includes('T') ? '' : 'T12:00:00')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })}</span>}
                             {med.discontinued_reason && <span style={{ fontSize: '11px', color: '#94a3b8' }}>{med.discontinued_reason}</span>}
+                            {med.from_protocol && <span style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic' }}>via protocol</span>}
                           </div>
                         </div>
                         <span style={{ padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600, background: '#f3f4f6', color: '#94a3b8', whiteSpace: 'nowrap' }}>Discontinued</span>
@@ -5668,10 +5764,11 @@ export default function PatientProfile() {
                 </section>
               )}
             </>
-          )}
+            );
+          })()}
 
-          {/* Protocols Tab */}
-          {activeTab === 'chart' && (
+          {/* Protocols Tab — under Medications */}
+          {activeTab === 'medications' && (
             <>
               <section className="card">
                 <div className="card-header">
@@ -8023,9 +8120,30 @@ export default function PatientProfile() {
             </>
           )}
 
-          {/* Visits Tab (Appointments + Sessions) */}
-          {activeTab === 'chart' && (
+          {/* Encounters Tab (Vitals + Appointments + Sessions) */}
+          {activeTab === 'encounters' && (
             <>
+              {/* Log Encounter — primary action */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 16px', marginBottom: 16, borderRadius: 0,
+                background: '#111827', color: '#fff',
+              }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>
+                  📋 Need to document a patient encounter?
+                </div>
+                <button
+                  onClick={() => setShowStandaloneEncounterModal(true)}
+                  style={{
+                    padding: '8px 20px', fontSize: 13, fontWeight: 700, borderRadius: 0,
+                    background: '#fff', color: '#111827', border: 'none',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  Log Encounter
+                </button>
+              </div>
+
               {/* Vitals Flowsheet (PF-style: dates as columns) */}
               {vitalsHistory.length > 0 && (() => {
                 const fmtHt = (inches) => {
@@ -8292,92 +8410,38 @@ export default function PatientProfile() {
             </>
           )}
 
-          {/* Notes Tab */}
+          {/* Staff Notes Tab (Business side — staff/internal notes only) */}
           {activeTab === 'notes' && (() => {
             // Categorize notes — use note_category if available, fall back to source-based logic
             const getCat = (n) => n.note_category || (
               ['encounter', 'addendum', 'protocol'].includes(n.source) ? 'clinical' : 'internal'
             );
-            const clinicalNotes = notes.filter(n => getCat(n) === 'clinical');
             const internalNotes = notes.filter(n => getCat(n) === 'internal');
-            const filteredNotes = noteFilter === 'clinical' ? clinicalNotes : internalNotes;
+            const filteredNotes = internalNotes;
 
             return (
             <>
-              {/* Log Encounter — always visible, primary action */}
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '12px 16px', marginBottom: 16, borderRadius: 0,
-                background: '#111827', color: '#fff',
-              }}>
-                <div style={{ fontSize: 14, fontWeight: 600 }}>
-                  📋 Need to document a patient encounter?
-                </div>
-                <button
-                  onClick={() => setShowStandaloneEncounterModal(true)}
-                  style={{
-                    padding: '8px 20px', fontSize: 13, fontWeight: 700, borderRadius: 0,
-                    background: '#fff', color: '#111827', border: 'none',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-                  }}
-                >
-                  Log Encounter
-                </button>
-              </div>
-
-              {/* Filter pills */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                <button
-                  onClick={() => setNoteFilter('clinical')}
-                  style={{
-                    padding: '8px 18px', fontSize: 13, fontWeight: 600, borderRadius: 0,
-                    border: noteFilter === 'clinical' ? '2px solid #059669' : '1.5px solid #d1d5db',
-                    background: noteFilter === 'clinical' ? '#ecfdf5' : '#fff',
-                    color: noteFilter === 'clinical' ? '#059669' : '#6b7280',
-                    cursor: 'pointer', transition: 'all 0.15s',
-                  }}
-                >
-                  🩺 Clinical Notes ({clinicalNotes.length})
-                </button>
-                <button
-                  onClick={() => setNoteFilter('internal')}
-                  style={{
-                    padding: '8px 18px', fontSize: 13, fontWeight: 600, borderRadius: 0,
-                    border: noteFilter === 'internal' ? '2px solid #2563eb' : '1.5px solid #d1d5db',
-                    background: noteFilter === 'internal' ? '#eff6ff' : '#fff',
-                    color: noteFilter === 'internal' ? '#2563eb' : '#6b7280',
-                    cursor: 'pointer', transition: 'all 0.15s',
-                  }}
-                >
-                  📝 Staff Notes ({internalNotes.length})
-                </button>
-              </div>
-
               {/* Description banner */}
               <div style={{
                 padding: '10px 14px', marginBottom: 16, borderRadius: 0, fontSize: 12, lineHeight: 1.5,
-                background: noteFilter === 'clinical' ? '#f0fdf4' : '#eff6ff',
-                color: noteFilter === 'clinical' ? '#166534' : '#1e40af',
-                border: `1px solid ${noteFilter === 'clinical' ? '#bbf7d0' : '#bfdbfe'}`,
+                background: '#eff6ff',
+                color: '#1e40af',
+                border: '1px solid #bfdbfe',
               }}>
-                {noteFilter === 'clinical'
-                  ? '🩺 Clinical notes are part of the patient\'s medical chart — encounter notes, signed notes, and protocol notes. These are included when printing or exporting the chart. To add a clinical note, use "Log Encounter" above.'
-                  : '📝 Staff notes are for internal use only — patient experience, operational notes, reminders. These are NOT included in the patient\'s medical chart. Do NOT log encounter notes here.'}
+                📝 Staff notes are for internal use only — patient experience, operational notes, reminders. These are NOT included in the patient's medical chart.
               </div>
 
               <section className="card">
                 <div className="card-header">
-                  <h3>{noteFilter === 'clinical' ? 'Clinical Notes' : 'Staff Notes'} ({filteredNotes.length})</h3>
+                  <h3>Staff Notes ({filteredNotes.length})</h3>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    {noteFilter === 'internal' && (
-                      <button className="btn-primary-sm" onClick={() => { setAddNoteCategory('internal'); setShowAddNoteModal(true); }}>
-                        + Add Staff Note
-                      </button>
-                    )}
+                    <button className="btn-primary-sm" onClick={() => { setAddNoteCategory('internal'); setShowAddNoteModal(true); }}>
+                      + Add Staff Note
+                    </button>
                   </div>
                 </div>
                 {filteredNotes.length === 0 ? (
-                  <div className="empty">No {noteFilter === 'clinical' ? 'clinical' : 'staff'} notes yet</div>
+                  <div className="empty">No staff notes yet</div>
                 ) : (
                   <div className="notes-list">
                     {filteredNotes.map(note => (
@@ -8499,14 +8563,17 @@ export default function PatientProfile() {
             );
           })()}
 
-          {/* Tasks Tab */}
-          {activeTab === 'records' && (
+          {/* Tasks Tab — shown on both Medical and Business views, filtered by category */}
+          {activeTab === 'tasks' && (() => {
+            const taskCategory = viewMode === 'medical' ? 'medical' : 'business';
+            const filteredTasks = patientTasks.filter(t => (t.task_category || 'business') === taskCategory);
+            return (
             <>
               <section className="card">
                 <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3>Tasks ({patientTasks.length})</h3>
+                  <h3>{viewMode === 'medical' ? 'Medical' : 'Business'} Tasks ({filteredTasks.length})</h3>
                   <button
-                    onClick={() => { setShowCreateTask(true); if (taskEmployees.length === 0) fetchTaskEmployees(); }}
+                    onClick={() => { setTaskForm(f => ({ ...f, task_category: taskCategory })); setShowCreateTask(true); if (taskEmployees.length === 0) fetchTaskEmployees(); }}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: '6px',
                       padding: '6px 14px', fontSize: '13px', fontWeight: 600,
@@ -8517,12 +8584,12 @@ export default function PatientProfile() {
                     + Add Task
                   </button>
                 </div>
-                {patientTasks.length === 0 ? (
-                  <div className="empty">No tasks linked to this patient</div>
+                {filteredTasks.length === 0 ? (
+                  <div className="empty">No {taskCategory} tasks for this patient</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                     {/* Pending tasks first, then completed */}
-                    {[...patientTasks].sort((a, b) => {
+                    {[...filteredTasks].sort((a, b) => {
                       if (a.status === 'pending' && b.status !== 'pending') return -1;
                       if (a.status !== 'pending' && b.status === 'pending') return 1;
                       return new Date(b.created_at) - new Date(a.created_at);
@@ -8786,8 +8853,23 @@ export default function PatientProfile() {
                           </select>
                         </div>
 
-                        {/* Priority + Due Date row */}
+                        {/* Category + Priority + Due Date row */}
                         <div style={{ display: 'flex', gap: '12px' }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px', display: 'block' }}>Category</label>
+                            <select
+                              value={taskForm.task_category}
+                              onChange={e => setTaskForm(prev => ({ ...prev, task_category: e.target.value }))}
+                              style={{
+                                width: '100%', padding: '10px 12px', fontSize: '14px',
+                                border: '1px solid #d1d5db', borderRadius: 0, outline: 'none',
+                                boxSizing: 'border-box', background: '#fff',
+                              }}
+                            >
+                              <option value="medical">🏥 Medical</option>
+                              <option value="business">💼 Business</option>
+                            </select>
+                          </div>
                           <div style={{ flex: 1 }}>
                             <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px', display: 'block' }}>Priority</label>
                             <select
@@ -8860,7 +8942,8 @@ export default function PatientProfile() {
                 </div>
               )}
             </>
-          )}
+            );
+          })()}
 
           {/* Symptoms Tab */}
           {activeTab === 'labs' && (() => {
@@ -9861,6 +9944,138 @@ export default function PatientProfile() {
         )}
 
         {/* Add Note Modal */}
+        {/* Medication Add/Edit Modal (admin only) */}
+        {showMedEditModal && (
+          <div className="modal-overlay" {...overlayClickProps(() => setShowMedEditModal(false))}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+              <div className="modal-header">
+                <h3>{medEditMode === 'add' ? 'Add Medication' : 'Edit Medication'}</h3>
+                <button onClick={() => setShowMedEditModal(false)} className="modal-close">✕</button>
+              </div>
+              <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Medication Name *</label>
+                  <input
+                    type="text"
+                    value={medEditForm.medication_name}
+                    onChange={e => setMedEditForm(f => ({ ...f, medication_name: e.target.value }))}
+                    placeholder="e.g., Testosterone Cypionate"
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Strength / Dose</label>
+                    <input
+                      type="text"
+                      value={medEditForm.strength}
+                      onChange={e => setMedEditForm(f => ({ ...f, strength: e.target.value }))}
+                      placeholder="e.g., 200mg/ml"
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Form</label>
+                    <input
+                      type="text"
+                      value={medEditForm.form}
+                      onChange={e => setMedEditForm(f => ({ ...f, form: e.target.value }))}
+                      placeholder="e.g., Injection, Tablet"
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Sig (Directions)</label>
+                  <input
+                    type="text"
+                    value={medEditForm.sig}
+                    onChange={e => setMedEditForm(f => ({ ...f, sig: e.target.value }))}
+                    placeholder="e.g., 0.4ml IM 2x/week"
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Start Date</label>
+                    <input
+                      type="date"
+                      value={medEditForm.start_date || ''}
+                      onChange={e => setMedEditForm(f => ({ ...f, start_date: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Source</label>
+                    <input
+                      type="text"
+                      value={medEditForm.source}
+                      onChange={e => setMedEditForm(f => ({ ...f, source: e.target.value }))}
+                      placeholder="e.g., Range Medical, Outside Rx"
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div style={{ padding: '12px 20px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  {medEditMode === 'edit' && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm('Discontinue this medication?')) return;
+                        setMedEditSaving(true);
+                        try {
+                          await fetch(`/api/patients/${patient.id}/medications`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: medEditForm.id, is_active: false, stop_date: new Date().toISOString().split('T')[0], discontinued_reason: 'Discontinued by provider' }),
+                          });
+                          setShowMedEditModal(false);
+                          // Refresh medications
+                          const res = await fetch(`/api/patients/${patient.id}`);
+                          const data = await res.json();
+                          if (data.medications) setMedications(data.medications);
+                        } catch (err) { console.error(err); alert('Failed to discontinue medication'); }
+                        finally { setMedEditSaving(false); }
+                      }}
+                      disabled={medEditSaving}
+                      style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, borderRadius: 0, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', cursor: 'pointer' }}
+                    >
+                      Discontinue
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => setShowMedEditModal(false)} style={{ padding: '8px 16px', fontSize: 13, borderRadius: 0, background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', cursor: 'pointer' }}>Cancel</button>
+                  <button
+                    onClick={async () => {
+                      if (!medEditForm.medication_name.trim()) return alert('Medication name is required');
+                      setMedEditSaving(true);
+                      try {
+                        await fetch(`/api/patients/${patient.id}/medications`, {
+                          method: medEditMode === 'add' ? 'POST' : 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ ...medEditForm, is_active: true }),
+                        });
+                        setShowMedEditModal(false);
+                        // Refresh medications
+                        const res = await fetch(`/api/patients/${patient.id}`);
+                        const data = await res.json();
+                        if (data.medications) setMedications(data.medications);
+                      } catch (err) { console.error(err); alert('Failed to save medication'); }
+                      finally { setMedEditSaving(false); }
+                    }}
+                    disabled={medEditSaving || !medEditForm.medication_name.trim()}
+                    style={{ padding: '8px 20px', fontSize: 13, fontWeight: 600, borderRadius: 0, background: '#111827', color: '#fff', border: 'none', cursor: 'pointer', opacity: medEditSaving ? 0.5 : 1 }}
+                  >
+                    {medEditSaving ? 'Saving...' : medEditMode === 'add' ? 'Add Medication' : 'Save Changes'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showAddNoteModal && (
           <div className="modal-overlay" {...overlayClickProps(() => { setShowAddNoteModal(false); stopDictation(); setNoteDate(''); })}>
             <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 640 }}>
@@ -12316,12 +12531,45 @@ export default function PatientProfile() {
                     placeholder="e.g. Reduced after labs"
                     style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }} />
                 </div>
+
+                {/* Dose increase approval — required when increasing dose on HRT/WL */}
+                {isDoseIncrease && (
+                  <div style={{ border: '1px solid #f59e0b', background: '#fffbeb', padding: 12, marginTop: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                      <span style={{ fontSize: 14 }}>⚠️</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#92400e' }}>Dose increase requires provider approval</span>
+                    </div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Approved By <span style={{ color: '#dc2626' }}>*</span></label>
+                    {employee?.email && canApproveDoseChange(employee.email) ? (
+                      <div
+                        style={{ padding: '6px 10px', background: '#f0fdf4', border: '1px solid #86efac', fontSize: 13, color: '#166534', cursor: 'pointer' }}
+                        onClick={() => setDoseChangeForm(f => ({ ...f, approvedByEmail: employee.email }))}
+                      >
+                        {doseChangeForm.approvedByEmail === employee.email
+                          ? `✓ ${employee.name} (you — authorized provider)`
+                          : `Click to confirm approval as ${employee.name}`}
+                      </div>
+                    ) : (
+                      <select
+                        value={doseChangeForm.approvedByEmail}
+                        onChange={e => setDoseChangeForm(f => ({ ...f, approvedByEmail: e.target.value }))}
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #f59e0b', borderRadius: 0, fontSize: 13, background: '#fff' }}
+                      >
+                        <option value="">Select approving provider...</option>
+                        <option value="burgess@range-medical.com">Dr. Damien Burgess</option>
+                      </select>
+                    )}
+                    {isDoseIncrease && !doseChangeForm.approvedByEmail && (
+                      <div style={{ fontSize: 11, color: '#b45309', marginTop: 4 }}>Dr. Burgess must approve before this dose increase can be saved.</div>
+                    )}
+                  </div>
+                )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
                 <button onClick={() => setShowDoseChangeModal(false)} style={{ padding: '6px 16px', border: '1px solid #d1d5db', background: '#fff', borderRadius: 0, cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-                <button onClick={handleSaveDoseChange} disabled={doseChangeSaving || !doseChangeForm.dose || !doseChangeForm.date}
-                  style={{ padding: '6px 16px', background: '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: doseChangeSaving || !doseChangeForm.dose ? 0.5 : 1 }}>
-                  {doseChangeSaving ? 'Saving...' : 'Save'}
+                <button onClick={handleSaveDoseChange} disabled={doseChangeSaving || !doseChangeForm.dose || !doseChangeForm.date || (isDoseIncrease && !doseChangeForm.approvedByEmail)}
+                  style={{ padding: '6px 16px', background: isDoseIncrease ? '#b45309' : '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: doseChangeSaving || !doseChangeForm.dose || (isDoseIncrease && !doseChangeForm.approvedByEmail) ? 0.5 : 1 }}>
+                  {doseChangeSaving ? 'Saving...' : isDoseIncrease ? 'Save (Approved Increase)' : 'Save'}
                 </button>
               </div>
 
@@ -13158,6 +13406,71 @@ export default function PatientProfile() {
         .pending-info strong { display: block; margin-bottom: 2px; }
         .pending-info span { font-size: 14px; color: #666; }
         .pending-actions { display: flex; gap: 8px; }
+
+        /* View Mode Toggle — Medical / Business */
+        .view-mode-toggle {
+          display: flex;
+          gap: 0;
+          margin: 0 0 0;
+          background: #f1f5f9;
+          border-bottom: 1px solid #e2e8f0;
+          padding: 6px 8px 0;
+        }
+        .view-mode-btn {
+          padding: 10px 24px;
+          border: none;
+          background: none;
+          font-size: 14px;
+          font-weight: 600;
+          color: #64748b;
+          cursor: pointer;
+          border-radius: 0;
+          transition: all 0.15s;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          border-bottom: 3px solid transparent;
+          margin-bottom: -1px;
+        }
+        .view-mode-btn:hover {
+          color: #334155;
+          background: #e2e8f0;
+        }
+        .view-mode-btn.active {
+          color: #0f172a;
+          background: #fff;
+          border-bottom: 3px solid #0f172a;
+        }
+        .view-mode-icon {
+          font-size: 16px;
+          line-height: 1;
+        }
+
+        /* View Quick Links (Communications, Staff Notes) */
+        .view-quick-links {
+          display: flex;
+          gap: 16px;
+          padding: 6px 16px;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        .view-comms-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 0;
+          background: none;
+          border: none;
+          font-size: 13px;
+          font-weight: 500;
+          color: #6366f1;
+          cursor: pointer;
+          transition: color 0.15s;
+        }
+        .view-comms-link:hover {
+          color: #4338ca;
+          text-decoration: underline;
+        }
 
         /* Tabs — Flat style */
         .px-tabs {

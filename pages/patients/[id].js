@@ -1683,6 +1683,17 @@ export default function PatientProfile() {
     return `${parseInt(month)}/${parseInt(day)}/${year}`;
   };
 
+  const calcAge = (dateStr) => {
+    if (!dateStr) return null;
+    const [year, month, day] = dateStr.split('T')[0].split('-');
+    const dob = new Date(year, month - 1, day);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
+    return age;
+  };
+
   const formatShortDate = (dateStr) => {
     if (!dateStr) return '—';
     const [year, month, day] = dateStr.split('T')[0].split('-');
@@ -4197,7 +4208,7 @@ export default function PatientProfile() {
           <div className="demographics-toggle-row">
             <button className="demographics-toggle" onClick={() => { if (editingPatient) return; setShowDemographics(!showDemographics); }}>
               <span className="demographics-preview">
-                {(patient.date_of_birth || intakeDemographics?.date_of_birth) && <span>{formatDOB(patient.date_of_birth || intakeDemographics?.date_of_birth)}</span>}
+                {(patient.date_of_birth || intakeDemographics?.date_of_birth) && <span>{formatDOB(patient.date_of_birth || intakeDemographics?.date_of_birth)}{calcAge(patient.date_of_birth || intakeDemographics?.date_of_birth) !== null && ` (${calcAge(patient.date_of_birth || intakeDemographics?.date_of_birth)}yo)`}</span>}
                 {(patient.gender || intakeDemographics?.gender) && <span>{patient.gender || intakeDemographics?.gender}</span>}
                 {patient.phone && <span>{patient.phone}</span>}
                 {patient.email && <span>{patient.email}</span>}
@@ -4368,9 +4379,9 @@ export default function PatientProfile() {
                   <div className="demo-item">
                     <label>Date of Birth</label>
                     {patient.date_of_birth ? (
-                      <span>{formatDOB(patient.date_of_birth)}</span>
+                      <span>{formatDOB(patient.date_of_birth)}{calcAge(patient.date_of_birth) !== null && ` (${calcAge(patient.date_of_birth)}yo)`}</span>
                     ) : intakeDemographics?.date_of_birth ? (
-                      <span>{formatDOB(intakeDemographics.date_of_birth)} <span className="from-intake">(from intake)</span></span>
+                      <span>{formatDOB(intakeDemographics.date_of_birth)}{calcAge(intakeDemographics.date_of_birth) !== null && ` (${calcAge(intakeDemographics.date_of_birth)}yo)`} <span className="from-intake">(from intake)</span></span>
                     ) : (
                       <span>—</span>
                     )}

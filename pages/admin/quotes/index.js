@@ -96,11 +96,11 @@ function ActionMenu({ quote, onDelete, onSend, onDuplicate }) {
           </button>
           <button
             style={itemStyle}
-            onClick={() => { window.open(`/quote/${quote.token}`, '_blank'); setOpen(false); }}
+            onClick={() => { window.open(`/quote/${quote.token}?preview=true`, '_blank'); setOpen(false); }}
             onMouseEnter={(e) => e.target.style.background = '#f8f8f8'}
             onMouseLeave={(e) => e.target.style.background = 'none'}
           >
-            View Quote
+            Preview Quote
           </button>
           <button
             style={itemStyle}

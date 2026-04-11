@@ -16,9 +16,12 @@ export default function QuotePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const isPreview = router.query.preview === 'true';
+
   useEffect(() => {
     if (!token) return;
-    fetch(`/api/quotes/${token}`)
+    const url = isPreview ? `/api/quotes/${token}?preview=true` : `/api/quotes/${token}`;
+    fetch(url)
       .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
       .then(({ ok, d }) => {
         if (!ok) setError(d.error || 'Not found');
@@ -26,7 +29,7 @@ export default function QuotePage() {
         setLoading(false);
       })
       .catch(() => { setError('Failed to load'); setLoading(false); });
-  }, [token]);
+  }, [token, isPreview]);
 
   const wide = !!(quote && Array.isArray(quote.options) && quote.options.length > 1);
   return (
@@ -39,6 +42,28 @@ export default function QuotePage() {
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </Head>
 
+      {isPreview && (
+        <div style={{
+          background: '#fef3c7',
+          border: '1px solid #f59e0b',
+          padding: '12px 20px',
+          marginBottom: 24,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontSize: 14,
+          fontWeight: 600,
+          color: '#92400e',
+        }}>
+          <span>Preview Mode — views are not being tracked</span>
+          <button
+            onClick={() => window.close()}
+            style={{ background: 'none', border: '1px solid #92400e', padding: '4px 14px', fontSize: 13, fontWeight: 600, color: '#92400e', cursor: 'pointer' }}
+          >
+            Close Preview
+          </button>
+        </div>
+      )}
       {loading && <p style={{ color: '#737373', fontSize: 14 }}>Loading…</p>}
       {!loading && error && <p style={{ color: '#737373', fontSize: 14 }}>{error}</p>}
 

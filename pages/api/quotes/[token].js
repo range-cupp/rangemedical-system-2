@@ -22,6 +22,11 @@ export default async function handler(req, res) {
     if (error || !quote) return res.status(404).json({ error: 'Not found' });
 
     if (req.method === 'GET') {
+      // Preview mode — skip view tracking (admin preview)
+      if (req.query.preview === 'true') {
+        return res.status(200).json({ ...quote, _preview: true });
+      }
+
       // Track view
       const now = new Date().toISOString();
       const update = {

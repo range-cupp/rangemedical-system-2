@@ -35,6 +35,7 @@ export default async function handler(req, res) {
   const yesterdayStr = yesterday.toISOString().split('T')[0];
 
   let completed = 0;
+  let activated = 0;
   let peptideTasksCreated = 0;
   let errors = [];
 
@@ -85,6 +86,41 @@ export default async function handler(req, res) {
           console.log(`Completed: ${protocol.program_name} (ended ${protocol.end_date})`);
           completed++;
 
+        }
+      }
+    }
+
+    // ── ACTIVATE QUEUED PROTOCOLS ──
+    // When a protocol completes, check if there's a queued protocol for the same
+    // patient + medication waiting to start. If its start_date is today or earlier, activate it.
+    const todayStr = today.toISOString().split('T')[0];
+    const { data: queuedProtocols, error: queuedError } = await supabase
+      .from('protocols')
+      .select('id, patient_id, program_type, medication, start_date, program_name')
+      .eq('status', 'queued')
+      .lte('start_date', todayStr);
+
+    if (queuedError) {
+      console.error('Error fetching queued protocols:', queuedError);
+      errors.push(queuedError.message);
+    }
+
+    if (queuedProtocols && queuedProtocols.length > 0) {
+      for (const queued of queuedProtocols) {
+        const { error: activateError } = await supabase
+          .from('protocols')
+          .update({
+            status: 'active',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', queued.id);
+
+        if (activateError) {
+          console.error(`Failed to activate queued protocol ${queued.id}:`, activateError);
+          errors.push(`Activate ${queued.program_name} (${queued.id}): ${activateError.message}`);
+        } else {
+          console.log(`Activated queued protocol: ${queued.program_name} for patient ${queued.patient_id} (start_date: ${queued.start_date})`);
+          activated++;
         }
       }
     }
@@ -182,6 +218,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       completed,
+      activated,
       peptideTasksCreated,
       errors: errors.length > 0 ? errors : undefined,
       checked_date: yesterdayStr,

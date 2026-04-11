@@ -5851,6 +5851,7 @@ export default function PatientProfile() {
                               )}
                             </span>
                             {protocol.status === 'completed' && <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: 0 }}>✓ Completed</span>}
+                            {protocol.status === 'queued' && <span style={{ fontSize: '11px', fontWeight: 600, color: '#92400e', background: '#fef3c7', padding: '2px 8px', borderRadius: 0 }}>Queued — Starts {formatShortDate(protocol.start_date)}</span>}
                             {protocol.category === 'peptide' && protocol.supply_type && (() => {
                               const fmt = PEPTIDE_SUPPLY_FORMATS.find(f => f.value === protocol.supply_type);
                               if (!fmt) return null;

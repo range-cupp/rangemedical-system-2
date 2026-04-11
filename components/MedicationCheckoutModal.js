@@ -1527,18 +1527,26 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
               </div>
 
               {/* Fulfillment method */}
-              {(entryType === 'pickup' || entryType === 'med_pickup') && (
+              {(entryType === 'pickup' || entryType === 'med_pickup' || (selectedCategory?.id === 'peptide' && entryType === 'injection')) && (
                 <div style={styles.fieldGroup}>
                   <label style={styles.label}>Fulfillment</label>
                   <div style={styles.radioGroup}>
+                    {selectedCategory?.id === 'peptide' && entryType === 'injection' && (
+                      <label style={styles.radioLabel}>
+                        <input type="radio" name="fulfillment" value="in_clinic_injections" checked={fulfillmentMethod === 'in_clinic_injections'} onChange={e => setFulfillmentMethod(e.target.value)} />
+                        <span>In-Clinic Injections</span>
+                      </label>
+                    )}
                     <label style={styles.radioLabel}>
                       <input type="radio" name="fulfillment" value="in_clinic" checked={fulfillmentMethod === 'in_clinic'} onChange={e => setFulfillmentMethod(e.target.value)} />
-                      <span>In Clinic Pickup</span>
+                      <span>{selectedCategory?.id === 'peptide' && entryType === 'injection' ? 'Single Injection (now)' : 'In Clinic Pickup'}</span>
                     </label>
-                    <label style={styles.radioLabel}>
-                      <input type="radio" name="fulfillment" value="overnight" checked={fulfillmentMethod === 'overnight'} onChange={e => setFulfillmentMethod(e.target.value)} />
-                      <span>Overnight Shipping</span>
-                    </label>
+                    {(entryType === 'pickup' || entryType === 'med_pickup') && (
+                      <label style={styles.radioLabel}>
+                        <input type="radio" name="fulfillment" value="overnight" checked={fulfillmentMethod === 'overnight'} onChange={e => setFulfillmentMethod(e.target.value)} />
+                        <span>Overnight Shipping</span>
+                      </label>
+                    )}
                   </div>
                   {fulfillmentMethod === 'overnight' && (
                     <input

@@ -3115,7 +3115,7 @@ function CheckoutInner() {
                 <div style={styles.paymentSection}>
                   <div style={styles.paymentSectionLabel}>FULFILLMENT</div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {cartItems.some(i => i.category === 'weight_loss') && (
+                    {cartItems.some(i => ['weight_loss', 'peptide'].includes(i.category)) && (
                       <button
                         onClick={() => setFulfillmentMethod('in_clinic_injections')}
                         style={{

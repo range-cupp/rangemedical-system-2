@@ -108,11 +108,13 @@ export default async function handler(req, res) {
 
   const logDate = entry_date || todayPacific();
 
-  // Determine if this is a WL in-clinic purchase (not a take-home pickup)
-  // For WL in-clinic: checkout only sets available injections on the protocol.
-  // Actual injection tracking comes from encounter notes only.
+  // Determine if this is an in-clinic purchase (not a take-home pickup)
+  // For in-clinic: checkout only sets available injections on the protocol.
+  // Actual injection tracking comes from encounter notes / service logs only.
   const resolvedEntryType = entry_type || (['hbot', 'iv_therapy', 'red_light'].includes(category) ? 'session' : 'injection');
   const isWLInClinic = isWeightLossType(category) && resolvedEntryType !== 'pickup' && resolvedEntryType !== 'med_pickup';
+  const isPeptideInClinic = category === 'peptide' && fulfillment_method === 'in_clinic_injections';
+  const isInClinicPurchase = isWLInClinic || isPeptideInClinic;
 
   try {
     // 1. Get patient info for receipt
@@ -130,9 +132,9 @@ export default async function handler(req, res) {
 
     let finalLog = null;
 
-    // 2. For WL in-clinic: do NOT create a service log — encounter notes are the sole source
-    // For everything else (take-home pickups, non-WL categories): create service log as before
-    if (!isWLInClinic) {
+    // 2. For in-clinic purchases (WL or peptide): do NOT create a service log — encounter notes are the sole source
+    // For everything else (take-home pickups, other categories): create service log as before
+    if (!isInClinicPurchase) {
       const logData = {
         patient_id,
         category,
@@ -194,13 +196,13 @@ export default async function handler(req, res) {
         supply_type,
         injection_method,
         injection_frequency,
-        isWLInClinic,
+        isInClinicPurchase,
       });
     }
 
     // 4. For weight loss TAKE-HOME pickups only, create future injection entries
-    // In-clinic WL does NOT pre-schedule — encounter notes handle each injection individually
-    if (!isWLInClinic && isWeightLossType(category) && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0) {
+    // In-clinic purchases (WL or peptide) do NOT pre-schedule — encounter notes handle each injection individually
+    if (!isInClinicPurchase && isWeightLossType(category) && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0) {
       const pickupDosage = dosage || '';
       const atMatch = pickupDosage.match(/@\s*(.+)/);
       const injectionDose = atMatch ? atMatch[1].trim() : pickupDosage;
@@ -259,7 +261,7 @@ export default async function handler(req, res) {
 
 // Update protocol based on checkout
 async function updateProtocol(protocolId, opts) {
-  const { category, entryType, logDate, medication, dosage, quantity, supply_type, injection_method, injection_frequency, isWLInClinic } = opts;
+  const { category, entryType, logDate, medication, dosage, quantity, supply_type, injection_method, injection_frequency, isInClinicPurchase } = opts;
 
   try {
     const { data: protocol, error } = await supabase
@@ -279,10 +281,10 @@ async function updateProtocol(protocolId, opts) {
     const protocolCategory = protocol.program_type || category;
     const categoryMatchesProtocol = category === protocolCategory || isWeightLossType(category) === isWeightLossType(protocolCategory);
 
-    // ── WL IN-CLINIC PURCHASE ──
+    // ── IN-CLINIC PURCHASE (WL or Peptide) ──
     // Only sets available injections (total_sessions). Does NOT touch sessions_used.
-    // Encounter notes are the sole source of injection tracking for in-clinic WL.
-    if (isWLInClinic) {
+    // Encounter notes / service logs are the sole source of injection tracking for in-clinic protocols.
+    if (isInClinicPurchase) {
       const purchaseQty = quantity ? parseInt(quantity) : 1;
       const currentTotal = protocol.total_sessions || 0;
       const currentUsed = protocol.sessions_used || 0;
@@ -296,12 +298,15 @@ async function updateProtocol(protocolId, opts) {
       // (they already have available injections from a prior purchase)
 
       // Update medication details if provided
-      if (categoryMatchesProtocol) {
+      if (categoryMatchesProtocol || category === 'peptide') {
         if (medication) updates.medication = medication;
         if (dosage) updates.selected_dose = dosage;
       }
       if (injection_method) updates.injection_method = injection_method;
       if (injection_frequency) updates.injection_frequency = parseInt(injection_frequency);
+
+      // Set delivery_method so appointment sync knows this is in-clinic
+      updates.delivery_method = 'in_clinic';
 
       const { error: updateError } = await supabase
         .from('protocols')
@@ -309,10 +314,10 @@ async function updateProtocol(protocolId, opts) {
         .eq('id', protocolId);
 
       if (updateError) throw updateError;
-      return { updated: true, protocol_id: protocolId, updates, mode: 'wl_in_clinic_purchase' };
+      return { updated: true, protocol_id: protocolId, updates, mode: 'in_clinic_purchase' };
     }
 
-    // ── NON-WL / TAKE-HOME PATH (existing behavior) ──
+    // ── TAKE-HOME / SINGLE INJECTION PATH (existing behavior) ──
     updates.last_visit_date = logDate;
 
     // Increment sessions_used for session/injection-based protocols

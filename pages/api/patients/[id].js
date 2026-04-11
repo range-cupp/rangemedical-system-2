@@ -392,8 +392,12 @@ export default async function handler(req, res) {
       // ── Step 6: Process results (CPU-only, no DB calls) ──
 
       // Split and format protocols
+      // Active = in-progress protocols
+      // Completed = finished non-HRT protocols (peptides, weight loss, IV, etc.)
+      // Historic = only HRT protocols with dosage/medication changes (titrations)
       const activeProtocols = [];
       const completedProtocols = [];
+      const historicProtocols = [];
 
       allProtocols.forEach(protocol => {
         const tracking = calculateRemaining(protocol);
@@ -420,7 +424,12 @@ export default async function handler(req, res) {
         if (protocol.program_type === 'labs') return;
 
         if (isCompleted || protocol.status === 'merged') {
-          completedProtocols.push(formatted);
+          // HRT completed/historic go to Historic tab (dosage titrations)
+          if (isHRT) {
+            historicProtocols.push(formatted);
+          } else {
+            completedProtocols.push(formatted);
+          }
         } else if (protocol.status !== 'cancelled') {
           activeProtocols.push(formatted);
         }
@@ -544,6 +553,7 @@ export default async function handler(req, res) {
       const stats = {
         activeCount: activeProtocols.length,
         completedCount: completedProtocols.length,
+        historicCount: historicProtocols.length,
         pendingLabsCount: pendingLabOrders?.length || 0,
         totalProtocols: allProtocols?.length || 0,
         intakeCount: intakes?.length || 0,
@@ -564,6 +574,7 @@ export default async function handler(req, res) {
         intakeDemographics,
         activeProtocols,
         completedProtocols,
+        historicProtocols,
         pendingNotifications: pendingNotifications || [],
         labProtocols,
         pendingLabOrders: pendingLabOrders || [],

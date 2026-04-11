@@ -474,7 +474,8 @@ export default function PatientProfile() {
   const [intakeDemographics, setIntakeDemographics] = useState(null);
   const [activeProtocols, setActiveProtocols] = useState([]);
   const [completedProtocols, setCompletedProtocols] = useState([]);
-  // 'active' | 'historic' — sub-tab inside the Protocols section
+  const [historicProtocols, setHistoricProtocols] = useState([]);
+  // 'active' | 'completed' | 'historic' — sub-tab inside the Protocols section
   const [protocolView, setProtocolView] = useState('active');
   const [pendingNotifications, setPendingNotifications] = useState([]);
   const [labs, setLabs] = useState([]);
@@ -1085,6 +1086,7 @@ export default function PatientProfile() {
         // Fetch drip logs for weight loss protocols
         (data.activeProtocols || []).filter(p => p.category === 'weight_loss').forEach(p => fetchDripLogs(p.id));
         setCompletedProtocols(data.completedProtocols || []);
+        setHistoricProtocols(data.historicProtocols || []);
         setPendingNotifications(data.pendingNotifications || []);
         setLabProtocols(data.labProtocols || []);
         setLabs(data.labs || []);
@@ -1126,7 +1128,7 @@ export default function PatientProfile() {
         // Compute ADAPTIVE HRT lab schedules for HRT protocols
         // Each draw's target date is calculated from the actual previous lab date,
         // not a fixed schedule — so if someone gets labs late, the next draw shifts forward.
-        const allProtos = [...(data.activeProtocols || []), ...(data.completedProtocols || [])];
+        const allProtos = [...(data.activeProtocols || []), ...(data.completedProtocols || []), ...(data.historicProtocols || [])];
         const hrtProtos = allProtos.filter(p => isHRTProtocol(p.program_type) && p.start_date);
         if (hrtProtos.length > 0) {
           const schedules = {};
@@ -1570,7 +1572,7 @@ export default function PatientProfile() {
 
   const handleToggleFollowupWeeks = async (protocolId) => {
     // Find the protocol to get current value
-    const proto = [...activeProtocols, ...completedProtocols].find(p => p.id === protocolId);
+    const proto = [...activeProtocols, ...completedProtocols, ...historicProtocols].find(p => p.id === protocolId);
     const currentWeeks = proto?.first_followup_weeks || 8;
     const newWeeks = currentWeeks === 8 ? 12 : 8;
 
@@ -1580,6 +1582,7 @@ export default function PatientProfile() {
     );
     setActiveProtocols(prev => updateProtoList(prev));
     setCompletedProtocols(prev => updateProtoList(prev));
+    setHistoricProtocols(prev => updateProtoList(prev));
 
     // Recompute the adaptive lab schedule locally
     const updatedProto = { ...proto, first_followup_weeks: newWeeks };
@@ -2438,7 +2441,7 @@ export default function PatientProfile() {
     // Wait for data refresh, then check for remaining sessions
     setTimeout(() => {
       // Find the protocol for the pickup
-      const allProtos = [...(activeProtocols || []), ...(completedProtocols || [])];
+      const allProtos = [...(activeProtocols || []), ...(completedProtocols || []), ...(historicProtocols || [])];
       for (const item of pickupItems) {
         const proto = item.protocolId
           ? allProtos.find(p => p.id === item.protocolId)
@@ -4711,7 +4714,7 @@ export default function PatientProfile() {
             {(() => {
               const alerts = [];
               // Check all HRT protocols for blood draw status
-              const allProtos = [...activeProtocols, ...completedProtocols];
+              const allProtos = [...activeProtocols, ...completedProtocols, ...historicProtocols];
               for (const proto of allProtos) {
                 if (!isHRTProtocol(proto.program_type)) continue;
                 const isActive = proto.status === 'active';
@@ -5417,7 +5420,7 @@ export default function PatientProfile() {
               {/* HRT Blood Draw Schedule — Overview (show only the most recent active HRT protocol) */}
               {Object.keys(hrtLabSchedules).length > 0 && (() => {
                 // Pick the most recent active HRT protocol (prefer active over completed)
-                const hrtProtos = [...activeProtocols, ...completedProtocols].filter(
+                const hrtProtos = [...activeProtocols, ...completedProtocols, ...historicProtocols].filter(
                   p => isHRTProtocol(p.program_type) && hrtLabSchedules[p.id]?.length > 0
                 );
                 if (hrtProtos.length === 0) return null;
@@ -5686,10 +5689,11 @@ export default function PatientProfile() {
                     <button onClick={() => openAssignModal()} className="btn-primary-sm">+ Add Protocol</button>
                   </div>
                 </div>
-                {/* Active / Historic sub-tabs */}
+                {/* Active / Completed / Historic sub-tabs */}
                 {(() => {
                   const activeCount = activeProtocols.length;
-                  const historicCount = completedProtocols.filter(p => p.status !== 'merged').length;
+                  const completedCount = completedProtocols.filter(p => p.status !== 'merged').length;
+                  const historicCount = historicProtocols.filter(p => p.status !== 'merged').length;
                   const tabBtn = (key, label, count) => (
                     <button
                       onClick={() => setProtocolView(key)}
@@ -5704,6 +5708,7 @@ export default function PatientProfile() {
                   return (
                     <div style={{ display: 'flex', gap: 4, padding: '0 16px', borderBottom: '1px solid #e5e7eb', marginBottom: 8 }}>
                       {tabBtn('active', 'Active', activeCount)}
+                      {tabBtn('completed', 'Completed', completedCount)}
                       {tabBtn('historic', 'Historic', historicCount)}
                     </div>
                   );
@@ -5732,10 +5737,13 @@ export default function PatientProfile() {
                   const visibleProtocols = (
                     protocolView === 'active'
                       ? activeProtocols
-                      : completedProtocols.filter(p => p.status !== 'merged')
+                      : protocolView === 'completed'
+                        ? completedProtocols.filter(p => p.status !== 'merged')
+                        : historicProtocols.filter(p => p.status !== 'merged')
                   ).slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
                   if (visibleProtocols.length === 0) {
-                    return <div className="empty">No {protocolView === 'active' ? 'active' : 'historic'} protocols</div>;
+                    const emptyLabel = protocolView === 'active' ? 'active' : protocolView === 'completed' ? 'completed' : 'historic';
+                    return <div className="empty">No {emptyLabel} protocols</div>;
                   }
                   return (
                   <div className="protocol-list">
@@ -6113,7 +6121,7 @@ export default function PatientProfile() {
                               )}
                               {/* Merge button — only show when there are other protocols of the same category */}
                               {protocol.status === 'active' && (() => {
-                                const allProtos = [...activeProtocols, ...completedProtocols];
+                                const allProtos = [...activeProtocols, ...completedProtocols, ...historicProtocols];
                                 const mergeTargets = allProtos.filter(p =>
                                   p.id !== protocol.id &&
                                   p.category === protocol.category &&
@@ -11709,14 +11717,14 @@ export default function PatientProfile() {
                 <select
                   value={mergeTarget?.id || ''}
                   onChange={e => {
-                    const all = [...activeProtocols, ...completedProtocols];
+                    const all = [...activeProtocols, ...completedProtocols, ...historicProtocols];
                     const chosen = all.find(p => p.id === e.target.value);
                     setMergeTarget(chosen || null);
                   }}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, marginBottom: 16, background: '#fff' }}
                   disabled={merging}
                 >
-                  {[...activeProtocols, ...completedProtocols]
+                  {[...activeProtocols, ...completedProtocols, ...historicProtocols]
                     .filter(p => p.id !== mergeSource.id && p.category === mergeSource.category && p.status !== 'merged' && p.status !== 'cancelled')
                     .map(p => (
                       <option key={p.id} value={p.id}>
@@ -12116,7 +12124,7 @@ export default function PatientProfile() {
           <EncounterQuickView
             appointments={appointments}
             notes={notes}
-            protocols={[...activeProtocols, ...completedProtocols]}
+            protocols={[...activeProtocols, ...completedProtocols, ...historicProtocols]}
             patientName={patient?.name}
             onClose={() => setShowQuickView(false)}
             onOpenEncounter={(apt) => {

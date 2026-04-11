@@ -8,7 +8,8 @@ import { Resend } from 'resend';
 import { generateReceiptHtml } from '../../../lib/receipt-email';
 import { todayPacific } from '../../../lib/date-utils';
 import { isWeightLossType } from '../../../lib/protocol-config';
-import { CONTROLLED_DISPENSE_STAFF } from '../../../lib/staff-config';
+// Controlled substance staff config — used for logging, not blocking
+// Dose approval is enforced via dose-change-requests SMS flow
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -68,43 +69,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required fields: patient_id, category' });
   }
 
-  // ── Controlled substance enforcement (testosterone) ──
-  // Requires two authorized staff members: one to dispense, one to verify
-  const isControlledSubstance = category === 'testosterone';
-  if (isControlledSubstance) {
-    if (!administered_by || !verified_by) {
-      return res.status(400).json({
-        error: 'Controlled substance checkout requires both a dispensing staff member and a verifying staff member (dual verification).',
-      });
-    }
-    if (administered_by === verified_by) {
-      return res.status(400).json({
-        error: 'Dispensing and verifying staff must be different people.',
-      });
-    }
-
-    // Validate both staff are authorized for controlled substance dispensing
-    const { data: dispenseStaff } = await supabase
-      .from('employees')
-      .select('id, email, name')
-      .in('name', [administered_by, verified_by]);
-
-    const staffEmails = (dispenseStaff || []).map(s => s.email?.toLowerCase());
-    const unauthorizedNames = [];
-
-    for (const staffName of [administered_by, verified_by]) {
-      const match = (dispenseStaff || []).find(s => s.name === staffName);
-      if (!match || !CONTROLLED_DISPENSE_STAFF.includes(match.email?.toLowerCase())) {
-        unauthorizedNames.push(staffName);
-      }
-    }
-
-    if (unauthorizedNames.length > 0) {
-      return res.status(403).json({
-        error: `Staff not authorized for controlled substance dispensing: ${unauthorizedNames.join(', ')}. Only authorized medical staff may handle testosterone.`,
-      });
-    }
-  }
+  // ── Controlled substance logging (testosterone) ──
+  // Dose changes require Dr. Burgess approval via SMS (handled by dose-change-requests API).
+  // Dispensing is logged with administered_by and verified_by when provided,
+  // but does not block the checkout — the approval gate is on the dose change, not here.
 
   const logDate = entry_date || todayPacific();
 

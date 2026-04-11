@@ -47,7 +47,7 @@ import { VIAL_CATALOG } from '../../lib/vial-catalog';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import CycleProgressCard from '../../components/CycleProgressCard';
-import { STAFF_DISPLAY_NAMES as _STAFF_NAMES, getStaffDisplayName, AUTHOR_ALIASES as _AUTHOR_ALIASES, isNoteAuthor as _isNoteAuthor, isAdmin as _isStaffAdmin, ADMIN_EMAILS, NOTE_AUTHORS, DOSE_APPROVAL_STAFF, canApproveDoseChange } from '../../lib/staff-config';
+import { STAFF_DISPLAY_NAMES as _STAFF_NAMES, getStaffDisplayName, AUTHOR_ALIASES as _AUTHOR_ALIASES, isNoteAuthor as _isNoteAuthor, isAdmin as _isStaffAdmin, ADMIN_EMAILS, NOTE_AUTHORS, DOSE_APPROVAL_STAFF } from '../../lib/staff-config';
 
 // Lazy-load heavy components that aren't needed on initial render
 const CalendarView = dynamic(() => import('../../components/CalendarView'), { ssr: false });
@@ -552,6 +552,9 @@ export default function PatientProfile() {
   const [doseChangeProtocol, setDoseChangeProtocol] = useState(null);
   const [doseChangeForm, setDoseChangeForm] = useState({ date: '', dose: '', injectionsPerWeek: 2, notes: '', approvedByEmail: '' });
   const [doseChangeSaving, setDoseChangeSaving] = useState(false);
+  const [doseChangeRequestId, setDoseChangeRequestId] = useState(null);
+  const [doseChangeRequestStatus, setDoseChangeRequestStatus] = useState(null); // null | 'sending' | 'pending' | 'approved' | 'applied' | 'denied' | 'expired'
+  const [doseChangePolling, setDoseChangePolling] = useState(false);
 
   // Add Credit modal state
   const [showAddCreditModal, setShowAddCreditModal] = useState(false);
@@ -1376,6 +1379,9 @@ export default function PatientProfile() {
       injectionsPerWeek: protocol.injections_per_week || 2,
       notes: ''
     });
+    setDoseChangeRequestId(null);
+    setDoseChangeRequestStatus(null);
+    setDoseChangePolling(false);
     setShowDoseChangeModal(true);
   };
 
@@ -1390,20 +1396,80 @@ export default function PatientProfile() {
     return (newMl && oldMl && newMl > oldMl) || (newIpw > oldIpw);
   })();
 
+  // Poll for dose change approval status
+  const pollDoseChangeStatus = async (requestId) => {
+    setDoseChangePolling(true);
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/dose-change-requests/status?request_id=${requestId}`);
+        const data = await res.json();
+        if (!res.ok) return;
+        setDoseChangeRequestStatus(data.status);
+        if (data.status === 'applied') {
+          setDoseChangePolling(false);
+          // Refresh patient data to show the new protocol
+          setTimeout(() => fetchPatient(), 1000);
+          return;
+        }
+        if (data.status === 'denied') {
+          setDoseChangePolling(false);
+          return;
+        }
+        if (data.status === 'expired') {
+          setDoseChangePolling(false);
+          return;
+        }
+        // Keep polling every 5 seconds
+        setTimeout(() => poll(), 5000);
+      } catch {
+        setTimeout(() => poll(), 5000);
+      }
+    };
+    poll();
+  };
+
   const handleSaveDoseChange = async () => {
     if (!doseChangeForm.date || !doseChangeForm.dose) return;
 
-    // If dose increase, require approval
-    if (isDoseIncrease && !doseChangeForm.approvedByEmail) {
-      alert('Dose increases require provider approval from Dr. Damien Burgess.');
+    setDoseChangeSaving(true);
+
+    // ── DOSE INCREASE: Send SMS to Dr. Burgess for approval ──
+    if (isDoseIncrease) {
+      setDoseChangeRequestStatus('sending');
+      try {
+        const res = await fetch('/api/dose-change-requests/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patient_id: patientId,
+            patient_name: patient?.name || patient?.first_name || 'Patient',
+            protocol_id: doseChangeProtocol.id,
+            current_dose: doseChangeProtocol.selected_dose,
+            proposed_dose: doseChangeForm.dose,
+            current_injections_per_week: doseChangeProtocol.injections_per_week || 2,
+            proposed_injections_per_week: parseInt(doseChangeForm.injectionsPerWeek) || 2,
+            reason: doseChangeForm.notes || null,
+            requested_by_email: employee?.email || 'unknown',
+            requested_by_name: employee?.name || 'Staff',
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to send approval request');
+
+        setDoseChangeRequestId(data.request_id);
+        setDoseChangeRequestStatus('pending');
+        // Start polling for approval
+        pollDoseChangeStatus(data.request_id);
+      } catch (err) {
+        alert('Failed to send approval request: ' + err.message);
+        setDoseChangeRequestStatus(null);
+      }
+      setDoseChangeSaving(false);
       return;
     }
 
-    setDoseChangeSaving(true);
+    // ── DOSE DECREASE: Apply immediately (no approval needed) ──
     try {
-      // Provider dose change: closes the current protocol as `historic` and
-      // creates a new active protocol starting on the effective date,
-      // carrying over remaining vial supply automatically.
       const res = await fetch(`/api/protocols/${doseChangeProtocol.id}/dose-change`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1412,20 +1478,12 @@ export default function PatientProfile() {
           selected_dose: doseChangeForm.dose,
           injections_per_week: parseInt(doseChangeForm.injectionsPerWeek) || 2,
           reason: doseChangeForm.notes || '',
-          approved_by_email: isDoseIncrease ? doseChangeForm.approvedByEmail : undefined,
         }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        if (data.requires_approval) {
-          alert(data.error);
-          setDoseChangeSaving(false);
-          return;
-        }
-        throw new Error(data.error || 'Failed');
-      }
+      if (!res.ok) throw new Error(data.error || 'Failed');
       setShowDoseChangeModal(false);
-      setDoseChangeForm({ date: '', dose: '', injectionsPerWeek: 2, notes: '', approvedByEmail: '' });
+      setDoseChangeForm({ date: '', dose: '', injectionsPerWeek: 2, notes: '' });
       fetchPatient();
     } catch (err) {
       alert('Failed to save dose change: ' + (err.message || ''));
@@ -12270,93 +12328,177 @@ export default function PatientProfile() {
         {/* HRT Dose Change Modal */}
         {showDoseChangeModal && doseChangeProtocol && (
           <>
-            <div onClick={() => setShowDoseChangeModal(false)} style={{
+            <div onClick={() => { if (!doseChangePolling) setShowDoseChangeModal(false); }} style={{
               position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 10000
             }} />
             <div style={{
               position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-              background: '#fff', padding: '24px', zIndex: 10001, width: '400px', maxWidth: '90vw',
+              background: '#fff', padding: '24px', zIndex: 10001, width: '440px', maxWidth: '90vw',
               boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
             }}>
-              <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700 }}>Add Dose Change</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Effective Date</label>
-                  <input type="date" value={doseChangeForm.date} onChange={e => setDoseChangeForm(f => ({ ...f, date: e.target.value }))}
-                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Dose</label>
-                  <select value={doseChangeForm.dose} onChange={e => setDoseChangeForm(f => ({ ...f, dose: e.target.value }))}
-                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}>
-                    <option value="">Select dose...</option>
-                    {(TESTOSTERONE_DOSES[doseChangeProtocol.hrt_type === 'female' ? 'female' : 'male'] || TESTOSTERONE_DOSES.male).map(d => (
-                      <option key={d.value} value={d.value}>{d.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Injections per Week</label>
-                  <select value={doseChangeForm.injectionsPerWeek} onChange={e => setDoseChangeForm(f => ({ ...f, injectionsPerWeek: e.target.value }))}
-                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}>
-                    <option value="1">1x per week</option>
-                    <option value="2">2x per week</option>
-                    <option value="3">3x per week</option>
-                    <option value="7">Daily</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Notes (optional)</label>
-                  <input type="text" value={doseChangeForm.notes} onChange={e => setDoseChangeForm(f => ({ ...f, notes: e.target.value }))}
-                    placeholder="e.g. Reduced after labs"
-                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }} />
-                </div>
+              <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700 }}>Dose Change</h3>
+              <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
+                Current: <strong style={{ color: '#111' }}>{doseChangeProtocol.selected_dose}</strong>
+                {doseChangeProtocol.injections_per_week && <span> &middot; {doseChangeProtocol.injections_per_week}x/wk</span>}
+              </div>
 
-                {/* Dose increase approval — required when increasing dose on HRT/WL */}
-                {isDoseIncrease && (
-                  <div style={{ border: '1px solid #f59e0b', background: '#fffbeb', padding: 12, marginTop: 4 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                      <span style={{ fontSize: 14 }}>⚠️</span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: '#92400e' }}>Dose increase requires provider approval</span>
-                    </div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Approved By <span style={{ color: '#dc2626' }}>*</span></label>
-                    {employee?.email && canApproveDoseChange(employee.email) ? (
-                      <div
-                        style={{ padding: '6px 10px', background: '#f0fdf4', border: '1px solid #86efac', fontSize: 13, color: '#166534', cursor: 'pointer' }}
-                        onClick={() => setDoseChangeForm(f => ({ ...f, approvedByEmail: employee.email }))}
-                      >
-                        {doseChangeForm.approvedByEmail === employee.email
-                          ? `✓ ${employee.name} (you — authorized provider)`
-                          : `Click to confirm approval as ${employee.name}`}
+              {/* ── APPROVAL PENDING STATE ── */}
+              {doseChangeRequestStatus === 'sending' && (
+                <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>&#128225;</div>
+                  <div style={{ fontWeight: 600, color: '#374151', marginBottom: 4 }}>Sending approval request...</div>
+                  <div style={{ fontSize: 13, color: '#6b7280' }}>Texting Dr. Damien Burgess for approval</div>
+                </div>
+              )}
+
+              {doseChangeRequestStatus === 'pending' && (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <div style={{ fontSize: 36, marginBottom: 12 }}>&#128241;</div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#374151', marginBottom: 6 }}>Waiting for Dr. Burgess</div>
+                  <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.5, marginBottom: 16 }}>
+                    An approval text has been sent to Dr. Damien Burgess.<br />
+                    This page will update automatically when he responds.
+                  </div>
+                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', padding: '12px 16px', borderRadius: 8, marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
+                      <div style={{ fontSize: 13, color: '#92400e' }}>
+                        <strong>{doseChangeProtocol.selected_dose}</strong>
+                        <span style={{ margin: '0 8px', fontSize: 18 }}>&rarr;</span>
+                        <strong style={{ color: '#b45309' }}>{doseChangeForm.dose}</strong>
                       </div>
-                    ) : (
-                      <select
-                        value={doseChangeForm.approvedByEmail}
-                        onChange={e => setDoseChangeForm(f => ({ ...f, approvedByEmail: e.target.value }))}
-                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #f59e0b', borderRadius: 0, fontSize: 13, background: '#fff' }}
-                      >
-                        <option value="">Select approving provider...</option>
-                        <option value="burgess@range-medical.com">Dr. Damien Burgess</option>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                    <span style={{ fontSize: 12, color: '#6b7280' }}>Polling for response...</span>
+                  </div>
+                </div>
+              )}
+
+              {doseChangeRequestStatus === 'applied' && (
+                <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                  <div style={{ fontSize: 36, marginBottom: 12 }}>&#9989;</div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#166534', marginBottom: 6 }}>Dose Change Approved & Applied</div>
+                  <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
+                    Dr. Burgess approved the dose change. The protocol has been updated.
+                  </div>
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '12px 16px', borderRadius: 8, marginBottom: 16 }}>
+                    <span style={{ color: '#6b7280' }}>{doseChangeProtocol.selected_dose}</span>
+                    <span style={{ margin: '0 8px' }}>&rarr;</span>
+                    <strong style={{ color: '#166534' }}>{doseChangeForm.dose}</strong>
+                  </div>
+                  <button onClick={() => { setShowDoseChangeModal(false); fetchPatient(); }}
+                    style={{ padding: '8px 24px', background: '#111', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                    Done
+                  </button>
+                </div>
+              )}
+
+              {doseChangeRequestStatus === 'approved' && (
+                <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                  <div style={{ fontSize: 36, marginBottom: 12 }}>&#9989;</div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#166534', marginBottom: 6 }}>Approved by Dr. Burgess</div>
+                  <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
+                    Applying the dose change to the protocol...
+                  </div>
+                </div>
+              )}
+
+              {doseChangeRequestStatus === 'denied' && (
+                <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                  <div style={{ fontSize: 36, marginBottom: 12 }}>&#10060;</div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#991b1b', marginBottom: 6 }}>Dose Change Denied</div>
+                  <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
+                    Dr. Burgess denied this dose change request.
+                  </div>
+                  <button onClick={() => { setShowDoseChangeModal(false); setDoseChangeRequestStatus(null); }}
+                    style={{ padding: '8px 24px', background: '#111', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                    Close
+                  </button>
+                </div>
+              )}
+
+              {doseChangeRequestStatus === 'expired' && (
+                <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                  <div style={{ fontSize: 36, marginBottom: 12 }}>&#9203;</div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#92400e', marginBottom: 6 }}>Request Expired</div>
+                  <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
+                    Dr. Burgess did not respond within 24 hours. You can submit a new request.
+                  </div>
+                  <button onClick={() => { setDoseChangeRequestStatus(null); setDoseChangeRequestId(null); }}
+                    style={{ padding: '8px 24px', background: '#111', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                    Try Again
+                  </button>
+                </div>
+              )}
+
+              {/* ── FORM STATE (no pending request) ── */}
+              {!doseChangeRequestStatus && (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>New Dose</label>
+                      <select value={doseChangeForm.dose} onChange={e => setDoseChangeForm(f => ({ ...f, dose: e.target.value }))}
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}>
+                        <option value="">Select dose...</option>
+                        {(TESTOSTERONE_DOSES[doseChangeProtocol.hrt_type === 'female' ? 'female' : 'male'] || TESTOSTERONE_DOSES.male).map(d => (
+                          <option key={d.value} value={d.value}>{d.label}</option>
+                        ))}
                       </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Injections per Week</label>
+                      <select value={doseChangeForm.injectionsPerWeek} onChange={e => setDoseChangeForm(f => ({ ...f, injectionsPerWeek: e.target.value }))}
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}>
+                        <option value="1">1x per week</option>
+                        <option value="2">2x per week</option>
+                        <option value="3">3x per week</option>
+                        <option value="7">Daily</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Reason (optional)</label>
+                      <input type="text" value={doseChangeForm.notes} onChange={e => setDoseChangeForm(f => ({ ...f, notes: e.target.value }))}
+                        placeholder="e.g. Labs show low levels, patient request"
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }} />
+                    </div>
+
+                    {/* Dose increase notice */}
+                    {isDoseIncrease && doseChangeForm.dose && (
+                      <div style={{ border: '1px solid #f59e0b', background: '#fffbeb', padding: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                          <span style={{ fontSize: 14 }}>&#9888;&#65039;</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#92400e' }}>Dose increase requires Dr. Burgess approval</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#78350f', lineHeight: 1.5 }}>
+                          An approval text will be sent to Dr. Damien Burgess. The dose will only change after he approves via the link in the text.
+                        </div>
+                      </div>
                     )}
-                    {isDoseIncrease && !doseChangeForm.approvedByEmail && (
-                      <div style={{ fontSize: 11, color: '#b45309', marginTop: 4 }}>Dr. Burgess must approve before this dose increase can be saved.</div>
+
+                    {/* Dose decrease notice */}
+                    {!isDoseIncrease && doseChangeForm.dose && (
+                      <div style={{ border: '1px solid #bbf7d0', background: '#f0fdf4', padding: 12 }}>
+                        <div style={{ fontSize: 12, color: '#166534' }}>
+                          Dose decrease &mdash; no approval required. Change will be applied immediately.
+                        </div>
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-                <button onClick={() => setShowDoseChangeModal(false)} style={{ padding: '6px 16px', border: '1px solid #d1d5db', background: '#fff', borderRadius: 0, cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-                <button onClick={handleSaveDoseChange} disabled={doseChangeSaving || !doseChangeForm.dose || !doseChangeForm.date || (isDoseIncrease && !doseChangeForm.approvedByEmail)}
-                  style={{ padding: '6px 16px', background: isDoseIncrease ? '#b45309' : '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: doseChangeSaving || !doseChangeForm.dose || (isDoseIncrease && !doseChangeForm.approvedByEmail) ? 0.5 : 1 }}>
-                  {doseChangeSaving ? 'Saving...' : isDoseIncrease ? 'Save (Approved Increase)' : 'Save'}
-                </button>
-              </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+                    <button onClick={() => setShowDoseChangeModal(false)} style={{ padding: '6px 16px', border: '1px solid #d1d5db', background: '#fff', borderRadius: 0, cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+                    <button onClick={handleSaveDoseChange} disabled={doseChangeSaving || !doseChangeForm.dose}
+                      style={{ padding: '6px 16px', background: isDoseIncrease ? '#b45309' : '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: doseChangeSaving || !doseChangeForm.dose ? 0.5 : 1 }}>
+                      {doseChangeSaving ? 'Sending...' : isDoseIncrease ? 'Send Approval to Dr. Burgess' : 'Apply Dose Change'}
+                    </button>
+                  </div>
+                </>
+              )}
 
               {/* Existing dose history entries */}
-              {Array.isArray(doseChangeProtocol.dose_history) && doseChangeProtocol.dose_history.length > 0 && (
+              {!doseChangeRequestStatus && Array.isArray(doseChangeProtocol.dose_history) && doseChangeProtocol.dose_history.length > 0 && (
                 <div style={{ marginTop: 16, borderTop: '1px solid #e5e7eb', paddingTop: 12 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>Existing Entries</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>Dose History</div>
                   {doseChangeProtocol.dose_history.map((entry, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: 12, borderBottom: '1px solid #f3f4f6' }}>
                       <span>

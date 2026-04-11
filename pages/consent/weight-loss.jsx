@@ -62,6 +62,12 @@ export default function WeightLossConsent() {
         .checkbox-consent input[type="checkbox"] { width: 18px; height: 18px; margin-top: 3px; cursor: pointer; accent-color: #000; flex-shrink: 0; }
         .checkbox-consent label { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: normal; margin-bottom: 0; cursor: pointer; color: #333; line-height: 1.55; }
         .checkbox-consent.error { border-color: #dc2626; background: #fef2f2; }
+        .ack-item { border: 1px solid #e5e7eb; border-radius: 0; padding: 14px 16px; margin-bottom: 10px; transition: border-color 0.2s; }
+        .ack-item label { display: flex; gap: 12px; cursor: pointer; align-items: flex-start; }
+        .ack-checkbox { position: absolute; opacity: 0; width: 0; height: 0; }
+        .ack-initials { width: 28px; height: 28px; min-width: 28px; border: 2px solid #d4d4d4; border-radius: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: transparent; background: #fff; cursor: pointer; transition: all 0.15s; margin-top: 1px; user-select: none; }
+        .ack-checkbox:checked + .ack-initials { background: #000; border-color: #000; color: #fff; }
+        .ack-text { font-size: 13px; line-height: 1.55; color: #333; }
         .signature-wrapper { margin-bottom: 16px; }
         .signature-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #333; display: block; text-transform: none; letter-spacing: normal; }
         .signature-pad-container { border: 2px solid #000; border-radius: 0; background: #fff; position: relative; margin-bottom: 8px; overflow: hidden; }
@@ -238,13 +244,19 @@ export default function WeightLossConsent() {
                 </ul>
               </div>
               
-              <div className="checkbox-consent" id="consentCheckbox">
-                <input type="checkbox" id="consentGiven" name="consentGiven" required />
-                <label htmlFor="consentGiven">
-                  <strong>I acknowledge and consent:</strong> I have disclosed all relevant medical information, medications, and allergies. I have read and understand the potential benefits, risks, and expectations of treatment. All my questions have been answered to my satisfaction. I consent to participate in the Range Medical Compounded Weight Management Program under medical supervision. I release Range Medical, its providers, and staff from any liability except in cases of gross negligence or misconduct.
-                </label>
-              </div>
-              <div className="field-error" id="consentError">You must provide consent to continue</div>
+              <h3 className="section-title" style={{ marginTop: '28px' }}>Patient Acknowledgments</h3>
+              <p style={{ fontSize: '14px', color: '#444', marginBottom: '16px', lineHeight: '1.5' }}>Please review and initial each statement by clicking the box.</p>
+
+              <div className="ack-item"><label><input type="checkbox" id="ack1" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I understand that compounded weight management therapy involves subcutaneous injections of compounded medications prescribed by my provider to support weight loss in conjunction with diet and lifestyle changes.</span></label></div>
+              <div className="ack-item"><label><input type="checkbox" id="ack2" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I have been informed of the common side effects, including nausea, constipation, diarrhea, indigestion, abdominal discomfort, and fatigue or dizziness. I understand these often improve with time.</span></label></div>
+              <div className="ack-item"><label><input type="checkbox" id="ack3" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I understand the serious risks that require immediate medical attention, including severe allergic reactions, severe abdominal pain, signs of low blood sugar, and persistent upper-right abdominal pain or yellowing of the skin/eyes.</span></label></div>
+              <div className="ack-item"><label><input type="checkbox" id="ack4" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I have disclosed all relevant medical history, current medications, allergies, and health conditions to my provider. I understand the contraindications outlined above and confirm this treatment is appropriate for me based on my medical history.</span></label></div>
+              <div className="ack-item"><label><input type="checkbox" id="ack5" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I understand that individual results vary and are not guaranteed. Weight loss depends on consistency, lifestyle, and adherence to the program. This therapy is not a permanent solution, and maintaining results requires long-term healthy habits.</span></label></div>
+              <div className="ack-item"><label><input type="checkbox" id="ack6" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I agree to follow the diet and lifestyle recommendations provided, including eating a high-fiber, protein-rich diet, staying hydrated, and limiting alcohol intake to maximize results and minimize side effects.</span></label></div>
+              <div className="ack-item"><label><input type="checkbox" id="ack7" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I understand that compounded weight management treatments are not covered by insurance and are self-pay. There are no refunds once treatment begins. I agree not to dispute or reverse payments, and if a chargeback is initiated, I am responsible for collection, court, and legal fees.</span></label></div>
+              <div className="ack-item"><label><input type="checkbox" id="ack8" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I agree to immediately notify Range Medical staff if I experience any adverse reaction, unusual symptoms, or change in my condition during or after treatment. I understand I have the right to refuse or discontinue treatment at any time.</span></label></div>
+              <div className="ack-item"><label><input type="checkbox" id="ack9" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I release Range Medical, its providers, and staff from any liability except in cases of gross negligence or misconduct. I consent to participate in the Range Medical Compounded Weight Management Program under medical supervision.</span></label></div>
+              <div className="ack-item"><label><input type="checkbox" id="ack10" className="ack-checkbox" required /><span className="ack-initials"></span><span className="ack-text">I confirm that I am at least 18 years of age, that I have read this consent form in its entirety, that I have had the opportunity to ask questions, and that I am signing voluntarily.</span></label></div>
             </div>
             
             {/* Signature */}
@@ -415,10 +427,18 @@ function initializeForm() {
     });
   });
 
-  document.getElementById('consentGiven').addEventListener('change', () => {
-    document.getElementById('consentCheckbox').classList.remove('error');
-    document.getElementById('consentError').classList.remove('visible');
-  });
+  // ============================================
+  // INITIALS FOR ACKNOWLEDGMENTS
+  // ============================================
+  function updateInitials() {
+    const first = (document.getElementById('firstName')?.value || '').trim();
+    const last = (document.getElementById('lastName')?.value || '').trim();
+    const initials = ((first.charAt(0) || '') + (last.charAt(0) || '')).toUpperCase();
+    document.querySelectorAll('.ack-initials').forEach(el => { el.textContent = initials; });
+  }
+  document.getElementById('firstName')?.addEventListener('input', updateInitials);
+  document.getElementById('lastName')?.addEventListener('input', updateInitials);
+  updateInitials();
 
   // ============================================
   // FORM VALIDATION
@@ -461,12 +481,15 @@ function initializeForm() {
       if (dobError) dobError.classList.remove('visible');
     }
 
-    const consentCheckbox = document.getElementById('consentGiven');
-    if (!consentCheckbox.checked) {
-      document.getElementById('consentCheckbox').classList.add('error');
-      document.getElementById('consentError').classList.add('visible');
+    const ackBoxes = document.querySelectorAll('.ack-checkbox');
+    let allAcked = true;
+    ackBoxes.forEach(cb => {
+      if (!cb.checked) { allAcked = false; cb.closest('.ack-item').style.borderColor = '#dc2626'; }
+      else { cb.closest('.ack-item').style.borderColor = '#e5e7eb'; }
+    });
+    if (!allAcked) {
       isValid = false;
-      missingFields.push('Consent Checkbox');
+      missingFields.push('All acknowledgment checkboxes');
     }
 
     if (signaturePad.isEmpty()) {
@@ -489,6 +512,14 @@ function initializeForm() {
   // COLLECT FORM DATA
   // ============================================
   function collectFormData() {
+    const acknowledgments = [];
+    document.querySelectorAll('.ack-checkbox').forEach(cb => {
+      acknowledgments.push({
+        id: cb.id,
+        text: cb.closest('.ack-item').querySelector('.ack-text').textContent.trim(),
+        checked: cb.checked
+      });
+    });
     return {
       firstName: document.getElementById('firstName').value.trim(),
       lastName: document.getElementById('lastName').value.trim(),
@@ -496,7 +527,8 @@ function initializeForm() {
       phone: document.getElementById('phone').value.trim(),
       dateOfBirth: document.getElementById('dateOfBirth').value,
       consentDate: document.getElementById('consentDate').value,
-      consentGiven: document.getElementById('consentGiven').checked,
+      consentGiven: true,
+      acknowledgments: acknowledgments,
       signature: signaturePad.toDataURL('image/jpeg', 0.5),
       submissionDate: new Date().toLocaleString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric',
@@ -561,7 +593,10 @@ function initializeForm() {
       signatureUrl: signatureUrl,
       pdfUrl: pdfUrl,
       consentGiven: formData.consentGiven,
-      ghlContactId: ghlContactId
+      ghlContactId: ghlContactId,
+      additionalData: {
+        acknowledgments: formData.acknowledgments
+      }
     };
 
     const response = await fetch(CONFIG.api.consents, {
@@ -772,9 +807,23 @@ function initializeForm() {
     addBullet('Prices may change, and I agree to pay the rates in effect at the time of treatment');
     yPos += 4;
 
-    // ========== CONSENT ACKNOWLEDGMENT ==========
-    addSectionHeader('Consent Acknowledgment');
-    addText('I acknowledge and consent: I have disclosed all relevant medical information, medications, and allergies. I have read and understand the potential benefits, risks, and expectations of treatment. All my questions have been answered to my satisfaction. I consent to participate in the Range Medical Compounded Weight Management Program under medical supervision. I release Range Medical, its providers, and staff from any liability except in cases of gross negligence or misconduct.', 8.5, true);
+    // ========== PATIENT ACKNOWLEDGMENTS ==========
+    addSectionHeader('Patient Acknowledgments');
+    var initials = ((formData.firstName.charAt(0) || '') + (formData.lastName.charAt(0) || '')).toUpperCase();
+    if (formData.acknowledgments && formData.acknowledgments.length > 0) {
+      formData.acknowledgments.forEach(function(ack, i) {
+        checkPageBreak(12);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
+        doc.text('[' + initials + ']', leftMargin, yPos);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(51, 51, 51);
+        var ackLines = doc.splitTextToSize(ack.text, contentWidth - 15);
+        doc.text(ackLines, leftMargin + 12, yPos);
+        yPos += ackLines.length * 3.8 + 3;
+      });
+    }
     yPos += 4;
 
     // ========== PATIENT SIGNATURE ==========

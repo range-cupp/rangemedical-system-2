@@ -45,7 +45,7 @@ export default function StartThankYou() {
         <div style={{ textAlign: 'center', padding: '120px 20px' }}>
           <h1 style={{ fontSize: 28, fontWeight: 700 }}>Page not found</h1>
           <p style={{ color: '#737373', marginTop: 8 }}>
-            <Link href="/range-assessment" style={{ color: '#171717', fontWeight: 600 }}>Go back to Range Assessment</Link>
+            <Link href="/assessment" style={{ color: '#171717', fontWeight: 600 }}>Go back to Range Assessment</Link>
           </p>
         </div>
       </Layout>
@@ -886,7 +886,7 @@ export default function StartThankYou() {
 
             {/* CTA */}
             <div className="ty-cta-section" style={{ paddingTop: 48 }}>
-              <Link href="/range-assessment?path=injury" className="ty-cta-btn">
+              <Link href="/assessment?path=injury" className="ty-cta-btn">
                 Book a Recovery Visit
               </Link>
               <p className="ty-or" style={{ marginTop: 8 }}>

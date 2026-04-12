@@ -126,7 +126,7 @@ export default function Home() {
             If you move forward with treatment, the full $197 goes toward it.
           </p>
           <div style={{ marginTop: '2rem' }}>
-            <Link href="/range-assessment" className="btn-primary">
+            <Link href="/assessment" className="btn-primary">
               Book Your Range Assessment
             </Link>
           </div>
@@ -152,7 +152,7 @@ export default function Home() {
                   <li>Get a clear protocol recommendation</li>
                   <li>$197 credited toward your treatment</li>
                 </ul>
-                <Link href="/range-assessment?path=injury" className="v2-link-cta">
+                <Link href="/assessment?path=injury" className="v2-link-cta">
                   Book Assessment <span>&rarr;</span>
                 </Link>
               </div>
@@ -168,7 +168,7 @@ export default function Home() {
                   <li>Get a clear path forward</li>
                   <li>$197 credited toward your program</li>
                 </ul>
-                <Link href="/range-assessment?path=energy" className="v2-link-cta">
+                <Link href="/assessment?path=energy" className="v2-link-cta">
                   Book Assessment <span>&rarr;</span>
                 </Link>
               </div>
@@ -301,7 +301,7 @@ export default function Home() {
             <div className="cta-rule" />
             <p>One assessment. One plan. $197 credited toward your treatment.</p>
             <div className="cta-buttons">
-              <Link href="/range-assessment" className="btn-white">
+              <Link href="/assessment" className="btn-white">
                 Book Your Range Assessment
               </Link>
             </div>

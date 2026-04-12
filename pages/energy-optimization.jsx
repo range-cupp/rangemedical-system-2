@@ -425,7 +425,7 @@ export default function EnergyOptimization() {
               Start with a $197 Range Assessment. We&apos;ll review your situation, discuss the right labs, and build your plan.
               If you move forward with treatment, the full $197 goes toward it.
             </p>
-            <Link href="/range-assessment?path=energy" className="btn-white">Book Your Range Assessment</Link>
+            <Link href="/assessment?path=energy" className="btn-white">Book Your Range Assessment</Link>
             <p className="eo-cta-location">
               Range Medical &bull; 1901 Westcliff Dr, Newport Beach
             </p>

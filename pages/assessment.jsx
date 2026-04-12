@@ -30,7 +30,7 @@ const s = {
   page: {
     minHeight: '100vh',
     background: '#FAFAFA',
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   },
   container: {
     maxWidth: 600,
@@ -42,10 +42,11 @@ const s = {
     marginBottom: 40,
   },
   logoText: {
-    fontSize: 20,
-    fontWeight: 700,
-    letterSpacing: '0.08em',
-    color: '#171717',
+    fontSize: 13,
+    fontWeight: 800,
+    letterSpacing: '0.15em',
+    color: '#1a1a1a',
+    textTransform: 'uppercase',
   },
   headline: {
     fontSize: 26,
@@ -612,6 +613,9 @@ export default function Assessment() {
         <title>Range Assessment | Range Medical</title>
         <meta name="description" content="Book your in-clinic Range Assessment. Personalized treatment plan for injury recovery, hormone optimization, and full-spectrum health." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </Head>
 
       <div style={s.page}>

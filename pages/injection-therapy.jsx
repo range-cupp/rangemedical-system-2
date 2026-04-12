@@ -460,7 +460,7 @@ export default function InjectionTherapy() {
                 Walk-ins welcome for established patients. New to Range? Start with a quick assessment to get set up. Our Newport Beach team is ready to help.
               </p>
               <div className="inj-cta-buttons">
-                <Link href="/range-assessment" className="btn-white">Book Your Range Assessment</Link>
+                <Link href="/assessment" className="btn-white">Book Your Range Assessment</Link>
                 <div className="inj-cta-or">or</div>
                 <a href="tel:9499973988" className="inj-cta-phone">(949) 997-3988</a>
               </div>

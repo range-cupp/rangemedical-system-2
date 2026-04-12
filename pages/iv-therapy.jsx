@@ -658,7 +658,7 @@ export default function IVTherapy() {
                 Most people are chronically dehydrated and nutrient-depleted without knowing it. One session and you'll feel the difference. Walk in tired, walk out recharged. $197 assessment, credited toward treatment.
               </p>
               <div className="iv-cta-buttons">
-                <Link href="/range-assessment" className="iv-btn-primary">Book Your Range Assessment</Link>
+                <Link href="/assessment" className="iv-btn-primary">Book Your Range Assessment</Link>
                 <div className="iv-cta-or">or</div>
                 <a href="tel:9499973988" className="iv-cta-phone">(949) 997-3988</a>
               </div>

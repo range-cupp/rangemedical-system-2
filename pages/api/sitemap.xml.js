@@ -10,7 +10,7 @@ const TODAY = todayPacific();
 // Static pages with their priorities
 const STATIC_PAGES = [
   { path: '/', priority: '1.0', changefreq: 'weekly' },
-  { path: '/range-assessment', priority: '0.9', changefreq: 'monthly' },
+  { path: '/assessment', priority: '0.9', changefreq: 'monthly' },
   { path: '/quiz', priority: '0.9', changefreq: 'monthly' },
 
   // Main service pages

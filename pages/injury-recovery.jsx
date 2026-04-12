@@ -8,7 +8,7 @@ import { getStudiesByService } from '../data/researchStudies';
 export default function InjuryRecovery() {
   const router = useRouter();
   const fromStart = router.query.from === 'start';
-  const assessmentLink = '/range-assessment';
+  const assessmentLink = '/assessment';
 
   const [openFaq, setOpenFaq] = useState(null);
   const [isVisible, setIsVisible] = useState({});

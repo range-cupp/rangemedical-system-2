@@ -202,7 +202,7 @@ export default function BookRecovery() {
           </div>
 
           <div className="info-note">
-            <p><strong>Looking for hormone therapy, weight loss, or longevity services?</strong> <Link href="/range-assessment">Start here instead →</Link></p>
+            <p><strong>Looking for hormone therapy, weight loss, or longevity services?</strong> <Link href="/assessment">Start here instead →</Link></p>
           </div>
 
           {/* Calendar Container */}

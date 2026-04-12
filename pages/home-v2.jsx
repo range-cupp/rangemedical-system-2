@@ -42,7 +42,7 @@ export default function HomeV2() {
             <Link href="/weight-loss">Weight Loss</Link>
             <Link href="/lab-panels">Labs</Link>
           </nav>
-          <Link href="/range-assessment" className="v2-nav-cta">Book Your Range Assessment</Link>
+          <Link href="/assessment" className="v2-nav-cta">Book Your Range Assessment</Link>
           <button className="v2-hamburger" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
             <span /><span />
           </button>
@@ -57,7 +57,7 @@ export default function HomeV2() {
             <Link href="/hyperbaric-oxygen-therapy" onClick={() => setMenuOpen(false)}>Hyperbaric Oxygen</Link>
             <Link href="/red-light-therapy" onClick={() => setMenuOpen(false)}>Red Light Therapy</Link>
             <Link href="/lab-panels" onClick={() => setMenuOpen(false)}>Labs & Testing</Link>
-            <Link href="/range-assessment" className="v2-mobile-cta" onClick={() => setMenuOpen(false)}>Book Your Range Assessment</Link>
+            <Link href="/assessment" className="v2-mobile-cta" onClick={() => setMenuOpen(false)}>Book Your Range Assessment</Link>
           </div>
         )}
       </header>
@@ -100,7 +100,7 @@ export default function HomeV2() {
                   <li>Get a clear protocol recommendation</li>
                   <li>$197 — credited toward treatment</li>
                 </ul>
-                <Link href="/range-assessment?path=injury&from=start" className="v2-path-link">
+                <Link href="/assessment?path=injury&from=start" className="v2-path-link">
                   Book Your Range Assessment <span>&rarr;</span>
                 </Link>
               </div>
@@ -119,7 +119,7 @@ export default function HomeV2() {
                   <li>Written plan in plain language</li>
                   <li>Essential ($350) or Elite ($750)</li>
                 </ul>
-                <Link href="/range-assessment" className="v2-path-link">
+                <Link href="/assessment" className="v2-path-link">
                   Book Your Range Assessment <span>&rarr;</span>
                 </Link>
               </div>
@@ -185,8 +185,8 @@ export default function HomeV2() {
             <div className="v2-cta-rule" />
             <p>Pick the path that fits your situation.</p>
             <div className="v2-cta-buttons">
-              <Link href="/range-assessment?path=injury&from=start" className="v2-btn-white">INJURY & RECOVERY</Link>
-              <Link href="/range-assessment" className="v2-btn-outline">ENERGY & HORMONES</Link>
+              <Link href="/assessment?path=injury&from=start" className="v2-btn-white">INJURY & RECOVERY</Link>
+              <Link href="/assessment" className="v2-btn-outline">ENERGY & HORMONES</Link>
             </div>
             <div className="v2-cta-location">
               Range Medical &bull; 1901 Westcliff Dr, Newport Beach &bull; (949) 997-3988
@@ -205,7 +205,7 @@ export default function HomeV2() {
           <div className="v2-footer-links">
             <div className="v2-footer-col">
               <h4>START</h4>
-              <Link href="/range-assessment">Book Your Range Assessment</Link>
+              <Link href="/assessment">Book Your Range Assessment</Link>
               <Link href="/injury-recovery">Injury Recovery</Link>
               <Link href="/lab-panels">Labs & Testing</Link>
             </div>

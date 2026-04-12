@@ -154,7 +154,7 @@ export default async function handler(req, res) {
     if (consentSms && phone) {
       try {
         const normalized = normalizePhone(phone);
-        const nextStepUrl = 'https://range-medical.com/range-assessment';
+        const nextStepUrl = 'https://range-medical.com/assessment';
 
         const message = `Got your info, ${capFirst}.\n\nYour next step is to book your $197 Range Assessment. We'll review your history, symptoms, and goals — then build your plan. If you move forward with treatment, the full $197 goes toward it.\n\nBook here:\n${nextStepUrl}\n\n- Range Medical`;
 

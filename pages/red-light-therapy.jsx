@@ -753,7 +753,7 @@ export default function RedLightTherapy() {
                 Our patients combine red light therapy with their existing protocols and notice the difference within weeks. Less pain, better skin, faster recovery. Come see what light can do. $197 assessment, credited toward treatment.
               </p>
               <div className="rlt-cta-buttons">
-                <Link href="/range-assessment" className="rlt-btn-primary">Book Your Range Assessment</Link>
+                <Link href="/assessment" className="rlt-btn-primary">Book Your Range Assessment</Link>
                 <div className="rlt-cta-or">or</div>
                 <a href="tel:9499973988" className="rlt-cta-phone">(949) 997-3988</a>
               </div>

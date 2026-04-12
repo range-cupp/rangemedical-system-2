@@ -81,9 +81,9 @@ export default function StartPage() {
 
   const handleDoorClick = (doorId) => {
     if (doorId === 'injury') {
-      router.push('/range-assessment?path=injury&from=start');
+      router.push('/assessment?path=injury&from=start');
     } else {
-      router.push('/range-assessment');
+      router.push('/assessment');
     }
   };
 
@@ -106,7 +106,7 @@ export default function StartPage() {
           fromStart: true,
         }));
       } catch (e) {}
-      router.push('/range-assessment?path=injury&from=start');
+      router.push('/assessment?path=injury&from=start');
       return;
     }
 
@@ -196,7 +196,7 @@ export default function StartPage() {
       // Redirect based on path
       if (selectedDoor === 'injury') {
         // Go straight into the injury assessment questions (contact info auto-filled, step 0 skipped)
-        router.push('/range-assessment?path=injury&from=start');
+        router.push('/assessment?path=injury&from=start');
       } else {
         // Energy path goes to lab panel selection page
         router.push(`/start/${selectedDoor}?name=${encodeURIComponent(form.firstName.trim())}`);

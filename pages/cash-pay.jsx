@@ -98,10 +98,10 @@ export default function CashPay() {
             <div className="cta-rule" />
             <p>Take the Range Assessment &mdash; it&apos;s free for injury recovery, or starts at $350 for labs.</p>
             <div className="cta-buttons">
-              <Link href="/range-assessment?path=injury&from=start" className="btn-white">
+              <Link href="/assessment?path=injury&from=start" className="btn-white">
                 Injury & Recovery
               </Link>
-              <Link href="/range-assessment" style={{
+              <Link href="/assessment" style={{
                 display: 'inline-block', background: 'transparent', color: '#ffffff',
                 padding: '0.875rem 2rem', fontWeight: 700,
                 fontSize: '11px', textDecoration: 'none', letterSpacing: '0.12em',

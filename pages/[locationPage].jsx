@@ -136,7 +136,7 @@ export default function LocationPage({ pageData, schemas, serviceSlug, citySlug 
           <h1>{service.title} in {city.name}</h1>
           <p className="loc-body-text">{service.subtitle}</p>
           <p className="loc-body-text loc-intro">{intro}</p>
-          <Link href="/range-assessment" className="loc-btn-primary">
+          <Link href="/assessment" className="loc-btn-primary">
             Book Your Range Assessment
           </Link>
         </section>
@@ -202,7 +202,7 @@ export default function LocationPage({ pageData, schemas, serviceSlug, citySlug 
                     ))}
                   </ul>
                 )}
-                <Link href={service.pricing.link || '/range-assessment'} className="loc-btn-primary" style={{ marginTop: '1.5rem' }}>
+                <Link href={service.pricing.link || '/assessment'} className="loc-btn-primary" style={{ marginTop: '1.5rem' }}>
                   Learn More
                 </Link>
               </div>
@@ -253,7 +253,7 @@ export default function LocationPage({ pageData, schemas, serviceSlug, citySlug 
                 {CLINIC.address}, {CLINIC.city}, {CLINIC.state} {CLINIC.zip}<br />
                 {CLINIC.phone}
               </p>
-              <Link href="/range-assessment" className="loc-btn-primary" style={{ marginTop: '1.5rem' }}>
+              <Link href="/assessment" className="loc-btn-primary" style={{ marginTop: '1.5rem' }}>
                 Book Your Range Assessment
               </Link>
             </div>

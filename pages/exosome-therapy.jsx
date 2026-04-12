@@ -404,7 +404,7 @@ export default function ExosomeTherapy() {
                 Get started with Range Medical. Your provider will review your goals and determine if exosome therapy is a good fit for your situation. Our Newport Beach team is here to help.
               </p>
               <div className="exo-cta-buttons">
-                <Link href="/range-assessment" className="exo-btn-primary">Book Your Range Assessment</Link>
+                <Link href="/assessment" className="exo-btn-primary">Book Your Range Assessment</Link>
                 <div className="exo-cta-or">or</div>
                 <a href="tel:9499973988" className="exo-cta-phone">(949) 997-3988</a>
               </div>

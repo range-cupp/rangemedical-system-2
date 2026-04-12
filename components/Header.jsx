@@ -36,8 +36,8 @@ export default function Header() {
         <nav className="rm-nav">
           <div className="rm-nav-links">
             <Link
-              href="/range-assessment"
-              className={`rm-nav-link ${router.pathname === '/range-assessment' ? 'active' : ''}`}
+              href="/assessment"
+              className={`rm-nav-link ${router.pathname === '/assessment' ? 'active' : ''}`}
             >
               Range Assessment
             </Link>
@@ -77,7 +77,7 @@ export default function Header() {
             </div>
           </div>
 
-          <Link href="/range-assessment" className="rm-nav-cta">
+          <Link href="/assessment" className="rm-nav-cta">
             Book Your Range Assessment
           </Link>
         </nav>
@@ -91,7 +91,7 @@ export default function Header() {
 
       {mobileOpen && (
         <div className="rm-mobile-menu">
-          <Link href="/range-assessment" onClick={() => setMobileOpen(false)}>
+          <Link href="/assessment" onClick={() => setMobileOpen(false)}>
             Range Assessment
           </Link>
           <Link href="/injury-recovery" onClick={() => setMobileOpen(false)}>
@@ -126,7 +126,7 @@ export default function Header() {
               ))}
             </div>
           )}
-          <Link href="/range-assessment" className="rm-mobile-cta" onClick={() => setMobileOpen(false)}>
+          <Link href="/assessment" className="rm-mobile-cta" onClick={() => setMobileOpen(false)}>
             Book Your Range Assessment
           </Link>
         </div>

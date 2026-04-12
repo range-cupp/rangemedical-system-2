@@ -302,7 +302,7 @@ export default function ReviewsPage({ reviews, aggregateRating, totalReviewCount
           <div className="v2-label" style={{ justifyContent: 'center' }}><span className="v2-dot" style={{ background: '#808080' }} /> NEXT STEP</div>
           <h2>READY TO FEEL<br />LIKE YOURSELF AGAIN?</h2>
           <p className="rv-cta-body">Join our patients who have transformed their health with Range Medical.</p>
-          <Link href="/range-assessment" className="rv-btn-white">
+          <Link href="/assessment" className="rv-btn-white">
             Book Your Range Assessment
           </Link>
           <p className="rv-cta-location">

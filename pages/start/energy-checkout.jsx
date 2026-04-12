@@ -122,7 +122,7 @@ export default function EnergyCheckout() {
         <div style={{ textAlign: 'center', padding: '120px 20px' }}>
           <h1 style={{ fontSize: 28, fontWeight: 700 }}>Please choose a panel first</h1>
           <p style={{ color: '#737373', marginTop: 8 }}>
-            <a href="/range-assessment" style={{ color: '#171717', fontWeight: 600 }}>Go back to Range Assessment</a>
+            <a href="/assessment" style={{ color: '#171717', fontWeight: 600 }}>Go back to Range Assessment</a>
           </p>
         </div>
       </Layout>

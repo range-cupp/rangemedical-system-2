@@ -691,6 +691,9 @@ export default function Assessment() {
         start: bookData.booking?.start || selectedSlot,
       });
       setScreen(4);
+
+      // Push /assessment/confirmed for Google Ads conversion tracking
+      window.history.pushState({}, '', '/assessment/confirmed');
     } catch (err) {
       console.error('Confirm error:', err);
       setError(err.message);

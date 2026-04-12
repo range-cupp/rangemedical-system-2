@@ -41,14 +41,9 @@ const s = {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  wordmark: {
-    fontSize: 13,
-    fontWeight: 800,
-    letterSpacing: '0.15em',
-    color: '#1a1a1a',
-    textTransform: 'uppercase',
-    lineHeight: 1,
-    textDecoration: 'none',
+  logo: {
+    height: 28,
+    display: 'block',
   },
   container: {
     maxWidth: 640,
@@ -713,7 +708,21 @@ export default function Assessment() {
 
         {/* ── Header ── */}
         <div style={s.header}>
-          <a href="/" style={s.wordmark}>RANGE MEDICAL</a>
+          {screen === 1 ? (
+            <a href="/">
+              <img
+                src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png"
+                alt="Range Medical"
+                style={s.logo}
+              />
+            </a>
+          ) : (
+            <img
+              src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png"
+              alt="Range Medical"
+              style={s.logo}
+            />
+          )}
         </div>
 
         <div style={s.container}>

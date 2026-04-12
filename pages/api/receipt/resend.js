@@ -101,17 +101,30 @@ export default async function handler(req, res) {
     let receiptParams;
 
     if (isMultiItem) {
-      // Consolidated receipt
-      // Show amount paid only — never original_amount or discounts
+      // Consolidated receipt — use amount_paid and show discount info
       const items = allPurchases.map(p => {
         const qty = p.quantity || 1;
-        const lineTotalCents = Math.round(p.amount * 100);
-        const name = p.description || p.item_name || 'Service';
+        const paidAmount = parseFloat(p.amount_paid) || parseFloat(p.amount) || 0;
+        const lineTotalCents = Math.round(paidAmount * 100);
+        const origAmount = parseFloat(p.original_amount) || 0;
+        const hasItemDiscount = origAmount > 0 && origAmount !== paidAmount;
+        const unitPriceCents = hasItemDiscount ? Math.round(origAmount * 100 / qty) : Math.round(lineTotalCents / qty);
+        const discountLabel = hasItemDiscount && p.discount_type === 'percent' && p.discount_amount
+          ? `${p.discount_amount}% off`
+          : hasItemDiscount
+          ? `$${(origAmount - paidAmount).toFixed(0)} off`
+          : undefined;
 
-        return { name, quantity: qty, unitPriceCents: Math.round(lineTotalCents / qty), lineTotalCents };
+        return {
+          name: p.item_name || p.description || 'Service',
+          quantity: qty,
+          unitPriceCents,
+          lineTotalCents,
+          discountLabel,
+        };
       });
 
-      const totalAmountCents = allPurchases.reduce((sum, p) => sum + Math.round(p.amount * 100), 0);
+      const totalAmountCents = allPurchases.reduce((sum, p) => sum + Math.round((parseFloat(p.amount_paid) || parseFloat(p.amount) || 0) * 100), 0);
 
       receiptParams = {
         firstName,
@@ -130,10 +143,17 @@ export default async function handler(req, res) {
         paymentMethod,
       };
     } else {
-      // Single-item receipt — show amount paid only, never original_amount or discounts
+      // Single-item receipt — use amount_paid and show discount info
       const rawPaid = parseFloat(purchase.amount_paid);
       const rawAmt = parseFloat(purchase.amount) || 0;
       const amountPaidCents = Math.round((!isNaN(rawPaid) ? rawPaid : rawAmt) * 100);
+
+      const origAmount = parseFloat(purchase.original_amount) || 0;
+      const hasDiscount = origAmount > 0 && origAmount !== (rawPaid || rawAmt);
+      const originalAmountCents = hasDiscount ? Math.round(origAmount * 100) : undefined;
+      const discountLabel = hasDiscount && purchase.discount_type === 'percent' && purchase.discount_amount
+        ? `${purchase.discount_amount}% off`
+        : undefined;
 
       receiptParams = {
         firstName,
@@ -145,8 +165,10 @@ export default async function handler(req, res) {
           year: 'numeric', month: 'long', day: 'numeric',
                   timeZone: 'America/Los_Angeles',
         }),
-        description: purchase.description || purchase.item_name,
+        description: purchase.item_name || purchase.description,
         amountPaidCents,
+        originalAmountCents,
+        discountLabel,
         cardBrand,
         cardLast4,
         paymentMethod,
@@ -164,10 +186,10 @@ export default async function handler(req, res) {
       console.error('Resend receipt PDF generation failed:', pdfErr.message);
     }
 
-    // Calculate total for subject line
+    // Calculate total for subject line — always use amount_paid
     const totalCents = isMultiItem
-      ? allPurchases.reduce((sum, p) => sum + Math.round(p.amount * 100), 0)
-      : Math.round(parseFloat(purchase.amount) * 100);
+      ? allPurchases.reduce((sum, p) => sum + Math.round((parseFloat(p.amount_paid) || parseFloat(p.amount) || 0) * 100), 0)
+      : amountPaidCents;
     const isComp = totalCents === 0;
     const totalLabel = isComp ? 'Complimentary' : `$${(totalCents / 100).toFixed(2)}`;
     const subjectLine = isComp

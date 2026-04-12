@@ -58,7 +58,14 @@ async function sendReceiptEmail(purchase) {
     // Build patient address line
     const patientAddress = [patient.address, [patient.city, patient.state, patient.zip_code].filter(Boolean).join(', ')].filter(Boolean).join(', ');
 
-    // Receipts show amount paid only — never original_amount or discount breakdowns
+    // Build receipt params — show item name, discount breakdown, and amount paid
+    const hasDiscount = purchase.original_amount && parseFloat(purchase.original_amount) > 0
+      && parseFloat(purchase.original_amount) !== parseFloat(purchase.amount_paid || purchase.amount);
+    const originalAmountCents = hasDiscount ? Math.round(parseFloat(purchase.original_amount) * 100) : undefined;
+    const discountLabel = hasDiscount && purchase.discount_type === 'percent' && purchase.discount_amount
+      ? `${purchase.discount_amount}% off`
+      : undefined;
+
     const receiptParams = {
       firstName,
       patientName: patient.name,
@@ -71,8 +78,10 @@ async function sendReceiptEmail(purchase) {
         day: 'numeric',
               timeZone: 'America/Los_Angeles',
       }),
-      description: purchase.description || purchase.item_name,
+      description: purchase.item_name || purchase.description,
       amountPaidCents: actualPaidCents,
+      originalAmountCents,
+      discountLabel,
       cardBrand,
       cardLast4,
     };

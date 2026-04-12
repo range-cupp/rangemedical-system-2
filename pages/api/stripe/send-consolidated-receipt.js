@@ -61,10 +61,10 @@ export default async function handler(req, res) {
 
     const firstName = (patient.name || '').split(' ')[0] || 'there';
 
-    // Get card details and actual charged amount from Stripe PaymentIntent
+    // Get card details from Stripe PaymentIntent (for display only)
+    // Do NOT use pi.amount_received — that's the cart total and must not override per-item amounts
     let cardBrand = null;
     let cardLast4 = null;
-    let stripeChargedCents = null;
     const piId = purchases.find(p => p.stripe_payment_intent_id)?.stripe_payment_intent_id;
     if (piId) {
       try {
@@ -75,31 +75,36 @@ export default async function handler(req, res) {
           cardBrand = pi.payment_method.card.brand;
           cardLast4 = pi.payment_method.card.last4;
         }
-        // Use the actual amount Stripe charged as source of truth
-        if (pi.amount_received) {
-          stripeChargedCents = pi.amount_received;
-        }
       } catch (err) {
         console.error('Failed to retrieve PaymentIntent for consolidated receipt:', err.message);
       }
     }
 
-    // Build line items — show amount paid only, never original_amount or discounts
+    // Build line items — use amount_paid (per-item price) and show discount info
     const items = purchases.map(p => {
       const qty = p.quantity || 1;
-      const lineTotalCents = Math.round(p.amount * 100);
+      const paidAmount = parseFloat(p.amount_paid) || parseFloat(p.amount) || 0;
+      const lineTotalCents = Math.round(paidAmount * 100);
+      const origAmount = parseFloat(p.original_amount) || 0;
+      const hasItemDiscount = origAmount > 0 && origAmount !== paidAmount;
+      const unitPriceCents = hasItemDiscount ? Math.round(origAmount * 100 / qty) : Math.round(lineTotalCents / qty);
+      const discountLabel = hasItemDiscount && p.discount_type === 'percent' && p.discount_amount
+        ? `${p.discount_amount}% off`
+        : hasItemDiscount
+        ? `$${(origAmount - paidAmount).toFixed(0)} off`
+        : undefined;
 
       return {
-        name: p.description || p.item_name,
+        name: p.item_name || p.description || 'Service',
         quantity: qty,
-        unitPriceCents: Math.round(lineTotalCents / qty),
+        unitPriceCents,
         lineTotalCents,
+        discountLabel,
       };
     });
 
-    // Use Stripe's actual charged amount when available, otherwise sum from DB
-    const dbTotalCents = purchases.reduce((sum, p) => sum + Math.round(p.amount * 100), 0);
-    const totalAmountCents = stripeChargedCents || dbTotalCents;
+    // Sum from per-item amount_paid — never use Stripe PI amount_received
+    const totalAmountCents = purchases.reduce((sum, p) => sum + Math.round((parseFloat(p.amount_paid) || parseFloat(p.amount) || 0) * 100), 0);
     const isComp = totalAmountCents === 0;
 
     // Build patient address

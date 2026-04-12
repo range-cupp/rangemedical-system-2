@@ -9476,30 +9476,83 @@ export default function PatientProfile() {
                                 const original = Number(p.original_amount || 0);
                                 const discounted = hasDiscount(p);
                                 const payLabel = getPaymentLabel(p);
+                                const isExpanded = expandedTransactions[p.id];
                                 return (
-                                  <div key={p.id || idx} onClick={() => openEditPurchase(p)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '6px 0', borderTop: idx > 0 ? '1px solid #f1f5f9' : 'none', cursor: 'pointer' }}>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                      <div style={{ color: '#0f172a', fontWeight: 500 }}>{p.medication || p.item_name || p.description || 'Service'}</div>
-                                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2, flexWrap: 'wrap' }}>
-                                        {payLabel && (
-                                          <span style={{ fontSize: 11, color: '#64748b', background: '#f1f5f9', padding: '1px 6px', borderRadius: 3 }}>{payLabel}</span>
-                                        )}
-                                        {discounted && (
-                                          <span style={{ fontSize: 11, color: '#059669' }}>
-                                            {p.discount_type === 'percent' && p.discount_amount ? `${p.discount_amount}% off` : `$${(original - paid).toFixed(0)} off`} (list ${original.toFixed(0)})
-                                          </span>
-                                        )}
-                                        {p.stripe_status === 'refunded' && (
-                                          <span style={{ fontSize: 11, color: '#dc2626', background: '#fef2f2', padding: '1px 6px', borderRadius: 3 }}>Refunded</span>
-                                        )}
-                                        {p.stripe_status === 'partially_refunded' && (
-                                          <span style={{ fontSize: 11, color: '#d97706', background: '#fffbeb', padding: '1px 6px', borderRadius: 3 }}>Partial refund</span>
-                                        )}
+                                  <div key={p.id || idx} style={{ borderTop: idx > 0 ? '1px solid #f1f5f9' : 'none' }}>
+                                    <div onClick={() => setExpandedTransactions(prev => ({ ...prev, [p.id]: !prev[p.id] }))} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '6px 0', cursor: 'pointer' }}>
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ color: '#0f172a', fontWeight: 500 }}>{p.medication || p.item_name || p.description || 'Service'}</div>
+                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2, flexWrap: 'wrap' }}>
+                                          {payLabel && (
+                                            <span style={{ fontSize: 11, color: '#64748b', background: '#f1f5f9', padding: '1px 6px', borderRadius: 3 }}>{payLabel}</span>
+                                          )}
+                                          {discounted && (
+                                            <span style={{ fontSize: 11, color: '#059669' }}>
+                                              {p.discount_type === 'percent' && p.discount_amount ? `${p.discount_amount}% off` : `$${(original - paid).toFixed(0)} off`} (list ${original.toFixed(0)})
+                                            </span>
+                                          )}
+                                          {p.stripe_status === 'refunded' && (
+                                            <span style={{ fontSize: 11, color: '#dc2626', background: '#fef2f2', padding: '1px 6px', borderRadius: 3 }}>Refunded</span>
+                                          )}
+                                          {p.stripe_status === 'partially_refunded' && (
+                                            <span style={{ fontSize: 11, color: '#d97706', background: '#fffbeb', padding: '1px 6px', borderRadius: 3 }}>Partial refund</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, whiteSpace: 'nowrap', color: paid === 0 ? '#64748b' : '#0f172a', textAlign: 'right' }}>
+                                        {paid === 0 ? 'Complimentary' : `$${paid.toFixed(2)}`}
                                       </div>
                                     </div>
-                                    <div style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, whiteSpace: 'nowrap', color: paid === 0 ? '#64748b' : '#0f172a', textAlign: 'right' }}>
-                                      {paid === 0 ? 'Complimentary' : `$${paid.toFixed(2)}`}
-                                    </div>
+                                    {isExpanded && (
+                                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '10px 12px', marginBottom: 6, fontSize: 12 }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '4px 12px' }}>
+                                          <span style={{ color: '#64748b' }}>Item</span>
+                                          <span style={{ color: '#0f172a', fontWeight: 500 }}>{p.item_name || p.product_name || 'N/A'}</span>
+                                          {p.medication && (
+                                            <>
+                                              <span style={{ color: '#64748b' }}>Medication</span>
+                                              <span style={{ color: '#0f172a' }}>{p.medication}</span>
+                                            </>
+                                          )}
+                                          {p.category && (
+                                            <>
+                                              <span style={{ color: '#64748b' }}>Category</span>
+                                              <span style={{ color: '#0f172a' }}>{p.category}</span>
+                                            </>
+                                          )}
+                                          <span style={{ color: '#64748b' }}>Amount Paid</span>
+                                          <span style={{ color: '#0f172a', fontWeight: 600 }}>{paid === 0 ? 'Complimentary' : `$${paid.toFixed(2)}`}</span>
+                                          {discounted && (
+                                            <>
+                                              <span style={{ color: '#64748b' }}>List Price</span>
+                                              <span style={{ color: '#64748b' }}>${original.toFixed(2)}</span>
+                                              <span style={{ color: '#64748b' }}>Discount</span>
+                                              <span style={{ color: '#059669' }}>
+                                                {p.discount_type === 'percent' && p.discount_amount ? `${p.discount_amount}%` : `$${(original - paid).toFixed(2)}`} off
+                                              </span>
+                                            </>
+                                          )}
+                                          {payLabel && (
+                                            <>
+                                              <span style={{ color: '#64748b' }}>Payment</span>
+                                              <span style={{ color: '#0f172a' }}>{payLabel}</span>
+                                            </>
+                                          )}
+                                          {p.quantity > 1 && (
+                                            <>
+                                              <span style={{ color: '#64748b' }}>Quantity</span>
+                                              <span style={{ color: '#0f172a' }}>{p.quantity}</span>
+                                            </>
+                                          )}
+                                          {p.notes && (
+                                            <>
+                                              <span style={{ color: '#64748b' }}>Notes</span>
+                                              <span style={{ color: '#0f172a' }}>{p.notes}</span>
+                                            </>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })}

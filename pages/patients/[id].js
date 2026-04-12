@@ -39,7 +39,8 @@ import {
   getPeptideVialSupply,
   getVialInfo,
   getVialIdForMedication,
-  PEPTIDE_SUPPLY_FORMATS
+  PEPTIDE_SUPPLY_FORMATS,
+  isWeightLossType
 } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, buildAdaptiveHRTSchedule, isHRTProtocol, getLabStatusSummary } from '../../lib/hrt-lab-schedule';
 import { isRecoveryPeptide, isGHPeptide } from '../../lib/protocol-config';
@@ -1385,15 +1386,19 @@ export default function PatientProfile() {
     setShowDoseChangeModal(true);
   };
 
-  // Detect dose increase for approval requirement
+  // Detect dose increase for approval requirement (works for both HRT ml and WL mg)
   const isDoseIncrease = (() => {
     if (!doseChangeProtocol || !doseChangeForm.dose) return false;
-    const parseMl = (s) => { const m = (s || '').match(/(\d+\.?\d*)\s*ml/i); return m ? parseFloat(m[1]) : null; };
-    const oldMl = parseMl(doseChangeProtocol.selected_dose);
-    const newMl = parseMl(doseChangeForm.dose);
-    const oldIpw = doseChangeProtocol.injections_per_week || 2;
-    const newIpw = parseInt(doseChangeForm.injectionsPerWeek) || 2;
-    return (newMl && oldMl && newMl > oldMl) || (newIpw > oldIpw);
+    const parseNum = (s) => {
+      if (!s) return null;
+      const m = s.match(/(\d+\.?\d*)\s*(ml|mg)/i);
+      return m ? parseFloat(m[1]) : null;
+    };
+    const oldVal = parseNum(doseChangeProtocol.selected_dose);
+    const newVal = parseNum(doseChangeForm.dose);
+    const oldIpw = doseChangeProtocol.injections_per_week || 1;
+    const newIpw = parseInt(doseChangeForm.injectionsPerWeek) || 1;
+    return (newVal && oldVal && newVal > oldVal) || (newIpw > oldIpw);
   })();
 
   // Poll for dose change approval status
@@ -6049,6 +6054,10 @@ export default function PatientProfile() {
                                     style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 0, padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                                   >Extend</button>
                                   <button
+                                    onClick={() => openDoseChangeModal(protocol)}
+                                    style={{ background: '#b45309', color: '#fff', border: 'none', borderRadius: 0, padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                                  >Dose Change</button>
+                                  <button
                                     onClick={() => handleSendWlLink(protocol.id)}
                                     disabled={sendingWlLink === protocol.id}
                                     style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 0, padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', opacity: sendingWlLink === protocol.id ? 0.6 : 1 }}
@@ -9416,6 +9425,20 @@ export default function PatientProfile() {
                 });
                 const transactionDates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
 
+                const getPaymentLabel = (p) => {
+                  if (p.payment_method === 'cash') return 'Cash';
+                  if (p.card_brand && p.card_last4) return `${p.card_brand.charAt(0).toUpperCase() + p.card_brand.slice(1)} ····${p.card_last4}`;
+                  if (p.stripe_payment_intent_id) return 'Stripe';
+                  if (p.payment_method) return p.payment_method.charAt(0).toUpperCase() + p.payment_method.slice(1);
+                  return null;
+                };
+
+                const hasDiscount = (p) => {
+                  const paid = Number(p.amount_paid || 0);
+                  const original = Number(p.original_amount || 0);
+                  return original > 0 && original !== paid;
+                };
+
                 return (
                 <div>
                   <div className="pay-section">
@@ -9431,22 +9454,44 @@ export default function PatientProfile() {
                           const total = items.reduce((s, p) => s + Number(p.amount_paid || 0), 0);
                           const dateStr = date !== 'Unknown' ? new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' }) : 'Unknown date';
                           return (
-                          <div key={date} className="pay-item" style={{ alignItems: 'flex-start' }}>
-                            <div className="pay-item-info" style={{ flex: 1 }}>
+                          <div key={date} className="pay-item" style={{ alignItems: 'flex-start', flexDirection: 'column', gap: 0 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', marginBottom: 6 }}>
                               <div className="pay-item-title">{dateStr}</div>
-                              <div style={{ margin: '4px 0 0', fontSize: 12 }}>
-                                {items.map((p, idx) => (
-                                  <div key={p.id || idx} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '2px 0' }}>
-                                    <span style={{ color: '#475569' }}>• {p.medication || p.item_name || p.description || 'Service'}</span>
-                                    <span style={{ fontVariantNumeric: 'tabular-nums', color: Number(p.amount_paid) === 0 ? '#64748b' : '#0f172a', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                                      {Number(p.amount_paid) === 0 ? 'Complimentary' : `$${Number(p.amount_paid).toFixed(2)}`}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                            <div style={{ textAlign: 'right', minWidth: 80, paddingTop: 2 }}>
                               <div className="pay-item-amount">${total.toFixed(2)}</div>
+                            </div>
+                            <div style={{ width: '100%', fontSize: 13 }}>
+                              {items.map((p, idx) => {
+                                const paid = Number(p.amount_paid || 0);
+                                const original = Number(p.original_amount || 0);
+                                const discounted = hasDiscount(p);
+                                const payLabel = getPaymentLabel(p);
+                                return (
+                                  <div key={p.id || idx} onClick={() => openEditPurchase(p)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '6px 0', borderTop: idx > 0 ? '1px solid #f1f5f9' : 'none', cursor: 'pointer' }}>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ color: '#0f172a', fontWeight: 500 }}>{p.medication || p.item_name || p.description || 'Service'}</div>
+                                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2, flexWrap: 'wrap' }}>
+                                        {payLabel && (
+                                          <span style={{ fontSize: 11, color: '#64748b', background: '#f1f5f9', padding: '1px 6px', borderRadius: 3 }}>{payLabel}</span>
+                                        )}
+                                        {discounted && (
+                                          <span style={{ fontSize: 11, color: '#059669' }}>
+                                            {p.discount_type === 'percent' && p.discount_amount ? `${p.discount_amount}% off` : `$${(original - paid).toFixed(0)} off`} (list ${original.toFixed(0)})
+                                          </span>
+                                        )}
+                                        {p.stripe_status === 'refunded' && (
+                                          <span style={{ fontSize: 11, color: '#dc2626', background: '#fef2f2', padding: '1px 6px', borderRadius: 3 }}>Refunded</span>
+                                        )}
+                                        {p.stripe_status === 'partially_refunded' && (
+                                          <span style={{ fontSize: 11, color: '#d97706', background: '#fffbeb', padding: '1px 6px', borderRadius: 3 }}>Partial refund</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, whiteSpace: 'nowrap', color: paid === 0 ? '#64748b' : '#0f172a', textAlign: 'right' }}>
+                                      {paid === 0 ? 'Complimentary' : `$${paid.toFixed(2)}`}
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                           );
@@ -12438,14 +12483,32 @@ export default function PatientProfile() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <div>
                       <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>New Dose</label>
-                      <select value={doseChangeForm.dose} onChange={e => setDoseChangeForm(f => ({ ...f, dose: e.target.value }))}
-                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}>
-                        <option value="">Select dose...</option>
-                        {(TESTOSTERONE_DOSES[doseChangeProtocol.hrt_type === 'female' ? 'female' : 'male'] || TESTOSTERONE_DOSES.male).map(d => (
-                          <option key={d.value} value={d.value}>{d.label}</option>
-                        ))}
-                      </select>
+                      {(() => {
+                        const isWL = doseChangeProtocol.category === 'weight_loss' || isWeightLossType(doseChangeProtocol.program_type);
+                        const wlMed = doseChangeProtocol.medication || '';
+                        const wlDoses = isWL && WEIGHT_LOSS_DOSAGES[wlMed] ? WEIGHT_LOSS_DOSAGES[wlMed] : null;
+                        if (wlDoses) {
+                          return (
+                            <select value={doseChangeForm.dose} onChange={e => setDoseChangeForm(f => ({ ...f, dose: e.target.value }))}
+                              style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}>
+                              <option value="">Select dose...</option>
+                              {wlDoses.map(d => <option key={d} value={d}>{d}</option>)}
+                            </select>
+                          );
+                        }
+                        return (
+                          <select value={doseChangeForm.dose} onChange={e => setDoseChangeForm(f => ({ ...f, dose: e.target.value }))}
+                            style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}>
+                            <option value="">Select dose...</option>
+                            {(TESTOSTERONE_DOSES[doseChangeProtocol.hrt_type === 'female' ? 'female' : 'male'] || TESTOSTERONE_DOSES.male).map(d => (
+                              <option key={d.value} value={d.value}>{d.label}</option>
+                            ))}
+                          </select>
+                        );
+                      })()}
                     </div>
+                    {/* Injections per week — HRT only (weight loss is always 1x/wk) */}
+                    {!(doseChangeProtocol.category === 'weight_loss' || isWeightLossType(doseChangeProtocol.program_type)) && (
                     <div>
                       <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Injections per Week</label>
                       <select value={doseChangeForm.injectionsPerWeek} onChange={e => setDoseChangeForm(f => ({ ...f, injectionsPerWeek: e.target.value }))}
@@ -12456,6 +12519,7 @@ export default function PatientProfile() {
                         <option value="7">Daily</option>
                       </select>
                     </div>
+                    )}
                     <div>
                       <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Reason (optional)</label>
                       <input type="text" value={doseChangeForm.notes} onChange={e => setDoseChangeForm(f => ({ ...f, notes: e.target.value }))}

@@ -33,10 +33,11 @@ async function sendReceiptEmail(purchase) {
     const firstName = (patient.name || '').split(' ')[0] || 'there';
     const patientName = patient.name || firstName;
 
-    // Get card details and actual charged amount from Stripe PaymentIntent
+    // Get card details from Stripe PaymentIntent (for receipt display only)
+    // NOTE: pi.amount_received is the CART TOTAL — do NOT use it as the
+    // per-item amount. The per-item amount is already correct in purchase.amount_paid.
     let cardBrand = null;
     let cardLast4 = null;
-    let stripeChargedCents = null;
     if (purchase.stripe_payment_intent_id) {
       try {
         const pi = await stripe.paymentIntents.retrieve(purchase.stripe_payment_intent_id, {
@@ -46,18 +47,13 @@ async function sendReceiptEmail(purchase) {
           cardBrand = pi.payment_method.card.brand;
           cardLast4 = pi.payment_method.card.last4;
         }
-        // Use the actual amount Stripe charged as source of truth
-        if (pi.amount_received) {
-          stripeChargedCents = pi.amount_received;
-        }
       } catch (err) {
         console.error('Failed to retrieve PaymentIntent for receipt:', err.message);
       }
     }
 
-    // Use Stripe's actual charged amount when available, otherwise fall back to DB amount
-    const actualPaidCents = stripeChargedCents || Math.round(purchase.amount * 100);
-    const catalogPriceCents = Math.round(purchase.amount * 100);
+    // Use the per-item amount_paid from the DB — this is the correct per-item price
+    const actualPaidCents = Math.round((purchase.amount_paid || purchase.amount) * 100);
 
     // Build patient address line
     const patientAddress = [patient.address, [patient.city, patient.state, patient.zip_code].filter(Boolean).join(', ')].filter(Boolean).join(', ');
@@ -210,12 +206,13 @@ export default async function handler(req, res) {
       }
     }
 
-    // Retrieve card details + ACTUAL charged amount from Stripe PaymentIntent.
-    // Stripe is the source of truth — never trust the client-supplied amount,
-    // which may be the catalog/list price rather than what was collected.
+    // Retrieve card details and verify payment status from Stripe.
+    // The per-item amount comes from the POS (amountDollars) — Stripe's
+    // amount_received is the CART TOTAL which covers all items in the
+    // transaction. Never override per-item amounts with the cart total.
     let cardBrand = null;
     let cardLast4 = null;
-    let stripeChargedCents = null;
+    let stripeStatus = null;
     if (stripe_payment_intent_id) {
       try {
         const pi = await stripe.paymentIntents.retrieve(stripe_payment_intent_id, {
@@ -225,15 +222,15 @@ export default async function handler(req, res) {
           cardBrand = pi.payment_method.card.brand;
           cardLast4 = pi.payment_method.card.last4;
         }
-        if (pi.amount_received != null) {
-          stripeChargedCents = pi.amount_received;
-        }
+        stripeStatus = pi.status === 'succeeded' ? 'succeeded' : pi.status;
       } catch (err) {
         console.error('Failed to retrieve card details for purchase:', err.message);
       }
     }
-    const actualPaidDollars = stripeChargedCents != null ? stripeChargedCents / 100 : amountDollars;
 
+    // Use the per-item amount from the POS — this is what the patient paid
+    // for THIS specific item. Stripe's amount_received is the cart total
+    // and must NOT be used as the per-item amount.
     const insertData = {
       patient_id,
       patient_name: patient?.name || 'Unknown',
@@ -241,10 +238,10 @@ export default async function handler(req, res) {
       patient_phone: patient?.phone || null,
       item_name: description || 'Stripe charge',
       product_name: description || 'Stripe charge',
-      amount: actualPaidDollars,
-      amount_paid: actualPaidDollars,
-      stripe_amount_cents: stripeChargedCents,
-      stripe_status: stripeChargedCents != null ? 'succeeded' : null,
+      amount: amountDollars,
+      amount_paid: amountDollars,
+      stripe_amount_cents: Math.round(amountDollars * 100),
+      stripe_status: stripeStatus || (stripe_payment_intent_id ? 'succeeded' : null),
       category: service_category || 'Other',
       quantity: quantity || 1,
       stripe_payment_intent_id: stripe_payment_intent_id || null,

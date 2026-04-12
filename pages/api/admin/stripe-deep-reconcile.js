@@ -198,10 +198,11 @@ export default async function handler(req, res) {
             stripe_verified_at: new Date().toISOString(),
           };
 
-          // Always update to Stripe's actual amount
+          // Do NOT override per-item amounts — Stripe charge may cover multiple items
+          // Only update verification fields, not amount/amount_paid
           if (mismatch) {
-            updateData.amount = chargeAmountDollars;
-            updateData.amount_paid = chargeAmountDollars;
+            // Log warning but don't change amounts — the charge may be a cart total
+            console.warn(`Amount mismatch for purchase ${matchedPurchase.id}: DB=${oldAmount}, Stripe=${chargeAmountDollars} — skipping amount update (may be multi-item cart)`);
           }
 
           await supabase

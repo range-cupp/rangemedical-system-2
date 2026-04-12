@@ -67,7 +67,8 @@ async function handleMonthSummary(month, res) {
 
     days[day].count++;
 
-    const amountCents = p.stripe_amount_cents || Math.round((p.amount_paid || p.amount || 0) * 100);
+    // Always use amount_paid — stripe_amount_cents may be the cart total for multi-item purchases
+    const amountCents = Math.round((p.amount_paid || p.amount || 0) * 100);
 
     if (p.stripe_status === 'failed' || p.stripe_status === 'requires_payment_method') {
       days[day].failed++;
@@ -161,13 +162,9 @@ async function handleDayDetail(date, res) {
   const transactions = [];
 
   for (const p of (purchases || [])) {
-    const displayAmount = p.stripe_amount_cents
-      ? p.stripe_amount_cents / 100
-      : (p.amount_paid && p.amount_paid < p.amount ? p.amount_paid : p.amount);
-
-    const mismatch = p.stripe_amount_cents
-      ? Math.abs(p.stripe_amount_cents - Math.round((p.amount_paid || p.amount) * 100)) > 1
-      : false;
+    // Always use amount_paid for display — it's the per-item amount the patient paid
+    const displayAmount = parseFloat(p.amount_paid) || parseFloat(p.amount) || 0;
+    const mismatch = false;
 
     transactions.push({
       type: 'purchase',

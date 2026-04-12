@@ -42,7 +42,7 @@ const s = {
     justifyContent: 'center',
   },
   logo: {
-    height: 38,
+    height: 48,
     display: 'block',
   },
   container: {

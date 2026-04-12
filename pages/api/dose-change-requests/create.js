@@ -43,15 +43,15 @@ export default async function handler(req, res) {
 
   try {
     // Determine if this is an increase or decrease
-    const currentMl = parseMl(current_dose);
-    const proposedMl = parseMl(proposed_dose);
+    const currentVal = parseDoseNum(current_dose);
+    const proposedVal = parseDoseNum(proposed_dose);
     const currentIpw = current_injections_per_week || 0;
     const proposedIpw = proposed_injections_per_week || currentIpw;
 
     let changeType = 'increase';
-    if (proposedMl !== null && currentMl !== null) {
-      const currentWeekly = currentMl * (currentIpw || 1);
-      const proposedWeekly = proposedMl * (proposedIpw || 1);
+    if (proposedVal !== null && currentVal !== null) {
+      const currentWeekly = currentVal * (currentIpw || 1);
+      const proposedWeekly = proposedVal * (proposedIpw || 1);
       changeType = proposedWeekly >= currentWeekly ? 'increase' : 'decrease';
     }
 
@@ -111,12 +111,15 @@ export default async function handler(req, res) {
     // Build the approval link
     const approvalLink = `${BASE_URL}/verify/dose/${approvalToken}`;
 
+    // PHI-safe name for SMS: "Chris C." format
+    const phiSafeName = toFirstNameLastInitial(patient_name);
+
     // Build the SMS message
     const arrow = changeType === 'increase' ? '\u2191' : '\u2193'; // up/down arrow
     const smsMessage = [
       `RANGE MEDICAL - Dose ${changeType === 'increase' ? 'Increase' : 'Decrease'} Request`,
       ``,
-      `Patient: ${patient_name}`,
+      `Patient: ${phiSafeName}`,
       `Current: ${current_dose}${currentIpw ? ` (${currentIpw}x/wk)` : ''}`,
       `Proposed: ${proposed_dose}${proposedIpw && proposedIpw !== currentIpw ? ` (${proposedIpw}x/wk)` : ''}`,
       reason ? `Reason: ${reason}` : null,
@@ -165,8 +168,17 @@ export default async function handler(req, res) {
   }
 }
 
-function parseMl(doseStr) {
+// Parse numeric value from dose string — handles both "0.5ml" and "2.5mg"
+function parseDoseNum(doseStr) {
   if (!doseStr) return null;
-  const m = doseStr.match(/(\d+\.?\d*)\s*ml/i);
+  const m = doseStr.match(/(\d+\.?\d*)\s*(ml|mg)/i);
   return m ? parseFloat(m[1]) : null;
+}
+
+// PHI-safe name: "John Smith" → "John S."
+function toFirstNameLastInitial(fullName) {
+  if (!fullName) return 'Patient';
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length < 2) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
 }

@@ -1433,13 +1433,24 @@ export default function PatientProfile() {
     poll();
   };
 
+  // Determine if this dose change requires Dr. Burgess approval:
+  // - Weight loss: ALL dose changes (increase or decrease) require approval
+  // - HRT: Only dose increases require approval
+  const requiresBurgessApproval = (() => {
+    if (!doseChangeProtocol || !doseChangeForm.dose) return false;
+    const isWL = doseChangeProtocol.category === 'weight_loss' || isWeightLossType(doseChangeProtocol.program_type);
+    if (isWL) return true; // WL: all dose changes need approval
+    return isDoseIncrease;  // HRT: only increases
+  })();
+
   const handleSaveDoseChange = async () => {
     if (!doseChangeForm.date || !doseChangeForm.dose) return;
 
     setDoseChangeSaving(true);
 
-    // ── DOSE INCREASE: Send SMS to Dr. Burgess for approval ──
-    if (isDoseIncrease) {
+    // ── REQUIRES APPROVAL: Send SMS to Dr. Burgess ──
+    // Weight loss: all dose changes. HRT: increases only.
+    if (requiresBurgessApproval) {
       setDoseChangeRequestStatus('sending');
       try {
         const res = await fetch('/api/dose-change-requests/create', {
@@ -1451,8 +1462,8 @@ export default function PatientProfile() {
             protocol_id: doseChangeProtocol.id,
             current_dose: doseChangeProtocol.selected_dose,
             proposed_dose: doseChangeForm.dose,
-            current_injections_per_week: doseChangeProtocol.injections_per_week || 2,
-            proposed_injections_per_week: parseInt(doseChangeForm.injectionsPerWeek) || 2,
+            current_injections_per_week: doseChangeProtocol.injections_per_week || 1,
+            proposed_injections_per_week: parseInt(doseChangeForm.injectionsPerWeek) || 1,
             reason: doseChangeForm.notes || null,
             requested_by_email: employee?.email || 'unknown',
             requested_by_name: employee?.name || 'Staff',
@@ -1473,7 +1484,7 @@ export default function PatientProfile() {
       return;
     }
 
-    // ── DOSE DECREASE: Apply immediately (no approval needed) ──
+    // ── HRT DOSE DECREASE: Apply immediately (no approval needed) ──
     try {
       const res = await fetch(`/api/protocols/${doseChangeProtocol.id}/dose-change`, {
         method: 'POST',
@@ -12527,12 +12538,14 @@ export default function PatientProfile() {
                         style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }} />
                     </div>
 
-                    {/* Dose increase notice */}
-                    {isDoseIncrease && doseChangeForm.dose && (
+                    {/* Approval required notice */}
+                    {requiresBurgessApproval && doseChangeForm.dose && (
                       <div style={{ border: '1px solid #f59e0b', background: '#fffbeb', padding: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                           <span style={{ fontSize: 14 }}>&#9888;&#65039;</span>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#92400e' }}>Dose increase requires Dr. Burgess approval</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#92400e' }}>
+                            {isDoseIncrease ? 'Dose increase' : 'Dose change'} requires Dr. Burgess approval
+                          </span>
                         </div>
                         <div style={{ fontSize: 12, color: '#78350f', lineHeight: 1.5 }}>
                           An approval text will be sent to Dr. Damien Burgess. The dose will only change after he approves via the link in the text.
@@ -12540,8 +12553,8 @@ export default function PatientProfile() {
                       </div>
                     )}
 
-                    {/* Dose decrease notice */}
-                    {!isDoseIncrease && doseChangeForm.dose && (
+                    {/* No approval needed notice (HRT decrease only) */}
+                    {!requiresBurgessApproval && doseChangeForm.dose && (
                       <div style={{ border: '1px solid #bbf7d0', background: '#f0fdf4', padding: 12 }}>
                         <div style={{ fontSize: 12, color: '#166534' }}>
                           Dose decrease &mdash; no approval required. Change will be applied immediately.
@@ -12552,8 +12565,8 @@ export default function PatientProfile() {
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
                     <button onClick={() => setShowDoseChangeModal(false)} style={{ padding: '6px 16px', border: '1px solid #d1d5db', background: '#fff', borderRadius: 0, cursor: 'pointer', fontSize: 13 }}>Cancel</button>
                     <button onClick={handleSaveDoseChange} disabled={doseChangeSaving || !doseChangeForm.dose}
-                      style={{ padding: '6px 16px', background: isDoseIncrease ? '#b45309' : '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: doseChangeSaving || !doseChangeForm.dose ? 0.5 : 1 }}>
-                      {doseChangeSaving ? 'Sending...' : isDoseIncrease ? 'Send Approval to Dr. Burgess' : 'Apply Dose Change'}
+                      style={{ padding: '6px 16px', background: requiresBurgessApproval ? '#b45309' : '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: doseChangeSaving || !doseChangeForm.dose ? 0.5 : 1 }}>
+                      {doseChangeSaving ? 'Sending...' : requiresBurgessApproval ? 'Send Approval to Dr. Burgess' : 'Apply Dose Change'}
                     </button>
                   </div>
                 </>

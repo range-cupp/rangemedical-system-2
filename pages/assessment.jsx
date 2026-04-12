@@ -128,18 +128,19 @@ const s = {
     color: '#737373',
     margin: 0,
   },
-  pathArrow: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 8,
-    fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: '0.1em',
-    color: '#1a1a1a',
-    borderBottom: '1.5px solid #1a1a1a',
-    paddingBottom: 3,
-    marginTop: 16,
+  pathBtn: {
+    display: 'inline-block',
+    marginTop: 20,
+    padding: '12px 24px',
+    background: '#1a1a1a',
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: 800,
+    letterSpacing: '0.12em',
     textTransform: 'uppercase',
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'background 0.2s',
   },
   // Back button
   backBtn: {
@@ -764,9 +765,13 @@ export default function Assessment() {
                     <span style={s.pathNumber}>{item.num}</span>
                     <div style={s.pathTitle}>{item.title}</div>
                     <p style={s.pathSub}>{item.sub}</p>
-                    <div style={s.pathArrow}>
-                      SELECT THIS PATH <span>&rarr;</span>
-                    </div>
+                    <button
+                      style={s.pathBtn}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#404040'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#1a1a1a'; }}
+                    >
+                      SELECT THIS PATH &rarr;
+                    </button>
                   </div>
                 ))}
               </div>

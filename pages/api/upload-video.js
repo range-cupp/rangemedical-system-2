@@ -1,4 +1,4 @@
-import { put } from '@vercel/blob';
+import { handleUpload } from '@vercel/blob/client';
 
 export const config = {
   api: {
@@ -7,24 +7,25 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   try {
-    const filename = req.query.filename;
-    if (!filename) {
-      return res.status(400).json({ error: 'filename query param required' });
-    }
-
-    const blob = await put(filename, req, {
-      access: 'public',
+    const jsonResponse = await handleUpload({
+      body: req,
+      request: req,
       token: process.env.BLOB_READ_WRITE_TOKEN,
+      onBeforeGenerateToken: async (pathname) => {
+        return {
+          allowedContentTypes: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
+          maximumSizeInBytes: 500 * 1024 * 1024, // 500MB
+        };
+      },
+      onUploadCompleted: async ({ blob }) => {
+        console.log('Upload completed:', blob.url);
+      },
     });
 
-    return res.status(200).json({ url: blob.url, pathname: blob.pathname });
+    return res.status(200).json(jsonResponse);
   } catch (error) {
     console.error('Upload error:', error);
-    return res.status(500).json({ error: 'Upload failed' });
+    return res.status(400).json({ error: error.message });
   }
 }

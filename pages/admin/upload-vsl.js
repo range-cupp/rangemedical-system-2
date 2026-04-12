@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { upload } from '@vercel/blob/client';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 import { Upload, CheckCircle, Copy, Film } from 'lucide-react';
 
@@ -7,12 +8,11 @@ export default function UploadVSL() {
   const [uploadType, setUploadType] = useState(null);
   const [results, setResults] = useState({ injury: null, energy: null });
   const [copied, setCopied] = useState(null);
-  const [progress, setProgress] = useState(0);
 
   const handleUpload = async (file, type) => {
     if (!file) return;
 
-    const maxSize = 500 * 1024 * 1024; // 500MB
+    const maxSize = 500 * 1024 * 1024;
     if (file.size > maxSize) {
       alert('File too large. Max 500MB.');
       return;
@@ -20,24 +20,14 @@ export default function UploadVSL() {
 
     setUploading(true);
     setUploadType(type);
-    setProgress(0);
 
     try {
-      const filename = `vsl/${type}-assessment.mp4`;
-
-      const response = await fetch(`/api/upload-video?filename=${encodeURIComponent(filename)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': file.type },
-        body: file,
+      const blob = await upload(`vsl/${type}-assessment.mp4`, file, {
+        access: 'public',
+        handleUploadUrl: '/api/upload-video',
       });
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Upload failed');
-      }
-
-      const data = await response.json();
-      setResults(prev => ({ ...prev, [type]: data.url }));
+      setResults(prev => ({ ...prev, [type]: blob.url }));
     } catch (error) {
       console.error('Upload error:', error);
       alert('Upload failed: ' + error.message);
@@ -79,7 +69,7 @@ export default function UploadVSL() {
             </div>
             <div>
               <h3 style={{ fontSize: 17, fontWeight: 600, margin: 0 }}>Injury & Recovery VSL</h3>
-              <p style={{ fontSize: 13, color: '#888', margin: 0 }}>60–90 second video for injury path leads</p>
+              <p style={{ fontSize: 13, color: '#888', margin: 0 }}>60-90 second video for injury path leads</p>
             </div>
           </div>
 
@@ -163,7 +153,7 @@ export default function UploadVSL() {
             </div>
             <div>
               <h3 style={{ fontSize: 17, fontWeight: 600, margin: 0 }}>Energy & Optimization VSL</h3>
-              <p style={{ fontSize: 13, color: '#888', margin: 0 }}>60–90 second video for energy path leads</p>
+              <p style={{ fontSize: 13, color: '#888', margin: 0 }}>60-90 second video for energy path leads</p>
             </div>
           </div>
 
@@ -245,10 +235,10 @@ export default function UploadVSL() {
             </div>
             <div style={{ fontSize: 14, color: '#333' }}>
               <div style={{ marginBottom: 4 }}>
-                Injury VSL: {results.injury ? '✓ Uploaded' : '– Not yet uploaded'}
+                Injury VSL: {results.injury ? '✓ Uploaded' : '- Not yet uploaded'}
               </div>
               <div>
-                Energy VSL: {results.energy ? '✓ Uploaded' : '– Not yet uploaded'}
+                Energy VSL: {results.energy ? '✓ Uploaded' : '- Not yet uploaded'}
               </div>
             </div>
           </div>

@@ -35,14 +35,14 @@ const s = {
   },
   header: {
     borderBottom: '1px solid #e8e8e8',
-    padding: '0 2rem',
-    height: 56,
+    padding: '0 2.5rem',
+    height: 64,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
   logo: {
-    height: 28,
+    height: 38,
     display: 'block',
   },
   container: {

@@ -356,7 +356,7 @@ function getNext14Days() {
   const now = new Date();
   // Start from tomorrow
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  for (let i = 0; i < 21 && days.length < 14; i++) {
+  for (let i = 0; i < 14 && days.length < 7; i++) {
     const d = new Date(start.getTime() + i * 86400000);
     if (d.getDay() !== 0) { // Skip Sundays
       days.push(d);
@@ -549,6 +549,16 @@ export default function Assessment() {
       setLeadSubmitting(false);
     }
   }, [firstName, lastName, email, phone, selectedPath, leadSubmitted, leadSubmitting, contactComplete]);
+
+  // Auto-submit lead when all contact fields are filled (handles browser autofill)
+  useEffect(() => {
+    if (screen === 3 && !leadSubmitted && !leadSubmitting && contactComplete) {
+      const timer = setTimeout(() => {
+        submitLead();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [screen, contactComplete, leadSubmitted, leadSubmitting, submitLead]);
 
   // Initialize payment once lead is submitted
   useEffect(() => {

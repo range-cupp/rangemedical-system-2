@@ -91,6 +91,10 @@ export default async function handler(req, res) {
         await sendSMS({
           to: normalizedPhone,
           message: `Hey ${displayName} — your referral link for Range Medical is ready:\n\n${link}\n\nRange Medical is a wellness medical clinic in Newport Beach. Just forward this link or text it to anyone you think should check us out. When they fill out the form, our team reaches out to them within 24 hours.\n\nTo find this link later, search your texts for "Range Medical" or go to range-medical.com/refer/join and enter your email.`,
+          log: {
+            messageType: 'referral_link',
+            source: 'referral-create-partner',
+          },
         });
       }
     } catch (smsErr) {

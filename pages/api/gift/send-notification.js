@@ -37,7 +37,14 @@ export default async function handler(req, res) {
     `Hi ${firstName}! ${giftFrom} has gifted you a ${giftLabel} at Range Medical in Newport Beach (valued at $350). ` +
     `Here's everything you need to know and how to redeem it: ${url} 🎁`;
 
-  const result = await sendSMS({ to: phone, message });
+  const result = await sendSMS({
+    to: phone,
+    message,
+    log: {
+      messageType: 'gift_notification',
+      source: 'gift-send-notification',
+    },
+  });
 
   if (result.success) {
     console.log(`[gift-notification] Sent to ${phone} via ${result.provider}`);

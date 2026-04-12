@@ -287,7 +287,16 @@ export default async function handler(req, res) {
 
         thankYouMsg += `\n\nQuestions? Call us at (949) 997-3988.\n\n- Range Medical`;
 
-        const result = await sendSMS({ to: patient.phone, message: thankYouMsg });
+        const result = await sendSMS({
+          to: patient.phone,
+          message: thankYouMsg,
+          log: {
+            messageType: 'wl_checkin_thankyou',
+            source: 'patient-checkin-submit',
+            patientId: patient.id,
+            protocolId: protocol.id,
+          },
+        });
         if (result.success) {
           console.log(`✓ Thank-you SMS sent to patient via ${result.provider}`);
         } else {

@@ -109,7 +109,15 @@ export default async function handler(req, res) {
     const frontDeskMsg = `New self-booking: ${patientName} — ${serviceName} on ${dateTime}. Assigned to ${assignedHost}. - Range Medical`;
     const normalizedFrontDesk = normalizePhone(FRONT_DESK_PHONE);
     if (normalizedFrontDesk) {
-      sendSMS({ to: normalizedFrontDesk, message: frontDeskMsg }).catch((err) => {
+      sendSMS({
+        to: normalizedFrontDesk,
+        message: frontDeskMsg,
+        log: {
+          messageType: 'booking_staff_notification',
+          source: 'book-create',
+          patientId: protocol.patient_id,
+        },
+      }).catch((err) => {
         console.error('Front desk SMS failed:', err);
       });
     }

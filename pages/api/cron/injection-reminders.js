@@ -220,7 +220,16 @@ export default async function handler(req, res) {
           ? `Hi ${firstName}! It's injection day for your weight loss program. Reply YES to get your tracking link. - Range Medical`
           : `Hi ${firstName}! Quick reminder - time for your injection. Reply YES to get your tracking link. - Range Medical`;
 
-        const optInResult = await sendSMS({ to: phone, message: optInMessage });
+        const optInResult = await sendSMS({
+          to: phone,
+          message: optInMessage,
+          log: {
+            messageType: 'injection_reminder',
+            source: 'injection-reminders',
+            patientId: protocol.patient_id,
+            protocolId: protocol.id,
+          },
+        });
         if (optInResult.success) {
           await queuePendingLinkMessage({
             phone,
@@ -236,7 +245,16 @@ export default async function handler(req, res) {
         continue;
       }
 
-      const smsResult = await sendSMS({ to: phone, message });
+      const smsResult = await sendSMS({
+        to: phone,
+        message,
+        log: {
+          messageType: 'injection_reminder',
+          source: 'injection-reminders',
+          patientId: protocol.patient_id,
+          protocolId: protocol.id,
+        },
+      });
 
       if (smsResult.success) {
         results.sent.push({ patient: protocol.patient_name, day: dayNumber });

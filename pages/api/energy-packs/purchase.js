@@ -178,6 +178,11 @@ export default async function handler(req, res) {
       await sendSMS({
         to: formattedPhone,
         message: `Hi ${capitalizeName(firstName)}, your Energy & Recovery Pack is activated! You have $750 to use on Red Light Therapy and Hyperbaric Oxygen sessions at Range Medical. Book your first session: range-medical.com\n\nQuestions? Call or text (949) 997-3988`,
+        log: {
+          messageType: 'energy_pack_confirmation',
+          source: 'energy-packs-purchase',
+          patientId,
+        },
       }).catch(err => console.error('Patient SMS error:', err));
     }
 

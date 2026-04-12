@@ -132,7 +132,16 @@ export default async function handler(req, res) {
 
     // Send the SMS
     const phone = normalizePhone(provider.phone);
-    const smsResult = await sendSMS({ to: phone, message: smsMessage });
+    const smsResult = await sendSMS({
+      to: phone,
+      message: smsMessage,
+      log: {
+        messageType: 'dose_change_request',
+        source: 'dose-change-requests',
+        patientId: patient_id,
+        protocolId: protocol_id,
+      },
+    });
 
     // Update the request with SMS status
     await supabase

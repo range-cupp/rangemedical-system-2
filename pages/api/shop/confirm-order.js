@@ -250,6 +250,11 @@ export default async function handler(req, res) {
     await sendSMS({
       to: '+19496900339',
       message: `Vial Shop Order ${orderNumber}\n${patient.name}\n${itemSummary}\nTotal: $${(totalCents / 100).toFixed(2)}\n${isPickup ? 'Pickup' : 'Ship to: ' + addressData?.city + ', ' + addressData?.state}`,
+      log: {
+        messageType: 'shop_order_notification',
+        source: 'shop-confirm-order',
+        patientId: patient.id,
+      },
     });
   } catch (smsErr) {
     console.error('SMS notify error:', smsErr);

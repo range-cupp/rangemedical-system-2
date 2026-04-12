@@ -106,6 +106,11 @@ export default async function handler(req, res) {
         await sendSMS({
           to: patient.phone,
           message: `Range Medical Peptide Shop\n\nYour login:\nURL: ${shopUrl}\nUsername: ${username}\nPassword: ${plainPassword}\n\nQuestions? (949) 997-3988`,
+          log: {
+            messageType: 'shop_account_credentials',
+            source: 'admin-shop-account',
+            patientId: patientId,
+          },
         });
       } catch (smsErr) {
         console.error('Shop credential SMS error:', smsErr);

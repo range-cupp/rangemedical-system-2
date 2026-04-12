@@ -185,7 +185,14 @@ async function notifyAssignee(employeeId, assignerName, taskTitle, priority) {
 
   // Send immediately
   const message = buildTaskSmsMessage(assignerName, taskTitle, priority);
-  await sendSMS({ to: normalizePhone(emp.phone), message });
+  await sendSMS({
+    to: normalizePhone(emp.phone),
+    message,
+    log: {
+      messageType: 'task_assignment',
+      source: 'admin-tasks',
+    },
+  });
 }
 
 function buildTaskSmsMessage(assignerName, taskTitle, priority) {

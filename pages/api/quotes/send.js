@@ -34,7 +34,14 @@ export default async function handler(req, res) {
     const firstName = (quote.recipient_name || '').split(' ')[0] || 'there';
     const message = `Hi ${firstName} — here's the pricing we put together for you at Range Medical:\n\n${url}\n\nText this number with any questions.`;
 
-    const result = await sendSMS({ to: normalizePhone(quote.recipient_phone), message });
+    const result = await sendSMS({
+      to: normalizePhone(quote.recipient_phone),
+      message,
+      log: {
+        messageType: 'quote_sent',
+        source: 'quotes-send',
+      },
+    });
     if (!result.success) return res.status(500).json({ error: result.error || 'SMS failed' });
 
     await supabase

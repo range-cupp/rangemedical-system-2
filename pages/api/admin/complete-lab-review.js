@@ -118,7 +118,15 @@ export default async function handler(req, res) {
     if (chris?.phone) smsTargets.push(chris.phone);
 
     const smsResults = await Promise.allSettled(
-      smsTargets.map(phone => sendSMS({ to: phone, message: smsMessage }))
+      smsTargets.map(phone => sendSMS({
+        to: phone,
+        message: smsMessage,
+        log: {
+          messageType: 'lab_review_scheduling',
+          source: 'complete-lab-review',
+          patientId: patient_id,
+        },
+      }))
     );
 
     const smsSent = smsResults.filter(r => r.status === 'fulfilled').length;

@@ -54,6 +54,30 @@ export default async function handler(req, res) {
         expand: ['data.default_payment_method', 'data.latest_invoice', 'data.items.data.price.product'],
       });
 
+      // Fetch invoice payment history for this customer
+      const allInvoices = await stripe.invoices.list({
+        customer: customerId,
+        limit: 100,
+        status: 'paid',
+      });
+
+      // Group paid invoices by subscription
+      const invoicesBySubscription = {};
+      for (const inv of allInvoices.data) {
+        if (!inv.subscription) continue;
+        if (!invoicesBySubscription[inv.subscription]) {
+          invoicesBySubscription[inv.subscription] = [];
+        }
+        invoicesBySubscription[inv.subscription].push({
+          id: inv.id,
+          amount_paid: inv.amount_paid,
+          paid_at: inv.status_transitions?.paid_at ? new Date(inv.status_transitions.paid_at * 1000).toISOString() : new Date(inv.created * 1000).toISOString(),
+          period_start: inv.period_start ? new Date(inv.period_start * 1000).toISOString() : null,
+          period_end: inv.period_end ? new Date(inv.period_end * 1000).toISOString() : null,
+          hosted_invoice_url: inv.hosted_invoice_url,
+        });
+      }
+
       const subscriptions = stripeSubs.data.map(sub => {
         const pm = sub.default_payment_method;
         const invoice = sub.latest_invoice;
@@ -63,6 +87,8 @@ export default async function handler(req, res) {
         const actualAmount = (invoice && typeof invoice === 'object' && invoice.amount_paid != null)
           ? invoice.amount_paid
           : (price?.unit_amount || 0);
+
+        const payments = invoicesBySubscription[sub.id] || [];
 
         return {
           id: sub.id,
@@ -95,6 +121,7 @@ export default async function handler(req, res) {
             next_payment_attempt: invoice.next_payment_attempt ? new Date(invoice.next_payment_attempt * 1000).toISOString() : null,
             hosted_invoice_url: invoice.hosted_invoice_url,
           } : null,
+          payments,
           pause_collection: sub.pause_collection,
         };
       });

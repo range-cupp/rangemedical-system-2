@@ -9250,16 +9250,44 @@ export default function PatientProfile() {
                     </div>
                   )}
 
-                  {stripeSubscriptions.length === 0 && !loadingStripeSubs ? (
-                    <div className="pay-empty">
-                      No subscriptions found
-                      <div style={{ marginTop: 8 }}>
-                        <button onClick={fetchStripeSubscriptions} className="pay-btn-secondary">Load from Stripe</button>
-                      </div>
-                    </div>
-                  ) : (
+                  {(() => {
+                    // Use Stripe data if available, otherwise fall back to local DB subscriptions
+                    const displaySubs = stripeSubscriptions.length > 0 ? stripeSubscriptions : subscriptions.map(s => ({
+                      id: s.stripe_subscription_id || s.id,
+                      status: s.status,
+                      amount_cents: s.amount_cents || 0,
+                      currency: s.currency || 'usd',
+                      interval: s.interval || 'month',
+                      interval_count: s.interval_count || 1,
+                      description: s.description || 'Subscription',
+                      service_category: s.service_category,
+                      current_period_start: s.current_period_start,
+                      current_period_end: s.current_period_end,
+                      cancel_at_period_end: s.cancel_at_period_end,
+                      canceled_at: s.canceled_at,
+                      started_at: s.started_at,
+                      created: s.started_at || s.created_at,
+                      payment_method: null,
+                      latest_invoice: null,
+                      payments: [],
+                      pause_collection: null,
+                      _fromDB: true,
+                    }));
+
+                    if (displaySubs.length === 0 && !loadingStripeSubs) {
+                      return (
+                        <div className="pay-empty">
+                          No subscriptions found
+                          <div style={{ marginTop: 8 }}>
+                            <button onClick={fetchStripeSubscriptions} className="pay-btn-secondary">Load from Stripe</button>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
                     <div className="pay-list">
-                      {stripeSubscriptions.map(sub => {
+                      {displaySubs.map(sub => {
                         const isPastDue = sub.status === 'past_due';
                         const isPaused = !!sub.pause_collection;
                         const isCanceled = sub.status === 'canceled';
@@ -9267,6 +9295,8 @@ export default function PatientProfile() {
                         const isActive = sub.status === 'active' && !isPaused && !isCancelingAtEnd;
                         const pm = sub.payment_method;
                         const inv = sub.latest_invoice;
+                        const payments = sub.payments || [];
+                        const lastPaid = payments.length > 0 ? payments[0] : null;
 
                         const badgeClass = isPastDue ? 'pay-badge-red' : isPaused ? 'pay-badge-yellow' : isCanceled ? 'pay-badge-gray' : isCancelingAtEnd ? 'pay-badge-yellow' : 'pay-badge-green';
                         const statusLabel = isPastDue ? 'Past Due' : isPaused ? 'Paused' : isCanceled ? 'Canceled' : isCancelingAtEnd ? 'Canceling' : 'Active';
@@ -9299,6 +9329,11 @@ export default function PatientProfile() {
                               {pm && (
                                 <div><strong>Card: </strong>{pm.brand.toUpperCase()} ···· {pm.last4} <span style={{ color: '#94a3b8' }}>({String(pm.exp_month).padStart(2, '0')}/{pm.exp_year})</span></div>
                               )}
+                              {lastPaid && (
+                                <div style={{ color: '#059669', fontWeight: 600 }}>
+                                  <strong>Last Paid: </strong>{new Date(lastPaid.paid_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })} — ${(lastPaid.amount_paid / 100).toFixed(2)}
+                                </div>
+                              )}
                               {sub.current_period_end && !isCanceled && (
                                 <div><strong>{isCancelingAtEnd ? 'Ends: ' : 'Renews: '}</strong>{new Date(sub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}</div>
                               )}
@@ -9306,6 +9341,29 @@ export default function PatientProfile() {
                                 <div><strong>Canceled: </strong>{new Date(sub.canceled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}</div>
                               )}
                             </div>
+
+                            {/* Payment History */}
+                            {payments.length > 0 && (
+                              <div style={{ borderTop: '1px solid #f1f5f9', padding: '10px 14px 6px' }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Payment History</div>
+                                {payments.slice(0, 6).map(p => (
+                                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: 13 }}>
+                                    <span style={{ color: '#374151' }}>
+                                      {new Date(p.paid_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })}
+                                    </span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <span style={{ fontWeight: 600, color: '#059669' }}>${(p.amount_paid / 100).toFixed(2)}</span>
+                                      {p.hosted_invoice_url && (
+                                        <a href={p.hosted_invoice_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: '#3b82f6' }}>View</a>
+                                      )}
+                                    </span>
+                                  </div>
+                                ))}
+                                {payments.length > 6 && (
+                                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>+ {payments.length - 6} more payments</div>
+                                )}
+                              </div>
+                            )}
 
                             {isPastDue && inv && (
                               <div className="pay-sub-alert">
@@ -9392,7 +9450,8 @@ export default function PatientProfile() {
                         );
                       })}
                     </div>
-                  )}
+                    );
+                  })()}
                 </div>
               )}
 

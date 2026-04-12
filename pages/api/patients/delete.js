@@ -9,44 +9,96 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// All tables that reference patient_id (from merge-patients.js + extras)
+// All tables that reference patient_id (from FK constraints on patients.id)
 const RELATED_TABLES = [
-  'protocols',
-  'purchases',
-  'labs',
-  'symptoms',
-  'measurements',
+  // Archive tables
+  '_archive_patient_protocols',
+  '_archive_protocols',
+  '_archive_sessions',
+  '_archive_symptoms',
+  '_archive_symptoms_questionnaires',
+  // Core records
   'alerts',
-  'sessions',
-  'intakes',
-  'consents',
-  'medical_documents',
-  'clinic_appointments',
-  'lab_orders',
-  'symptom_responses',
-  'lab_documents',
-  'questionnaire_responses',
-  'injection_logs',
-  'service_logs',
-  'weight_logs',
-  'protocol_follow_up_labs',
-  'appointment_logs',
-  'hrt_memberships',
-  'protocol_logs',
-  'lab_journeys',
-  'hrt_monthly_periods',
-  'comms_log',
-  'daily_logs',
-  'check_ins',
+  'appointments',
+  'baseline_questionnaires',
+  'birthday_gifts',
   'calcom_bookings',
   'cellular_energy_checkins',
   'challenges',
-  'patient_labs',
-  'patient_notes',
-  'session_packages',
-  'weight_loss_programs',
+  'check_ins',
+  'checkin_reminders_log',
+  'clinic_appointments',
+  'comms_log',
+  'consent_forms',
+  'consents',
+  'cures_checks',
+  'daily_logs',
+  'dose_change_requests',
+  'email_campaign_recipients',
+  'energy_recovery_redemptions',
+  'energy_recovery_packs',
+  'form_bundles',
+  'hrt_memberships',
+  'injection_logs',
+  'intakes',
+  'invoices',
+  'journey_events',
+  'lab_documents',
+  'lab_journeys',
+  'lab_orders',
+  'lab_prep_acknowledgments',
+  'lab_results',
+  'labs',
+  'measurements',
+  'medical_documents',
+  'note_edits',
   'notification_queue',
+  'patient_allergies',
+  'patient_credits',
+  'patient_diagnoses',
+  'patient_medications',
+  'patient_notes',
+  'patient_portal_tokens',
+  'patient_protocols',
+  'patient_tokens',
+  'patient_vitals',
+  'pending_link_messages',
+  'pf_lab_observations',
+  'plan_blocks',
+  'prescriptions',
+  'protocol_checkins',
+  'protocol_follow_up_labs',
+  'protocol_labs',
+  'protocol_logs',
+  'protocols',
+  'purchase_notifications',
+  'purchases',
+  'quotes',
   'refill_requests',
+  'review_gifts',
+  'sales_pipeline',
+  'service_logs',
+  'session_packages',
+  'session_usage',
+  'sessions',
+  'shared_plans',
+  'shop_accounts',
+  'shop_orders',
+  'staff_alerts',
+  'subscriptions',
+  'symptom_responses',
+  'symptoms',
+  'trial_passes',
+  'weight_log',
+  'weight_loss_programs',
+  'wins',
+];
+
+// Tables where the FK column is NOT named "patient_id"
+const SPECIAL_FK_TABLES = [
+  { table: 'gift_cards', column: 'buyer_patient_id' },
+  { table: 'gift_card_redemptions', column: 'redeemed_by_patient_id' },
+  { table: 'pf_patient_mapping', column: 'crm_patient_id' },
 ];
 
 export default async function handler(req, res) {
@@ -99,6 +151,22 @@ export default async function handler(req, res) {
     }
   }
 
+  for (const { table, column } of SPECIAL_FK_TABLES) {
+    try {
+      const { count, error } = await supabase
+        .from(table)
+        .select('*', { count: 'exact', head: true })
+        .eq(column, patient_id);
+
+      if (!error && count > 0) {
+        recordCounts[table] = count;
+        totalRecords += count;
+      }
+    } catch (e) {
+      // Table might not exist, skip
+    }
+  }
+
   // If not confirmed, return preview of what will be deleted
   if (!confirm) {
     return res.status(200).json({
@@ -124,6 +192,21 @@ export default async function handler(req, res) {
         .from(table)
         .delete()
         .eq('patient_id', patient_id);
+
+      if (delErr && !delErr.message.includes('does not exist')) {
+        errors.push({ table, error: delErr.message });
+      }
+    } catch (e) {
+      // Ignore tables that don't exist
+    }
+  }
+
+  for (const { table, column } of SPECIAL_FK_TABLES) {
+    try {
+      const { error: delErr } = await supabase
+        .from(table)
+        .delete()
+        .eq(column, patient_id);
 
       if (delErr && !delErr.message.includes('does not exist')) {
         errors.push({ table, error: delErr.message });

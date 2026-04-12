@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Activity, Zap, Shield, Check, ChevronLeft, Phone } from 'lucide-react';
+import { Check, ChevronLeft, Phone } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
@@ -24,231 +24,311 @@ const PATH_COPY = {
   both: 'From injury recovery to hormone optimization, we take a full-spectrum approach to get you feeling and performing at your best.',
 };
 
-// ── Styles ──────────────────────────────────────────────────────────────────
+// ── v2 Styles ──────────────────────────────────────────────────────────────
 
 const s = {
   page: {
     minHeight: '100vh',
-    background: '#FAFAFA',
+    background: '#ffffff',
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    WebkitFontSmoothing: 'antialiased',
   },
-  container: {
-    maxWidth: 600,
-    margin: '0 auto',
-    padding: '40px 20px 60px',
+  header: {
+    borderBottom: '1px solid #e8e8e8',
+    padding: '0 2rem',
+    height: 56,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  logo: {
-    textAlign: 'center',
-    marginBottom: 40,
-  },
-  logoText: {
+  wordmark: {
     fontSize: 13,
     fontWeight: 800,
     letterSpacing: '0.15em',
     color: '#1a1a1a',
     textTransform: 'uppercase',
+    lineHeight: 1,
+    textDecoration: 'none',
+  },
+  container: {
+    maxWidth: 640,
+    margin: '0 auto',
+    padding: '0 2rem 80px',
+  },
+  heroSection: {
+    padding: '5rem 0 3.5rem',
+  },
+  label: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: '0.14em',
+    color: '#737373',
+    textTransform: 'uppercase',
+    marginBottom: 24,
+  },
+  dot: {
+    display: 'inline-block',
+    width: 8,
+    height: 8,
+    background: '#808080',
   },
   headline: {
-    fontSize: 26,
-    fontWeight: 700,
-    color: '#171717',
-    textAlign: 'center',
-    lineHeight: 1.3,
-    marginBottom: 32,
+    fontSize: 'clamp(2rem, 5vw, 2.75rem)',
+    fontWeight: 900,
+    color: '#1a1a1a',
+    lineHeight: 0.95,
+    letterSpacing: '-0.02em',
+    margin: '0 0 20px',
   },
-  card: {
-    background: '#FFFFFF',
-    border: '1px solid #E5E5E5',
-    borderRadius: 12,
-    padding: '24px 20px',
-    marginBottom: 14,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 16,
-    transition: 'border-color 0.15s, box-shadow 0.15s',
-  },
-  cardIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 10,
-    background: '#F5F5F5',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  cardTitle: {
+  headlineSub: {
     fontSize: 17,
-    fontWeight: 600,
-    color: '#171717',
-    marginBottom: 4,
-  },
-  cardSub: {
-    fontSize: 14,
+    lineHeight: 1.75,
     color: '#737373',
-    lineHeight: 1.4,
+    margin: '0 0 40px',
+    maxWidth: 480,
   },
+  rule: {
+    width: '100%',
+    height: 1,
+    background: '#e0e0e0',
+    margin: '0 0 24px',
+  },
+  // Path cards — v2 editorial style
+  pathGrid: {
+    borderTop: '1px solid #e0e0e0',
+  },
+  pathCard: {
+    padding: '2.5rem 0',
+    borderBottom: '1px solid #e0e0e0',
+    cursor: 'pointer',
+    transition: 'padding-left 0.2s',
+  },
+  pathNumber: {
+    display: 'block',
+    fontSize: 12,
+    fontWeight: 600,
+    color: '#808080',
+    letterSpacing: '0.05em',
+    marginBottom: 12,
+  },
+  pathTitle: {
+    fontSize: 22,
+    fontWeight: 900,
+    lineHeight: 1,
+    letterSpacing: '-0.02em',
+    color: '#1a1a1a',
+    margin: '0 0 10px',
+  },
+  pathSub: {
+    fontSize: 15,
+    lineHeight: 1.7,
+    color: '#737373',
+    margin: 0,
+  },
+  pathArrow: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: '0.1em',
+    color: '#1a1a1a',
+    borderBottom: '1.5px solid #1a1a1a',
+    paddingBottom: 3,
+    marginTop: 16,
+    textTransform: 'uppercase',
+  },
+  // Back button
   backBtn: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 4,
-    fontSize: 14,
+    gap: 6,
+    fontSize: 12,
+    fontWeight: 700,
     color: '#737373',
     background: 'none',
     border: 'none',
     cursor: 'pointer',
     padding: 0,
-    marginBottom: 24,
+    marginBottom: 32,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    transition: 'color 0.2s',
   },
+  // VSL screen
   video: {
     width: '100%',
-    borderRadius: 12,
     background: '#000',
-    marginBottom: 24,
+    marginBottom: 32,
   },
   copy: {
-    fontSize: 16,
-    color: '#525252',
-    lineHeight: 1.6,
-    marginBottom: 24,
+    fontSize: 17,
+    color: '#737373',
+    lineHeight: 1.75,
+    marginBottom: 28,
   },
   price: {
     fontSize: 15,
-    color: '#171717',
+    color: '#1a1a1a',
     fontWeight: 500,
-    marginBottom: 28,
-    background: '#F5F5F5',
-    padding: '14px 18px',
-    borderRadius: 10,
+    marginBottom: 32,
+    background: '#fafafa',
+    padding: '16px 20px',
+    borderLeft: '3px solid #1a1a1a',
   },
+  // CTA button — v2 style
   btn: {
     width: '100%',
     padding: '16px 32px',
-    background: '#171717',
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 600,
+    background: '#1a1a1a',
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: 800,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
     border: 'none',
-    borderRadius: 8,
     cursor: 'pointer',
-    transition: 'background 0.15s',
+    transition: 'background 0.2s',
   },
   btnDisabled: {
-    opacity: 0.45,
+    opacity: 0.35,
     cursor: 'not-allowed',
   },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 600,
+  // Section labels
+  sectionLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: '0.14em',
     color: '#737373',
     textTransform: 'uppercase',
-    letterSpacing: '0.06em',
-    marginBottom: 16,
+    marginBottom: 8,
   },
+  sectionRule: {
+    width: '100%',
+    height: 1,
+    background: '#e0e0e0',
+    marginBottom: 20,
+  },
+  // Form inputs
   label: {
     display: 'block',
-    fontSize: 14,
-    fontWeight: 500,
-    color: '#171717',
+    fontSize: 12,
+    fontWeight: 700,
+    color: '#1a1a1a',
     marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
   },
   input: {
     width: '100%',
-    padding: '14px',
-    border: '1px solid #DDD',
-    borderRadius: 8,
+    padding: '14px 16px',
+    border: '1px solid #e0e0e0',
     fontSize: 16,
-    color: '#171717',
+    color: '#1a1a1a',
     outline: 'none',
     boxSizing: 'border-box',
-    marginBottom: 14,
+    marginBottom: 16,
     WebkitAppearance: 'none',
+    fontFamily: "'Inter', -apple-system, sans-serif",
+    transition: 'border-color 0.2s',
   },
   inputRow: {
     display: 'flex',
-    gap: 12,
+    gap: 16,
   },
   divider: {
-    borderTop: '1px solid #E5E5E5',
-    margin: '28px 0',
+    borderTop: '1px solid #e0e0e0',
+    margin: '32px 0',
   },
+  // Date + time grids
   dateGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-    gap: 8,
-    marginBottom: 20,
+    gap: 0,
+    marginBottom: 24,
+    border: '1px solid #e0e0e0',
   },
   dateBtn: {
-    padding: '12px 8px',
-    border: '1px solid #DDD',
-    borderRadius: 8,
-    background: '#FFF',
+    padding: '14px 8px',
+    border: 'none',
+    borderRight: '1px solid #e0e0e0',
+    borderBottom: '1px solid #e0e0e0',
+    background: '#fff',
     cursor: 'pointer',
     textAlign: 'center',
-    fontSize: 14,
-    fontWeight: 500,
-    color: '#171717',
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#1a1a1a',
     transition: 'all 0.15s',
+    fontFamily: "'Inter', -apple-system, sans-serif",
   },
   dateBtnSelected: {
-    background: '#171717',
-    color: '#FFF',
-    borderColor: '#171717',
+    background: '#1a1a1a',
+    color: '#fff',
   },
   timeGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: 8,
-    marginBottom: 20,
+    gap: 0,
+    marginBottom: 24,
+    border: '1px solid #e0e0e0',
   },
   timeBtn: {
-    padding: '12px 8px',
-    border: '1px solid #DDD',
-    borderRadius: 8,
-    background: '#FFF',
+    padding: '14px 8px',
+    border: 'none',
+    borderRight: '1px solid #e0e0e0',
+    borderBottom: '1px solid #e0e0e0',
+    background: '#fff',
     cursor: 'pointer',
     textAlign: 'center',
     fontSize: 14,
-    fontWeight: 500,
-    color: '#171717',
+    fontWeight: 600,
+    color: '#1a1a1a',
     transition: 'all 0.15s',
+    fontFamily: "'Inter', -apple-system, sans-serif",
   },
   timeBtnSelected: {
-    background: '#171717',
-    color: '#FFF',
-    borderColor: '#171717',
+    background: '#1a1a1a',
+    color: '#fff',
   },
   error: {
     color: '#DC2626',
     fontSize: 14,
     marginTop: 8,
-    marginBottom: 8,
+    marginBottom: 12,
   },
+  // Confirmation — v2
   confirmBox: {
     textAlign: 'center',
-    padding: '60px 20px',
+    padding: '80px 0 40px',
   },
-  checkCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: '50%',
-    background: '#F0FDF4',
+  checkMark: {
+    width: 64,
+    height: 64,
+    border: '2px solid #1a1a1a',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
   },
   confirmTitle: {
-    fontSize: 28,
-    fontWeight: 700,
-    color: '#171717',
-    marginBottom: 12,
+    fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
+    fontWeight: 900,
+    color: '#1a1a1a',
+    lineHeight: 0.95,
+    letterSpacing: '-0.02em',
+    marginBottom: 20,
   },
   confirmDetail: {
-    fontSize: 16,
-    color: '#525252',
-    lineHeight: 1.6,
+    fontSize: 17,
+    color: '#737373',
+    lineHeight: 1.75,
     marginBottom: 12,
   },
   loadingDots: {
@@ -256,6 +336,20 @@ const s = {
     color: '#737373',
     textAlign: 'center',
     padding: 20,
+  },
+  contactLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: '0.1em',
+    color: '#1a1a1a',
+    textTransform: 'uppercase',
+    borderBottom: '1.5px solid #1a1a1a',
+    paddingBottom: 3,
+    textDecoration: 'none',
+    marginTop: 24,
   },
 };
 
@@ -285,7 +379,6 @@ function formatDateBtn(d) {
 }
 
 function formatDateISO(d) {
-  // Format as YYYY-MM-DD in Pacific time
   const formatter = new Intl.DateTimeFormat('en-CA', {
     year: 'numeric',
     month: '2-digit',
@@ -318,7 +411,7 @@ function formatConfirmationDate(isoString) {
 
 function filterSlotsByBuffer(slots) {
   const now = new Date();
-  const bufferMs = 2 * 60 * 60 * 1000; // 2 hours
+  const bufferMs = 2 * 60 * 60 * 1000;
   const cutoff = new Date(now.getTime() + bufferMs);
   return slots.filter(slot => new Date(slot.time) > cutoff);
 }
@@ -409,7 +502,6 @@ export default function Assessment() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('payment_complete') === 'true') {
-      // Payment completed via redirect — clean up URL
       window.history.replaceState({}, '', '/assessment');
     }
   }, []);
@@ -456,7 +548,6 @@ export default function Assessment() {
       setLeadSubmitted(true);
     } catch (err) {
       console.error('Lead submit error:', err);
-      // Don't block the user — they can still fill payment
       setLeadSubmitted(true);
     } finally {
       setLeadSubmitting(false);
@@ -585,7 +676,6 @@ export default function Assessment() {
       const bookData = await bookRes.json();
 
       if (!bookRes.ok) {
-        // Payment succeeded but booking failed — show a message with the phone number
         setError(bookData.error || 'Payment succeeded but booking failed. Please call (949) 997-3988 to schedule.');
         setSubmitting(false);
         return;
@@ -619,61 +709,66 @@ export default function Assessment() {
       </Head>
 
       <div style={s.page}>
-        <div style={s.container}>
 
-          {/* Logo */}
-          <div style={s.logo}>
-            <span style={s.logoText}>RANGE MEDICAL</span>
-          </div>
+        {/* ── Header ── */}
+        <div style={s.header}>
+          <a href="/" style={s.wordmark}>RANGE MEDICAL</a>
+        </div>
+
+        <div style={s.container}>
 
           {/* ── Screen 1: Path Selection ──────────────────────────────── */}
           {screen === 1 && (
             <>
-              <h1 style={s.headline}>What do you want the most help with right now?</h1>
-
-              <div
-                style={s.card}
-                onClick={() => handlePathSelect('injury')}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#171717'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#E5E5E5'; e.currentTarget.style.boxShadow = 'none'; }}
-              >
-                <div style={s.cardIcon}>
-                  <Activity size={22} color="#171717" />
+              <div style={s.heroSection}>
+                <div style={s.label}>
+                  <span style={s.dot} /> YOUR ASSESSMENT
                 </div>
-                <div>
-                  <div style={s.cardTitle}>Injury & Recovery</div>
-                  <div style={s.cardSub}>Pain, healing, post-surgery recovery</div>
-                </div>
+                <h1 style={s.headline}>
+                  WHAT DO YOU<br />NEED HELP<br />WITH?
+                </h1>
+                <div style={s.rule} />
+                <p style={s.headlineSub}>
+                  Pick the path that matches your situation. Both start with a $197 assessment — credited toward your treatment.
+                </p>
               </div>
 
-              <div
-                style={s.card}
-                onClick={() => handlePathSelect('energy')}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#171717'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#E5E5E5'; e.currentTarget.style.boxShadow = 'none'; }}
-              >
-                <div style={s.cardIcon}>
-                  <Zap size={22} color="#171717" />
-                </div>
-                <div>
-                  <div style={s.cardTitle}>Energy, Hormones & Weight</div>
-                  <div style={s.cardSub}>Fatigue, weight gain, brain fog, low drive</div>
-                </div>
-              </div>
-
-              <div
-                style={s.card}
-                onClick={() => handlePathSelect('both')}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#171717'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#E5E5E5'; e.currentTarget.style.boxShadow = 'none'; }}
-              >
-                <div style={s.cardIcon}>
-                  <Shield size={22} color="#171717" />
-                </div>
-                <div>
-                  <div style={s.cardTitle}>Both</div>
-                  <div style={s.cardSub}>Full-spectrum health optimization</div>
-                </div>
+              <div style={s.pathGrid}>
+                {[
+                  {
+                    num: '01',
+                    path: 'injury',
+                    title: 'INJURY & RECOVERY',
+                    sub: 'Pain, healing, post-surgery — we build a recovery protocol around your timeline.',
+                  },
+                  {
+                    num: '02',
+                    path: 'energy',
+                    title: 'ENERGY, HORMONES & WEIGHT',
+                    sub: 'Fatigue, weight gain, brain fog, low drive — we start with labs and find the root cause.',
+                  },
+                  {
+                    num: '03',
+                    path: 'both',
+                    title: 'BOTH',
+                    sub: 'Full-spectrum health optimization — injury recovery and hormones together.',
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.path}
+                    style={s.pathCard}
+                    onClick={() => handlePathSelect(item.path)}
+                    onMouseEnter={e => { e.currentTarget.style.paddingLeft = '1rem'; }}
+                    onMouseLeave={e => { e.currentTarget.style.paddingLeft = '0'; }}
+                  >
+                    <span style={s.pathNumber}>{item.num}</span>
+                    <div style={s.pathTitle}>{item.title}</div>
+                    <p style={s.pathSub}>{item.sub}</p>
+                    <div style={s.pathArrow}>
+                      SELECT THIS PATH <span>&rarr;</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </>
           )}
@@ -681,233 +776,297 @@ export default function Assessment() {
           {/* ── Screen 2: VSL + Offer ─────────────────────────────────── */}
           {screen === 2 && selectedPath && (
             <>
-              <button style={s.backBtn} onClick={() => setScreen(1)}>
-                <ChevronLeft size={16} /> Back
-              </button>
+              <div style={{ paddingTop: 40 }}>
+                <button
+                  style={s.backBtn}
+                  onClick={() => setScreen(1)}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#1a1a1a'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = '#737373'; }}
+                >
+                  <ChevronLeft size={14} /> BACK
+                </button>
 
-              <video
-                style={s.video}
-                controls
-                playsInline
-                preload="metadata"
-                src={VIDEO_URLS[selectedPath]}
-              />
+                <div style={s.label}>
+                  <span style={s.dot} /> YOUR PATH
+                </div>
 
-              <p style={s.copy}>{PATH_COPY[selectedPath]}</p>
+                <video
+                  style={s.video}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  src={VIDEO_URLS[selectedPath]}
+                />
 
-              <div style={s.price}>
-                <strong>$197</strong> — applied as credit toward your first treatment or lab package
+                <p style={s.copy}>{PATH_COPY[selectedPath]}</p>
+
+                <div style={s.price}>
+                  <strong>$197</strong> — applied as credit toward your first treatment or lab package
+                </div>
+
+                <button
+                  style={s.btn}
+                  onClick={() => setScreen(3)}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#404040'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#1a1a1a'; }}
+                >
+                  BOOK MY ASSESSMENT — $197
+                </button>
               </div>
-
-              <button
-                style={s.btn}
-                onClick={() => setScreen(3)}
-                onMouseEnter={e => { e.currentTarget.style.background = '#000'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#171717'; }}
-              >
-                Book My Assessment — $197
-              </button>
             </>
           )}
 
           {/* ── Screen 3: Contact + Payment + Scheduling ──────────────── */}
           {screen === 3 && selectedPath && (
             <>
-              <button style={s.backBtn} onClick={() => setScreen(2)}>
-                <ChevronLeft size={16} /> Back
-              </button>
+              <div style={{ paddingTop: 40 }}>
+                <button
+                  style={s.backBtn}
+                  onClick={() => setScreen(2)}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#1a1a1a'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = '#737373'; }}
+                >
+                  <ChevronLeft size={14} /> BACK
+                </button>
 
-              <h2 style={{ ...s.headline, fontSize: 22, marginBottom: 28 }}>Complete Your Booking</h2>
-
-              {/* Section A: Contact Info */}
-              <div style={s.sectionTitle}>Contact Information</div>
-
-              <div style={s.inputRow}>
-                <div style={{ flex: 1 }}>
-                  <label style={s.label}>First Name</label>
-                  <input
-                    style={s.input}
-                    type="text"
-                    value={firstName}
-                    onChange={e => setFirstName(e.target.value)}
-                    placeholder="First name"
-                    autoComplete="given-name"
-                  />
+                <div style={s.label}>
+                  <span style={s.dot} /> COMPLETE YOUR BOOKING
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label style={s.label}>Last Name</label>
-                  <input
-                    style={s.input}
-                    type="text"
-                    value={lastName}
-                    onChange={e => setLastName(e.target.value)}
-                    placeholder="Last name"
-                    autoComplete="family-name"
-                  />
-                </div>
-              </div>
+                <h2 style={{ ...s.headline, fontSize: 'clamp(1.5rem, 4vw, 2rem)', marginBottom: 12 }}>
+                  ALMOST THERE.
+                </h2>
+                <div style={s.rule} />
 
-              <label style={s.label}>Email</label>
-              <input
-                style={s.input}
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                autoComplete="email"
-              />
+                {/* Section A: Contact Info */}
+                <div style={{ marginTop: 32 }}>
+                  <div style={s.sectionLabel}>
+                    <span style={s.dot} /> CONTACT INFORMATION
+                  </div>
+                  <div style={s.sectionRule} />
 
-              <label style={s.label}>Phone</label>
-              <input
-                style={s.input}
-                type="tel"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                onBlur={() => {
-                  if (contactComplete && !leadSubmitted) {
-                    submitLead();
-                  }
-                }}
-                placeholder="(555) 555-5555"
-                autoComplete="tel"
-              />
-
-              {leadSubmitting && (
-                <div style={s.loadingDots}>Saving your info...</div>
-              )}
-
-              <div style={s.divider} />
-
-              {/* Section B: Payment */}
-              <div style={s.sectionTitle}>Payment</div>
-
-              {!leadSubmitted && !clientSecret && (
-                <div style={{ ...s.loadingDots, padding: '20px 0' }}>
-                  Fill in your contact details above to continue
-                </div>
-              )}
-
-              {leadSubmitted && !clientSecret && (
-                <div style={s.loadingDots}>Loading payment form...</div>
-              )}
-
-              {clientSecret && stripePromise && (
-                <div style={{ marginBottom: 8 }}>
-                  <Elements
-                    stripe={stripePromise}
-                    options={{
-                      clientSecret,
-                      appearance: {
-                        theme: 'stripe',
-                        variables: {
-                          borderRadius: '8px',
-                          fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-                        },
-                      },
-                    }}
-                  >
-                    <PaymentSection
-                      stripeRef={stripeRef}
-                      elementsRef={elementsRef}
-                      onReady={() => setPaymentReady(true)}
-                    />
-                  </Elements>
-                </div>
-              )}
-
-              <div style={s.divider} />
-
-              {/* Section C: Pick Your Time */}
-              <div style={s.sectionTitle}>Pick Your Time</div>
-
-              {!ASSESSMENT_EVENT_TYPE_ID && (
-                <div style={s.loadingDots}>Scheduling not available. Please call (949) 997-3988.</div>
-              )}
-
-              {ASSESSMENT_EVENT_TYPE_ID && (
-                <>
-                  <div style={s.dateGrid}>
-                    {availableDates.map(d => {
-                      const iso = formatDateISO(d);
-                      const isSelected = selectedDate && formatDateISO(selectedDate) === iso;
-                      return (
-                        <button
-                          key={iso}
-                          style={{
-                            ...s.dateBtn,
-                            ...(isSelected ? s.dateBtnSelected : {}),
-                          }}
-                          onClick={() => setSelectedDate(d)}
-                        >
-                          {formatDateBtn(d)}
-                        </button>
-                      );
-                    })}
+                  <div style={s.inputRow}>
+                    <div style={{ flex: 1 }}>
+                      <label style={s.label}>First Name</label>
+                      <input
+                        style={s.input}
+                        type="text"
+                        value={firstName}
+                        onChange={e => setFirstName(e.target.value)}
+                        placeholder="First name"
+                        autoComplete="given-name"
+                        onFocus={e => { e.currentTarget.style.borderColor = '#1a1a1a'; }}
+                        onBlur={e => { e.currentTarget.style.borderColor = '#e0e0e0'; }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={s.label}>Last Name</label>
+                      <input
+                        style={s.input}
+                        type="text"
+                        value={lastName}
+                        onChange={e => setLastName(e.target.value)}
+                        placeholder="Last name"
+                        autoComplete="family-name"
+                        onFocus={e => { e.currentTarget.style.borderColor = '#1a1a1a'; }}
+                        onBlur={e => { e.currentTarget.style.borderColor = '#e0e0e0'; }}
+                      />
+                    </div>
                   </div>
 
-                  {slotsLoading && (
-                    <div style={s.loadingDots}>Loading available times...</div>
-                  )}
+                  <label style={s.label}>Email</label>
+                  <input
+                    style={s.input}
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    onFocus={e => { e.currentTarget.style.borderColor = '#1a1a1a'; }}
+                    onBlur={e => { e.currentTarget.style.borderColor = '#e0e0e0'; }}
+                  />
 
-                  {selectedDate && !slotsLoading && slots.length === 0 && (
-                    <div style={s.loadingDots}>No available times on this date. Please select another day.</div>
-                  )}
+                  <label style={s.label}>Phone</label>
+                  <input
+                    style={s.input}
+                    type="tel"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = '#e0e0e0';
+                      if (contactComplete && !leadSubmitted) {
+                        submitLead();
+                      }
+                    }}
+                    onFocus={e => { e.currentTarget.style.borderColor = '#1a1a1a'; }}
+                    placeholder="(555) 555-5555"
+                    autoComplete="tel"
+                  />
 
-                  {slots.length > 0 && (
-                    <div style={s.timeGrid}>
-                      {slots.map(slot => {
-                        const isSelected = selectedSlot === slot.time;
+                  {leadSubmitting && (
+                    <div style={s.loadingDots}>Saving your info...</div>
+                  )}
+                </div>
+
+                <div style={s.divider} />
+
+                {/* Section B: Payment */}
+                <div style={s.sectionLabel}>
+                  <span style={s.dot} /> PAYMENT
+                </div>
+                <div style={s.sectionRule} />
+
+                {!leadSubmitted && !clientSecret && (
+                  <div style={{ ...s.loadingDots, padding: '20px 0' }}>
+                    Fill in your contact details above to continue
+                  </div>
+                )}
+
+                {leadSubmitted && !clientSecret && (
+                  <div style={s.loadingDots}>Loading payment form...</div>
+                )}
+
+                {clientSecret && stripePromise && (
+                  <div style={{ marginBottom: 8 }}>
+                    <Elements
+                      stripe={stripePromise}
+                      options={{
+                        clientSecret,
+                        appearance: {
+                          theme: 'stripe',
+                          variables: {
+                            borderRadius: '0px',
+                            fontFamily: "'Inter', -apple-system, sans-serif",
+                            colorPrimary: '#1a1a1a',
+                          },
+                          rules: {
+                            '.Input': {
+                              borderColor: '#e0e0e0',
+                              borderRadius: '0px',
+                            },
+                            '.Input:focus': {
+                              borderColor: '#1a1a1a',
+                              boxShadow: 'none',
+                            },
+                            '.Tab': {
+                              borderRadius: '0px',
+                            },
+                            '.Tab--selected': {
+                              borderColor: '#1a1a1a',
+                            },
+                          },
+                        },
+                      }}
+                    >
+                      <PaymentSection
+                        stripeRef={stripeRef}
+                        elementsRef={elementsRef}
+                        onReady={() => setPaymentReady(true)}
+                      />
+                    </Elements>
+                  </div>
+                )}
+
+                <div style={s.divider} />
+
+                {/* Section C: Pick Your Time */}
+                <div style={s.sectionLabel}>
+                  <span style={s.dot} /> PICK YOUR TIME
+                </div>
+                <div style={s.sectionRule} />
+
+                {!ASSESSMENT_EVENT_TYPE_ID && (
+                  <div style={s.loadingDots}>Scheduling not available. Please call (949) 997-3988.</div>
+                )}
+
+                {ASSESSMENT_EVENT_TYPE_ID && (
+                  <>
+                    <div style={s.dateGrid}>
+                      {availableDates.map(d => {
+                        const iso = formatDateISO(d);
+                        const isSelected = selectedDate && formatDateISO(selectedDate) === iso;
                         return (
                           <button
-                            key={slot.time}
+                            key={iso}
                             style={{
-                              ...s.timeBtn,
-                              ...(isSelected ? s.timeBtnSelected : {}),
+                              ...s.dateBtn,
+                              ...(isSelected ? s.dateBtnSelected : {}),
                             }}
-                            onClick={() => setSelectedSlot(slot.time)}
+                            onClick={() => setSelectedDate(d)}
                           >
-                            {formatTime(slot.time)}
+                            {formatDateBtn(d)}
                           </button>
                         );
                       })}
                     </div>
-                  )}
-                </>
-              )}
 
-              <div style={s.divider} />
+                    {slotsLoading && (
+                      <div style={s.loadingDots}>Loading available times...</div>
+                    )}
 
-              {/* Section D: Confirm */}
-              {error && <div style={s.error}>{error}</div>}
+                    {selectedDate && !slotsLoading && slots.length === 0 && (
+                      <div style={s.loadingDots}>No available times on this date. Please select another day.</div>
+                    )}
 
-              <button
-                style={{
-                  ...s.btn,
-                  ...(canConfirm ? {} : s.btnDisabled),
-                }}
-                disabled={!canConfirm}
-                onClick={handleConfirm}
-              >
-                {submitting ? 'Processing...' : 'Confirm & Pay — $197'}
-              </button>
+                    {slots.length > 0 && (
+                      <div style={s.timeGrid}>
+                        {slots.map(slot => {
+                          const isSelected = selectedSlot === slot.time;
+                          return (
+                            <button
+                              key={slot.time}
+                              style={{
+                                ...s.timeBtn,
+                                ...(isSelected ? s.timeBtnSelected : {}),
+                              }}
+                              onClick={() => setSelectedSlot(slot.time)}
+                            >
+                              {formatTime(slot.time)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                <div style={s.divider} />
+
+                {/* Section D: Confirm */}
+                {error && <div style={s.error}>{error}</div>}
+
+                <button
+                  style={{
+                    ...s.btn,
+                    ...(canConfirm ? {} : s.btnDisabled),
+                  }}
+                  disabled={!canConfirm}
+                  onClick={handleConfirm}
+                  onMouseEnter={e => { if (canConfirm) e.currentTarget.style.background = '#404040'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#1a1a1a'; }}
+                >
+                  {submitting ? 'PROCESSING...' : 'CONFIRM & PAY — $197'}
+                </button>
+              </div>
             </>
           )}
 
           {/* ── Screen 4: Confirmation ────────────────────────────────── */}
           {screen === 4 && (
             <div style={s.confirmBox}>
-              <div style={s.checkCircle}>
-                <Check size={36} color="#16A34A" />
+              <div style={s.checkMark}>
+                <Check size={32} color="#1a1a1a" strokeWidth={2.5} />
               </div>
 
               <h1 style={s.confirmTitle}>
-                You're All Set, {firstName.trim()}!
+                YOU&apos;RE ALL SET,<br />{firstName.trim().toUpperCase()}.
               </h1>
+
+              <div style={{ width: 60, height: 1, background: '#e0e0e0', margin: '24px auto' }} />
 
               {bookingResult?.start && (
                 <p style={s.confirmDetail}>
                   Your appointment is booked for<br />
-                  <strong>{formatConfirmationDate(bookingResult.start)}</strong>
+                  <strong style={{ color: '#1a1a1a' }}>{formatConfirmationDate(bookingResult.start)}</strong>
                 </p>
               )}
 
@@ -915,14 +1074,14 @@ export default function Assessment() {
                 Your $197 will be applied as a credit toward your treatment plan.
               </p>
 
-              <p style={{ ...s.confirmDetail, marginBottom: 32 }}>
-                We've sent a text to {formatPhoneDisplay(phone)} with your appointment details.
+              <p style={s.confirmDetail}>
+                We&apos;ve sent a text to {formatPhoneDisplay(phone)} with your details.
               </p>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: '#737373', fontSize: 15 }}>
-                <Phone size={16} />
-                <span>Questions? <a href="tel:9499973988" style={{ color: '#171717', fontWeight: 600, textDecoration: 'none' }}>(949) 997-3988</a></span>
-              </div>
+              <a href="tel:9499973988" style={s.contactLink}>
+                <Phone size={14} />
+                (949) 997-3988
+              </a>
             </div>
           )}
 

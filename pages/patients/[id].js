@@ -9481,7 +9481,7 @@ export default function PatientProfile() {
                                   <div key={p.id || idx} style={{ borderTop: idx > 0 ? '1px solid #f1f5f9' : 'none' }}>
                                     <div onClick={() => setExpandedTransactions(prev => ({ ...prev, [p.id]: !prev[p.id] }))} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '6px 0', cursor: 'pointer' }}>
                                       <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ color: '#0f172a', fontWeight: 500 }}>{p.medication || p.item_name || p.description || 'Service'}</div>
+                                        <div style={{ color: '#0f172a', fontWeight: 500 }}>{p.item_name || p.product_name || p.medication || 'Service'}</div>
                                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2, flexWrap: 'wrap' }}>
                                           {payLabel && (
                                             <span style={{ fontSize: 11, color: '#64748b', background: '#f1f5f9', padding: '1px 6px', borderRadius: 3 }}>{payLabel}</span>

@@ -2240,7 +2240,29 @@ function CheckoutInner() {
                                         <label style={styles.fieldLabel}>Supply Type</label>
                                         <select
                                           value={dispSupplyType}
-                                          onChange={e => setDispSupplyType(e.target.value)}
+                                          onChange={e => {
+                                            const val = e.target.value;
+                                            setDispSupplyType(val);
+                                            // Auto-set quantity from supply type
+                                            const prefillMatch = val.match(/^prefilled_(\d+)$/);
+                                            if (prefillMatch) {
+                                              setDispQuantity(prefillMatch[1]);
+                                            } else if (val === 'prefilled_1week') {
+                                              setDispQuantity('2');
+                                            } else if (val === 'prefilled_2week') {
+                                              setDispQuantity('4');
+                                            } else if (val === 'prefilled_4week') {
+                                              setDispQuantity('8');
+                                            } else if (val === 'prefilled_1week_subq') {
+                                              setDispQuantity('7');
+                                            } else if (val === 'prefilled_2week_subq') {
+                                              setDispQuantity('14');
+                                            } else if (val === 'prefilled_30day_subq') {
+                                              setDispQuantity('30');
+                                            } else if (val.startsWith('vial')) {
+                                              setDispQuantity('1');
+                                            }
+                                          }}
                                           style={styles.fieldInput}
                                         >
                                           <option value="">Select supply type...</option>

@@ -427,12 +427,21 @@ async function updateProtocol(protocolId, opts) {
           vial: 140,
         };
 
-        // Handle prefilled_N (e.g. prefilled_3) — calculate from injection count and frequency
+        // Handle prefilled_N (e.g. prefilled_3) — calculate next pickup date from injection schedule
+        // For 2x/week (Mon/Thu), 3 injections cover days +3, +7, +10 — next needed at +14
+        // Formula: walk the alternating gap pattern to find when the NEXT injection after the last dispensed one falls
         const prefillMatch = supply_type.match(/^prefilled_(\d+)$/);
         if (prefillMatch && !supplyDays[supply_type]) {
           const injCount = parseInt(prefillMatch[1]);
           const ipw = parseInt(protocol.injection_frequency) || 2;
-          supplyDays[supply_type] = Math.round((injCount / ipw) * 7);
+          let dayOffset = 0;
+          let useShortGap = true;
+          for (let i = 0; i < injCount + 1; i++) { // +1 to get NEXT injection date
+            if (ipw >= 7) { dayOffset += 1; }
+            else if (ipw === 3) { dayOffset += [2, 2, 3][i % 3]; }
+            else { dayOffset += useShortGap ? 3 : 4; useShortGap = !useShortGap; }
+          }
+          supplyDays[supply_type] = dayOffset;
         }
 
         if (supplyDays[supply_type]) {

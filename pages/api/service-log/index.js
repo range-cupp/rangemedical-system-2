@@ -1209,10 +1209,17 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
         // Weight loss pickups: quantity = weeks of supply (1-4)
         daysUntilNext = quantity * 7;
       } else if (supply_type && supply_type.startsWith('prefilled_') && quantity) {
-        // Prefilled syringes: calculate from quantity and injection frequency
-        // e.g. 3 syringes at 2x/week = covers ~1.5 weeks ≈ 11 days
+        // Prefilled syringes: walk the injection schedule to find the NEXT injection date after supply runs out
+        // For 2x/week (Mon/Thu), 3 injections cover days +3, +7, +10 — next needed at day +14
         const ipw = parseInt(protocol.injection_frequency) || 2;
-        daysUntilNext = Math.round((quantity / ipw) * 7);
+        let dayOff = 0;
+        let shortGap = true;
+        for (let i = 0; i < quantity + 1; i++) { // +1 to get NEXT injection date
+          if (ipw >= 7) { dayOff += 1; }
+          else if (ipw === 3) { dayOff += [2, 2, 3][i % 3]; }
+          else { dayOff += shortGap ? 3 : 4; shortGap = !shortGap; }
+        }
+        daysUntilNext = dayOff;
       } else if (supply_type === 'vial_5ml') {
         // Calculate from actual dose if available, otherwise default
         const dpi = parseFloat(protocol.dose_per_injection);
@@ -1441,8 +1448,14 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
       // Weight loss pickups: quantity = weeks of supply (1-4)
       daysUntilNext = quantity * 7;
     } else if (supply_type && supply_type.startsWith('prefilled_') && quantity) {
-      // Prefilled syringes: calculate from quantity and assumed 2x/week frequency
-      daysUntilNext = Math.round((quantity / 2) * 7);
+      // Prefilled syringes: walk the 2x/week schedule to find next injection date after supply runs out
+      let dayOff = 0;
+      let shortGap = true;
+      for (let i = 0; i < quantity + 1; i++) {
+        dayOff += shortGap ? 3 : 4;
+        shortGap = !shortGap;
+      }
+      daysUntilNext = dayOff;
     } else if (supply_type === 'vial_10ml' || supply_type === 'vial') {
       daysUntilNext = 70;
     }

@@ -188,6 +188,7 @@ export default function ProtocolDetail() {
   const [clinicalNotes, setClinicalNotes] = useState([]);
   const [encounterNotes, setEncounterNotes] = useState([]); // All encounter notes for this patient (for matching to injection dates)
   const [wlPurchases, setWlPurchases] = useState([]); // Weight loss purchases for grouped injection view
+  const [wlPickups, setWlPickups] = useState([]); // Take-home medication pickups
   const [encounterSlideNote, setEncounterSlideNote] = useState(null); // Note to show in slide-out panel
   const [showAddClinicalNote, setShowAddClinicalNote] = useState(false);
   const [clinicalNoteInput, setClinicalNoteInput] = useState('');
@@ -420,6 +421,7 @@ export default function ProtocolDetail() {
       setInjectionLogs(unique);
       setWeightProgress(data.weightProgress || null);
       setWlPurchases(data.wlPurchases || []);
+      setWlPickups(data.wlPickups || []);
 
       // Sync local state with protocol.sessions_used from DB (authoritative source)
       // Do NOT auto-correct upward based on merged log count — that causes ghost entries
@@ -1815,18 +1817,19 @@ export default function ProtocolDetail() {
             )}
 
             {/* Injection Log (weight loss only) — purchase-grouped view */}
-            {!isEditing && isWeightLoss && injectionLogs.length > 0 && (() => {
+            {!isEditing && isWeightLoss && (injectionLogs.length > 0 || (wlPurchases.length > 0 && wlPickups.length > 0)) && (() => {
               const chronologicalLogs = [...injectionLogs].sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
 
               // Group injections by purchase quantity (each WL purchase = 4 injections)
+              // Take-home pickups auto-populate as projected weekly sessions
               let groups = [];
               if (wlPurchases.length > 0) {
-                // Quantity-based: each purchase covers N injections (default 4 for monthly WL)
                 const sortedPurchases = [...wlPurchases].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                const sortedPickups = [...wlPickups].sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date));
                 let injectionIdx = 0;
+
                 for (let i = 0; i < sortedPurchases.length; i++) {
                   const purchase = sortedPurchases[i];
-                  // Determine injections per purchase from description, default 4 for monthly
                   let injectionsPerPurchase = 4;
                   const desc = (purchase.description || '').toLowerCase();
                   const injMatch = desc.match(/(\d+)\s*injection/);
@@ -1835,16 +1838,72 @@ export default function ProtocolDetail() {
                   else if (desc.includes('single') || desc.includes('1 week')) injectionsPerPurchase = 1;
 
                   const groupInjections = chronologicalLogs.slice(injectionIdx, injectionIdx + injectionsPerPurchase);
-                  const dateLabel = new Date(purchase.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
+                  const dateLabel = new Date(purchase.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' });
+
+                  // Find pickup associated with this purchase (closest pickup within 3 days of purchase date)
+                  const purchaseDate = new Date(purchase.created_at);
+                  const matchedPickup = sortedPickups.find(p => {
+                    const pickupDate = new Date(p.entry_date + 'T12:00:00');
+                    const diffDays = Math.abs((pickupDate - purchaseDate) / (1000 * 60 * 60 * 24));
+                    return diffDays <= 3 && (p.quantity || 0) > 0;
+                  });
+
+                  // Auto-populate take-home sessions from pickup
+                  // If there's a pickup with N injections, and fewer than N+1 sessions are logged
+                  // (the +1 accounts for the in-clinic session on pickup day),
+                  // fill remaining slots with projected weekly take-home dates
+                  let filledInjections = [...groupInjections];
+                  if (matchedPickup && filledInjections.length < injectionsPerPurchase) {
+                    const pickupQty = matchedPickup.quantity || 0;
+                    const pickupDate = new Date(matchedPickup.entry_date + 'T12:00:00');
+                    const pickupDose = (matchedPickup.dosage || '').replace(/\d+\s*week\s*supply\s*@\s*/i, '').trim();
+                    const loggedDates = new Set(filledInjections.map(l => l.log_date));
+
+                    // Generate projected weekly dates for each take-home injection
+                    for (let w = 1; w <= pickupQty; w++) {
+                      if (filledInjections.length >= injectionsPerPurchase) break;
+                      const projDate = new Date(pickupDate);
+                      projDate.setDate(projDate.getDate() + (w * 7));
+                      const projDateStr = projDate.toISOString().split('T')[0];
+
+                      // Don't add if there's already a logged session within 3 days of this projected date
+                      const alreadyLogged = filledInjections.some(l => {
+                        const logD = new Date(l.log_date + 'T12:00:00');
+                        const diff = Math.abs((logD - projDate) / (1000 * 60 * 60 * 24));
+                        return diff <= 3;
+                      });
+
+                      if (!alreadyLogged) {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const isPast = projDate < today;
+                        filledInjections.push({
+                          id: `projected-${purchase.id}-${w}`,
+                          log_date: projDateStr,
+                          log_type: 'checkin',
+                          weight: null,
+                          dosage: pickupDose || null,
+                          notes: '',
+                          source: 'projected',
+                          _projected: true,
+                          _projectedStatus: isPast ? 'assumed_done' : 'upcoming',
+                        });
+                      }
+                    }
+
+                    // Re-sort by date
+                    filledInjections.sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
+                  }
+
                   groups.push({
                     label: `${injectionsPerPurchase} injections`,
                     subLabel: dateLabel,
                     amount: purchase.amount_paid,
-                    injections: groupInjections,
+                    injections: filledInjections,
                     totalSlots: injectionsPerPurchase,
                     purchaseId: purchase.id,
                   });
-                  injectionIdx += injectionsPerPurchase;
+                  injectionIdx += groupInjections.length; // Only advance by actually logged injections
                 }
                 // Any remaining injections beyond purchased quantity
                 if (injectionIdx < chronologicalLogs.length) {
@@ -1875,7 +1934,8 @@ export default function ProtocolDetail() {
 
               // Render helper for a single injection row
               const renderInjectionRow = (log, idx, isLastInGroup) => {
-                const isMissedLog = log.log_type === 'missed' || (log.notes || '').includes('MISSED WEEK');
+                const isProjected = log._projected;
+                const isMissedLog = !isProjected && (log.log_type === 'missed' || (log.notes || '').includes('MISSED WEEK'));
                 const rawDate = log.log_date;
                 const logDate = rawDate && rawDate.length === 10
                   ? new Date(rawDate + 'T12:00:00')
@@ -1894,15 +1954,28 @@ export default function ProtocolDetail() {
                   .replace(/^Injection #\d+$/, '')
                   .trim();
 
+                // Projected take-home indicator colors
+                const projectedDone = isProjected && log._projectedStatus === 'assumed_done';
+                const projectedUpcoming = isProjected && log._projectedStatus === 'upcoming';
+                const dotBg = isProjected
+                  ? (projectedDone ? '#94a3b8' : '#e2e8f0')
+                  : (isMissedLog ? '#f59e0b' : '#22c55e');
+                const dotShadow = isProjected
+                  ? (projectedDone ? '0 0 0 2px #94a3b8' : '0 0 0 2px #cbd5e1')
+                  : (isMissedLog ? '0 0 0 2px #f59e0b' : '0 0 0 2px #22c55e');
+                const dotIcon = isProjected
+                  ? (projectedDone ? '✓' : '·')
+                  : (isMissedLog ? '✕' : '✓');
+
                 return (
-                  <div key={log.id} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <div key={log.id} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', opacity: projectedUpcoming ? 0.6 : 1 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20px', flexShrink: 0 }}>
                       <div style={{
                         width: '12px', height: '12px', borderRadius: '50%',
-                        background: isMissedLog ? '#f59e0b' : '#22c55e', border: '2px solid #fff',
-                        boxShadow: isMissedLog ? '0 0 0 2px #f59e0b' : '0 0 0 2px #22c55e', flexShrink: 0, marginTop: '4px'
+                        background: dotBg, border: '2px solid #fff',
+                        boxShadow: dotShadow, flexShrink: 0, marginTop: '4px'
                       }}>
-                        <span style={{ color: '#fff', fontSize: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>{isMissedLog ? '✕' : '✓'}</span>
+                        <span style={{ color: '#fff', fontSize: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>{dotIcon}</span>
                       </div>
                       {!isLastInGroup && (
                         <div style={{ width: '2px', flex: 1, background: '#e5e7eb', minHeight: '40px' }} />
@@ -1911,8 +1984,19 @@ export default function ProtocolDetail() {
                     <div style={{ flex: 1, paddingBottom: isLastInGroup ? '0' : '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
                         <span style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '500', minWidth: '16px' }}>#{idx + 1}</span>
-                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{dateStr}</span>
-                        {isMissedLog && (
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: isProjected ? '#6b7280' : '#1f2937' }}>{dateStr}</span>
+                        {isProjected && (
+                          <span style={{
+                            fontSize: '10px', fontWeight: '600', padding: '2px 6px',
+                            borderRadius: 0,
+                            background: projectedDone ? '#f1f5f9' : '#f8fafc',
+                            color: projectedDone ? '#64748b' : '#94a3b8',
+                            textTransform: 'uppercase',
+                          }}>
+                            Take Home {projectedDone ? '(assumed)' : '(upcoming)'}
+                          </span>
+                        )}
+                        {!isProjected && isMissedLog && (
                           <span style={{
                             fontSize: '10px', fontWeight: '600', padding: '2px 6px',
                             borderRadius: 0, background: '#fef3c7', color: '#92400e',
@@ -1921,7 +2005,7 @@ export default function ProtocolDetail() {
                             No Check-in
                           </span>
                         )}
-                        {!isMissedLog && log.log_type === 'injection' && (
+                        {!isProjected && !isMissedLog && log.log_type === 'injection' && (
                           <span
                             onClick={() => handleToggleDelivery(log)}
                             title="Click to change to Take Home"
@@ -1934,7 +2018,7 @@ export default function ProtocolDetail() {
                             In Clinic
                           </span>
                         )}
-                        {!isMissedLog && log.log_type === 'checkin' && (
+                        {!isProjected && !isMissedLog && log.log_type === 'checkin' && (
                           <span
                             onClick={() => handleToggleDelivery(log)}
                             title="Click to change to In Clinic"

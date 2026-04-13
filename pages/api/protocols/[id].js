@@ -146,14 +146,25 @@ async function getProtocol(id, res) {
 
   // Fetch WL purchases for purchase-grouped injection view
   let wlPurchases = [];
+  let wlPickups = [];
   if (isWeightLossType(data.program_type) && data.patient_id) {
-    const { data: purchases } = await supabase
-      .from('purchases')
-      .select('id, created_at, description, amount_paid, quantity')
-      .eq('patient_id', data.patient_id)
-      .or('description.ilike.%weight%,description.ilike.%loss%,description.ilike.%tirz%,description.ilike.%sema%,description.ilike.%reta%')
-      .order('created_at', { ascending: true });
+    const [{ data: purchases }, { data: pickups }] = await Promise.all([
+      supabase
+        .from('purchases')
+        .select('id, created_at, description, amount_paid, quantity')
+        .eq('patient_id', data.patient_id)
+        .or('description.ilike.%weight%,description.ilike.%loss%,description.ilike.%tirz%,description.ilike.%sema%,description.ilike.%reta%')
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('service_logs')
+        .select('id, entry_date, medication, dosage, quantity, fulfillment_method, notes')
+        .eq('patient_id', data.patient_id)
+        .eq('category', 'weight_loss')
+        .eq('entry_type', 'pickup')
+        .order('entry_date', { ascending: true })
+    ]);
     wlPurchases = purchases || [];
+    wlPickups = pickups || [];
   }
 
   return res.status(200).json({
@@ -162,7 +173,8 @@ async function getProtocol(id, res) {
     weightCheckins,
     activityLogs,
     weightProgress,
-    wlPurchases
+    wlPurchases,
+    wlPickups
   });
 }
 

@@ -6594,6 +6594,7 @@ export default function PatientProfile() {
 
                                       // Build a unified, strictly chronological row list.
                                       // LOGS are the source of truth — every log gets its own row in date order.
+                                      // Take-home pickups auto-generate projected weekly sessions.
                                       // If the protocol is short on sessions (logs < total_sessions), append
                                       // future "Upcoming" rows extending the schedule.
                                       const freqLower = (protocol.frequency || '').toLowerCase();
@@ -6601,24 +6602,68 @@ export default function PatientProfile() {
 
                                       const sortedLogs = [...wlLogs].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
 
-                                      // Each log becomes one row, sequentially numbered 1..N
-                                      const slots = sortedLogs.map((log, i) => {
+                                      // Inject projected take-home sessions from pickup data
+                                      // When a patient picks up N injections, generate N weekly projected dates
+                                      // starting from the week after the pickup date. Skip dates that already
+                                      // have a logged session within ±3 days.
+                                      const logsWithProjected = [...sortedLogs];
+                                      if (wlDeliveryLogs.length > 0) {
+                                        for (const pickup of wlDeliveryLogs) {
+                                          const pickupQty = pickup.quantity || 0;
+                                          if (pickupQty <= 0) continue;
+                                          const pickupDate = new Date(pickup.entry_date + 'T12:00:00');
+                                          const pickupDose = parseDose(pickup.dosage) || protocol.selected_dose || null;
+
+                                          for (let w = 1; w <= pickupQty; w++) {
+                                            const projDate = new Date(pickupDate);
+                                            projDate.setDate(projDate.getDate() + w * intervalDays);
+                                            const projStr = projDate.toISOString().split('T')[0];
+
+                                            // Skip if there's already a logged session within 3 days
+                                            const alreadyLogged = logsWithProjected.some(l => {
+                                              const logD = new Date((l.entry_date || l._projStr) + 'T12:00:00');
+                                              return Math.abs((logD - projDate) / (1000 * 60 * 60 * 24)) <= 3;
+                                            });
+                                            if (alreadyLogged) continue;
+
+                                            logsWithProjected.push({
+                                              id: `proj-${pickup.id}-${w}`,
+                                              entry_date: projStr,
+                                              _projStr: projStr,
+                                              _projected: true,
+                                              _projectedPast: projDate <= todayDate,
+                                              dosage: pickupDose,
+                                              weight: null,
+                                              notes: '',
+                                              entry_type: 'checkin',
+                                            });
+                                          }
+                                        }
+                                        // Re-sort chronologically
+                                        logsWithProjected.sort((a, b) => (a.entry_date || '').localeCompare(b.entry_date || ''));
+                                      }
+
+                                      // Each log/projected entry becomes one row, sequentially numbered 1..N
+                                      const slots = logsWithProjected.map((log, i) => {
                                         const expDate = new Date(log.entry_date + 'T12:00:00');
                                         return {
                                           num: i + 1,
                                           expDate,
                                           expStr: log.entry_date,
-                                          log,
+                                          log: log._projected ? null : log,
                                           isFuture: false,
+                                          _projected: log._projected || false,
+                                          _projectedPast: log._projectedPast || false,
+                                          _projectedDose: log._projected ? log.dosage : null,
                                         };
                                       });
 
-                                      // Append future slots if protocol has more sessions planned than logged
-                                      if (totalSlots && totalSlots > sortedLogs.length) {
-                                        const lastStr = sortedLogs.length > 0 ? sortedLogs[sortedLogs.length - 1].entry_date : startStr;
+                                      // Append future slots if protocol has more sessions planned than current slots
+                                      if (totalSlots && totalSlots > logsWithProjected.length) {
+                                        const lastStr = logsWithProjected.length > 0 ? logsWithProjected[logsWithProjected.length - 1].entry_date : startStr;
                                         const lastDate = new Date(lastStr + 'T12:00:00');
-                                        for (let i = sortedLogs.length; i < totalSlots; i++) {
-                                          const offset = i - sortedLogs.length + 1;
+                                        for (let i = logsWithProjected.length; i < totalSlots; i++) {
+                                          const offset = i - logsWithProjected.length + 1;
                                           const expDate = new Date(lastDate);
                                           expDate.setDate(expDate.getDate() + offset * intervalDays);
                                           slots.push({
@@ -6716,6 +6761,29 @@ export default function PatientProfile() {
                                           }
                                           if (slotGroupHeader) rowElements.unshift(slotGroupHeader);
                                           return rowElements;
+                                        }
+                                        // Projected take-home session (from pickup data)
+                                        if (slot._projected) {
+                                          const projRow = (
+                                            <tr key={'proj-' + slot.num} style={{ background: slot._projectedPast ? '#f8fafc' : '#fafafa' }}
+                                              onClick={() => openQuickWeightModal(protocol, slot.expStr)}
+                                              title="Take-home injection — click to log weight"
+                                              className="wl-editable-row">
+                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
+                                              <td style={{ color: slot._projectedPast ? '#6b7280' : '#9ca3af' }}>
+                                                {formatShortDate(slot.expStr)}
+                                                <span style={{ marginLeft: 4, fontSize: 11 }}>🏠</span>
+                                              </td>
+                                              <td style={{ color: '#9ca3af' }}>{slot._projectedDose || currentDose || '\u2014'}</td>
+                                              <td><span style={{ color: '#9ca3af' }}>{'\u2014'}</span></td>
+                                              <td style={{ color: '#94a3b8', fontSize: 11, fontStyle: 'italic' }}>
+                                                {slot._projectedPast ? 'Take-home' : 'Take-home (upcoming)'}
+                                              </td>
+                                              <td></td>
+                                              <td style={{ textAlign: 'center', color: '#9ca3af', fontWeight: 700, fontSize: 14 }}>+</td>
+                                            </tr>
+                                          );
+                                          return slotGroupHeader ? [slotGroupHeader, projRow] : projRow;
                                         }
                                         // Past slot without log
                                         if (!slot.isFuture) {

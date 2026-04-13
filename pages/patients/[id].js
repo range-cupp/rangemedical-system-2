@@ -5711,9 +5711,26 @@ export default function PatientProfile() {
                             background: '#dcfce7', color: '#166534', whiteSpace: 'nowrap',
                           }}>Active</span>
                           {employee?.is_admin && !med.from_protocol && (
-                            <button onClick={() => { setMedEditMode('edit'); setMedEditForm(med); setShowMedEditModal(true); }} style={{
-                              background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
-                            }} title="Edit medication">✏️</button>
+                            <>
+                              <button onClick={() => { setMedEditMode('edit'); setMedEditForm(med); setShowMedEditModal(true); }} style={{
+                                background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
+                              }} title="Edit medication">✏️</button>
+                              <button onClick={async () => {
+                                if (!confirm(`Delete ${med.medication_name || 'this medication'}? This cannot be undone.`)) return;
+                                try {
+                                  await fetch(`/api/patients/${patient.id}/medications`, {
+                                    method: 'DELETE',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ id: med.id }),
+                                  });
+                                  const res = await fetch(`/api/patients/${patient.id}`);
+                                  const data = await res.json();
+                                  if (data.medications) setMedications(data.medications);
+                                } catch (err) { console.error(err); alert('Failed to delete medication'); }
+                              }} style={{
+                                background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
+                              }} title="Delete medication">🗑️</button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -5795,7 +5812,26 @@ export default function PatientProfile() {
                             {med.from_protocol && <span style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic' }}>via protocol</span>}
                           </div>
                         </div>
-                        <span style={{ padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600, background: '#f3f4f6', color: '#94a3b8', whiteSpace: 'nowrap' }}>Discontinued</span>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                          <span style={{ padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600, background: '#f3f4f6', color: '#94a3b8', whiteSpace: 'nowrap' }}>Discontinued</span>
+                          {employee?.is_admin && !med.from_protocol && (
+                            <button onClick={async () => {
+                              if (!confirm(`Delete ${med.medication_name || 'this medication'}? This cannot be undone.`)) return;
+                              try {
+                                await fetch(`/api/patients/${patient.id}/medications`, {
+                                  method: 'DELETE',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ id: med.id }),
+                                });
+                                const res = await fetch(`/api/patients/${patient.id}`);
+                                const data = await res.json();
+                                if (data.medications) setMedications(data.medications);
+                              } catch (err) { console.error(err); alert('Failed to delete medication'); }
+                            }} style={{
+                              background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
+                            }} title="Delete medication">🗑️</button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>

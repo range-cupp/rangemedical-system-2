@@ -2532,6 +2532,37 @@ export default function PatientProfile() {
     }
   };
 
+  const handleMarkMissed = async () => {
+    if (!quickWeightModal) return;
+    setQuickWeightSaving(true);
+    try {
+      const { protocol, slotDate } = quickWeightModal;
+      const res = await fetch('/api/service-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patient.id,
+          category: 'weight_loss',
+          entry_type: 'missed',
+          entry_date: slotDate,
+          medication: protocol.medication || protocol.selected_medication || null,
+          dosage: protocol.selected_dose || null,
+          notes: 'MISSED WEEK',
+          protocol_id: protocol.id,
+          force: true,
+        }),
+      });
+      if (res.ok) {
+        setQuickWeightModal(null);
+        fetchPatient();
+      }
+    } catch (err) {
+      console.error('Error marking missed:', err);
+    } finally {
+      setQuickWeightSaving(false);
+    }
+  };
+
 
   // Fetch drip email logs for a weight loss protocol
   const fetchDripLogs = async (protocolId) => {
@@ -6714,7 +6745,22 @@ export default function PatientProfile() {
                                           );
                                           return slotGroupHeader ? [slotGroupHeader, dispensedRow] : dispensedRow;
                                         }
-                                        // Slot with a log
+                                        // Slot with a log — check for missed week first
+                                        if (slot.log && (slot.log.entry_type === 'missed' || (slot.log.notes || '').includes('MISSED WEEK'))) {
+                                          const missedRow = (
+                                            <tr key={slot.log.id} className="wl-editable-row" onClick={() => openEditInjection(slot.log)} title="Click to edit" style={{ background: '#fffbeb', borderLeft: '3px solid #f59e0b' }}>
+                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
+                                              <td style={{ color: '#92400e' }}>{formatShortDate(slot.log.entry_date)}</td>
+                                              <td style={{ color: '#9ca3af' }}>{parseDose(slot.log.dosage) || protocol.selected_dose || '\u2014'}</td>
+                                              <td style={{ color: '#9ca3af' }}>{'\u2014'}</td>
+                                              <td colSpan={2} style={{ color: '#92400e', fontWeight: 600, fontSize: 12 }}>
+                                                Missed Week
+                                              </td>
+                                              <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
+                                            </tr>
+                                          );
+                                          return slotGroupHeader ? [slotGroupHeader, missedRow] : missedRow;
+                                        }
                                         if (slot.log) {
                                           // Use vitals weight when service_log weight is missing
                                           const logWeight = slot.log.weight ? parseFloat(slot.log.weight) : null;
@@ -12301,15 +12347,24 @@ export default function PatientProfile() {
                 </div>
               </div>
               <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-                <button
-                  onClick={() => {
-                    setQuickWeightModal(null);
-                    openLogEntryModal(quickWeightModal.protocol, null);
-                  }}
-                  style={{ padding: '8px 14px', fontSize: '13px', fontWeight: 500, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer' }}
-                >
-                  Full Service Log
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => {
+                      setQuickWeightModal(null);
+                      openLogEntryModal(quickWeightModal.protocol, null);
+                    }}
+                    style={{ padding: '8px 14px', fontSize: '13px', fontWeight: 500, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer' }}
+                  >
+                    Full Service Log
+                  </button>
+                  <button
+                    onClick={handleMarkMissed}
+                    disabled={quickWeightSaving}
+                    style={{ padding: '8px 14px', fontSize: '13px', fontWeight: 600, border: '1px solid #fde68a', borderRadius: 0, background: '#fffbeb', color: '#92400e', cursor: 'pointer' }}
+                  >
+                    {quickWeightSaving ? 'Saving...' : 'Missed Week'}
+                  </button>
+                </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => setQuickWeightModal(null)} className="btn-secondary">Cancel</button>
                   <button
@@ -12317,7 +12372,7 @@ export default function PatientProfile() {
                     disabled={quickWeightSaving || (!quickWeightForm.weight && !quickWeightForm.dosage)}
                     className="btn-primary"
                   >
-                    {quickWeightSaving ? 'Saving...' : 'Save Weight'}
+                    {quickWeightSaving ? 'Saving...' : 'Save'}
                   </button>
                 </div>
               </div>

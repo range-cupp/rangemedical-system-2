@@ -473,6 +473,73 @@ async function handlePost(req, res) {
       console.log(`[service-log] Created ${injectionLogs.length} injection entries from WL pickup (qty ${wlPickupQty})`);
     }
 
+    // ── HRT pickup: auto-create injection entries for each prefilled syringe ──
+    // When an HRT medication pickup is logged (e.g. 3 prefilled syringes), create individual
+    // injection entries dated to the patient's actual injection schedule (2x/week = Mon/Thu pattern).
+    const isHRTPickup = category === 'testosterone' && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0;
+    const hrtPickupQty = isHRTPickup ? parseInt(quantity) : 0;
+    const hrtInjectionLogs = [];
+
+    if (hrtPickupQty > 0) {
+      // Extract per-injection dose from pickup dosage (e.g. "3 prefilled @ 0.35ml/70mg" → "0.35ml/70mg")
+      const pickupDosage = dosage || '';
+      const atMatch = pickupDosage.match(/@\s*(.+)/);
+      const injectionDose = atMatch ? atMatch[1].trim() : pickupDosage;
+
+      // Calculate injection dates based on frequency
+      // 2x/week: alternating 3-day and 4-day gaps (Mon→Thu→Mon→Thu...)
+      // 3x/week: 2, 2, 3 pattern (MWF)
+      // daily: every day
+      const freq = injection_frequency ? parseInt(injection_frequency) : 2;
+
+      let dayOffset = 0;
+      let useShortGap = true; // Start with short gap (3 days for 2x/week)
+
+      for (let i = 0; i < hrtPickupQty; i++) {
+        if (freq >= 7) {
+          dayOffset += 1; // daily
+        } else if (freq === 3) {
+          const gaps = [2, 2, 3]; // MWF pattern
+          dayOffset += gaps[i % 3];
+        } else {
+          // 2x/week: 3, 4 alternating (Mon→Thu = 3 days, Thu→Mon = 4 days)
+          dayOffset += useShortGap ? 3 : 4;
+          useShortGap = !useShortGap;
+        }
+
+        const injDate = new Date(logDate + 'T12:00:00');
+        injDate.setDate(injDate.getDate() + dayOffset);
+        const injDateStr = injDate.toISOString().split('T')[0];
+
+        const injLogData = {
+          patient_id,
+          category,
+          entry_type: 'injection',
+          entry_date: injDateStr,
+          medication: medication || null,
+          dosage: injectionDose || null,
+          quantity: 1,
+          notes: `Take-home injection (dispensed ${logDate}, ${hrtPickupQty}-syringe pickup, ${i + 1} of ${hrtPickupQty})`,
+          protocol_id: protocol_id || null,
+          injection_method: injection_method || null,
+          fulfillment_method: 'take_home',
+        };
+
+        const { data: injLog, error: injErr } = await supabase
+          .from('service_logs')
+          .insert([injLogData])
+          .select()
+          .single();
+
+        if (!injErr && injLog) {
+          hrtInjectionLogs.push(injLog);
+        } else {
+          console.error(`[service-log] Failed to create HRT injection entry for ${injDateStr}:`, injErr);
+        }
+      }
+      console.log(`[service-log] Created ${hrtInjectionLogs.length} injection entries from HRT pickup (qty ${hrtPickupQty})`);
+    }
+
     // 2. Check for active package and decrement if found
     // Skip protocol logic for supplements — they're one-time purchases, not ongoing protocols
     const packageUpdate = category === 'supplement'
@@ -572,6 +639,46 @@ async function handlePost(req, res) {
         .eq('id', targetProtocolId);
 
       console.log(`[service-log] Count-based sync: sessions_used=${actualCount} for protocol ${targetProtocolId}`);
+    }
+
+    // HRT pickup: sync sessions_used and link auto-created injection entries to the protocol
+    // The pickup itself doesn't increment sessions_used, but the auto-created injection entries should count.
+    if (hrtPickupQty > 0 && hrtInjectionLogs.length > 0) {
+      const hrtProtocolId = targetProtocolId || protocolUpdate?.protocol_id;
+      if (hrtProtocolId) {
+        // Link auto-created injection entries to the protocol (in case protocol_id wasn't known at creation)
+        const injLogIds = hrtInjectionLogs.map(l => l.id);
+        await supabase
+          .from('service_logs')
+          .update({ protocol_id: hrtProtocolId })
+          .in('id', injLogIds);
+
+        // Recount all injection/session entries for this protocol
+        const { count: hrtCount } = await supabase
+          .from('service_logs')
+          .select('*', { count: 'exact', head: true })
+          .eq('protocol_id', hrtProtocolId)
+          .in('entry_type', ['injection', 'session']);
+
+        await supabase
+          .from('protocols')
+          .update({ sessions_used: hrtCount || 0, updated_at: new Date().toISOString() })
+          .eq('id', hrtProtocolId);
+
+        // Update next_expected_date to after the last auto-created injection
+        const lastHrtInjDate = hrtInjectionLogs[hrtInjectionLogs.length - 1].entry_date;
+        const freq = injection_frequency ? parseInt(injection_frequency) : 2;
+        const nextGapDays = freq >= 7 ? 1 : freq === 3 ? 2 : (hrtPickupQty % 2 === 1 ? 4 : 3);
+        const nextAfterLast = new Date(lastHrtInjDate + 'T12:00:00');
+        nextAfterLast.setDate(nextAfterLast.getDate() + nextGapDays);
+
+        await supabase
+          .from('protocols')
+          .update({ next_expected_date: nextAfterLast.toISOString().split('T')[0] })
+          .eq('id', hrtProtocolId);
+
+        console.log(`[service-log] HRT pickup sync: sessions_used=${hrtCount}, next_expected=${nextAfterLast.toISOString().split('T')[0]} for protocol ${hrtProtocolId}`);
+      }
     }
 
     return res.status(200).json({
@@ -1101,12 +1208,11 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
       if (isWeightLossType(category) && quantity) {
         // Weight loss pickups: quantity = weeks of supply (1-4)
         daysUntilNext = quantity * 7;
-      } else if (supply_type === 'prefilled_4week' || quantity === 8) {
-        daysUntilNext = 28; // 4 weeks
-      } else if (supply_type === 'prefilled_2week' || quantity === 4) {
-        daysUntilNext = 14; // 2 weeks
-      } else if (supply_type === 'prefilled_1week' || quantity === 2) {
-        daysUntilNext = 7; // 1 week
+      } else if (supply_type && supply_type.startsWith('prefilled_') && quantity) {
+        // Prefilled syringes: calculate from quantity and injection frequency
+        // e.g. 3 syringes at 2x/week = covers ~1.5 weeks ≈ 11 days
+        const ipw = parseInt(protocol.injection_frequency) || 2;
+        daysUntilNext = Math.round((quantity / ipw) * 7);
       } else if (supply_type === 'vial_5ml') {
         // Calculate from actual dose if available, otherwise default
         const dpi = parseFloat(protocol.dose_per_injection);
@@ -1334,12 +1440,9 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
     if (isWeightLossType(category) && quantity) {
       // Weight loss pickups: quantity = weeks of supply (1-4)
       daysUntilNext = quantity * 7;
-    } else if (supply_type === 'prefilled_4week' || quantity === 8) {
-      daysUntilNext = 28;
-    } else if (supply_type === 'prefilled_2week' || quantity === 4) {
-      daysUntilNext = 14;
-    } else if (supply_type === 'prefilled_1week' || quantity === 2) {
-      daysUntilNext = 7;
+    } else if (supply_type && supply_type.startsWith('prefilled_') && quantity) {
+      // Prefilled syringes: calculate from quantity and assumed 2x/week frequency
+      daysUntilNext = Math.round((quantity / 2) * 7);
     } else if (supply_type === 'vial_10ml' || supply_type === 'vial') {
       daysUntilNext = 70;
     }

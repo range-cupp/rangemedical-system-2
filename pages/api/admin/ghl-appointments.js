@@ -4,6 +4,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { todayPacific } from '../../../lib/date-utils';
+import { REQUIRED_FORMS } from '../../../lib/appointment-services';
+import { CONSENT_TYPE_TO_FORM_ID, FORM_DEFINITIONS } from '../../../lib/form-bundles';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -131,6 +133,7 @@ export default async function handler(req, res) {
         calendarName: apt.service_name || 'Appointment',
         calendarColor: getCalendarColor(apt.service_name),
         title: apt.service_category || apt.service_name,
+        serviceCategory: apt.service_category || null,
         startTime: apt.start_time,
         endTime: apt.end_time,
         status: apt.status || 'scheduled',
@@ -161,6 +164,106 @@ export default async function handler(req, res) {
 
     // Clean up internal field
     const formattedAppointments = merged.map(({ _dedup, ...rest }) => rest);
+
+    // --- Missing consents check across ALL active protocols + appointment service ---
+    const patientIds = [...new Set(
+      formattedAppointments.map(a => a.patient?.id).filter(Boolean)
+    )];
+
+    let patientConsentsMap = {};
+    if (patientIds.length > 0) {
+      // Batch-fetch active protocols, consents, and intakes for all patients
+      const [protocolsResult, consentsResult, intakesResult] = await Promise.all([
+        supabase
+          .from('protocols')
+          .select('patient_id, category')
+          .in('patient_id', patientIds)
+          .eq('status', 'active'),
+        supabase
+          .from('consents')
+          .select('patient_id, consent_type')
+          .in('patient_id', patientIds),
+        supabase
+          .from('intakes')
+          .select('patient_id')
+          .in('patient_id', patientIds),
+      ]);
+
+      // Build per-patient data
+      const protocolsByPatient = {};
+      const consentsByPatient = {};
+      const intakesByPatient = new Set();
+
+      for (const p of (protocolsResult.data || [])) {
+        if (!protocolsByPatient[p.patient_id]) protocolsByPatient[p.patient_id] = [];
+        protocolsByPatient[p.patient_id].push(p.category);
+      }
+      for (const c of (consentsResult.data || [])) {
+        if (!consentsByPatient[c.patient_id]) consentsByPatient[c.patient_id] = new Set();
+        const formId = CONSENT_TYPE_TO_FORM_ID[c.consent_type] || c.consent_type;
+        if (formId) consentsByPatient[c.patient_id].add(formId);
+      }
+      for (const i of (intakesResult.data || [])) {
+        intakesByPatient.add(i.patient_id);
+      }
+
+      // Compute missing consents per patient
+      for (const pid of patientIds) {
+        const completedForms = consentsByPatient[pid] || new Set();
+        if (intakesByPatient.has(pid)) completedForms.add('intake');
+
+        // Gather all service categories: active protocols + any appointment service categories
+        const categories = new Set(protocolsByPatient[pid] || []);
+        for (const apt of formattedAppointments) {
+          if (apt.patient?.id === pid) {
+            // Use explicit serviceCategory from native appointments
+            if (apt.serviceCategory && REQUIRED_FORMS[apt.serviceCategory]) {
+              categories.add(apt.serviceCategory);
+            }
+            // For GHL appointments, try to infer category from calendar name
+            if (!apt.serviceCategory && apt.calendarName) {
+              const name = apt.calendarName.toLowerCase();
+              if (name.includes('iv')) categories.add('iv');
+              if (name.includes('hbot') || name.includes('hyperbaric')) categories.add('hbot');
+              if (name.includes('red light') || name.includes('rlt')) categories.add('rlt');
+              if (name.includes('injection')) categories.add('injection');
+              if (name.includes('weight') || name.includes('semaglutide') || name.includes('tirzepatide')) categories.add('weight_loss');
+              if (name.includes('testosterone') || name.includes('hrt')) categories.add('hrt');
+              if (name.includes('peptide')) categories.add('peptide');
+              if (name.includes('blood') || name.includes('lab') || name.includes('draw')) categories.add('labs');
+            }
+          }
+        }
+
+        // Union all required forms across all categories
+        const allRequired = new Set();
+        for (const cat of categories) {
+          const forms = REQUIRED_FORMS[cat];
+          if (forms) forms.forEach(f => allRequired.add(f));
+        }
+        // Every patient needs at least intake + hipaa
+        allRequired.add('intake');
+        allRequired.add('hipaa');
+
+        // Find missing
+        const missing = [];
+        for (const formId of allRequired) {
+          if (!completedForms.has(formId)) {
+            const def = FORM_DEFINITIONS[formId];
+            missing.push({ formId, name: def?.name || formId });
+          }
+        }
+
+        patientConsentsMap[pid] = missing;
+      }
+    }
+
+    // Attach missing consents to each appointment
+    for (const apt of formattedAppointments) {
+      apt.missingConsents = apt.patient?.id
+        ? (patientConsentsMap[apt.patient.id] || [])
+        : [];
+    }
 
     // Group by status
     const scheduled = formattedAppointments.filter(a =>

@@ -24,6 +24,8 @@ export default function ClinicSchedule() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [error, setError] = useState(null);
   const [syncMessage, setSyncMessage] = useState(null);
+  const [sendingForms, setSendingForms] = useState({});
+  const [formsSent, setFormsSent] = useState({});
 
   useEffect(() => {
     fetchAppointments();
@@ -57,6 +59,41 @@ export default function ClinicSchedule() {
     setSyncMessage('Refreshed');
     setSyncing(false);
     setTimeout(() => setSyncMessage(null), 2000);
+  };
+
+  const sendMissingForms = async (apt) => {
+    const phone = apt.patient?.phone;
+    const patientId = apt.patient?.id;
+    if (!phone || !patientId) return;
+
+    const formIds = apt.missingConsents.map(c => c.formId);
+    if (formIds.length === 0) return;
+
+    setSendingForms(prev => ({ ...prev, [apt.id]: true }));
+    try {
+      const res = await fetch('/api/send-forms-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone,
+          firstName: apt.patientName?.split(' ')[0] || '',
+          formIds,
+          patientId,
+          patientName: apt.patientName,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setFormsSent(prev => ({ ...prev, [apt.id]: true }));
+        setTimeout(() => setFormsSent(prev => ({ ...prev, [apt.id]: false })), 4000);
+      } else {
+        alert('Failed to send forms: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Send forms error:', err);
+      alert('Failed to send forms');
+    }
+    setSendingForms(prev => ({ ...prev, [apt.id]: false }));
   };
 
   const formatTime = (dateStr) => {
@@ -192,6 +229,33 @@ export default function ClinicSchedule() {
                       )}
                       {apt.notes && apt.notes.includes('BIRTHDAY GIFT') && (
                         <div style={styles.giftBadge}>🎂 Birthday Gift — do not charge</div>
+                      )}
+                      {apt.missingConsents && apt.missingConsents.length > 0 && (
+                        <div style={styles.missingConsents}>
+                          <div style={styles.missingConsentsHeader}>
+                            <span style={styles.missingConsentsIcon}>!</span>
+                            <span style={styles.missingConsentsLabel}>
+                              Missing {apt.missingConsents.length} consent{apt.missingConsents.length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          <div style={styles.missingConsentsList}>
+                            {apt.missingConsents.map(c => (
+                              <span key={c.formId} style={styles.missingConsentTag}>{c.name}</span>
+                            ))}
+                          </div>
+                          {apt.patient?.phone && (
+                            <button
+                              onClick={() => sendMissingForms(apt)}
+                              disabled={sendingForms[apt.id] || formsSent[apt.id]}
+                              style={{
+                                ...styles.sendFormsBtn,
+                                ...(formsSent[apt.id] ? styles.sendFormsSent : {}),
+                              }}
+                            >
+                              {sendingForms[apt.id] ? 'Sending...' : formsSent[apt.id] ? 'Sent' : 'Send Forms via SMS'}
+                            </button>
+                          )}
+                        </div>
                       )}
                       {apt.patient?.phone && (
                         <div style={styles.contactInfo}>{formatPhone(apt.patient.phone)}</div>
@@ -545,5 +609,63 @@ const styles = {
     background: '#fef3c7',
     color: '#92400e',
     borderRadius: 0
-  }
+  },
+  missingConsents: {
+    marginTop: '8px',
+    padding: '8px 10px',
+    background: '#fef2f2',
+    border: '1px solid #fecaca',
+  },
+  missingConsentsHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    marginBottom: '6px',
+  },
+  missingConsentsIcon: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '18px',
+    height: '18px',
+    fontSize: '12px',
+    fontWeight: '700',
+    background: '#dc2626',
+    color: '#fff',
+    borderRadius: '50%',
+    flexShrink: 0,
+  },
+  missingConsentsLabel: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#991b1b',
+  },
+  missingConsentsList: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '4px',
+    marginBottom: '8px',
+  },
+  missingConsentTag: {
+    fontSize: '11px',
+    fontWeight: '500',
+    padding: '2px 8px',
+    background: '#fff',
+    border: '1px solid #fecaca',
+    color: '#b91c1c',
+  },
+  sendFormsBtn: {
+    padding: '4px 12px',
+    fontSize: '12px',
+    fontWeight: '600',
+    background: '#dc2626',
+    color: '#fff',
+    border: 'none',
+    cursor: 'pointer',
+    letterSpacing: '0.02em',
+  },
+  sendFormsSent: {
+    background: '#059669',
+    cursor: 'default',
+  },
 };

@@ -2143,6 +2143,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       </div>
                       <div style={{ fontSize: '11px', color: '#888' }}>
                         {renewal.tracking?.status_text}
+                        {renewal.tracking?.total_sessions > 0 && ` · ${renewal.tracking.sessions_used || 0}/${renewal.tracking.total_sessions} sessions used`}
                       </div>
                     </div>
                     <span style={{
@@ -2173,6 +2174,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 return false;
               });
               if (!matchingProtocol || !matchingProtocol.total_sessions) return null;
+              // Weight loss & HRT are time-based — they show in Protocol Renewals, not here
+              const TIME_BASED_CATEGORIES = ['weight_loss', 'hrt'];
+              if (TIME_BASED_CATEGORIES.includes(matchingProtocol.category)) return null;
 
               const sessionsUsed = sessionLogResult?.success ? sessionLogResult.sessions_used : (matchingProtocol.sessions_used || 0);
               const totalSessions = matchingProtocol.total_sessions;

@@ -35,7 +35,7 @@ export default function ClinicSchedule() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`/api/admin/ghl-appointments?date=${selectedDate}`);
+      const res = await fetch(`/api/admin/schedule-appointments?date=${selectedDate}`);
       const data = await res.json();
 
       if (data.success) {

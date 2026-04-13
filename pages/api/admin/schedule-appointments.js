@@ -1,4 +1,4 @@
-// /pages/api/admin/ghl-appointments.js
+// /pages/api/admin/schedule-appointments.js
 // Fetch clinic appointments from database (clinic_appointments + calcom appointments)
 // Range Medical
 

@@ -4447,6 +4447,90 @@ export default function PatientProfile() {
           )}
         </header>
 
+        {/* Protocol Action Banners — payment due, sessions exhausted, refill overdue */}
+        {!loading && (() => {
+          const banners = [];
+          (activeProtocols || []).forEach(proto => {
+            if (proto.status !== 'active') return;
+            const isWL = proto.category === 'weight_loss';
+            const isHRT = proto.category === 'hrt';
+            const isPeptide = proto.category === 'peptide';
+            const totalSessions = proto.total_sessions || 0;
+            const sessionsUsed = proto.sessions_used || 0;
+            const protoName = proto.program_name || proto.medication || proto.category;
+
+            // Check exhausted sessions (all sessions used up)
+            if (totalSessions > 0 && sessionsUsed >= totalSessions) {
+              banners.push({
+                key: `exhausted-${proto.id}`,
+                type: 'payment',
+                message: `${protoName} — ${sessionsUsed}/${totalSessions} sessions used. Payment due for next block.`,
+                category: proto.category,
+              });
+              return; // Don't stack other alerts if exhausted
+            }
+
+            // Check low sessions (2 or fewer remaining)
+            if (totalSessions > 0 && sessionsUsed > 0 && (totalSessions - sessionsUsed) <= 2 && (totalSessions - sessionsUsed) > 0) {
+              banners.push({
+                key: `low-${proto.id}`,
+                type: 'warning',
+                message: `${protoName} — ${totalSessions - sessionsUsed} session${(totalSessions - sessionsUsed) === 1 ? '' : 's'} remaining`,
+                category: proto.category,
+              });
+            }
+
+            // Check refill overdue (time-based protocols)
+            if ((isWL || isHRT) && proto.next_expected_date) {
+              const nextDate = new Date(proto.next_expected_date + 'T00:00:00');
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const daysUntil = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
+              if (daysUntil <= 0) {
+                banners.push({
+                  key: `refill-${proto.id}`,
+                  type: 'payment',
+                  message: `${protoName} — Refill overdue (${Math.abs(daysUntil)} day${Math.abs(daysUntil) === 1 ? '' : 's'} past due)`,
+                  category: proto.category,
+                });
+              }
+            }
+          });
+
+          if (banners.length === 0) return null;
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '0 0 8px' }}>
+              {banners.map(b => (
+                <div key={b.key} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 16px',
+                  background: b.type === 'payment' ? '#fef2f2' : '#fffbeb',
+                  border: `1px solid ${b.type === 'payment' ? '#fecaca' : '#fde68a'}`,
+                  fontSize: 13, fontWeight: 600,
+                  color: b.type === 'payment' ? '#991b1b' : '#92400e',
+                }}>
+                  <span style={{ fontSize: 16 }}>{b.type === 'payment' ? '💳' : '⚠️'}</span>
+                  <span>{b.message}</span>
+                  <button
+                    onClick={() => {
+                      const el = document.querySelector(`[data-protocol-id="${banners[0]?.key?.split('-')[1]}"]`) || document.querySelector('.protocol-card');
+                      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }}
+                    style={{
+                      marginLeft: 'auto', padding: '4px 12px', fontSize: 12, fontWeight: 600,
+                      background: b.type === 'payment' ? '#dc2626' : '#d97706', color: '#fff',
+                      border: 'none', borderRadius: 0, cursor: 'pointer', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    View Protocol
+                  </button>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
         {/* Quick Note Bar — always visible at top of profile */}
         <div className="quick-note-bar">
           <span className="quick-note-icon">📝</span>

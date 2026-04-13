@@ -219,8 +219,8 @@ export default function PeptideGuidePage() {
                     >
                       <div style={styles.cardTop}>
                         <div style={styles.cardName}>{opt.value}</div>
-                        <div style={styles.cardFreq}>{opt.frequency}</div>
                       </div>
+                      <div style={styles.cardFreq}>{opt.frequency}</div>
                       <div style={styles.cardDoses}>
                         <span style={styles.doseLabel}>Starting:</span> {opt.startingDose}
                         <span style={{ ...styles.doseLabel, marginLeft: 16 }}>Max:</span> {opt.maxDose}
@@ -495,11 +495,7 @@ const styles = {
     fontSize: 12,
     fontWeight: 600,
     color: '#3b82f6',
-    background: '#eff6ff',
-    padding: '2px 10px',
-    borderRadius: 12,
-    whiteSpace: 'nowrap',
-    marginLeft: 8,
+    marginBottom: 6,
   },
   cardDoses: {
     fontSize: 13,

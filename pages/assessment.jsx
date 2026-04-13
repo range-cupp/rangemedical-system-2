@@ -457,6 +457,9 @@ export default function Assessment() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
 
+  // UTM tracking
+  const [utmParams, setUtmParams] = useState({});
+
   // Lead + payment
   const [leadId, setLeadId] = useState(null);
   const [leadSubmitting, setLeadSubmitting] = useState(false);
@@ -494,9 +497,17 @@ export default function Assessment() {
     }
   }, []);
 
-  // Handle Stripe redirect return
+  // Capture UTM parameters on load
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const utm = {};
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach(key => {
+      const val = params.get(key);
+      if (val) utm[key] = val;
+    });
+    if (Object.keys(utm).length > 0) setUtmParams(utm);
+
+    // Handle Stripe redirect return
     if (params.get('payment_complete') === 'true') {
       window.history.replaceState({}, '', '/assessment');
     }
@@ -534,6 +545,7 @@ export default function Assessment() {
           email: email.trim(),
           phone: phone.trim(),
           assessmentPath: selectedPath,
+          ...utmParams,
         }),
       });
 
@@ -548,7 +560,7 @@ export default function Assessment() {
     } finally {
       setLeadSubmitting(false);
     }
-  }, [firstName, lastName, email, phone, selectedPath, leadSubmitted, leadSubmitting, contactComplete]);
+  }, [firstName, lastName, email, phone, selectedPath, leadSubmitted, leadSubmitting, contactComplete, utmParams]);
 
   // Auto-submit lead when all contact fields are filled (handles browser autofill)
   useEffect(() => {

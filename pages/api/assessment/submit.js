@@ -40,7 +40,13 @@ export default async function handler(req, res) {
       goals,
       // Additional
       additionalInfo,
-      referralSource
+      referralSource,
+      // UTM tracking
+      utm_source,
+      utm_medium,
+      utm_campaign,
+      utm_content,
+      utm_term
     } = req.body;
 
     // Validate required fields
@@ -92,7 +98,12 @@ export default async function handler(req, res) {
         tried_hormone_therapy: triedHormoneTherapy || null,
         energy_goal: goals && goals.length > 0 ? goals.join(', ') : null,
         additional_info: additionalInfo || null,
-        tags
+        tags,
+        utm_source: utm_source || null,
+        utm_medium: utm_medium || null,
+        utm_campaign: utm_campaign || null,
+        utm_content: utm_content || null,
+        utm_term: utm_term || null
       };
 
       const { data, error: dbError } = await supabase

@@ -687,9 +687,10 @@ export default function PatientProfile() {
   });
 
   const [uploadForm, setUploadForm] = useState({
-    file: null, labType: 'Baseline', panelType: 'Elite',
+    files: [], labType: 'Baseline', panelType: 'Elite',
     collectionDate: new Date().toISOString().split('T')[0], notes: ''
   });
+  const [dragOver, setDragOver] = useState(false);
 
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
@@ -2971,47 +2972,71 @@ export default function PatientProfile() {
   };
 
   const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type === 'application/pdf') {
-      setUploadForm({ ...uploadForm, file });
-      setUploadError(null);
+    const selected = Array.from(e.target.files || []);
+    addFiles(selected);
+  };
+
+  const addFiles = (newFiles) => {
+    const pdfs = newFiles.filter(f => f.type === 'application/pdf');
+    const nonPdfs = newFiles.filter(f => f.type !== 'application/pdf');
+    if (nonPdfs.length > 0) {
+      setUploadError(`${nonPdfs.length} non-PDF file(s) skipped`);
     } else {
-      setUploadError('Please select a PDF file');
+      setUploadError(null);
+    }
+    if (pdfs.length > 0) {
+      setUploadForm(prev => ({ ...prev, files: [...prev.files, ...pdfs] }));
     }
   };
 
+  const removeFile = (index) => {
+    setUploadForm(prev => ({ ...prev, files: prev.files.filter((_, i) => i !== index) }));
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const dropped = Array.from(e.dataTransfer.files || []);
+    addFiles(dropped);
+  };
+
   const handleUploadDocument = async () => {
-    if (!uploadForm.file) return setUploadError('Please select a file');
+    if (uploadForm.files.length === 0) return setUploadError('Please select at least one file');
 
     setUploading(true);
     setUploadError(null);
 
     try {
-      const reader = new FileReader();
-      const fileData = await new Promise((resolve, reject) => {
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(uploadForm.file);
-      });
+      const errors = [];
+      for (const file of uploadForm.files) {
+        const reader = new FileReader();
+        const fileData = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
 
-      const res = await fetch(`/api/patients/${id}/upload-lab`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileData,
-          fileName: uploadForm.file.name,
-          labType: uploadForm.labType,
-          panelType: uploadForm.panelType,
-          collectionDate: uploadForm.collectionDate,
-          notes: uploadForm.notes
-        }),
-      });
+        const res = await fetch(`/api/patients/${id}/upload-lab`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileData,
+            fileName: file.name,
+            labType: uploadForm.labType,
+            panelType: uploadForm.panelType,
+            collectionDate: uploadForm.collectionDate,
+            notes: uploadForm.notes
+          }),
+        });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Upload failed');
+        const data = await res.json();
+        if (!res.ok) errors.push(`${file.name}: ${data.error || 'Upload failed'}`);
+      }
+
+      if (errors.length > 0) throw new Error(errors.join('\n'));
 
       await fetchLabDocuments();
-      setUploadForm({ file: null, labType: 'Baseline', panelType: 'Elite', collectionDate: new Date().toISOString().split('T')[0], notes: '' });
+      setUploadForm({ files: [], labType: 'Baseline', panelType: 'Elite', collectionDate: new Date().toISOString().split('T')[0], notes: '' });
       setShowUploadModal(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
@@ -11757,11 +11782,45 @@ export default function PatientProfile() {
                 <button onClick={() => setShowUploadModal(false)} className="close-btn">×</button>
               </div>
               <div className="modal-body">
-                {uploadError && <div className="error-box">{uploadError}</div>}
+                {uploadError && <div className="error-box" style={{ whiteSpace: 'pre-line' }}>{uploadError}</div>}
                 <div className="form-group">
-                  <label>PDF File *</label>
-                  <input ref={fileInputRef} type="file" accept="application/pdf" onChange={handleFileSelect} />
-                  {uploadForm.file && <div className="file-selected">Selected: {uploadForm.file.name}</div>}
+                  <label>PDF Files *</label>
+                  <div
+                    onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      border: `2px dashed ${dragOver ? '#000' : '#d4d4d4'}`,
+                      background: dragOver ? '#f5f5f5' : '#fafafa',
+                      padding: '24px 16px',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <div style={{ fontSize: 13, color: '#737373', marginBottom: 4 }}>
+                      Drag and drop PDFs here, or click to browse
+                    </div>
+                    <div style={{ fontSize: 11, color: '#a3a3a3' }}>PDF files only</div>
+                  </div>
+                  <input ref={fileInputRef} type="file" accept="application/pdf" multiple onChange={handleFileSelect} style={{ display: 'none' }} />
+                  {uploadForm.files.length > 0 && (
+                    <div style={{ marginTop: 8 }}>
+                      {uploadForm.files.map((f, i) => (
+                        <div key={i} style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '6px 10px', background: '#f5f5f5', marginBottom: 4, fontSize: 12,
+                        }}>
+                          <span style={{ color: '#262626' }}>{f.name}</span>
+                          <button onClick={() => removeFile(i)} style={{
+                            background: 'none', border: 'none', color: '#a3a3a3', cursor: 'pointer',
+                            fontSize: 14, padding: '0 4px', lineHeight: 1,
+                          }}>&times;</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="form-row">
                   <div className="form-group">
@@ -11793,7 +11852,7 @@ export default function PatientProfile() {
               </div>
               <div className="modal-footer">
                 <button onClick={() => setShowUploadModal(false)} className="btn-secondary">Cancel</button>
-                <button onClick={handleUploadDocument} disabled={uploading || !uploadForm.file} className="btn-primary">{uploading ? 'Uploading...' : 'Upload'}</button>
+                <button onClick={handleUploadDocument} disabled={uploading || uploadForm.files.length === 0} className="btn-primary">{uploading ? 'Uploading...' : uploadForm.files.length > 1 ? `Upload ${uploadForm.files.length} Files` : 'Upload'}</button>
               </div>
             </div>
           </div>

@@ -1457,7 +1457,7 @@ export default function PatientProfile() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            patient_id: patientId,
+            patient_id: id,
             patient_name: patient?.name || patient?.first_name || 'Patient',
             protocol_id: doseChangeProtocol.id,
             current_dose: doseChangeProtocol.selected_dose,

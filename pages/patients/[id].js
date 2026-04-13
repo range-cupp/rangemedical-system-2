@@ -2082,7 +2082,9 @@ export default function PatientProfile() {
       }
       const sessLeft = protocol.sessions_remaining;
       const totalSess = protocol.total_sessions;
-      if (daysLeft !== null && daysLeft !== undefined) {
+      // In-clinic WL patients don't have refills — they pay per block and come in weekly
+      const isInClinicWL = protocol.category === 'weight_loss' && protocol.delivery_method === 'in_clinic';
+      if (daysLeft !== null && daysLeft !== undefined && !isInClinicWL) {
         if (daysLeft <= 0) renewalTag = { label: 'Refill overdue', urgent: true };
         else if (daysLeft <= 7) renewalTag = { label: `Refill in ${daysLeft}d`, urgent: true };
         else if (daysLeft <= 14) renewalTag = { label: `Refill in ${daysLeft}d`, urgent: false };
@@ -4480,8 +4482,10 @@ export default function PatientProfile() {
               });
             }
 
-            // Check refill overdue (time-based protocols)
-            if ((isWL || isHRT) && proto.next_expected_date) {
+            // Check refill overdue (time-based protocols — take-home only)
+            // In-clinic WL patients don't have refills — they pay per block and come in weekly
+            const isInClinicWL = isWL && proto.delivery_method === 'in_clinic';
+            if ((isWL || isHRT) && proto.next_expected_date && !isInClinicWL) {
               const nextDate = new Date(proto.next_expected_date + 'T00:00:00');
               const today = new Date();
               today.setHours(0, 0, 0, 0);

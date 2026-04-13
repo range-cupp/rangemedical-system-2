@@ -4,6 +4,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import stripe from '../../../lib/stripe';
+import { sendSMS } from '../../../lib/send-sms';
+import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -46,6 +48,41 @@ export default async function handler(req, res) {
     }
 
     console.log(`Assessment payment confirmed: ${paymentIntentId} for lead ${leadId}`);
+
+    // --- Send SMS notification to Chris ---
+    try {
+      const { data: lead } = await supabase
+        .from('assessment_leads')
+        .select('first_name, last_name, assessment_type')
+        .eq('id', leadId)
+        .single();
+
+      const name = lead ? `${lead.first_name} ${lead.last_name}` : 'Unknown';
+      const type = lead?.assessment_type || 'assessment';
+      const amount = (paymentIntent.amount / 100).toFixed(2);
+      const message = `New assessment paid! ${name} just paid $${amount} for a ${type} assessment via range-medical.com.`;
+
+      const smsResult = await sendSMS({ to: '+19496900339', message });
+
+      if (smsResult.success) {
+        await logComm({
+          channel: 'sms',
+          messageType: 'admin_assessment_payment_notification',
+          message,
+          source: 'confirm-payment',
+          recipient: '+19496900339',
+          twilioMessageSid: smsResult.messageSid,
+          direction: 'outbound',
+          provider: smsResult.provider || null,
+        });
+        console.log(`Assessment payment notification sent to Chris for lead ${leadId}`);
+      } else {
+        console.error('Assessment payment notification SMS failed:', smsResult.error);
+      }
+    } catch (notifyErr) {
+      console.error('Assessment payment notification error:', notifyErr);
+      // Non-blocking — don't fail the payment confirmation
+    }
 
     return res.status(200).json({ success: true });
   } catch (error) {

@@ -197,6 +197,7 @@ export default async function handler(req, res) {
           ghl_contact_id,
           item_name,
           amount: amount || 0,
+          amount_paid: amount || 0,
           list_price: list_price || null,
           quantity: quantity || 1,
           category: category || 'Other',

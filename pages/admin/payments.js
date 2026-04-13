@@ -1406,7 +1406,7 @@ export default function PaymentsPage() {
                         </td>
                         <td style={styles.td}>
                           <span style={{ fontWeight: '500', color: '#16a34a' }}>
-                            ${p.amount?.toFixed(2)}
+                            ${(p.amount_paid != null ? p.amount_paid : p.amount)?.toFixed(2)}
                           </span>
                           {p.discount_type && (
                             <span style={{ fontSize: '11px', color: '#888', marginLeft: '6px' }}>

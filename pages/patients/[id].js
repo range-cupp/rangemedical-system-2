@@ -6080,7 +6080,7 @@ export default function PatientProfile() {
                                   <span>
                                     <span style={{ color: '#6b7280' }}>Last charge: </span>
                                     <strong>{formatShortDate(lastPurchase.purchase_date)}</strong>
-                                    <span style={{ color: '#6b7280' }}> — ${lastPurchase.amount}{lastPurchase.item_name ? ` (${lastPurchase.item_name})` : lastPurchase.description ? ` (${lastPurchase.description})` : ''}</span>
+                                    <span style={{ color: '#6b7280' }}> — ${lastPurchase.amount_paid != null ? lastPurchase.amount_paid : lastPurchase.amount}{lastPurchase.item_name ? ` (${lastPurchase.item_name})` : lastPurchase.description ? ` (${lastPurchase.description})` : ''}</span>
                                   </span>
                                 )}
                                 {nextChargeDate && (

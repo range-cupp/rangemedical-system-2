@@ -15,10 +15,9 @@ import { MEMBERSHIP_FREQUENCY_OPTIONS, isRecoveryPeptide, isGHPeptide } from '..
 // When amount_paid >= amount (or amount_paid is the invoice total spread across lines),
 // fall back to the per-line amount.
 function displayAmt(purchase) {
-  const amt = parseFloat(purchase.amount) || 0;
   const paid = parseFloat(purchase.amount_paid);
-  if (!isNaN(paid) && paid > 0 && paid < amt) return paid;
-  return amt;
+  if (!isNaN(paid)) return paid;
+  return parseFloat(purchase.amount) || 0;
 }
 
 // Classify purchase into action type: 'protocol' | 'session' | 'product'

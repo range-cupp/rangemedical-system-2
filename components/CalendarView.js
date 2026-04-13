@@ -4610,9 +4610,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       <div style={card}>
                         <h4 style={sectionHead}>Recent Transactions ({purchases.length})</h4>
                         {purchases.slice(0, 6).map((p, i) => {
-                          const amt = parseFloat(p.amount) || 0;
                           const paid = parseFloat(p.amount_paid);
-                          const displayAmt = (!isNaN(paid) && paid > 0 && paid < amt) ? paid : amt;
+                          const displayAmt = !isNaN(paid) ? paid : (parseFloat(p.amount) || 0);
                           return (
                             <div key={p.id || i} style={{ padding: '8px 0', borderBottom: i < Math.min(purchases.length, 6) - 1 ? '1px solid #e5e7eb' : 'none' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

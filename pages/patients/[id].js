@@ -4197,6 +4197,23 @@ export default function PatientProfile() {
             </button>
           </div>
 
+          {/* Original Reason for Visit */}
+          {(() => {
+            const intake = intakes && intakes.length > 0 ? intakes[0] : null;
+            const reasonForVisit = intake?.what_brings_you || intake?.what_brings_you_in || null;
+            if (!reasonForVisit) return null;
+            return (
+              <div style={{
+                padding: '8px 16px',
+                borderTop: '1px solid #f3f4f6',
+                display: 'flex', alignItems: 'baseline', gap: '8px',
+              }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>Original Reason for Visit</span>
+                <span style={{ fontSize: '14px', color: '#111827', lineHeight: '1.4' }}>{reasonForVisit}</span>
+              </div>
+            );
+          })()}
+
           {/* Medical Alerts */}
           {(() => {
             // Pull medical data from the most recent intake

@@ -4415,6 +4415,29 @@ export default function PatientProfile() {
           )}
         </header>
 
+        {/* Quick Note Bar — always visible at top of profile */}
+        <div className="quick-note-bar">
+          <span className="quick-note-icon">📝</span>
+          <input
+            type="text"
+            className="quick-note-input"
+            placeholder="Add a staff note..."
+            value={quickNoteInput}
+            onChange={e => setQuickNoteInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleQuickNote(); } }}
+            disabled={quickNoteSaving}
+          />
+          {quickNoteInput.trim() && (
+            <button
+              className="quick-note-save"
+              onClick={handleQuickNote}
+              disabled={quickNoteSaving}
+            >
+              {quickNoteSaving ? 'Saving...' : 'Save Note'}
+            </button>
+          )}
+        </div>
+
         {/* Top-Level View Mode Toggle: Medical / Business */}
         <div className="view-mode-toggle">
           <button
@@ -4425,7 +4448,7 @@ export default function PatientProfile() {
           </button>
           <button
             className={`view-mode-btn${viewMode === 'business' ? ' active' : ''}`}
-            onClick={() => { setViewMode('business'); setActiveTab('billing'); }}
+            onClick={() => { setViewMode('business'); setActiveTab('messages'); }}
           >
             <span className="view-mode-icon">💼</span> Business
           </button>
@@ -4736,10 +4759,10 @@ export default function PatientProfile() {
             { key: 'records', label: 'Documents', icon: '📄', count: (intakes.length + consents.length + medicalDocuments.length) || 0 },
             { key: 'tasks', label: 'Tasks', icon: '✅', count: patientTasks.filter(t => (t.task_category || 'business') === 'medical' && t.status === 'pending').length || 0 },
           ] : [
-            { key: 'billing', label: 'Billing', icon: '💳' },
             { key: 'messages', label: 'Messages', icon: '💬', count: commsLog.filter(c => c.direction === 'inbound' && c.status !== 'read').length || 0 },
             { key: 'notes', label: 'Staff Notes', icon: '📝', count: notes.length || 0 },
             { key: 'tasks', label: 'Tasks', icon: '✅', count: patientTasks.filter(t => (t.task_category || 'business') === 'business' && t.status === 'pending').length || 0 },
+            { key: 'billing', label: 'Billing', icon: '💳' },
           ]).map(tab => (
             <button
               key={tab.key}
@@ -13517,6 +13540,51 @@ export default function PatientProfile() {
         .pending-info strong { display: block; margin-bottom: 2px; }
         .pending-info span { font-size: 14px; color: #666; }
         .pending-actions { display: flex; gap: 8px; }
+
+        /* Quick Note Bar — top of profile */
+        .quick-note-bar {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 16px;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        .quick-note-bar .quick-note-icon {
+          font-size: 14px;
+          flex-shrink: 0;
+        }
+        .quick-note-bar .quick-note-input {
+          flex: 1;
+          padding: 8px 12px;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          font-size: 14px;
+          font-family: inherit;
+          outline: none;
+          background: #fff;
+          transition: border-color 0.15s;
+        }
+        .quick-note-bar .quick-note-input:focus {
+          border-color: #111827;
+        }
+        .quick-note-bar .quick-note-input::placeholder {
+          color: #94a3b8;
+        }
+        .quick-note-save {
+          background: #111827;
+          color: #fff;
+          border: none;
+          font-size: 13px;
+          font-weight: 600;
+          padding: 8px 16px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: opacity 0.15s;
+          white-space: nowrap;
+        }
+        .quick-note-save:hover { opacity: 0.85; }
+        .quick-note-save:disabled { opacity: 0.4; cursor: default; }
 
         /* View Mode Toggle — Medical / Business */
         .view-mode-toggle {

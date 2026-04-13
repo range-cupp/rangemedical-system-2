@@ -5832,10 +5832,11 @@ export default function PatientProfile() {
                       const lastActivity = protoServiceLogs[0]; // most recent of any type
                       const lastInClinic = protoServiceLogs.find(l => l.fulfillment_method === 'in_clinic' || l.entry_type === 'session' || (l.entry_type === 'injection' && l.fulfillment_method !== 'overnight'));
                       const lastTakeHome = protoServiceLogs.find(l => l.entry_type === 'pickup' || l.fulfillment_method === 'overnight');
-                      // Session count: DB counter is source of truth (maintained by log-session and extend-wl APIs)
-                      // Service log count is fallback only — many historical injections were never individually logged
+                      // Session count: for WL, count actual logged entries (excludes missed/pickup)
+                      // as the DB counter can drift. For other categories, DB counter is primary.
+                      const wlActualCount = wlLogs.filter(l => l.entry_type !== 'missed' && l.entry_type !== 'pickup').length;
                       const sessionsCompleted = isWeightLoss
-                        ? (protocol.sessions_used || wlLogs.length)
+                        ? (wlActualCount || protocol.sessions_used || 0)
                         : (protocol.sessions_used || protocol.sessions_completed || protoServiceLogs.filter(l => ['injection', 'session'].includes(l.entry_type)).length);
                       const sessionsTotal = protocol.total_sessions || protocol.sessions_total;
                       // Aggregate side effects from all service logs
@@ -6306,10 +6307,27 @@ export default function PatientProfile() {
                           {/* ===== Weight Loss: Section 3 — Expanded Details ===== */}
                           {isWeightLoss && isExpanded && (wlLogs.length > 0 || (protocol.total_sessions > 0 && protocol.start_date)) && (
                             <div className="wl-progress">
-                              {/* Big Injection Counter */}
+                              {/* Big Injection Counter — click to sync DB if count is wrong */}
                               <div className="px-stats-row" style={{ marginBottom: 16 }}>
-                                <div className="px-stat px-stat-big">
-                                  <span className="px-stat-label">Injection</span>
+                                <div className="px-stat px-stat-big"
+                                  onClick={async () => {
+                                    if (sessionsCompleted !== (protocol.sessions_used || 0)) {
+                                      try {
+                                        const res = await fetch(`/api/protocols/${protocol.id}`, {
+                                          method: 'PATCH',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ sessions_used: sessionsCompleted }),
+                                        });
+                                        if (res.ok) fetchPatient();
+                                      } catch {}
+                                    }
+                                  }}
+                                  title={sessionsCompleted !== (protocol.sessions_used || 0)
+                                    ? `DB says ${protocol.sessions_used || 0} — click to sync to ${sessionsCompleted}`
+                                    : `${sessionsCompleted} sessions logged`}
+                                  style={{ cursor: sessionsCompleted !== (protocol.sessions_used || 0) ? 'pointer' : 'default' }}
+                                >
+                                  <span className="px-stat-label">Injection{sessionsCompleted !== (protocol.sessions_used || 0) && <span style={{ color: '#f59e0b', marginLeft: 4, fontSize: 10 }}>⚠ click to sync</span>}</span>
                                   <span className="px-stat-value">{sessionsCompleted} <span style={{ fontSize: '0.4em', color: '#9ca3af', fontWeight: 400 }}>/ {sessionsTotal || '—'}</span></span>
                                 </div>
                                 {startingWeight && currentWeight && (

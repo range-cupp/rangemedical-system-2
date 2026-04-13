@@ -195,6 +195,82 @@ export default async function handler(req, res) {
       }
     }
 
+    // 4b. For HRT TAKE-HOME pickups, create future injection entries
+    // Same logic as service-log: auto-create individual injection entries dated to the
+    // patient's injection schedule (2x/week = Mon/Thu alternating 3/4 day gaps)
+    const isHRTPickup = !isInClinicPurchase && category === 'testosterone' && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0;
+    if (isHRTPickup) {
+      const hrtPickupQty = parseInt(quantity);
+      const pickupDosage = dosage || '';
+      const atMatch = pickupDosage.match(/@\s*(.+)/);
+      const injectionDose = atMatch ? atMatch[1].trim() : pickupDosage;
+
+      // Get injection frequency from request, or look it up from the protocol
+      let freq = injection_frequency ? parseInt(injection_frequency) : 0;
+      if (!freq && protocol_id) {
+        const { data: proto } = await supabase.from('protocols').select('injection_frequency').eq('id', protocol_id).single();
+        freq = proto?.injection_frequency ? parseInt(proto.injection_frequency) : 2;
+      }
+      if (!freq) freq = 2; // default 2x/week
+      let dayOffset = 0;
+      let useShortGap = true;
+
+      for (let i = 0; i < hrtPickupQty; i++) {
+        if (freq >= 7) {
+          dayOffset += 1;
+        } else if (freq === 3) {
+          const gaps = [2, 2, 3];
+          dayOffset += gaps[i % 3];
+        } else {
+          dayOffset += useShortGap ? 3 : 4;
+          useShortGap = !useShortGap;
+        }
+
+        const injDate = new Date(logDate + 'T12:00:00');
+        injDate.setDate(injDate.getDate() + dayOffset);
+        const injDateStr = injDate.toISOString().split('T')[0];
+
+        await supabase.from('service_logs').insert([{
+          patient_id,
+          category,
+          entry_type: 'injection',
+          entry_date: injDateStr,
+          medication: medication || null,
+          dosage: injectionDose || null,
+          quantity: 1,
+          notes: `Take-home injection (dispensed ${logDate}, ${hrtPickupQty}-syringe pickup, ${i + 1} of ${hrtPickupQty})`,
+          protocol_id: protocol_id || null,
+          injection_method: injection_method || null,
+          fulfillment_method: 'take_home',
+        }]);
+      }
+
+      // Sync sessions_used from actual count
+      if (protocol_id) {
+        const { count: hrtCount } = await supabase
+          .from('service_logs')
+          .select('*', { count: 'exact', head: true })
+          .eq('protocol_id', protocol_id)
+          .in('entry_type', ['injection', 'session']);
+
+        await supabase
+          .from('protocols')
+          .update({ sessions_used: hrtCount || 0, updated_at: new Date().toISOString() })
+          .eq('id', protocol_id);
+
+        // Update next_expected_date to after the last auto-created injection
+        const lastInjOffset = dayOffset;
+        const nextGapDays = freq >= 7 ? 1 : freq === 3 ? 2 : (hrtPickupQty % 2 === 1 ? 4 : 3);
+        const nextAfterLast = new Date(logDate + 'T12:00:00');
+        nextAfterLast.setDate(nextAfterLast.getDate() + lastInjOffset + nextGapDays);
+
+        await supabase
+          .from('protocols')
+          .update({ next_expected_date: nextAfterLast.toISOString().split('T')[0] })
+          .eq('id', protocol_id);
+      }
+    }
+
     // 5. Sync weight to vitals if provided
     if (weight) {
       await syncWeightToVitals(patient_id, weight, logDate, administered_by);
@@ -350,6 +426,15 @@ async function updateProtocol(protocolId, opts) {
           vial_10ml: 140,
           vial: 140,
         };
+
+        // Handle prefilled_N (e.g. prefilled_3) — calculate from injection count and frequency
+        const prefillMatch = supply_type.match(/^prefilled_(\d+)$/);
+        if (prefillMatch && !supplyDays[supply_type]) {
+          const injCount = parseInt(prefillMatch[1]);
+          const ipw = parseInt(protocol.injection_frequency) || 2;
+          supplyDays[supply_type] = Math.round((injCount / ipw) * 7);
+        }
+
         if (supplyDays[supply_type]) {
           const nextDate = new Date(logDate + 'T12:00:00');
           nextDate.setDate(nextDate.getDate() + supplyDays[supply_type]);
@@ -446,6 +531,7 @@ async function sendCheckoutReceipt({ patient, patientName, medication, category,
     const supplyLabels = {
       prefilled_1week: '1 Week Supply',
       prefilled_2week: '2 Week Supply',
+      prefilled_3: '3 Injections',
       prefilled_3week: '3 Week Supply',
       prefilled_4week: '4 Week Supply',
       prefilled_8week: '8 Week Supply',
@@ -453,7 +539,10 @@ async function sendCheckoutReceipt({ patient, patientName, medication, category,
       vial_10ml: '10ml Vial',
       vial: 'Vial',
     };
-    description += ` — ${supplyLabels[supply_type] || supply_type}`;
+    // Handle dynamic prefilled_N values (e.g. prefilled_5 → "5 Injections")
+    const prefillMatch = supply_type.match(/^prefilled_(\d+)$/);
+    const label = supplyLabels[supply_type] || (prefillMatch ? `${prefillMatch[1]} Injections` : supply_type);
+    description += ` — ${label}`;
   }
 
   try {

@@ -12,16 +12,18 @@ const MedicationCheckoutModal = dynamic(() => import('../../components/Medicatio
 
 // Friendly labels for supply types
 const SUPPLY_LABELS = {
-  prefilled_1week: '1-Week Prefilled',
-  prefilled_1: '1-Week Prefilled',
-  prefilled_2week: '2-Week Prefilled',
-  prefilled_4week: '4-Week Prefilled',
+  prefilled: 'Pre-filled',
   vial_5ml: '5ml Vial',
   vial_10ml: '10ml Vial',
   vial: 'Vial',
   pellet: 'Pellets',
   oral_30day: '30-Day Oral',
   in_clinic: 'In-Clinic',
+  // Legacy values
+  prefilled_1week: '1-Week Prefilled',
+  prefilled_1: '1-Week Prefilled',
+  prefilled_2week: '2-Week Prefilled',
+  prefilled_4week: '4-Week Prefilled',
 };
 
 function formatIntervalLabel(days) {
@@ -78,12 +80,10 @@ function getSupplyOptions(med) {
   const pt = (med.program_type || '').toLowerCase();
   const supply = (med.supply_type || '').toLowerCase();
 
-  // HRT — show all supply options: prefilled syringes AND vials
+  // HRT — prefilled (with quantity) or vial
   if (pt.includes('hrt')) {
     return [
-      { value: 'prefilled_1week', label: '1-Week Prefilled', days: 7 },
-      { value: 'prefilled_2week', label: '2-Week Prefilled', days: 14 },
-      { value: 'prefilled_4week', label: '4-Week Prefilled', days: 28 },
+      { value: 'prefilled', label: 'Pre-filled', days: null },
       { value: 'vial_5ml', label: '5ml Vial', days: null },
       { value: 'vial_10ml', label: '10ml Vial', days: null },
     ];
@@ -129,13 +129,16 @@ function parseDoseMl(selectedDose) {
 function getIntervalForSupply(supplyValue, med) {
   const pt = (med.program_type || '').toLowerCase();
 
-  // Prefilled — straightforward
+  // Prefilled — now uses quantity + frequency, so no fixed day mapping
+  // For legacy values, still handle them
   const prefillDays = {
     prefilled_1week: 7, prefilled_1: 7,
     prefilled_2week: 14,
     prefilled_4week: 28,
   };
   if (prefillDays[supplyValue]) return prefillDays[supplyValue];
+  // New 'prefilled' value — caller should calculate from quantity + frequency
+  if (supplyValue === 'prefilled') return null;
 
   // Weight loss — injection count × 7 days
   if (supplyValue === 'wl_1' || supplyValue === 'weekly') return 7;

@@ -270,12 +270,9 @@ async function updateProtocol(id, updates, res) {
     updateData.delivery_method = 'take_home';
   }
 
-  // Normalize supply_type (prefill_ → prefilled_ for consistency)
-  if (updateData.supply_type === 'prefill_2week') {
-    updateData.supply_type = 'prefilled_2week';
-  }
-  if (updateData.supply_type === 'prefill_4week') {
-    updateData.supply_type = 'prefilled_4week';
+  // Normalize supply_type — legacy prefill_Xweek → prefilled for consistency
+  if (updateData.supply_type && updateData.supply_type.startsWith('prefill_')) {
+    updateData.supply_type = 'prefilled';
   }
 
   // Parse secondary medication details from JSON string to array

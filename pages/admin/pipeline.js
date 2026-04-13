@@ -905,9 +905,7 @@ export default function UnifiedPipeline() {
                     <label style={styles.formLabel}>Supply Type</label>
                     <select value={protocolForm.hrt_supply_type || ''} onChange={(e) => setProtocolForm({ ...protocolForm, hrt_supply_type: e.target.value })} style={styles.formSelect}>
                       <option value="">Select type...</option>
-                      <option value="prefilled_1week">Pre-filled 1 Week (2 injections)</option>
-                      <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
-                      <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
+                      <option value="prefilled">Pre-filled</option>
                       <option value="vial_5ml">Vial 5ml</option>
                       <option value="vial_10ml">Vial 10ml</option>
                     </select>
@@ -1064,12 +1062,14 @@ export default function UnifiedPipeline() {
                 <label style={styles.formLabel}>Supply Type *</label>
                 <select value={logForm.supply_type || ''} onChange={(e) => setLogForm({ ...logForm, supply_type: e.target.value })} style={styles.formSelect} required>
                   <option value="">Select type...</option>
-                  <option value="prefilled_1week">Pre-filled 1 Week (2 injections)</option>
-                  <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
-                  <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
+                  <option value="prefilled">Pre-filled</option>
                   <option value="vial_5ml">Vial 5ml</option>
                   <option value="vial_10ml">Vial 10ml</option>
                 </select>
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Quantity (# of injections)</label>
+                <input type="number" min="1" max="30" value={logForm.quantity || ''} onChange={(e) => setLogForm({ ...logForm, quantity: parseInt(e.target.value) || 1 })} placeholder="e.g. 8" style={styles.formInput} />
               </div>
               <div style={styles.formGroup}>
                 <label style={styles.formLabel}>Dose</label>

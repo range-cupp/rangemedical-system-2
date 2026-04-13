@@ -4654,10 +4654,9 @@ export default function CommandCenter() {
                       style={styles.formInput}
                     >
                       <option value="">None</option>
-                      <option value="prefilled_2week">Prefilled 2-Week (4 syringes)</option>
-                      <option value="prefilled_4week">Prefilled 4-Week (8 syringes)</option>
+                      <option value="prefilled">Pre-filled</option>
+                      <option value="vial_5ml">Vial (5ml)</option>
                       <option value="vial_10ml">Vial (10ml)</option>
-                      <option value="vial">Vial</option>
                       <option value="in_clinic">In Clinic</option>
                       <option value="medication">Medication</option>
                     </select>

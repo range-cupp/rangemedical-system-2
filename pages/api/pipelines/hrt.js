@@ -91,9 +91,8 @@ export default async function handler(req, res) {
       const hrtType = medication.includes('female') ? 'female' : 'male';
       
       // Normalize supply type
-      let supplyType = p.supply_type || 'prefilled_4week';
+      let supplyType = p.supply_type || 'prefilled';
       if (supplyType === 'vial') supplyType = 'vial_10ml';
-      if (supplyType === 'prefilled') supplyType = 'prefilled_4week';
 
       // Calculate days since start
       let daysSinceStart = 0;

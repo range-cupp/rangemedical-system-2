@@ -261,10 +261,9 @@ export default async function handler(req, res) {
         programWeek = Math.floor((today - startDate) / (1000 * 60 * 60 * 24 * 7));
       }
 
-      // Normalize supply type (same as hrt pipeline)
-      let supplyType = protocol.supply_type || 'prefilled_4week';
+      // Normalize supply type
+      let supplyType = protocol.supply_type || 'prefilled';
       if (supplyType === 'vial') supplyType = 'vial_10ml';
-      if (supplyType === 'prefilled') supplyType = 'prefilled_4week';
 
       // ── Range IV perk status for this patient ──
       const patientIVPerks = ivPerksByPatient[protocol.patient_id] || [];

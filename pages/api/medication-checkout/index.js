@@ -414,9 +414,10 @@ async function updateProtocol(protocolId, opts) {
         }
       }
 
-      // Calculate next expected date based on supply type
+      // Calculate next expected date based on supply type + quantity
       if (supply_type) {
         const supplyDays = {
+          // Legacy fixed values
           prefilled_1week: 7,
           prefilled_2week: 14,
           prefilled_3week: 21,
@@ -427,12 +428,10 @@ async function updateProtocol(protocolId, opts) {
           vial: 140,
         };
 
-        // Handle prefilled_N (e.g. prefilled_3) — calculate next pickup date from injection schedule
-        // For 2x/week (Mon/Thu), 3 injections cover days +3, +7, +10 — next needed at +14
-        // Formula: walk the alternating gap pattern to find when the NEXT injection after the last dispensed one falls
-        const prefillMatch = supply_type.match(/^prefilled_(\d+)$/);
-        if (prefillMatch && !supplyDays[supply_type]) {
-          const injCount = parseInt(prefillMatch[1]);
+        // For 'prefilled' (new simplified) or prefilled_N (legacy), calculate from quantity + frequency
+        // Walk the injection schedule to find when the NEXT injection falls after the last dispensed syringe
+        if ((supply_type === 'prefilled' || supply_type.match(/^prefilled_(\d+)$/)) && quantity && parseInt(quantity) > 0) {
+          const injCount = parseInt(quantity);
           const ipw = parseInt(protocol.injection_frequency) || 2;
           let dayOffset = 0;
           let useShortGap = true;
@@ -538,19 +537,20 @@ async function sendCheckoutReceipt({ patient, patientName, medication, category,
   if (dosage) description += ` (${dosage})`;
   if (supply_type) {
     const supplyLabels = {
-      prefilled_1week: '1 Week Supply',
-      prefilled_2week: '2 Week Supply',
-      prefilled_3: '3 Injections',
-      prefilled_3week: '3 Week Supply',
-      prefilled_4week: '4 Week Supply',
-      prefilled_8week: '8 Week Supply',
+      prefilled: 'Pre-filled',
       vial_5ml: '5ml Vial',
       vial_10ml: '10ml Vial',
       vial: 'Vial',
+      // Legacy
+      prefilled_1week: '1 Week Supply',
+      prefilled_2week: '2 Week Supply',
+      prefilled_4week: '4 Week Supply',
     };
-    // Handle dynamic prefilled_N values (e.g. prefilled_5 → "5 Injections")
-    const prefillMatch = supply_type.match(/^prefilled_(\d+)$/);
-    const label = supplyLabels[supply_type] || (prefillMatch ? `${prefillMatch[1]} Injections` : supply_type);
+    let label = supplyLabels[supply_type] || supply_type;
+    // For prefilled + quantity, show "Pre-filled (X injections)"
+    if (supply_type === 'prefilled' && quantity && parseInt(quantity) > 0) {
+      label = `Pre-filled (${quantity} injections)`;
+    }
     description += ` — ${label}`;
   }
 

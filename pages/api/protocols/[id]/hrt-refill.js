@@ -107,12 +107,13 @@ export default async function handler(req, res) {
       const vialWeeks = Math.floor(1000 / weeklyMg);
       supplyDuration = `${vialWeeks} weeks`;
       supplyLabel = `Vial 5ml (${vialWeeks} weeks at ${dose})`;
-    } else if (supply_type === 'prefilled_2week') {
-      supplyDuration = '2 weeks';
-      supplyLabel = 'Pre-filled 2 Week (4 injections)';
     } else {
-      supplyDuration = '4 weeks';
-      supplyLabel = 'Pre-filled 4 Week (8 injections)';
+      // Prefilled — use quantity if available
+      const qty = protocol.quantity || 8;
+      const freq = protocol.injection_frequency || 2;
+      const weeks = Math.round(qty / freq);
+      supplyDuration = `${weeks} week${weeks !== 1 ? 's' : ''}`;
+      supplyLabel = `Pre-filled (${qty} injections)`;
     }
 
     // Log the refill entry

@@ -29,7 +29,7 @@ function getRefillIntervalDays(protocol) {
     if (supply === 'pellet') return 120;
     if (supply === 'oral_30day' || supply.includes('oral')) return 30;
     if (supply === 'in_clinic') return 7;
-    if (supply.startsWith('prefilled_')) {
+    if (supply === 'prefilled' || supply.startsWith('prefilled_')) {
       const prefillDays = { prefilled_1week: 7, prefilled_2week: 14, prefilled_4week: 28 };
       return prefillDays[supply] || 28;
     }

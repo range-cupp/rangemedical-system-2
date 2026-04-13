@@ -154,11 +154,13 @@ function categorizeHRTProtocol(p) {
 }
 
 const HRT_SUPPLY_LABELS = {
+  prefilled: 'Pre-filled',
+  vial_5ml: '5ml Vial',
+  vial_10ml: '10ml Vial',
+  // Legacy
   prefilled_1week: '1-Wk',
   prefilled_2week: '2-Wk',
   prefilled_4week: '4-Wk',
-  vial_5ml: '5ml Vial',
-  vial_10ml: '10ml Vial',
 };
 
 // Categorize peptides for filtering

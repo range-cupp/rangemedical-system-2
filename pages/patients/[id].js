@@ -2609,10 +2609,9 @@ export default function PatientProfile() {
     let deliveryMethod = protocol.delivery_method || '';
     if (deliveryMethod === 'at_home') deliveryMethod = 'take_home';
 
-    // Normalize supply type (prefill_ → prefilled_ for consistency)
+    // Normalize supply type — legacy prefill_ variants → prefilled
     let supplyType = protocol.supply_type || '';
-    if (supplyType === 'prefill_2week') supplyType = 'prefilled_2week';
-    if (supplyType === 'prefill_4week') supplyType = 'prefilled_4week';
+    if (supplyType.startsWith('prefill_') || supplyType.startsWith('prefilled_')) supplyType = 'prefilled';
 
     // For peptides, try to match medication to the full peptide name
     let medication = protocol.medication || '';

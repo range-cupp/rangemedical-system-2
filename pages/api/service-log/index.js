@@ -1208,7 +1208,7 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
       if (isWeightLossType(category) && quantity) {
         // Weight loss pickups: quantity = weeks of supply (1-4)
         daysUntilNext = quantity * 7;
-      } else if (supply_type && supply_type.startsWith('prefilled_') && quantity) {
+      } else if (supply_type && (supply_type === 'prefilled' || supply_type.startsWith('prefilled_')) && quantity) {
         // Prefilled syringes: walk the injection schedule to find the NEXT injection date after supply runs out
         // For 2x/week (Mon/Thu), 3 injections cover days +3, +7, +10 — next needed at day +14
         const ipw = parseInt(protocol.injection_frequency) || 2;
@@ -1447,7 +1447,7 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
     if (isWeightLossType(category) && quantity) {
       // Weight loss pickups: quantity = weeks of supply (1-4)
       daysUntilNext = quantity * 7;
-    } else if (supply_type && supply_type.startsWith('prefilled_') && quantity) {
+    } else if (supply_type && (supply_type === 'prefilled' || supply_type.startsWith('prefilled_')) && quantity) {
       // Prefilled syringes: walk the 2x/week schedule to find next injection date after supply runs out
       let dayOff = 0;
       let shortGap = true;

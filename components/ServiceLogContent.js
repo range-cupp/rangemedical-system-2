@@ -608,14 +608,13 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
           if (item.entryType === 'injection') {
             payload.dosage = item.formData.dosage === 'custom' ? item.formData.custom_dosage : item.formData.dosage;
           } else {
-            // Use delivery_method from shared config (prefilled_1..8 or vial)
+            // Pickup: prefilled or vial
             const dm = item.formData.delivery_method || '';
             const isVial = dm.startsWith('vial');
-            const qty = isVial ? 1 : (dm.startsWith('prefilled_') ? parseInt(dm.replace('prefilled_', '')) : (item.formData.quantity || 1));
-            payload.supply_type = isVial ? dm :
-              qty >= 8 ? 'prefilled_4week' : qty >= 4 ? 'prefilled_2week' : 'prefilled';
+            const qty = isVial ? 1 : (item.formData.quantity || 1);
+            payload.supply_type = isVial ? dm : 'prefilled';
             payload.quantity = qty;
-            payload.delivery_method = dm; // Store exact delivery method value
+            payload.delivery_method = dm;
             if (isVial) {
               const vialMl = dm === 'vial_5ml' ? 5 : 10;
               const mgPerMl = item.formData.hrt_type === 'male' ? 200 : 100;
@@ -1502,29 +1501,46 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                         </div>
 
                         {entryType === 'pickup' && (
-                          <div style={slcStyles.formGroup}>
-                            <label style={slcStyles.label}>Supply Type</label>
-                            <select
-                              value={formData.delivery_method || ''}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                const isVial = val.startsWith('vial');
-                                const qty = isVial ? 1 : (val.startsWith('prefilled_') ? parseInt(val.replace('prefilled_', '')) : 1);
-                                setFormData(prev => ({
-                                  ...prev,
-                                  delivery_method: val,
-                                  pickup_type: isVial ? 'vial' : 'prefilled',
-                                  quantity: qty
-                                }));
-                              }}
-                              style={slcStyles.select}
-                            >
-                              <option value="">Select...</option>
-                              {TESTOSTERONE_OPTIONS[formData.hrt_type].deliveryMethods.map(d => (
-                                <option key={d.value} value={d.value}>{d.label}</option>
-                              ))}
-                            </select>
-                          </div>
+                          <>
+                            <div style={slcStyles.formGroup}>
+                              <label style={slcStyles.label}>Supply Type</label>
+                              <select
+                                value={formData.delivery_method || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const isVial = val.startsWith('vial');
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    delivery_method: val,
+                                    pickup_type: isVial ? 'vial' : 'prefilled',
+                                    quantity: isVial ? 1 : prev.quantity
+                                  }));
+                                }}
+                                style={slcStyles.select}
+                              >
+                                <option value="">Select...</option>
+                                {TESTOSTERONE_OPTIONS[formData.hrt_type].deliveryMethods
+                                  .filter(d => d.value !== 'in_clinic')
+                                  .map(d => (
+                                    <option key={d.value} value={d.value}>{d.label}</option>
+                                  ))}
+                              </select>
+                            </div>
+                            {formData.delivery_method === 'prefilled' && (
+                              <div style={slcStyles.formGroup}>
+                                <label style={slcStyles.label}>Number of Injections</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="30"
+                                  value={formData.quantity || ''}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                                  placeholder="How many syringes?"
+                                  style={slcStyles.input}
+                                />
+                              </div>
+                            )}
+                          </>
                         )}
 
                         {/* Fulfillment method for pickups */}

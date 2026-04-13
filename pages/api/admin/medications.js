@@ -56,11 +56,9 @@ function getRefillIntervalDays(protocol) {
     // In-clinic injections — weekly visits
     if (supply === 'in_clinic') return 7;
 
-    // Prefilled syringes — supply_type defines the pickup interval
-    if (supply.startsWith('prefilled_')) {
+    // Prefilled syringes — next_expected_date is calculated from quantity + frequency at checkout
+    if (supply === 'prefilled' || supply.startsWith('prefilled_')) {
       const prefillDays = { prefilled_1week: 7, prefilled_2week: 14, prefilled_4week: 28 };
-      // Also handle "prefilled_1" legacy format
-      if (supply === 'prefilled_1') return 7;
       return prefillDays[supply] || 28;
     }
 

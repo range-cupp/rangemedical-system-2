@@ -18,11 +18,13 @@ const HRT_STAGE_COLORS = {
 };
 
 const SUPPLY_LABELS = {
+  prefilled: 'Pre-filled',
+  vial_5ml: '5ml Vial',
+  vial_10ml: '10ml Vial',
+  // Legacy values
   prefilled_1week: '1-Week Pre-fill',
   prefilled_2week: '2-Week Pre-fill',
   prefilled_4week: '4-Week Pre-fill',
-  vial_5ml: '5ml Vial',
-  vial_10ml: '10ml Vial',
 };
 
 export default function HRTDetailPanel({ isOpen, onClose, lead }) {

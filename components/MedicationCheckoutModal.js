@@ -1321,19 +1321,34 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
 
               {/* Supply type (HRT) */}
               {selectedCategory?.id === 'testosterone' && entryType === 'pickup' && (
-                <div style={styles.fieldGroup}>
-                  <label style={styles.label}>Supply Type</label>
-                  <select value={supplyType} onChange={e => setSupplyType(e.target.value)} style={styles.select}>
-                    <option value="">Select supply...</option>
-                    {[
-                      ...HRT_SUPPLY_TYPES,
-                      { value: 'prefilled_3week', label: 'Pre-filled 3 Week (6 injections)' },
-                      { value: 'prefilled_8week', label: 'Pre-filled 8 Week (16 injections)' },
-                    ].map(s => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
-                    ))}
-                  </select>
-                </div>
+                <>
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>Supply Type</label>
+                    <select value={supplyType} onChange={e => {
+                      setSupplyType(e.target.value);
+                      if (e.target.value.startsWith('vial')) setQuantity('1');
+                    }} style={styles.select}>
+                      <option value="">Select supply...</option>
+                      {HRT_SUPPLY_TYPES.map(s => (
+                        <option key={s.value} value={s.value}>{s.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {supplyType === 'prefilled' && (
+                    <div style={styles.fieldGroup}>
+                      <label style={styles.label}>Number of Injections</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="30"
+                        value={quantity}
+                        onChange={e => setQuantity(e.target.value)}
+                        placeholder="How many syringes?"
+                        style={styles.input || styles.select}
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Duration (Peptide) */}
@@ -2444,14 +2459,16 @@ function renderDosagePicker(categoryId, medication, dosage, setDosage, selectedP
 // ================================================================
 function formatSupplyType(st) {
   const labels = {
-    prefilled_1week: '1 Week Pre-filled (2 injections)',
-    prefilled_2week: '2 Week Pre-filled (4 injections)',
-    prefilled_3week: '3 Week Pre-filled (6 injections)',
-    prefilled_4week: '4 Week Pre-filled (8 injections)',
-    prefilled_8week: '8 Week Pre-filled (16 injections)',
+    prefilled: 'Pre-filled',
     vial_5ml: '5ml Vial',
     vial_10ml: '10ml Vial',
     vial: 'Vial',
+    // Legacy values — still display cleanly
+    prefilled_1week: '1 Week Pre-filled',
+    prefilled_2week: '2 Week Pre-filled',
+    prefilled_3week: '3 Week Pre-filled',
+    prefilled_4week: '4 Week Pre-filled',
+    prefilled_8week: '8 Week Pre-filled',
   };
   return labels[st] || st;
 }

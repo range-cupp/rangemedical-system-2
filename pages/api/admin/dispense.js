@@ -45,11 +45,11 @@ function getRefillIntervalDays(protocol) {
     if (supply === 'oral_30day' || supply.includes('oral')) return 30;
     if (supply === 'in_clinic') return 7;
 
-    // Prefilled — supply_type defines pickup interval
-    if (supply.startsWith('prefilled_')) {
+    // Prefilled — calculate from quantity + frequency (or legacy fixed values)
+    if (supply === 'prefilled' || supply.startsWith('prefilled_')) {
       const prefillDays = { prefilled_1week: 7, prefilled_2week: 14, prefilled_4week: 28 };
-      if (supply === 'prefilled_1') return 7;
-      return prefillDays[supply] || 28;
+      if (prefillDays[supply]) return prefillDays[supply];
+      return 28; // default 4 weeks for prefilled
     }
 
     // Vials — calculate from dose + injection frequency

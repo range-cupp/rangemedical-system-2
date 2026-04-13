@@ -533,10 +533,9 @@
         <label>Supply Type</label>
         <select id="refillSupplyType">
           <option value="in_clinic">In-Clinic Injections (no supply tracking)</option>
-          <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
-          <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
-          <option value="vial_5ml">Vial 5ml (5-8 weeks based on dose)</option>
-          <option value="vial_10ml">Vial 10ml (10-16 weeks based on dose)</option>
+          <option value="prefilled">Pre-filled</option>
+          <option value="vial_5ml">Vial 5ml</option>
+          <option value="vial_10ml">Vial 10ml</option>
         </select>
       </div>
       <div class="form-group" id="refillDoseGroup">
@@ -586,10 +585,9 @@
         <label>Supply Type</label>
         <select id="editSupplyType">
           <option value="in_clinic">In-Clinic Injections (no supply tracking)</option>
-          <option value="prefilled_2week">Pre-filled 2 Week (4 injections)</option>
-          <option value="prefilled_4week">Pre-filled 4 Week (8 injections)</option>
-          <option value="vial_5ml">Vial 5ml (5-8 weeks based on dose)</option>
-          <option value="vial_10ml">Vial 10ml (10-16 weeks based on dose)</option>
+          <option value="prefilled">Pre-filled</option>
+          <option value="vial_5ml">Vial 5ml</option>
+          <option value="vial_10ml">Vial 10ml</option>
         </select>
       </div>
       <div class="form-group">
@@ -941,7 +939,7 @@
     }
 
     function getSupplyStatus(p) {
-      const supplyType = p.supply_type || 'prefilled_4week';
+      const supplyType = p.supply_type || 'prefilled';
       const daysSinceRefill = p.days_since_last_refill || p.days_since_start || 0;
       
       // In-clinic patients don't need supply tracking
@@ -1026,21 +1024,10 @@
             return { status: 'good', text: `~${weeksLeft} weeks left`, daysRemaining: daysRemaining, vialWeeks: vialWeeks };
           }
         }
-      } else if (supplyType === 'prefilled_2week') {
-        // Prefilled 2 week: 4 injections = 2 weeks (2x/week)
-        const prefillDuration = 14; // 2 weeks
-        const daysRemaining = prefillDuration - daysSinceRefill;
-        
-        if (daysRemaining <= 0) {
-          return { status: 'critical', text: 'Refill overdue', daysRemaining: daysRemaining };
-        } else if (daysRemaining <= 3) {
-          return { status: 'warning', text: `${daysRemaining} days left`, daysRemaining: daysRemaining };
-        } else {
-          return { status: 'good', text: `${daysRemaining} days left`, daysRemaining: daysRemaining };
-        }
       } else {
-        // Prefilled 4 week (default): 8 injections = 4 weeks (2x/week)
-        const prefillDuration = 28; // 4 weeks
+        // Prefilled: use next_expected_date if available, otherwise default 28 days
+        const prefillDuration = p.next_expected_date ?
+          Math.round((new Date(p.next_expected_date) - new Date(p.last_refill_date)) / (1000*60*60*24)) : 28;
         const daysRemaining = prefillDuration - daysSinceRefill;
         
         if (daysRemaining <= 0) {
@@ -1170,10 +1157,8 @@
         supplyBadgeText = '10ml Vial';
       } else if (supplyTypeLower === 'vial_5ml') {
         supplyBadgeText = '5ml Vial';
-      } else if (supplyTypeLower === 'prefilled_2week') {
-        supplyBadgeText = '2 Week';
-      } else if (supplyTypeLower === 'prefilled_4week') {
-        supplyBadgeText = '4 Week';
+      } else {
+        supplyBadgeText = 'Pre-filled';
       }
       
       const isVial = supplyTypeLower.includes('vial');
@@ -1272,7 +1257,7 @@
             <button class="action-btn" onclick="openInGHL('${p.ghl_contact_id}')">
               ↗ GHL
             </button>
-            <button class="action-btn primary" onclick="openRefillModal('${p.id}', '${p.patient_name}', '${p.supply_type || 'prefilled_4week'}')">
+            <button class="action-btn primary" onclick="openRefillModal('${p.id}', '${p.patient_name}', '${p.supply_type || 'prefilled'}')">
               🔄 Refill
             </button>
             <button class="action-btn danger" onclick="deleteProtocol('${p.id}', '${p.patient_name}')">
@@ -1296,7 +1281,7 @@
       selectedProtocol = allProtocols.find(p => p.id === protocolId);
       document.getElementById('refillPatientName').textContent = patientName;
       document.getElementById('refillDate').value = new Date().toISOString().split('T')[0];
-      document.getElementById('refillSupplyType').value = supplyType || 'prefilled_4week';
+      document.getElementById('refillSupplyType').value = supplyType || 'prefilled';
       document.getElementById('refillDose').value = selectedProtocol?.current_dose || '0.3ml/60mg';
       document.getElementById('refillNotes').value = '';
       document.getElementById('refillModal').classList.add('active');
@@ -1357,7 +1342,7 @@
       selectedProtocol = protocol;
       document.getElementById('editPatientName').textContent = protocol.patient_name;
       document.getElementById('editHrtType').value = (protocol.hrt_type || 'male').toLowerCase();
-      document.getElementById('editSupplyType').value = protocol.supply_type || 'prefilled_4week';
+      document.getElementById('editSupplyType').value = protocol.supply_type || 'prefilled';
       document.getElementById('editStartingDose').value = protocol.starting_dose || protocol.current_dose || '0.3ml/60mg';
       document.getElementById('editDose').value = protocol.current_dose || '0.3ml/60mg';
       document.getElementById('editStartDate').value = protocol.start_date || '';

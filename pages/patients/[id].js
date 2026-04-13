@@ -1460,6 +1460,7 @@ export default function PatientProfile() {
             patient_id: id,
             patient_name: patient?.name || patient?.first_name || 'Patient',
             protocol_id: doseChangeProtocol.id,
+            medication: doseChangeProtocol.medication || doseChangeProtocol.program_name || doseChangeProtocol.program_type || '',
             current_dose: doseChangeProtocol.selected_dose,
             proposed_dose: doseChangeForm.dose,
             current_injections_per_week: doseChangeProtocol.injections_per_week || 1,

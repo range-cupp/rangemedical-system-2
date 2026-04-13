@@ -123,6 +123,9 @@ export default function DoseApprovalPage() {
               {/* Patient & Dose Info */}
               <div style={styles.infoSection}>
                 <div style={styles.patientName}>{request.patient_name}</div>
+                {request.medication && (
+                  <div style={styles.medication}>{request.medication}</div>
+                )}
                 <div style={styles.requestedBy}>
                   Requested by {request.requested_by_name} &middot; {formatDate(request.requested_at)}
                 </div>
@@ -350,6 +353,12 @@ const styles = {
     fontSize: 22,
     fontWeight: 700,
     color: '#111827',
+  },
+  medication: {
+    fontSize: 15,
+    fontWeight: 600,
+    color: '#4b5563',
+    marginTop: 4,
   },
   requestedBy: {
     fontSize: 13,

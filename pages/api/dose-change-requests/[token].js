@@ -63,6 +63,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       id: request.id,
       patient_name: request.patient_name,
+      medication: request.medication,
       current_dose: request.current_dose,
       proposed_dose: request.proposed_dose,
       current_injections_per_week: request.current_injections_per_week,

@@ -256,9 +256,18 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
 
   // Edit draft state
   const [editingNoteId, setEditingNoteId] = useState(null);
-  const [editNoteInput, setEditNoteInput] = useState('');
   const [editNoteDate, setEditNoteDate] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  const [editNoteEmpty, setEditNoteEmpty] = useState(true);
+  const editNoteRef = useRef(null);
+
+  // Rich text formatting for edit mode via execCommand
+  const execEditFormat = (command, value = null) => {
+    if (!editNoteRef.current) return;
+    editNoteRef.current.focus();
+    document.execCommand(command, false, value);
+  };
+  const [showEditHighlightPicker, setShowEditHighlightPicker] = useState(false);
 
   // Addendum state
   const [addendumParentId, setAddendumParentId] = useState(null);
@@ -603,8 +612,14 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
 
   // AI format
   const handleFormat = async () => {
-    const rawMarkdown = getNoteMarkdown();
-    if (!rawMarkdown.trim()) return;
+    // Check if editor has rich formatting that AI will strip
+    const editorHtml = noteRef.current?.innerHTML || '';
+    if (/<(u|s|mark)\b|style\s*=\s*["'].*?(background-color|text-decoration)/i.test(editorHtml)) {
+      if (!confirm('Formatting (underline, highlight, strikethrough) will be reset by AI formatting. You can re-apply formatting after. Continue?')) return;
+    }
+    // Send plain text to AI (not HTML) so formatting instructions are clean
+    const rawText = (noteRef.current?.innerText || '').trim();
+    if (!rawText) return;
     setNoteFormatting(true);
     try {
       // Include vitals so AI can place them in OBJECTIVE section of SOAP notes
@@ -623,7 +638,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          raw_text: rawMarkdown,
+          raw_text: rawText,
           note_type: noteType,
           vitals: Object.keys(vitalsPayload).length > 0 ? vitalsPayload : undefined
         }),
@@ -711,10 +726,11 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
 
   // Edit draft note
   const handleEditSave = async () => {
-    if (!editNoteInput.trim() || !editingNoteId) return;
+    const editBody = htmlToMd(editNoteRef.current?.innerHTML || '');
+    if (!editBody.trim() || !editingNoteId) return;
     setEditSaving(true);
     try {
-      const payload = { body: editNoteInput, requesting_user: currentUser };
+      const payload = { body: editBody, requesting_user: currentUser };
       if (editNoteDate) {
         payload.note_date = new Date(editNoteDate + 'T12:00:00').toISOString();
       }
@@ -726,9 +742,8 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
       const data = await res.json();
       if (data.success) {
         const updatedDate = editNoteDate ? new Date(editNoteDate + 'T12:00:00').toISOString() : undefined;
-        setEncounterNotes(prev => prev.map(n => n.id === editingNoteId ? { ...n, body: editNoteInput, ...(updatedDate ? { note_date: updatedDate } : {}) } : n));
+        setEncounterNotes(prev => prev.map(n => n.id === editingNoteId ? { ...n, body: editBody, ...(updatedDate ? { note_date: updatedDate } : {}) } : n));
         setEditingNoteId(null);
-        setEditNoteInput('');
         setEditNoteDate('');
         if (onRefresh) onRefresh();
       } else {
@@ -1439,17 +1454,53 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                                 style={{ padding: '4px 8px', borderRadius: 0, border: '1px solid #d1d5db', fontSize: 13 }}
                               />
                             </div>
-                            <textarea
-                              value={editNoteInput}
-                              onChange={e => setEditNoteInput(e.target.value)}
-                              className="enc-textarea"
-                              style={{ minHeight: 120 }}
+                            {/* Mini formatting toolbar for edit mode */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginBottom: 4, padding: '4px 6px', background: '#f9fafb', border: '1px solid #e5e7eb', alignItems: 'center' }}>
+                              <button type="button" onClick={() => execEditFormat('bold')} title="Bold" style={{ padding: '3px 7px', fontSize: 12, fontWeight: 800, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', fontFamily: 'serif', lineHeight: 1 }}>B</button>
+                              <button type="button" onClick={() => execEditFormat('italic')} title="Italic" style={{ padding: '3px 8px', fontSize: 12, fontWeight: 400, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', fontFamily: 'serif', fontStyle: 'italic', lineHeight: 1 }}>I</button>
+                              <button type="button" onClick={() => execEditFormat('underline')} title="Underline" style={{ padding: '3px 7px', fontSize: 12, fontWeight: 400, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', fontFamily: 'serif', textDecoration: 'underline', lineHeight: 1 }}>U</button>
+                              <button type="button" onClick={() => execEditFormat('strikeThrough')} title="Strikethrough" style={{ padding: '3px 7px', fontSize: 12, fontWeight: 400, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', fontFamily: 'serif', textDecoration: 'line-through', lineHeight: 1 }}>S</button>
+                              <div style={{ width: 1, height: 18, background: '#d1d5db', margin: '0 3px' }} />
+                              <div style={{ position: 'relative' }}>
+                                <button type="button" onClick={() => setShowEditHighlightPicker(!showEditHighlightPicker)} title="Highlight" style={{ padding: '3px 6px', fontSize: 11, fontWeight: 600, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
+                                  <span style={{ background: '#fef08a', padding: '0 2px' }}>H</span><span style={{ fontSize: 8 }}>▼</span>
+                                </button>
+                                {showEditHighlightPicker && (
+                                  <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 1000, background: '#fff', border: '1px solid #d1d5db', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', padding: 4, display: 'flex', gap: 3, marginTop: 2 }}>
+                                    {highlightColors.map(hc => (
+                                      <button key={hc.color} type="button" onClick={() => { execEditFormat('hiliteColor', hc.color); setShowEditHighlightPicker(false); }} title={hc.label} style={{ width: 20, height: 20, border: '1px solid #d1d5db', borderRadius: 0, background: hc.color === 'transparent' ? '#fff' : hc.color, cursor: 'pointer', fontSize: 9, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        {hc.color === 'transparent' ? '✕' : ''}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <div style={{ width: 1, height: 18, background: '#d1d5db', margin: '0 3px' }} />
+                              <button type="button" onClick={() => execEditFormat('removeFormat')} title="Clear Formatting" style={{ padding: '3px 6px', fontSize: 11, fontWeight: 400, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#9ca3af', cursor: 'pointer', lineHeight: 1 }}>T̸</button>
+                            </div>
+                            {/* Rich text editor for editing notes */}
+                            <div
+                              ref={editNoteRef}
+                              contentEditable
+                              suppressContentEditableWarning
+                              onInput={() => {
+                                const text = editNoteRef.current?.innerText || '';
+                                setEditNoteEmpty(!text.trim());
+                              }}
+                              onFocus={() => setShowEditHighlightPicker(false)}
+                              style={{
+                                width: '100%', minHeight: 120, resize: 'vertical', fontFamily: 'inherit', fontSize: 14,
+                                lineHeight: 1.7, padding: '12px 14px', borderRadius: 0,
+                                border: '1.5px solid #e5e7eb', background: '#fff', color: '#111',
+                                overflowY: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                                boxSizing: 'border-box',
+                              }}
                             />
                             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                              <button onClick={handleEditSave} disabled={!editNoteInput.trim() || editSaving} className="enc-btn enc-btn-primary enc-btn-sm">
+                              <button onClick={handleEditSave} disabled={editNoteEmpty || editSaving} className="enc-btn enc-btn-primary enc-btn-sm">
                                 {editSaving ? 'Saving...' : 'Save Changes'}
                               </button>
-                              <button onClick={() => { setEditingNoteId(null); setEditNoteInput(''); setEditNoteDate(''); }} className="enc-btn enc-btn-secondary enc-btn-sm">
+                              <button onClick={() => { setEditingNoteId(null); setEditNoteDate(''); setShowEditHighlightPicker(false); }} className="enc-btn enc-btn-secondary enc-btn-sm">
                                 Cancel
                               </button>
                             </div>
@@ -1463,7 +1514,18 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                           <div className="enc-note-actions">
                             {note.status !== 'signed' && isNoteAuthor(note.created_by, currentUser) && (
                               <>
-                                <button onClick={() => { setEditingNoteId(note.id); setEditNoteInput(note.body); setEditNoteDate((note.note_date || note.created_at || '').slice(0, 10)); }} className="enc-btn enc-btn-secondary enc-btn-sm">
+                                <button onClick={() => {
+                                  setEditingNoteId(note.id);
+                                  setEditNoteDate((note.note_date || note.created_at || '').slice(0, 10));
+                                  setEditNoteEmpty(!(note.body || '').trim());
+                                  setShowEditHighlightPicker(false);
+                                  // Load note body into contentEditable after it renders
+                                  setTimeout(() => {
+                                    if (editNoteRef.current) {
+                                      editNoteRef.current.innerHTML = mdToHtml(note.body || '');
+                                    }
+                                  }, 50);
+                                }} className="enc-btn enc-btn-secondary enc-btn-sm">
                                   ✏️ Edit
                                 </button>
                                 <button onClick={() => handleSignNote(note.id)} className="enc-btn enc-btn-sign enc-btn-sm">

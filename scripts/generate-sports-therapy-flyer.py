@@ -149,7 +149,6 @@ story.append(service_table([
     ("Hormone Optimization",     "Testosterone, thyroid, and metabolic balancing"),
     ("Weight Loss",              "Medical weight loss programs with GLP-1 and more"),
     ("IV Therapy & NAD+",        "Performance drips, recovery, and cellular energy"),
-    ("Hyperbaric Oxygen",        "Pressurized oxygen to accelerate healing and recovery"),
 ]))
 story.append(Spacer(1, 8))
 

@@ -189,7 +189,7 @@ export default async function handler(req, res) {
     // Calculate total for subject line — always use amount_paid
     const totalCents = isMultiItem
       ? allPurchases.reduce((sum, p) => sum + Math.round((parseFloat(p.amount_paid) || parseFloat(p.amount) || 0) * 100), 0)
-      : amountPaidCents;
+      : receiptParams.amountPaidCents;
     const isComp = totalCents === 0;
     const totalLabel = isComp ? 'Complimentary' : `$${(totalCents / 100).toFixed(2)}`;
     const subjectLine = isComp

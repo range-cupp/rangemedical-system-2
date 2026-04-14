@@ -4646,11 +4646,15 @@ export default function PatientProfile() {
             rows.push({ protocol: proto, latest, lastPickup, lastInjection });
           });
           // Also include manually-added active medications not already covered by a protocol
-          const protoMedNames = new Set(rows.map(r => (r.protocol.medication || '').toLowerCase()));
+          const protoMedNames = new Set(rows.map(r => ((r.protocol || {}).medication || '').toLowerCase()));
           (medications || []).filter(m => m.is_active).forEach(med => {
             const name = (med.medication_name || med.trade_name || med.generic_name || '').toLowerCase();
             if (name && !protoMedNames.has(name)) {
-              rows.push({ manualMed: med });
+              // Find last pickup from service logs matching this medication name
+              const medPickup = (serviceLogs || [])
+                .filter(l => l.entry_type === 'pickup' && (l.medication || '').toLowerCase().includes(name))
+                .sort((a, b) => b.entry_date.localeCompare(a.entry_date))[0] || null;
+              rows.push({ manualMed: med, lastPickup: medPickup });
             }
           });
           if (rows.length === 0) return null;
@@ -4669,6 +4673,12 @@ export default function PatientProfile() {
                 {rows.map(({ protocol, latest, lastPickup, lastInjection, manualMed }) => {
                   if (manualMed) {
                     const medName = manualMed.medication_name || manualMed.trade_name || manualMed.generic_name;
+                    const pickupFmt = (log) => {
+                      if (!log) return null;
+                      const days = Math.floor((new Date() - new Date(log.entry_date + 'T00:00:00')) / (1000 * 60 * 60 * 24));
+                      const dLabel = days === 0 ? 'Today' : days === 1 ? 'Yesterday' : `${days}d ago`;
+                      return `${formatShortDate(log.entry_date)} (${dLabel})`;
+                    };
                     return (
                       <div key={`manual-${manualMed.id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#1f2937', flexWrap: 'wrap' }}>
                         <span style={{
@@ -4684,6 +4694,14 @@ export default function PatientProfile() {
                         <span style={{ fontWeight: 600 }}>{medName}</span>
                         {manualMed.strength && <span style={{ color: '#6b7280' }}>{manualMed.strength}{manualMed.form ? ` · ${manualMed.form}` : ''}</span>}
                         {manualMed.sig && <span style={{ color: '#6b7280', fontStyle: 'italic' }}>Sig: {manualMed.sig}</span>}
+                        {lastPickup && (
+                          <span style={{ color: '#1f2937' }}>
+                            <span style={{ color: '#6b7280' }}>Last pickup: </span>
+                            {pickupFmt(lastPickup)}
+                            {lastPickup.quantity && <span style={{ color: '#6b7280', marginLeft: 6 }}>· {lastPickup.quantity} dispensed</span>}
+                            {lastPickup.dosage && <span style={{ color: '#6b7280', marginLeft: 6 }}>· {lastPickup.dosage}</span>}
+                          </span>
+                        )}
                       </div>
                     );
                   }
@@ -4760,6 +4778,7 @@ export default function PatientProfile() {
                         <span style={{ color: '#1f2937' }}>
                           <span style={{ color: '#6b7280' }}>Last pickup: </span>
                           {fmt(lastPickup)}
+                          {lastPickup.quantity && <span style={{ color: '#6b7280', marginLeft: 6 }}>· {lastPickup.quantity} dispensed</span>}
                           {lastPickup.dosage && <span style={{ color: '#6b7280', marginLeft: 6 }}>· {lastPickup.dosage}</span>}
                         </span>
                       )}

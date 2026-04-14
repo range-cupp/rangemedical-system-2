@@ -113,6 +113,9 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   // Skip patient notification (receipt email) state
   const [skipNotification, setSkipNotification] = useState(false);
 
+  // Price override — edit charge amount on payment step
+  const [editingCharge, setEditingCharge] = useState(false);
+
   // Invoice state
   const [showInvoiceSend, setShowInvoiceSend] = useState(false);
   const [invoiceSending, setInvoiceSending] = useState(false);
@@ -502,6 +505,53 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       discount_amount: parseFloat(discountValue),
       original_amount: getBaseAmount(),
     };
+  }
+
+  // Handle price override from the payment step — sets discount on items/cart to achieve target amount
+  function handleChargeOverride(newAmountCents) {
+    const base = getBaseAmount();
+    if (newAmountCents >= base || newAmountCents < 0) {
+      // No discount — clear any existing
+      if (activeCategory === 'custom') {
+        setDiscountType('none');
+        setDiscountValue('');
+      } else {
+        setCartItems(prev => prev.map(item => ({
+          ...item, itemDiscountType: 'none', itemDiscountValue: '',
+        })));
+      }
+      return;
+    }
+    const discountCentsTotal = base - newAmountCents;
+    if (activeCategory === 'custom') {
+      setDiscountType('dollar');
+      setDiscountValue((discountCentsTotal / 100).toString());
+    } else if (cartItems.length === 1) {
+      setCartItems(prev => prev.map(item => ({
+        ...item,
+        itemDiscountType: 'dollar',
+        itemDiscountValue: (discountCentsTotal / 100).toFixed(2),
+      })));
+    } else {
+      // Multi-item — distribute proportionally
+      setCartItems(prev => {
+        const totalBase = prev.reduce((sum, i) => sum + (i.price || 0) * (i.quantity || 1), 0);
+        let remaining = discountCentsTotal;
+        return prev.map((item, idx) => {
+          const itemBase = (item.price || 0) * (item.quantity || 1);
+          const itemDiscount = idx === prev.length - 1
+            ? remaining // last item gets remainder to avoid rounding drift
+            : Math.round(discountCentsTotal * (itemBase / totalBase));
+          remaining -= itemDiscount;
+          return {
+            ...item,
+            itemDiscountType: 'dollar',
+            itemDiscountValue: (itemDiscount / 100).toFixed(2),
+          };
+        });
+      });
+    }
+    setEditingCharge(false);
   }
 
   async function handleSendInvoice(via) {
@@ -1960,57 +2010,73 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         {/* Step 2: Payment Method */}
         {step === 'payment' && (
           <div style={modalStyles.body}>
+            {/* Prominent charge amount banner — editable */}
             <div style={{
-              ...modalStyles.chargeSummary,
-              ...(cartItems.length > 1 ? { flexDirection: 'column', gap: '4px' } : {}),
+              background: '#000', color: '#fff', padding: '16px 20px', marginBottom: '16px',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             }}>
-              {cartItems.length > 0 && activeCategory !== 'custom' ? (
-                <>
-                  {cartItems.map(item => {
-                    const qty = item.quantity || 1;
-                    const lineBase = (item.price || 0) * qty;
-                    const lineDisc = getItemDiscountCents(item);
-                    const lineTotal = lineBase - lineDisc;
-                    return (
-                      <div key={item.id} style={modalStyles.summaryItemRow}>
-                        <span>{qty > 1 ? `${item.name} x${qty}` : item.name}</span>
-                        <span>
-                          {lineDisc > 0 && (
-                            <span style={{ textDecoration: 'line-through', color: '#999', marginRight: '6px', fontSize: '12px' }}>
-                              {formatPrice(lineBase)}
-                            </span>
-                          )}
-                          {formatPrice(lineTotal)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  <div style={modalStyles.summaryTotalRow}>
-                    <span>Total</span>
-                    <div>
-                      {discountCents > 0 && (
-                        <span style={{ textDecoration: 'line-through', color: '#999', marginRight: '8px', fontSize: '13px' }}>
-                          {formatPrice(baseAmount)}
-                        </span>
-                      )}
-                      <strong>{formatPrice(finalAmount)}</strong>
-                    </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '11px', color: '#a3a3a3', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Charging {patient?.name}
+                </div>
+                <div style={{ fontSize: '13px', color: '#d4d4d4', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {cartItems.length > 0 && activeCategory !== 'custom'
+                    ? cartItems.map(i => (i.quantity || 1) > 1 ? `${i.name} x${i.quantity}` : i.name).join(', ')
+                    : getChargeDescription()}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '16px' }}>
+                {editingCharge ? (
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <span style={{ fontSize: '24px', fontWeight: 700 }}>$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      autoFocus
+                      defaultValue={((finalAmount - getShippingCents()) / 100).toFixed(2)}
+                      onBlur={(e) => {
+                        const val = Math.round(parseFloat(e.target.value || 0) * 100);
+                        if (val >= 0) handleChargeOverride(val);
+                        setEditingCharge(false);
+                      }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setEditingCharge(false); }}
+                      style={{
+                        background: 'transparent', border: 'none', borderBottom: '2px solid #fff',
+                        color: '#fff', fontSize: '24px', fontWeight: 700, width: '110px',
+                        textAlign: 'right', outline: 'none',
+                      }}
+                    />
                   </div>
-                </>
-              ) : (
-                <>
-                  <span>{getChargeDescription()}</span>
-                  <div>
-                    {hasDiscount && (
-                      <span style={{ textDecoration: 'line-through', color: '#999', marginRight: '8px', fontSize: '13px' }}>
-                        {formatPrice(baseAmount)}
-                      </span>
-                    )}
-                    <strong>{formatPrice(finalAmount)}{isRecurring() ? '/mo' : ''}</strong>
-                  </div>
-                </>
-              )}
+                ) : (
+                  <>
+                    <span style={{ fontSize: '24px', fontWeight: 700 }}>{formatPrice(finalAmount)}</span>
+                    <button
+                      onClick={() => setEditingCharge(true)}
+                      style={{
+                        background: '#333', border: 'none', color: '#fff', padding: '4px 10px',
+                        fontSize: '12px', cursor: 'pointer',
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
+
+            {/* Discount breakdown — shows when discount is active */}
+            {discountCents > 0 && (
+              <div style={{
+                fontSize: '13px', color: '#16a34a', padding: '8px 16px', background: '#f0fdf4',
+                border: '1px solid #bbf7d0', marginBottom: '16px', display: 'flex',
+                justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <span>Original: {formatPrice(baseAmount)}</span>
+                <span>Discount: −{formatPrice(discountCents)}</span>
+                <span style={{ fontWeight: 600 }}>Charging: {formatPrice(finalAmount)}</span>
+              </div>
+            )}
 
             {/* Shipping */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 16px' }}>
@@ -2394,7 +2460,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
             </label>
 
             <div style={modalStyles.footer}>
-              <button style={modalStyles.secondaryBtn} onClick={() => setStep('select')}>
+              <button style={modalStyles.secondaryBtn} onClick={() => { setEditingCharge(false); setStep('select'); }}>
                 Back
               </button>
               <button

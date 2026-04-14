@@ -105,6 +105,8 @@ export default function PaymentsPage() {
   const [verifyResult, setVerifyResult] = useState(null);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyApplying, setVerifyApplying] = useState(false);
+  const [flaggedEdits, setFlaggedEdits] = useState({});  // { piId: { purchaseId: editedAmount } }
+  const [savingFlagged, setSavingFlagged] = useState(null);  // piId being saved
 
   // POS state
   const [showChargeModal, setShowChargeModal] = useState(false);
@@ -2059,31 +2061,120 @@ export default function PaymentsPage() {
               {verifyResult.flagged && verifyResult.flagged.length > 0 && (
                 <div style={{ marginBottom: 24 }}>
                   <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 8px', color: '#dc2626' }}>
-                    Multi-Item Mismatches (Manual Review)
+                    Multi-Item Mismatches — Adjust Amounts ({verifyResult.flagged.length})
                   </h3>
                   <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 10px' }}>
-                    These charges cover multiple items — can&apos;t auto-correct. The sum of line items doesn&apos;t match what Stripe charged.
+                    Edit the amounts so they add up to what Stripe charged, then hit Save.
                   </p>
-                  {verifyResult.flagged.map((f, i) => (
-                    <div key={i} style={{ border: '1px solid #fecaca', background: '#fef2f2', padding: 14, marginBottom: 10 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
-                        <span><strong>Stripe charged:</strong> ${f.stripe_amount.toFixed(2)}</span>
-                        <span><strong>DB total:</strong> ${f.db_sum.toFixed(2)}</span>
-                        <span style={{ color: '#dc2626', fontWeight: 600 }}>Diff: ${f.difference}</span>
+                  {verifyResult.flagged.map((f, i) => {
+                    const piId = f.payment_intent;
+                    const edits = flaggedEdits[piId] || {};
+                    const editedSum = f.items.reduce((s, item) => {
+                      const val = edits[item.purchase_id] !== undefined ? parseFloat(edits[item.purchase_id]) || 0 : item.amount_paid;
+                      return s + val;
+                    }, 0);
+                    const editedDiff = editedSum - f.stripe_amount;
+                    const isBalanced = Math.abs(editedDiff) < 0.01;
+                    const hasEdits = Object.keys(edits).length > 0;
+                    const isSaved = savingFlagged === piId;
+
+                    return (
+                      <div key={i} style={{ border: `1px solid ${isBalanced && hasEdits ? '#bbf7d0' : '#fecaca'}`, background: isBalanced && hasEdits ? '#f0fdf4' : '#fef2f2', padding: 14, marginBottom: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: 13, flexWrap: 'wrap', gap: 8 }}>
+                          <span><strong>Stripe charged:</strong> ${f.stripe_amount.toFixed(2)}</span>
+                          <span><strong>Edited total:</strong> ${editedSum.toFixed(2)}</span>
+                          <span style={{ color: isBalanced ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
+                            {isBalanced ? 'Balanced' : `Off by $${editedDiff.toFixed(2)}`}
+                          </span>
+                          {isBalanced && hasEdits && (
+                            <button
+                              disabled={isSaved}
+                              onClick={async () => {
+                                setSavingFlagged(piId);
+                                try {
+                                  const adjustments = f.items
+                                    .filter(item => edits[item.purchase_id] !== undefined)
+                                    .map(item => ({ purchase_id: item.purchase_id, amount_paid: parseFloat(edits[item.purchase_id]) }));
+                                  const res = await fetch('/api/admin/stripe-verify-amounts', {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ adjustments }),
+                                  });
+                                  const data = await res.json();
+                                  if (!res.ok) throw new Error(data.error);
+                                  setActionMsg(`Saved ${data.updated} adjustment(s)`);
+                                  setTimeout(() => setActionMsg(''), 3000);
+                                  // Update the flagged item in-place to show new amounts
+                                  setVerifyResult(prev => {
+                                    const updated = { ...prev };
+                                    updated.flagged = updated.flagged.map(fl => {
+                                      if (fl.payment_intent !== piId) return fl;
+                                      return {
+                                        ...fl,
+                                        db_sum: editedSum,
+                                        difference: (editedSum - fl.stripe_amount).toFixed(2),
+                                        items: fl.items.map(item => ({
+                                          ...item,
+                                          amount_paid: edits[item.purchase_id] !== undefined ? parseFloat(edits[item.purchase_id]) : item.amount_paid,
+                                        })),
+                                      };
+                                    });
+                                    // Move balanced ones out of flagged
+                                    updated.flagged = updated.flagged.filter(fl => Math.abs(parseFloat(fl.difference)) > 0.01);
+                                    updated.results = { ...updated.results, flagged: updated.flagged.length, verified: (updated.results.verified || 0) + 1 };
+                                    return updated;
+                                  });
+                                  setFlaggedEdits(prev => { const n = { ...prev }; delete n[piId]; return n; });
+                                } catch (err) {
+                                  alert('Error saving: ' + err.message);
+                                }
+                                setSavingFlagged(null);
+                              }}
+                              style={{ padding: '5px 14px', background: '#16a34a', color: '#fff', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                            >
+                              {isSaved ? 'Saving...' : 'Save'}
+                            </button>
+                          )}
+                        </div>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                          <tbody>
+                            {f.items.map((item, j) => {
+                              const editVal = edits[item.purchase_id];
+                              return (
+                                <tr key={j} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                  <td style={{ padding: '6px 8px', width: '25%' }}>{item.patient_name}</td>
+                                  <td style={{ padding: '6px 8px' }}>{item.item_name}</td>
+                                  <td style={{ padding: '6px 8px', textAlign: 'right', width: 120 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                                      {editVal !== undefined && (
+                                        <span style={{ fontSize: 11, color: '#94a3b8', textDecoration: 'line-through' }}>${item.amount_paid.toFixed(2)}</span>
+                                      )}
+                                      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                                        <span style={{ position: 'absolute', left: 8, color: '#64748b', fontSize: 13, pointerEvents: 'none' }}>$</span>
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          min="0"
+                                          value={editVal !== undefined ? editVal : item.amount_paid.toFixed(2)}
+                                          onChange={e => {
+                                            setFlaggedEdits(prev => ({
+                                              ...prev,
+                                              [piId]: { ...(prev[piId] || {}), [item.purchase_id]: e.target.value },
+                                            }));
+                                          }}
+                                          style={{ width: 90, padding: '4px 8px 4px 20px', border: '1px solid #d1d5db', fontSize: 13, textAlign: 'right', fontFamily: 'inherit', background: editVal !== undefined ? '#fefce8' : '#fff' }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                        <tbody>
-                          {f.items.map((item, j) => (
-                            <tr key={j} style={{ borderBottom: '1px solid #fecaca' }}>
-                              <td style={{ padding: '4px 8px' }}>{item.patient_name}</td>
-                              <td style={{ padding: '4px 8px' }}>{item.item_name}</td>
-                              <td style={{ padding: '4px 8px', textAlign: 'right' }}>${item.amount_paid.toFixed(2)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 

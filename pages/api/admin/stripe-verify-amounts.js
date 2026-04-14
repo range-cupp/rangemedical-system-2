@@ -4,8 +4,9 @@
 // For single-item PaymentIntents: auto-corrects amount_paid to match Stripe.
 // For multi-item PaymentIntents: flags mismatches for manual review.
 //
-// GET  /api/admin/stripe-verify-amounts?month=2026-04           → dry run (preview)
-// POST /api/admin/stripe-verify-amounts  { month: "2026-04" }   → apply corrections
+// GET   /api/admin/stripe-verify-amounts?month=2026-04           → dry run (preview)
+// POST  /api/admin/stripe-verify-amounts  { month: "2026-04" }   → apply corrections
+// PATCH /api/admin/stripe-verify-amounts  { adjustments: [{purchase_id, amount_paid}] } → manual amount fix
 
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
@@ -17,6 +18,39 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // ── PATCH: Manual amount adjustments ────────────────────────────────
+  if (req.method === 'PATCH') {
+    const { adjustments } = req.body;
+    if (!adjustments || !Array.isArray(adjustments) || adjustments.length === 0) {
+      return res.status(400).json({ error: 'Provide adjustments: [{purchase_id, amount_paid}]' });
+    }
+
+    try {
+      const results = [];
+      for (const adj of adjustments) {
+        if (!adj.purchase_id || adj.amount_paid === undefined) continue;
+        const amountPaid = parseFloat(adj.amount_paid);
+        if (isNaN(amountPaid) || amountPaid < 0) continue;
+
+        const { error } = await supabase
+          .from('purchases')
+          .update({
+            amount_paid: amountPaid,
+            stripe_amount_cents: Math.round(amountPaid * 100),
+            stripe_verified_at: new Date().toISOString(),
+          })
+          .eq('id', adj.purchase_id);
+
+        results.push({ purchase_id: adj.purchase_id, amount_paid: amountPaid, error: error?.message || null });
+      }
+
+      return res.status(200).json({ updated: results.filter(r => !r.error).length, results });
+    } catch (err) {
+      console.error('Manual adjustment error:', err);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

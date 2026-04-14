@@ -8,6 +8,7 @@ import Head from 'next/head';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import AdminLayout from '../../components/AdminLayout';
+import { useAuth } from '../../components/AuthProvider';
 import { supabase } from '../../lib/supabase';
 import { formatPrice } from '../../lib/pos-pricing';
 import {
@@ -170,6 +171,7 @@ function CheckoutInner() {
   const router = useRouter();
   const stripe = useStripe();
   const elements = useElements();
+  const { employee, isAdmin: currentUserIsAdmin } = useAuth();
 
   // ── Steps: patient → browse → payment → processing → result ──
   const [step, setStep] = useState('patient');
@@ -196,6 +198,7 @@ function CheckoutInner() {
   const [cartOpen, setCartOpen] = useState(false);
   const [consentBlock, setConsentBlock] = useState('');
   const [consentSendStatus, setConsentSendStatus] = useState(''); // '' | 'sending' | 'sent' | 'error'
+  const [consentOverride, setConsentOverride] = useState(false); // admin override for missing consent
 
   // ── Cart-wide discount ──
   const [cartDiscountType, setCartDiscountType] = useState('none');
@@ -236,6 +239,8 @@ function CheckoutInner() {
 
   // ── Account credit ──
   const [creditBalanceCents, setCreditBalanceCents] = useState(0);
+  const [creditRemainderMethod, setCreditRemainderMethod] = useState(null); // 'cash' or 'card'
+  const [creditCardSelection, setCreditCardSelection] = useState(null);
 
   // ── Energy & Recovery Pack ──
   const [energyPacks, setEnergyPacks] = useState([]);
@@ -1051,9 +1056,8 @@ function CheckoutInner() {
       return;
     }
 
-    // Account credit
-    if (selectedCard === 'account_credit') {
-      if (creditBalanceCents < amount) return;
+    // Account credit — full coverage
+    if (selectedCard === 'account_credit' && creditBalanceCents >= amount) {
       setStep('processing');
       try {
         const purchaseData = await recordPurchasesWithReturn({ payment_method: 'account_credit' });
@@ -1072,11 +1076,117 @@ function CheckoutInner() {
         if (!applyRes.ok) throw new Error(applyData.error || 'Failed to apply credit');
         const remaining = applyData.new_balance_cents ?? 0;
         setResultStatus('success');
-        setResultMessage(`Paid ${formatPrice(amount)} with Account Credit\nRemaining: ${formatPrice(remaining)}`);
+        setResultMessage(`Paid ${formatPrice(amount)} with Account Credit\nRemaining credit: ${formatPrice(remaining)}`);
         setStep('result');
       } catch (error) {
         setResultStatus('error');
         setResultMessage(error.message || 'Failed to apply account credit');
+        setStep('result');
+      }
+      return;
+    }
+
+    // Account credit — partial (credit + cash or card for remainder)
+    if (selectedCard === 'account_credit' && creditBalanceCents < amount) {
+      if (!creditRemainderMethod) return;
+      const creditPortion = creditBalanceCents;
+      const remainderCents = amount - creditPortion;
+      try {
+        // If remainder is card, charge the card first
+        if (creditRemainderMethod === 'card') {
+          let savedPaymentMethodId = null;
+          if (creditCardSelection === 'new') {
+            const cardElement = elements.getElement(CardElement);
+            if (saveNewCard) {
+              savedPaymentMethodId = await saveCardFirst(cardElement);
+              if (!savedPaymentMethodId) return;
+            } else {
+              const piRes = await fetch('/api/stripe/payment-intent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ patient_id: patient.id, amount: remainderCents, description: `${description} (card portion)` }),
+              });
+              const piData = await piRes.json();
+              if (!piRes.ok) throw new Error(piData.error);
+              const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(piData.client_secret, {
+                payment_method: { card: cardElement },
+              });
+              if (stripeError) { setResultStatus('error'); setResultMessage(stripeError.message); setStep('result'); return; }
+              if (paymentIntent.status === 'succeeded') {
+                setStep('processing');
+                // Apply credit portion
+                const creditPurchase = await recordPurchasesWithReturn({ payment_method: 'account_credit', amount_override: creditPortion, description_suffix: '(credit portion)' });
+                const applyRes = await fetch('/api/credits/apply', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ patient_id: patient.id, amount_cents: creditPortion, purchase_id: creditPurchase?.purchase?.id || null, description: 'Applied at checkout (partial)', created_by: 'pos' }),
+                });
+                const applyData = await applyRes.json();
+                if (!applyRes.ok) throw new Error(applyData.error || 'Failed to apply credit');
+                // Record card portion
+                await recordPurchasesWithReturn({ payment_method: 'stripe', stripe_payment_intent_id: paymentIntent.id, amount_override: remainderCents, description_suffix: '(card portion)' });
+                const remaining = applyData.new_balance_cents ?? 0;
+                setResultStatus('success');
+                setResultMessage(`Split: ${formatPrice(creditPortion)} credit + ${formatPrice(remainderCents)} card = ${formatPrice(amount)}\nRemaining credit: ${formatPrice(remaining)}`);
+                setStep('result');
+              }
+              return;
+            }
+          }
+          // Saved card or newly-saved card
+          setStep('processing');
+          const paymentMethodId = savedPaymentMethodId || creditCardSelection;
+          const piRes = await fetch('/api/stripe/payment-intent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ patient_id: patient.id, amount: remainderCents, description: `${description} (card portion)`, payment_method_id: paymentMethodId }),
+          });
+          const piData = await piRes.json();
+          if (!piRes.ok) throw new Error(piData.error);
+          let stripePaymentIntentId = null;
+          if (piData.status === 'succeeded') {
+            stripePaymentIntentId = piData.payment_intent_id;
+          } else if (piData.status === 'requires_action' || piData.status === 'requires_confirmation') {
+            const { error: nextError, paymentIntent } = await stripe.handleNextAction({ clientSecret: piData.client_secret });
+            if (nextError) throw new Error(nextError.message);
+            if (paymentIntent.status === 'succeeded') stripePaymentIntentId = paymentIntent.id;
+            else throw new Error(`Payment not completed — status: ${paymentIntent.status}`);
+          }
+          // Apply credit portion
+          const creditPurchase = await recordPurchasesWithReturn({ payment_method: 'account_credit', amount_override: creditPortion, description_suffix: '(credit portion)' });
+          const applyRes = await fetch('/api/credits/apply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ patient_id: patient.id, amount_cents: creditPortion, purchase_id: creditPurchase?.purchase?.id || null, description: 'Applied at checkout (partial)', created_by: 'pos' }),
+          });
+          const applyData = await applyRes.json();
+          if (!applyRes.ok) throw new Error(applyData.error || 'Failed to apply credit');
+          // Record card portion
+          await recordPurchasesWithReturn({ payment_method: 'stripe', stripe_payment_intent_id: stripePaymentIntentId, amount_override: remainderCents, description_suffix: '(card portion)' });
+          const remaining = applyData.new_balance_cents ?? 0;
+          setResultStatus('success');
+          setResultMessage(`Split: ${formatPrice(creditPortion)} credit + ${formatPrice(remainderCents)} card = ${formatPrice(amount)}\nRemaining credit: ${formatPrice(remaining)}`);
+          setStep('result');
+        } else {
+          // Remainder is cash
+          setStep('processing');
+          const creditPurchase = await recordPurchasesWithReturn({ payment_method: 'account_credit', amount_override: creditPortion, description_suffix: '(credit portion)' });
+          const applyRes = await fetch('/api/credits/apply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ patient_id: patient.id, amount_cents: creditPortion, purchase_id: creditPurchase?.purchase?.id || null, description: 'Applied at checkout (partial)', created_by: 'pos' }),
+          });
+          const applyData = await applyRes.json();
+          if (!applyRes.ok) throw new Error(applyData.error || 'Failed to apply credit');
+          await recordPurchasesWithReturn({ payment_method: 'cash', amount_override: remainderCents, description_suffix: '(cash portion)' });
+          const remaining = applyData.new_balance_cents ?? 0;
+          setResultStatus('success');
+          setResultMessage(`Split: ${formatPrice(creditPortion)} credit + ${formatPrice(remainderCents)} cash = ${formatPrice(amount)}\nRemaining credit: ${formatPrice(remaining)}`);
+          setStep('result');
+        }
+      } catch (error) {
+        setResultStatus('error');
+        setResultMessage(error.message || 'Credit split payment failed');
         setStep('result');
       }
       return;
@@ -1275,6 +1385,7 @@ function CheckoutInner() {
     setGiftCardLookup(null);
     setCreditBalanceCents(0);
     setSkipNotification(false);
+    setConsentOverride(false);
     setResultStatus(null);
     setResultMessage('');
     setShowInvoiceSend(false);
@@ -1588,7 +1699,7 @@ function CheckoutInner() {
   async function proceedToCheckout() {
     setConsentBlock('');
     const hasConsent = await checkWeightLossConsent();
-    if (!hasConsent) {
+    if (!hasConsent && !consentOverride) {
       setConsentBlock('Weight loss consent form required before checkout. Please have the patient complete the weight loss consent form first.');
       return;
     }
@@ -2942,6 +3053,14 @@ function CheckoutInner() {
                           )}
                         </div>
                       )}
+                      {currentUserIsAdmin && (
+                        <button
+                          onClick={() => { setConsentOverride(true); setConsentBlock(''); }}
+                          style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', width: '100%', marginTop: '8px' }}
+                        >
+                          Admin Override — Proceed Without Consent
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -3253,12 +3372,57 @@ function CheckoutInner() {
                     {!isGiftCardPurchase() && creditBalanceCents > 0 && (
                       <>
                         <label style={styles.paymentOption}>
-                          <input type="radio" name="pay_method" checked={selectedCard === 'account_credit'} onChange={() => setSelectedCard('account_credit')} />
+                          <input type="radio" name="pay_method" checked={selectedCard === 'account_credit'} onChange={() => { setSelectedCard('account_credit'); if (creditBalanceCents < chargeAmount && !creditRemainderMethod) setCreditRemainderMethod('cash'); if (creditBalanceCents < chargeAmount && !creditCardSelection) setCreditCardSelection(savedCards.length > 0 ? savedCards[0].id : 'new'); }} />
                           <span>Account Credit — {formatPrice(creditBalanceCents)}</span>
                         </label>
                         {selectedCard === 'account_credit' && creditBalanceCents < chargeAmount && (
-                          <div style={{ padding: '8px 16px', fontSize: '13px', color: '#dc2626' }}>
-                            Insufficient credit ({formatPrice(creditBalanceCents)} available, {formatPrice(chargeAmount)} needed)
+                          <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0' }}>
+                            <div style={{ padding: '10px', background: '#f0fdf4', border: '1px solid #bbf7d0', marginBottom: '10px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                <span>Account Credit:</span><span style={{ fontWeight: 600, color: '#166534' }}>{formatPrice(creditBalanceCents)}</span>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginTop: '4px' }}>
+                                <span>Remaining:</span><span style={{ fontWeight: 600 }}>{formatPrice(chargeAmount - creditBalanceCents)}</span>
+                              </div>
+                            </div>
+                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Pay Remaining With</label>
+                            <label style={{ ...styles.paymentOption, padding: '6px 0' }}>
+                              <input type="radio" name="credit_remainder" checked={creditRemainderMethod === 'cash'} onChange={() => setCreditRemainderMethod('cash')} />
+                              <span>Cash</span>
+                            </label>
+                            <label style={{ ...styles.paymentOption, padding: '6px 0' }}>
+                              <input type="radio" name="credit_remainder" checked={creditRemainderMethod === 'card'} onChange={() => { setCreditRemainderMethod('card'); if (!creditCardSelection) setCreditCardSelection(savedCards.length > 0 ? savedCards[0].id : 'new'); }} />
+                              <span>Card</span>
+                            </label>
+                            {creditRemainderMethod === 'card' && (
+                              <div style={{ paddingLeft: '24px', marginTop: '4px' }}>
+                                {savedCards.map(card => (
+                                  <label key={card.id} style={{ ...styles.paymentOption, padding: '6px 0' }}>
+                                    <input type="radio" name="credit_card" checked={creditCardSelection === card.id} onChange={() => setCreditCardSelection(card.id)} />
+                                    <span style={styles.cardBrand}>{card.brand.toUpperCase()}</span>
+                                    <span>•••• {card.last4}</span>
+                                  </label>
+                                ))}
+                                <label style={{ ...styles.paymentOption, padding: '6px 0' }}>
+                                  <input type="radio" name="credit_card" checked={creditCardSelection === 'new'} onChange={() => setCreditCardSelection('new')} />
+                                  <span>New Card</span>
+                                </label>
+                                {creditCardSelection === 'new' && (
+                                  <div style={styles.cardElementWrap}>
+                                    <CardElement options={CARD_ELEMENT_OPTIONS} />
+                                    <label style={styles.saveCardLabel}>
+                                      <input type="checkbox" checked={saveNewCard} onChange={e => setSaveNewCard(e.target.checked)} />
+                                      Save card
+                                    </label>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {selectedCard === 'account_credit' && creditBalanceCents >= chargeAmount && (
+                          <div style={{ padding: '8px 16px', fontSize: '13px', color: '#166534' }}>
+                            Full amount covered by credit
                           </div>
                         )}
                       </>
@@ -3341,7 +3505,12 @@ function CheckoutInner() {
                         return cashCents <= 0 || cardCents <= 0 || cashCents >= chargeAmount;
                       }
                       if (selectedCard === 'gift_card') return !giftCardLookup || giftCardLookup.error || giftCardLookup.remaining_amount < chargeAmount;
-                      if (selectedCard === 'account_credit') return creditBalanceCents < chargeAmount;
+                      if (selectedCard === 'account_credit') {
+                        if (creditBalanceCents >= chargeAmount) return false;
+                        if (!creditRemainderMethod) return true;
+                        if (creditRemainderMethod === 'card' && !creditCardSelection) return true;
+                        return false;
+                      }
                       return selectedCard !== 'cash' && !stripe;
                     })() ? { opacity: 0.4, cursor: 'not-allowed' } : {}),
                   }}
@@ -3353,7 +3522,12 @@ function CheckoutInner() {
                       return cashCents <= 0 || cardCents <= 0 || cashCents >= chargeAmount;
                     }
                     if (selectedCard === 'gift_card') return !giftCardLookup || giftCardLookup.error || giftCardLookup.remaining_amount < chargeAmount;
-                    if (selectedCard === 'account_credit') return creditBalanceCents < chargeAmount;
+                    if (selectedCard === 'account_credit') {
+                      if (creditBalanceCents >= chargeAmount) return false;
+                      if (!creditRemainderMethod) return true;
+                      if (creditRemainderMethod === 'card' && !creditCardSelection) return true;
+                      return false;
+                    }
                     return selectedCard !== 'cash' && !stripe;
                   })()}
                 >
@@ -3364,7 +3538,9 @@ function CheckoutInner() {
                     : selectedCard === 'gift_card'
                     ? `Redeem Gift Card — ${formatPrice(chargeAmount)}`
                     : selectedCard === 'account_credit'
-                    ? `Apply Credit — ${formatPrice(chargeAmount)}`
+                    ? (creditBalanceCents >= chargeAmount
+                      ? `Apply Credit — ${formatPrice(chargeAmount)}`
+                      : `Credit + ${creditRemainderMethod === 'card' ? 'Card' : 'Cash'} — ${formatPrice(chargeAmount)}`)
                     : isRecurring()
                     ? `Subscribe — ${formatPrice(chargeAmount)}/mo`
                     : `Pay — ${formatPrice(chargeAmount)}`

@@ -1,8 +1,8 @@
-// pages/shop/confirmation.js — Order confirmation page
+// pages/shop/confirmation.js — Order received confirmation (invoice-based)
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Clock } from 'lucide-react';
 import { SHIPPING_OPTIONS } from '../../lib/vial-catalog';
 
 export default function ShopConfirmation() {
@@ -27,16 +27,27 @@ export default function ShopConfirmation() {
   return (
     <>
       <Head>
-        <title>Order Confirmed — Range Medical</title>
+        <title>Order Received — Range Medical</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div style={{ minHeight: '100vh', background: '#fafafa', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: '100%', maxWidth: 520, padding: 20 }}>
           <div style={{ background: '#fff', border: '1px solid #e5e5e5', padding: '40px 32px', textAlign: 'center' }}>
             <CheckCircle size={48} color="#16a34a" style={{ marginBottom: 16 }} />
-            <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>Order Confirmed</h1>
+            <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>Order Received</h1>
             <p style={{ fontSize: 14, color: '#666', margin: '0 0 8px' }}>Thank you, {patient.name.split(' ')[0]}!</p>
             <p style={{ fontSize: 13, color: '#999', margin: '0 0 28px' }}>Order #{order.orderNumber}</p>
+
+            {/* What happens next */}
+            <div style={{ background: '#f0f7ff', padding: '16px 18px', marginBottom: 24, textAlign: 'left', borderLeft: '3px solid #3b82f6' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Clock size={16} color="#3b82f6" />
+                <strong style={{ fontSize: 14, color: '#1e40af' }}>What happens next</strong>
+              </div>
+              <p style={{ fontSize: 13, color: '#555', margin: 0, lineHeight: 1.6 }}>
+                We'll send you an invoice shortly. Once payment is received, we'll {isPickup ? 'have your order ready for pickup' : 'ship your order right away'}.
+              </p>
+            </div>
 
             {/* Items */}
             <div style={{ textAlign: 'left', borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
@@ -79,9 +90,11 @@ export default function ShopConfirmation() {
               )}
             </div>
 
-            <p style={{ fontSize: 13, color: '#666', marginTop: 20 }}>
-              A detailed receipt has been sent to <strong>{patient.email}</strong>.
-            </p>
+            {patient.email && (
+              <p style={{ fontSize: 13, color: '#666', marginTop: 20 }}>
+                A confirmation has been sent to <strong>{patient.email}</strong>.
+              </p>
+            )}
 
             <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
               <button

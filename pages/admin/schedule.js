@@ -13,6 +13,23 @@ import { useAuth } from '../../components/AuthProvider';
 // Dynamic import CalendarView (it uses browser APIs)
 const CalendarView = dynamic(() => import('../../components/CalendarView'), { ssr: false });
 
+// Helper: get Pacific date string YYYY-MM-DD from a Date object
+function toPacificDateStr(date) {
+  const s = date.toLocaleDateString('en-US', {
+    timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
+  });
+  const [m, d, y] = s.split('/');
+  return `${y}-${m}-${d}`;
+}
+
+// Helper: shift a YYYY-MM-DD string by N days
+function shiftDate(dateStr, days) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + days);
+  return toPacificDateStr(dt);
+}
+
 export default function SchedulePage() {
   const { session } = useAuth();
   const [tab, setTab] = useState('calendar');
@@ -22,6 +39,9 @@ export default function SchedulePage() {
   const [encounterAppt, setEncounterAppt] = useState(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutPatient, setCheckoutPatient] = useState(null);
+
+  const today = toPacificDateStr(new Date());
+  const [selectedDate, setSelectedDate] = useState(today);
 
   useEffect(() => {
     fetchAppointments();
@@ -48,17 +68,10 @@ export default function SchedulePage() {
 
   const fetchAppointments = async () => {
     try {
-      // Fetch from start of today (Pacific) onwards so Today/Upcoming tabs work
-      const now = new Date();
-      const pacificDate = now.toLocaleDateString('en-US', {
-        timeZone: 'America/Los_Angeles',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      });
-      const [m, d, y] = pacificDate.split('/');
-      const todayStart = `${y}-${m}-${d}T00:00:00`;
-      const res = await fetch(`/api/appointments/list?start_date=${todayStart}`);
+      // Fetch a wide range: 30 days back + forward so day nav works without re-fetching
+      const start = shiftDate(today, -30);
+      const end = shiftDate(today, 60);
+      const res = await fetch(`/api/appointments/list?start_date=${start}T00:00:00&end_date=${end}T23:59:59`);
       const data = await res.json();
       setAppointments(data.appointments || data || []);
     } catch (err) {
@@ -68,26 +81,30 @@ export default function SchedulePage() {
     }
   };
 
-  // Use Pacific time for date comparisons
-  const now = new Date();
-  const pacificDateStr = now.toLocaleDateString('en-US', {
-    timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
-  });
-  const [pm, pd, py] = pacificDateStr.split('/');
-  const today = `${py}-${pm}-${pd}`;
-
-  const todayAppointments = appointments.filter(apt => {
-    // Convert appointment start_time to Pacific date for comparison
-    const aptPacific = new Date(apt.start_time || apt.booking_date).toLocaleDateString('en-US', {
-      timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
-    });
-    const [am, ad, ay] = aptPacific.split('/');
-    return `${ay}-${am}-${ad}` === today;
+  // Filter appointments for the selected date
+  const dayAppointments = appointments.filter(apt => {
+    const aptDate = toPacificDateStr(new Date(apt.start_time || apt.booking_date));
+    return aptDate === selectedDate;
   }).sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
 
   const upcomingAppointments = appointments
-    .filter(apt => apt.status !== 'cancelled' && apt.status !== 'no_show')
+    .filter(apt => {
+      const aptDate = toPacificDateStr(new Date(apt.start_time || apt.booking_date));
+      return aptDate >= today && apt.status !== 'cancelled' && apt.status !== 'no_show';
+    })
     .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+
+  // Format selected date for display
+  const selectedDateDisplay = (() => {
+    const [y, m, d] = selectedDate.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    if (selectedDate === today) return 'Today';
+    const yesterday = shiftDate(today, -1);
+    const tomorrow = shiftDate(today, 1);
+    if (selectedDate === yesterday) return 'Yesterday';
+    if (selectedDate === tomorrow) return 'Tomorrow';
+    return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  })();
 
   const statusStyle = (status) => {
     const map = {
@@ -165,7 +182,7 @@ export default function SchedulePage() {
                 <tr key={apt.id} style={styles.tr}>
                   <td style={styles.td}>
                     <div style={{ fontWeight: '500' }}>{formatTime(apt.start_time)}</div>
-                    {tab === 'upcoming' && (
+                    {(tab === 'upcoming') && (
                       <div style={{ fontSize: '11px', color: '#999' }}>{formatDate(apt.start_time)}</div>
                     )}
                   </td>
@@ -312,12 +329,17 @@ export default function SchedulePage() {
       <div style={styles.tabBar}>
         {[
           { key: 'calendar', label: 'Calendar' },
-          { key: 'today', label: `Today (${todayAppointments.length})` },
+          { key: 'day', label: `${selectedDateDisplay} (${dayAppointments.length})` },
           { key: 'upcoming', label: `Upcoming (${upcomingAppointments.length})` },
         ].map(t => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key)}
+            onClick={() => {
+              setTab(t.key);
+              if (t.key === 'day' && selectedDate !== today) {
+                // Keep the selected date as-is
+              }
+            }}
             style={{
               ...styles.tab,
               ...(tab === t.key ? styles.tabActive : {})
@@ -328,12 +350,48 @@ export default function SchedulePage() {
         ))}
       </div>
 
+      {/* Date navigation for day view */}
+      {tab === 'day' && (
+        <div style={styles.dateNav}>
+          <button
+            onClick={() => setSelectedDate(shiftDate(selectedDate, -1))}
+            style={styles.dateNavBtn}
+          >
+            ← Prev
+          </button>
+          <div style={styles.dateNavCenter}>
+            <span style={styles.dateNavLabel}>
+              {(() => {
+                const [y, m, d] = selectedDate.split('-').map(Number);
+                return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+                  weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+                });
+              })()}
+            </span>
+            {selectedDate !== today && (
+              <button
+                onClick={() => setSelectedDate(today)}
+                style={styles.todayBtn}
+              >
+                Today
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => setSelectedDate(shiftDate(selectedDate, 1))}
+            style={styles.dateNavBtn}
+          >
+            Next →
+          </button>
+        </div>
+      )}
+
       {tab === 'calendar' ? (
         <div style={styles.calendarWrap}>
           <CalendarView />
         </div>
-      ) : tab === 'today' ? (
-        renderAppointmentList(todayAppointments, 'No appointments today')
+      ) : tab === 'day' ? (
+        renderAppointmentList(dayAppointments, `No appointments ${selectedDate === today ? 'today' : 'on this day'}`)
       ) : (
         renderAppointmentList(upcomingAppointments, 'No upcoming appointments')
       )}
@@ -431,5 +489,42 @@ const styles = {
     fontSize: '11px',
     fontWeight: '600',
     textTransform: 'uppercase'
-  }
+  },
+  dateNav: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '16px',
+    padding: '10px 16px',
+    background: '#fff',
+    border: '1px solid #e5e5e5',
+  },
+  dateNavBtn: {
+    background: 'none',
+    border: '1px solid #ddd',
+    padding: '6px 14px',
+    fontSize: '13px',
+    cursor: 'pointer',
+    color: '#333',
+    fontWeight: '500',
+  },
+  dateNavCenter: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  dateNavLabel: {
+    fontSize: '15px',
+    fontWeight: '600',
+    color: '#111',
+  },
+  todayBtn: {
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    padding: '4px 12px',
+    fontSize: '12px',
+    fontWeight: '500',
+    cursor: 'pointer',
+  },
 };

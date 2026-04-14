@@ -571,11 +571,138 @@ export default async function handler(req, res) {
     }
   }
 
-  // Handle invoice.paid (subscription renewals — HRT membership perks)
+  // Handle invoice.paid — record purchase + HRT membership perks
   if (event.type === 'invoice.paid') {
     const invoice = event.data.object;
 
-    // Only process subscription invoices
+    // ── Record purchase for every paid invoice ────────────────────────
+    try {
+      const paymentIntentId = invoice.payment_intent || null;
+      const amountPaidCents = invoice.amount_paid || 0;
+
+      // Skip $0 invoices (trials, free perks, etc.)
+      if (amountPaidCents > 0 && paymentIntentId) {
+        // Idempotency: check if purchase already exists for this PI
+        const { data: existing } = await supabase
+          .from('purchases')
+          .select('id')
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .limit(1);
+
+        if (!existing?.length) {
+          // Find patient by Stripe customer ID
+          let patientId = null;
+          let patientName = null;
+          let patientEmail = invoice.customer_email || null;
+          let patientPhone = null;
+
+          if (invoice.customer) {
+            const { data: patient } = await supabase
+              .from('patients')
+              .select('id, name, email, phone')
+              .eq('stripe_customer_id', invoice.customer)
+              .maybeSingle();
+
+            if (patient) {
+              patientId = patient.id;
+              patientName = patient.name;
+              patientEmail = patientEmail || patient.email;
+              patientPhone = patient.phone;
+            }
+          }
+
+          // Fallback: match by email
+          if (!patientId && patientEmail) {
+            const { data: byEmail } = await supabase
+              .from('patients')
+              .select('id, name, phone')
+              .ilike('email', patientEmail)
+              .limit(1)
+              .maybeSingle();
+
+            if (byEmail) {
+              patientId = byEmail.id;
+              patientName = byEmail.name;
+              patientPhone = byEmail.phone;
+            }
+          }
+
+          // Get customer name from Stripe if we don't have it
+          if (!patientName && invoice.customer) {
+            try {
+              const cust = await stripe.customers.retrieve(invoice.customer);
+              patientName = cust.name || cust.email || 'Unknown';
+            } catch (e) { /* ignore */ }
+          }
+
+          // Build description from line items
+          const lineItems = invoice.lines?.data || [];
+          const description = lineItems.map(li => li.description || 'Subscription').join(', ') || invoice.description || 'Subscription payment';
+
+          // Determine category from subscription metadata
+          let category = 'Other';
+          let subscriptionId = invoice.subscription || null;
+          if (subscriptionId) {
+            try {
+              const sub = await stripe.subscriptions.retrieve(subscriptionId);
+              category = sub.metadata?.service_category || 'Other';
+            } catch (e) { /* ignore */ }
+          }
+
+          // Get card details
+          let cardBrand = null;
+          let cardLast4 = null;
+          try {
+            const pi = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ['payment_method'] });
+            if (pi.payment_method?.card) {
+              cardBrand = pi.payment_method.card.brand;
+              cardLast4 = pi.payment_method.card.last4;
+            }
+          } catch (e) { /* ignore */ }
+
+          const purchaseData = {
+            patient_id: patientId,
+            patient_name: patientName || 'Unknown',
+            patient_email: patientEmail,
+            patient_phone: patientPhone,
+            item_name: description,
+            product_name: description,
+            amount: amountPaidCents / 100,
+            amount_paid: amountPaidCents / 100,
+            stripe_amount_cents: amountPaidCents,
+            stripe_payment_intent_id: paymentIntentId,
+            stripe_subscription_id: subscriptionId,
+            stripe_status: 'succeeded',
+            stripe_verified_at: new Date().toISOString(),
+            card_brand: cardBrand,
+            card_last4: cardLast4,
+            category,
+            quantity: 1,
+            payment_method: subscriptionId ? 'stripe_subscription' : 'stripe_invoice',
+            source: subscriptionId ? 'subscription' : 'invoice',
+            purchase_date: todayPacific(),
+          };
+
+          const { data: purchase, error: purchaseErr } = await supabase
+            .from('purchases')
+            .insert(purchaseData)
+            .select('id')
+            .single();
+
+          if (purchaseErr) {
+            console.error('Webhook invoice.paid purchase creation error:', purchaseErr.message);
+          } else {
+            console.log(`Purchase recorded from invoice.paid: ${purchase.id} — ${description} ($${(amountPaidCents / 100).toFixed(2)}) for ${patientName}`);
+          }
+        } else {
+          console.log(`Webhook idempotency: purchase already exists for PI ${paymentIntentId}, skipping`);
+        }
+      }
+    } catch (err) {
+      console.error('Error recording invoice.paid purchase:', err.message);
+    }
+
+    // ── HRT membership perk (existing logic) ──────────────────────────
     if (invoice.subscription) {
       try {
         const isHRT = await isHRTMembershipInvoice(invoice);

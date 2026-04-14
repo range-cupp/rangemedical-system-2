@@ -10707,6 +10707,11 @@ export default function PatientProfile() {
                     contentEditable
                     suppressContentEditableWarning
                     dangerouslySetInnerHTML={{ __html: noteMdToHtml(editNoteBody) }}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      const text = e.clipboardData.getData('text/plain');
+                      document.execCommand('insertText', false, text);
+                    }}
                     style={{
                       minHeight: 200, padding: '12px 14px', border: '1px solid #e5e7eb', borderTop: 'none',
                       fontFamily: 'inherit', fontSize: 14, lineHeight: 1.7, outline: 'none',

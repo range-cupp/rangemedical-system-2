@@ -1992,6 +1992,11 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         contentEditable
                         suppressContentEditableWarning
                         data-placeholder="Type your encounter note here, or click the microphone to dictate..."
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          const text = e.clipboardData.getData('text/plain');
+                          document.execCommand('insertText', false, text);
+                        }}
                         onInput={() => {
                           const text = noteRef.current?.innerText || '';
                           setNoteIsEmpty(!text.trim());

@@ -723,6 +723,11 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                   contentEditable
                   suppressContentEditableWarning
                   data-placeholder="Type your clinical note, or click the microphone to dictate..."
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    const text = e.clipboardData.getData('text/plain');
+                    document.execCommand('insertText', false, text);
+                  }}
                   onInput={() => {
                     const text = noteRef.current?.innerText || '';
                     setNoteIsEmpty(!text.trim());

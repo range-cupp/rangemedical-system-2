@@ -5637,17 +5637,32 @@ export default function PatientProfile() {
             });
 
             // Derive discontinued medications from completed/historic protocols
+            // Build a set of protocol IDs that are parents of active protocols (dose changes)
+            const doseChangeParentIds = new Set();
+            (activeProtocols || []).forEach(p => {
+              if (p.parent_protocol_id) doseChangeParentIds.add(p.parent_protocol_id);
+            });
+            // Also check completed/historic protocols that are children of other protocols
+            [...(completedProtocols || []), ...(historicProtocols || [])].forEach(p => {
+              if (p.parent_protocol_id) doseChangeParentIds.add(p.parent_protocol_id);
+            });
+
             const closedProtocolMeds = [];
             [...(completedProtocols || []), ...(historicProtocols || [])].forEach(proto => {
               const medName = proto.medication || getProtocolDisplayName(proto);
               const dose = proto.selected_dose || proto.starting_dose || '';
+              const wasDoseChange = doseChangeParentIds.has(proto.id);
               closedProtocolMeds.push({
                 id: `proto-closed-${proto.id}`,
                 medication_name: medName,
                 strength: dose,
+                start_date: proto.start_date,
                 stop_date: proto.end_date || proto.updated_at,
-                discontinued_reason: proto.status === 'completed' ? 'Protocol completed' : 'Protocol ended',
+                discontinued_reason: wasDoseChange
+                  ? `Dose changed${proto.dose_change_reason ? ` — ${proto.dose_change_reason}` : ''}`
+                  : proto.status === 'completed' ? 'Protocol completed' : 'Protocol ended',
                 from_protocol: true,
+                was_dose_change: wasDoseChange,
               });
             });
 
@@ -5788,14 +5803,57 @@ export default function PatientProfile() {
                 )}
               </section>
 
+              {/* Medication History — dose changes */}
+              {(() => {
+                const historyMeds = allDiscontinuedMeds.filter(m => m.was_dose_change);
+                if (!historyMeds.length) return null;
+                return (
+                  <section className="card">
+                    <div className="card-header">
+                      <h3 style={{ color: '#64748b' }}>Medication History ({historyMeds.length})</h3>
+                    </div>
+                    <div style={{ padding: '0 16px 12px' }}>
+                      {historyMeds.map(med => (
+                        <div key={med.id} style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                          padding: '10px 14px', marginBottom: '6px',
+                          background: '#fafafa', borderRadius: 0, border: '1px solid #f1f5f9',
+                        }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 500, fontSize: '13px', color: '#64748b' }}>
+                              {med.medication_name || med.trade_name || med.generic_name}
+                              {med.strength && <span style={{ fontWeight: 400 }}> {med.strength}</span>}
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '4px', flexWrap: 'wrap' }}>
+                              {med.start_date && (
+                                <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                                  {new Date(med.start_date + (med.start_date.includes('T') ? '' : 'T12:00:00')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })}
+                                  {med.stop_date && ` — ${new Date(med.stop_date + (med.stop_date.includes('T') ? '' : 'T12:00:00')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })}`}
+                                </span>
+                              )}
+                              {med.discontinued_reason && <span style={{ fontSize: '11px', color: '#94a3b8' }}>{med.discontinued_reason}</span>}
+                              {med.from_protocol && <span style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic' }}>via protocol</span>}
+                            </div>
+                          </div>
+                          <span style={{ padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600, background: '#f0f9ff', color: '#0369a1', whiteSpace: 'nowrap' }}>Previous Dose</span>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                );
+              })()}
+
               {/* Discontinued Medications */}
-              {allDiscontinuedMeds.length > 0 && (
+              {(() => {
+                const discMeds = allDiscontinuedMeds.filter(m => !m.was_dose_change);
+                if (!discMeds.length) return null;
+                return (
                 <section className="card">
                   <div className="card-header">
-                    <h3 style={{ color: '#94a3b8' }}>Discontinued ({allDiscontinuedMeds.length})</h3>
+                    <h3 style={{ color: '#94a3b8' }}>Discontinued ({discMeds.length})</h3>
                   </div>
                   <div style={{ padding: '0 16px 12px' }}>
-                    {allDiscontinuedMeds.map(med => (
+                    {discMeds.map(med => (
                       <div key={med.id} style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                         padding: '10px 14px', marginBottom: '6px',
@@ -5836,7 +5894,8 @@ export default function PatientProfile() {
                     ))}
                   </div>
                 </section>
-              )}
+                );
+              })()}
             </>
             );
           })()}

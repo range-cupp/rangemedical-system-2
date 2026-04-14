@@ -43,6 +43,7 @@ export default async function handler(req, res) {
         frequency,
         num_vials,
         doses_per_vial,
+        comp,
         patient_name,
         patients (
           id,
@@ -206,7 +207,8 @@ export default async function handler(req, res) {
 
       // --- PAYMENT DUE ---
       // Only track for recurring protocols (WL, HRT, Peptide)
-      if (isRecurring) {
+      // Skip comped protocols — they don't owe anything
+      if (isRecurring && !protocol.comp) {
         // Payment cycle: WL = 28 days, HRT = 30 days, Peptide = 30 days
         const cycleDays = isWeightLoss ? 28 : 30;
 

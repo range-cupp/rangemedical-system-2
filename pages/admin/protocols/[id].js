@@ -273,7 +273,8 @@ export default function ProtocolDetail() {
         supplyType: enrichedProtocol.supply_type || '',
         scheduledDays: enrichedProtocol.scheduled_days || [],
         secondaryMedications: enrichedProtocol.secondary_medications ? (typeof enrichedProtocol.secondary_medications === 'string' ? JSON.parse(enrichedProtocol.secondary_medications) : enrichedProtocol.secondary_medications) : [],
-        goalWeight: enrichedProtocol.goal_weight ? parseFloat(enrichedProtocol.goal_weight) : ''
+        goalWeight: enrichedProtocol.goal_weight ? parseFloat(enrichedProtocol.goal_weight) : '',
+        comp: enrichedProtocol.comp || false
       });
 
       // Build check-in schedule for take-home protocols (NOT HRT — HRT has its own reminder system)
@@ -883,7 +884,8 @@ export default function ProtocolDetail() {
         start_date: form.startDate,
         end_date: endDate,
         status: form.status,
-        notes: form.notes
+        notes: form.notes,
+        comp: form.comp || false
       };
 
       // HRT-specific fields — scheduled_days is the source of truth for HRT scheduling
@@ -1166,6 +1168,7 @@ export default function ProtocolDetail() {
             <p style={styles.subtitle}>
               {protocol?.program_name || PROTOCOL_TYPES[form.protocolType]?.name}
               {isExchanged && <span style={{ marginLeft: 8, padding: '2px 8px', background: '#fbbf24', color: '#78350f', borderRadius: 0, fontSize: 11, fontWeight: 700 }}>EXCHANGED</span>}
+              {protocol?.comp && <span style={{ marginLeft: 8, padding: '2px 8px', background: '#dbeafe', color: '#1e40af', borderRadius: 0, fontSize: 11, fontWeight: 700 }}>COMP</span>}
             </p>
           </div>
           <div style={styles.headerActions}>
@@ -2590,6 +2593,19 @@ export default function ProtocolDetail() {
                     <option value="paused">Paused</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
+                </div>
+
+                {/* Comp */}
+                <div style={styles.section}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '15px' }}>
+                    <input
+                      type="checkbox"
+                      checked={form.comp || false}
+                      onChange={e => setForm({ ...form, comp: e.target.checked })}
+                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontWeight: '500' }}>Complimentary (no payment tracking)</span>
+                  </label>
                 </div>
 
                 {/* Notes */}

@@ -97,6 +97,15 @@ export default function PaymentsPage() {
   const [recentCheckouts, setRecentCheckouts] = useState([]);
   const [loadingCheckouts, setLoadingCheckouts] = useState(false);
 
+  // Stripe Verify state
+  const [verifyMonth, setVerifyMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [verifyResult, setVerifyResult] = useState(null);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyApplying, setVerifyApplying] = useState(false);
+
   // POS state
   const [showChargeModal, setShowChargeModal] = useState(false);
   const [chargePatient, setChargePatient] = useState(null);
@@ -730,7 +739,7 @@ export default function PaymentsPage() {
       {/* Tab bar + Create button */}
       <div style={styles.topBar}>
         <div style={styles.tabBar}>
-          {['checkout', 'invoices', 'pos', 'subscriptions', 'purchases', 'products', 'gift_cards'].map(t => (
+          {['checkout', 'invoices', 'pos', 'subscriptions', 'purchases', 'products', 'gift_cards', 'verify'].map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -739,7 +748,7 @@ export default function PaymentsPage() {
                 ...(tab === t ? styles.tabActive : {})
               }}
             >
-              {t === 'checkout' ? 'Checkout' : t === 'invoices' ? 'Invoices' : t === 'pos' ? 'POS Checkout' : t === 'subscriptions' ? 'Subscriptions' : t === 'purchases' ? 'Purchases' : t === 'products' ? 'Products & Services' : 'Gift Cards'}
+              {t === 'checkout' ? 'Checkout' : t === 'invoices' ? 'Invoices' : t === 'pos' ? 'POS Checkout' : t === 'subscriptions' ? 'Subscriptions' : t === 'purchases' ? 'Purchases' : t === 'products' ? 'Products & Services' : t === 'gift_cards' ? 'Gift Cards' : 'Verify'}
             </button>
           ))}
         </div>
@@ -1901,6 +1910,266 @@ export default function PaymentsPage() {
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {/* Verify Tab */}
+      {tab === 'verify' && (
+        <div>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+            <input
+              type="month"
+              value={verifyMonth}
+              onChange={e => { setVerifyMonth(e.target.value); setVerifyResult(null); }}
+              style={{ padding: '8px 12px', border: '1px solid #d1d5db', fontSize: 14, fontFamily: 'inherit' }}
+            />
+            <button
+              onClick={async () => {
+                setVerifyLoading(true);
+                setVerifyResult(null);
+                try {
+                  const res = await fetch(`/api/admin/stripe-verify-amounts?month=${verifyMonth}`);
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error);
+                  setVerifyResult(data);
+                } catch (err) {
+                  alert('Error: ' + err.message);
+                }
+                setVerifyLoading(false);
+              }}
+              disabled={verifyLoading}
+              style={{ padding: '8px 18px', background: '#1e40af', color: '#fff', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              {verifyLoading ? 'Checking...' : 'Preview'}
+            </button>
+            {verifyResult && verifyResult.dry_run && (verifyResult.results?.corrected > 0) && (
+              <button
+                onClick={async () => {
+                  if (!confirm(`This will correct ${verifyResult.results.corrected} purchase amount(s) to match Stripe. Continue?`)) return;
+                  setVerifyApplying(true);
+                  try {
+                    const res = await fetch('/api/admin/stripe-verify-amounts', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ month: verifyMonth }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error);
+                    setVerifyResult(data);
+                  } catch (err) {
+                    alert('Error: ' + err.message);
+                  }
+                  setVerifyApplying(false);
+                }}
+                disabled={verifyApplying}
+                style={{ padding: '8px 18px', background: '#16a34a', color: '#fff', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                {verifyApplying ? 'Applying...' : `Apply ${verifyResult.results.corrected} Correction${verifyResult.results.corrected !== 1 ? 's' : ''}`}
+              </button>
+            )}
+          </div>
+
+          {verifyResult && (
+            <div>
+              {/* Summary Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Stripe Collected</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: '#15803d' }}>${verifyResult.summary.stripe_total}</div>
+                  <div style={{ fontSize: 12, color: '#166534', marginTop: 2 }}>{verifyResult.summary.stripe_charges} charges</div>
+                </div>
+                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>DB Total (Stripe)</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: '#1d4ed8' }}>${verifyResult.summary.db_stripe_total}</div>
+                  <div style={{ fontSize: 12, color: '#1e40af', marginTop: 2 }}>{verifyResult.summary.db_purchases} purchases</div>
+                </div>
+                <div style={{ background: parseFloat(verifyResult.summary.discrepancy) === 0 ? '#f0fdf4' : '#fef2f2', border: `1px solid ${parseFloat(verifyResult.summary.discrepancy) === 0 ? '#bbf7d0' : '#fecaca'}`, padding: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: parseFloat(verifyResult.summary.discrepancy) === 0 ? '#166534' : '#991b1b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Discrepancy</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: parseFloat(verifyResult.summary.discrepancy) === 0 ? '#15803d' : '#dc2626' }}>
+                    {parseFloat(verifyResult.summary.discrepancy) === 0 ? '$0.00' : `$${verifyResult.summary.discrepancy}`}
+                  </div>
+                  <div style={{ fontSize: 12, color: parseFloat(verifyResult.summary.discrepancy) === 0 ? '#166534' : '#991b1b', marginTop: 2 }}>
+                    {parseFloat(verifyResult.summary.discrepancy) === 0 ? 'Everything matches' : 'DB vs Stripe'}
+                  </div>
+                </div>
+                {parseFloat(verifyResult.summary.db_cash_total) > 0 && (
+                  <div style={{ background: '#fefce8', border: '1px solid #fef08a', padding: 16 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#854d0e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Cash / Gift Card</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: '#a16207' }}>${(parseFloat(verifyResult.summary.db_cash_total) + parseFloat(verifyResult.summary.db_gift_card_total)).toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: '#854d0e', marginTop: 2 }}>Not in Stripe</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Status Row */}
+              <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap', fontSize: 13 }}>
+                <span style={{ color: '#16a34a' }}><CheckCircle size={14} style={{ verticalAlign: '-2px' }} /> {verifyResult.results.verified} verified</span>
+                {verifyResult.results.corrected > 0 && (
+                  <span style={{ color: verifyResult.dry_run ? '#d97706' : '#16a34a' }}>
+                    <AlertTriangle size={14} style={{ verticalAlign: '-2px' }} /> {verifyResult.results.corrected} {verifyResult.dry_run ? 'to correct' : 'corrected'}
+                  </span>
+                )}
+                {verifyResult.results.flagged > 0 && (
+                  <span style={{ color: '#dc2626' }}><XCircle size={14} style={{ verticalAlign: '-2px' }} /> {verifyResult.results.flagged} need review</span>
+                )}
+                {verifyResult.results.missing_in_db > 0 && (
+                  <span style={{ color: '#6b7280' }}><Clock size={14} style={{ verticalAlign: '-2px' }} /> {verifyResult.results.missing_in_db} in Stripe only</span>
+                )}
+              </div>
+
+              {/* Corrections Table */}
+              {verifyResult.corrected && verifyResult.corrected.length > 0 && (
+                <div style={{ marginBottom: 24 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 8px', color: '#0f172a' }}>
+                    {verifyResult.dry_run ? 'Amounts to Correct' : 'Corrected Amounts'}
+                  </h3>
+                  <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 10px' }}>
+                    Single-item charges where DB amount didn&apos;t match what Stripe actually collected.
+                  </p>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr>
+                          <th style={checkoutStyles.th}>Patient</th>
+                          <th style={checkoutStyles.th}>Item</th>
+                          <th style={checkoutStyles.th}>Date</th>
+                          <th style={{ ...checkoutStyles.th, textAlign: 'right' }}>DB Had</th>
+                          <th style={{ ...checkoutStyles.th, textAlign: 'right' }}>Stripe Charged</th>
+                          <th style={{ ...checkoutStyles.th, textAlign: 'right' }}>Diff</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {verifyResult.corrected.map((c, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={checkoutStyles.td}>{c.patient_name}</td>
+                            <td style={checkoutStyles.td}>{c.item_name}</td>
+                            <td style={checkoutStyles.td}>{c.purchase_date}</td>
+                            <td style={{ ...checkoutStyles.td, textAlign: 'right', color: '#dc2626', textDecoration: 'line-through' }}>${c.old_amount.toFixed(2)}</td>
+                            <td style={{ ...checkoutStyles.td, textAlign: 'right', fontWeight: 600 }}>${c.new_amount.toFixed(2)}</td>
+                            <td style={{ ...checkoutStyles.td, textAlign: 'right', color: parseFloat(c.difference) > 0 ? '#dc2626' : '#16a34a' }}>{parseFloat(c.difference) > 0 ? '+' : ''}${c.difference}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Flagged Multi-Item Mismatches */}
+              {verifyResult.flagged && verifyResult.flagged.length > 0 && (
+                <div style={{ marginBottom: 24 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 8px', color: '#dc2626' }}>
+                    Multi-Item Mismatches (Manual Review)
+                  </h3>
+                  <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 10px' }}>
+                    These charges cover multiple items — can&apos;t auto-correct. The sum of line items doesn&apos;t match what Stripe charged.
+                  </p>
+                  {verifyResult.flagged.map((f, i) => (
+                    <div key={i} style={{ border: '1px solid #fecaca', background: '#fef2f2', padding: 14, marginBottom: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                        <span><strong>Stripe charged:</strong> ${f.stripe_amount.toFixed(2)}</span>
+                        <span><strong>DB total:</strong> ${f.db_sum.toFixed(2)}</span>
+                        <span style={{ color: '#dc2626', fontWeight: 600 }}>Diff: ${f.difference}</span>
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                        <tbody>
+                          {f.items.map((item, j) => (
+                            <tr key={j} style={{ borderBottom: '1px solid #fecaca' }}>
+                              <td style={{ padding: '4px 8px' }}>{item.patient_name}</td>
+                              <td style={{ padding: '4px 8px' }}>{item.item_name}</td>
+                              <td style={{ padding: '4px 8px', textAlign: 'right' }}>${item.amount_paid.toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Missing in DB */}
+              {verifyResult.missing_in_db && verifyResult.missing_in_db.length > 0 && (
+                <div style={{ marginBottom: 24 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 8px', color: '#6b7280' }}>
+                    Stripe Charges Not in DB ({verifyResult.missing_in_db.length})
+                  </h3>
+                  <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 10px' }}>
+                    Stripe collected money but no purchase was recorded. Could be from the website checkout, another system, or a recording failure.
+                  </p>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr>
+                          <th style={checkoutStyles.th}>Date</th>
+                          <th style={checkoutStyles.th}>Amount</th>
+                          <th style={checkoutStyles.th}>Description</th>
+                          <th style={checkoutStyles.th}>PI ID</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {verifyResult.missing_in_db.map((m, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={checkoutStyles.td}>{m.stripe_date}</td>
+                            <td style={checkoutStyles.td}>${m.stripe_amount.toFixed(2)}</td>
+                            <td style={checkoutStyles.td}>{m.description || '—'}</td>
+                            <td style={{ ...checkoutStyles.td, fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }}>{m.payment_intent?.slice(-8)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Orphaned Purchases */}
+              {verifyResult.orphaned_purchases && verifyResult.orphaned_purchases.length > 0 && (
+                <div style={{ marginBottom: 24 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 8px', color: '#d97706' }}>
+                    DB Purchases with Invalid Stripe ID ({verifyResult.orphaned_purchases.length})
+                  </h3>
+                  <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 10px' }}>
+                    These purchases reference a PaymentIntent that doesn&apos;t exist in Stripe.
+                  </p>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr>
+                          <th style={checkoutStyles.th}>Patient</th>
+                          <th style={checkoutStyles.th}>Item</th>
+                          <th style={checkoutStyles.th}>Date</th>
+                          <th style={{ ...checkoutStyles.th, textAlign: 'right' }}>Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {verifyResult.orphaned_purchases.map((o, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={checkoutStyles.td}>{o.patient_name}</td>
+                            <td style={checkoutStyles.td}>{o.item_name}</td>
+                            <td style={checkoutStyles.td}>{o.purchase_date}</td>
+                            <td style={{ ...checkoutStyles.td, textAlign: 'right' }}>${o.amount_paid.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* All good message */}
+              {verifyResult.results.corrected === 0 && verifyResult.results.flagged === 0 && verifyResult.results.missing_in_db === 0 && (
+                <div style={{ padding: 24, textAlign: 'center', color: '#16a34a', fontSize: 15, fontWeight: 600 }}>
+                  <CheckCircle size={24} style={{ verticalAlign: '-6px', marginRight: 8 }} />
+                  All {verifyResult.results.verified} Stripe purchases match. No discrepancies found.
+                </div>
+              )}
+            </div>
+          )}
+
+          {!verifyResult && !verifyLoading && (
+            <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>
+              Select a month and click Preview to compare your DB against Stripe.
+            </div>
+          )}
         </div>
       )}
 

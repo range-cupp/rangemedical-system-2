@@ -466,7 +466,7 @@ export default function PatientProfile() {
   // Medication add/edit modal (admin only)
   const [showMedEditModal, setShowMedEditModal] = useState(false);
   const [medEditMode, setMedEditMode] = useState('add'); // 'add' | 'edit'
-  const [medEditForm, setMedEditForm] = useState({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: '' });
+  const [medEditForm, setMedEditForm] = useState({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: '', last_pickup_date: '', last_pickup_quantity: '', quantity_unit: 'pills' });
   const [medEditSaving, setMedEditSaving] = useState(false);
 
   const [pinnedNoteExpanded, setPinnedNoteExpanded] = useState(false);
@@ -4694,14 +4694,26 @@ export default function PatientProfile() {
                         <span style={{ fontWeight: 600 }}>{medName}</span>
                         {manualMed.strength && <span style={{ color: '#6b7280' }}>{manualMed.strength}{manualMed.form ? ` · ${manualMed.form}` : ''}</span>}
                         {manualMed.sig && <span style={{ color: '#6b7280', fontStyle: 'italic' }}>Sig: {manualMed.sig}</span>}
-                        {lastPickup && (
+                        {lastPickup ? (
                           <span style={{ color: '#1f2937' }}>
                             <span style={{ color: '#6b7280' }}>Last pickup: </span>
                             {pickupFmt(lastPickup)}
                             {lastPickup.quantity && <span style={{ color: '#6b7280', marginLeft: 6 }}>· {lastPickup.quantity} dispensed</span>}
                             {lastPickup.dosage && <span style={{ color: '#6b7280', marginLeft: 6 }}>· {lastPickup.dosage}</span>}
                           </span>
-                        )}
+                        ) : manualMed.last_pickup_date ? (
+                          <span style={{ color: '#1f2937' }}>
+                            <span style={{ color: '#6b7280' }}>Picked up: </span>
+                            {(() => {
+                              const days = Math.floor((new Date() - new Date(manualMed.last_pickup_date + 'T00:00:00')) / (1000 * 60 * 60 * 24));
+                              const dLabel = days === 0 ? 'Today' : days === 1 ? 'Yesterday' : `${days}d ago`;
+                              return `${formatShortDate(manualMed.last_pickup_date)} (${dLabel})`;
+                            })()}
+                            {manualMed.last_pickup_quantity && (
+                              <span style={{ color: '#6b7280', marginLeft: 6 }}>· {manualMed.last_pickup_quantity} {manualMed.quantity_unit || 'pills'}</span>
+                            )}
+                          </span>
+                        ) : null}
                       </div>
                     );
                   }
@@ -5737,7 +5749,7 @@ export default function PatientProfile() {
                 <div className="card-header">
                   <h3>Active Medications ({allActiveMeds.length})</h3>
                   {employee?.is_admin && (
-                    <button className="btn-primary-sm" onClick={() => { setMedEditMode('add'); setMedEditForm({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: '' }); setShowMedEditModal(true); }}>
+                    <button className="btn-primary-sm" onClick={() => { setMedEditMode('add'); setMedEditForm({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: '', last_pickup_date: '', last_pickup_quantity: '', quantity_unit: 'pills' }); setShowMedEditModal(true); }}>
                       + Add Medication
                     </button>
                   )}
@@ -5761,6 +5773,12 @@ export default function PatientProfile() {
                           )}
                           {med.sig && (
                             <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', fontStyle: 'italic' }}>Sig: {med.sig}</div>
+                          )}
+                          {med.last_pickup_date && (
+                            <div style={{ fontSize: '12px', color: '#166534', marginTop: '4px', fontWeight: 600 }}>
+                              Picked up {new Date(med.last_pickup_date + (med.last_pickup_date.includes('T') ? '' : 'T12:00:00')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })}
+                              {med.last_pickup_quantity && ` \u2014 ${med.last_pickup_quantity} ${med.quantity_unit || 'pills'}`}
+                            </div>
                           )}
                           <div style={{ display: 'flex', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
                             {med.start_date && (
@@ -10564,6 +10582,46 @@ export default function PatientProfile() {
                       placeholder="e.g., Range Medical, Outside Rx"
                       style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
                     />
+                  </div>
+                </div>
+                <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 14, marginTop: 2 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#166534', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Last Pickup</label>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Pickup Date</label>
+                      <input
+                        type="date"
+                        value={medEditForm.last_pickup_date || ''}
+                        onChange={e => setMedEditForm(f => ({ ...f, last_pickup_date: e.target.value }))}
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Quantity</label>
+                      <input
+                        type="number"
+                        value={medEditForm.last_pickup_quantity || ''}
+                        onChange={e => setMedEditForm(f => ({ ...f, last_pickup_quantity: e.target.value }))}
+                        placeholder="e.g., 60"
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Unit</label>
+                      <select
+                        value={medEditForm.quantity_unit || 'pills'}
+                        onChange={e => setMedEditForm(f => ({ ...f, quantity_unit: e.target.value }))}
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, background: '#fff' }}
+                      >
+                        <option value="pills">Pills</option>
+                        <option value="tablets">Tablets</option>
+                        <option value="capsules">Capsules</option>
+                        <option value="vials">Vials</option>
+                        <option value="syringes">Syringes</option>
+                        <option value="ml">mL</option>
+                        <option value="units">Units</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>

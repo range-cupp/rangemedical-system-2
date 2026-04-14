@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
   // POST — add new medication
   if (req.method === 'POST') {
-    const { medication_name, strength, form, sig, start_date, source, is_active } = req.body;
+    const { medication_name, strength, form, sig, start_date, source, is_active, last_pickup_date, last_pickup_quantity, quantity_unit } = req.body;
     if (!medication_name) return res.status(400).json({ error: 'Medication name required' });
 
     const { data, error } = await supabase
@@ -28,6 +28,9 @@ export default async function handler(req, res) {
         start_date: start_date || new Date().toISOString().split('T')[0],
         source: source || null,
         is_active: is_active !== false,
+        last_pickup_date: last_pickup_date || null,
+        last_pickup_quantity: last_pickup_quantity ? parseInt(last_pickup_quantity, 10) : null,
+        quantity_unit: quantity_unit || 'pills',
       })
       .select()
       .single();

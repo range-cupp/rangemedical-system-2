@@ -1483,6 +1483,11 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                               ref={editNoteRef}
                               contentEditable
                               suppressContentEditableWarning
+                              onPaste={(e) => {
+                                e.preventDefault();
+                                const text = e.clipboardData.getData('text/plain');
+                                document.execCommand('insertText', false, text);
+                              }}
                               onInput={() => {
                                 const text = editNoteRef.current?.innerText || '';
                                 setEditNoteEmpty(!text.trim());

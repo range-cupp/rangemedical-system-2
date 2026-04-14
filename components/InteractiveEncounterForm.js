@@ -810,6 +810,11 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
               suppressContentEditableWarning
               data-placeholder={field.placeholder || ''}
               onInput={syncNotesEditorToForm}
+              onPaste={(e) => {
+                e.preventDefault();
+                const text = e.clipboardData.getData('text/plain');
+                document.execCommand('insertText', false, text);
+              }}
               style={styles.richEditor}
             />
             {/* AI format button */}

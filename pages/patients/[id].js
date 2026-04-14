@@ -3142,6 +3142,22 @@ export default function PatientProfile() {
     setEditingDocDate(null);
   };
 
+  const handleDeleteConsent = async (consentId) => {
+    if (!confirm('Delete this consent form?')) return;
+    try {
+      const res = await fetch('/api/consents/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: consentId }),
+      });
+      if (res.ok) {
+        setConsents(consents.filter(c => c.id !== consentId));
+      }
+    } catch (err) {
+      console.error('Consent delete error:', err);
+    }
+  };
+
   // Symptoms handlers
   const handleSendSymptoms = async () => {
     setSendingSymptoms(true);
@@ -4629,6 +4645,14 @@ export default function PatientProfile() {
             const latest = protoLogs[0] || { medication: proto.medication, entry_date: proto.start_date };
             rows.push({ protocol: proto, latest, lastPickup, lastInjection });
           });
+          // Also include manually-added active medications not already covered by a protocol
+          const protoMedNames = new Set(rows.map(r => (r.protocol.medication || '').toLowerCase()));
+          (medications || []).filter(m => m.is_active).forEach(med => {
+            const name = (med.medication_name || med.trade_name || med.generic_name || '').toLowerCase();
+            if (name && !protoMedNames.has(name)) {
+              rows.push({ manualMed: med });
+            }
+          });
           if (rows.length === 0) return null;
           return (
             <section style={{
@@ -4642,7 +4666,27 @@ export default function PatientProfile() {
                 LAST MEDICATION ACTIVITY
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {rows.map(({ protocol, latest, lastPickup, lastInjection }) => {
+                {rows.map(({ protocol, latest, lastPickup, lastInjection, manualMed }) => {
+                  if (manualMed) {
+                    const medName = manualMed.medication_name || manualMed.trade_name || manualMed.generic_name;
+                    return (
+                      <div key={`manual-${manualMed.id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#1f2937', flexWrap: 'wrap' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '1px 8px',
+                          borderRadius: 3,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          background: '#f1f5f9',
+                          color: '#475569',
+                          flexShrink: 0,
+                        }}>{manualMed.source || 'RX'}</span>
+                        <span style={{ fontWeight: 600 }}>{medName}</span>
+                        {manualMed.strength && <span style={{ color: '#6b7280' }}>{manualMed.strength}{manualMed.form ? ` · ${manualMed.form}` : ''}</span>}
+                        {manualMed.sig && <span style={{ color: '#6b7280', fontStyle: 'italic' }}>Sig: {manualMed.sig}</span>}
+                      </div>
+                    );
+                  }
                   const cat = getCategoryStyle(protocol.category);
                   const fmt = (log) => {
                     if (!log) return null;
@@ -8194,6 +8238,7 @@ export default function PatientProfile() {
                           <div className="consent-actions">
                             {consent.pdf_url && <button onClick={e => { e.stopPropagation(); openPdfViewer(consent.pdf_url, `${typeName} Consent`); }} className="btn-secondary-sm">View PDF</button>}
                             {consent.signature_url && <button onClick={e => { e.stopPropagation(); openPdfViewer(consent.signature_url, 'Signature'); }} className="btn-text">Signature</button>}
+                            <button onClick={e => { e.stopPropagation(); handleDeleteConsent(consent.id); }} className="btn-secondary-sm" style={{ fontSize: 11, padding: '3px 8px', color: '#dc2626' }}>Delete</button>
                           </div>
                         </div>
                       );

@@ -8443,6 +8443,109 @@ export default function PatientProfile() {
                 </button>
               </div>
 
+              {/* Clinical Encounter Notes */}
+              {(() => {
+                const encounterServiceLabels = {
+                  iv_therapy: 'Range IV', nad_iv: 'NAD+ IV', glutathione_iv: 'Glutathione IV',
+                  vitamin_c_iv: 'Vitamin C IV', methylene_blue_iv: 'Methylene Blue IV', hydration_iv: 'Hydration IV',
+                  injection: 'Range Injection', peptide_injection: 'Peptide Injection',
+                  blood_draw_encounter: 'Blood Draw', hrt_followup: 'Testosterone / HRT',
+                  weight_loss: 'Weight Loss', hbot_session: 'HBOT', rlt_session: 'Red Light Therapy',
+                  supplement: 'Supplement / Product', consultation: 'Consultation', general: 'General',
+                  special_event: 'Special Event', follow_up: 'Follow-Up', nursing_progress: 'Nursing Progress',
+                };
+                const getCat = (n) => n.note_category || (
+                  ['encounter', 'addendum', 'protocol'].includes(n.source) ? 'clinical' : 'internal'
+                );
+                const clinicalNotes = notes.filter(n => getCat(n) === 'clinical')
+                  .sort((a, b) => new Date(b.note_date || b.created_at) - new Date(a.note_date || a.created_at));
+                return (
+                  <section className="card" style={{ marginBottom: 16 }}>
+                    <div className="card-header">
+                      <h3>Clinical Notes ({clinicalNotes.length})</h3>
+                    </div>
+                    {clinicalNotes.length === 0 ? (
+                      <div className="empty">No clinical encounter notes yet</div>
+                    ) : (
+                      <div className="notes-list">
+                        {clinicalNotes.map(note => (
+                          <div key={note.id} className="note-row">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <div className="note-date">
+                                {formatDate(note.note_date || note.created_at)}
+                                {note.created_by && <span style={{ fontWeight: 400, marginLeft: 8 }}>by {getStaffDisplayName(note.created_by)}</span>}
+                                {note.encounter_service && (
+                                  <span style={{
+                                    marginLeft: 8, fontSize: 11, padding: '2px 8px', borderRadius: 0, fontWeight: 500,
+                                    background: '#ede9fe', color: '#5b21b6',
+                                  }}>
+                                    {encounterServiceLabels[note.encounter_service] || note.encounter_service.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Note
+                                  </span>
+                                )}
+                                {note.status && (
+                                  <span style={{
+                                    marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 0, fontWeight: 500,
+                                    background: note.status === 'signed' ? '#d1fae5' : '#f3f4f6',
+                                    color: note.status === 'signed' ? '#065f46' : '#6b7280',
+                                  }}>
+                                    {note.status === 'signed' ? '✓ Signed' : 'Draft'}
+                                  </span>
+                                )}
+                                {note.edited_after_signing && (
+                                  <span style={{
+                                    marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 0, fontWeight: 500,
+                                    background: '#fef3c7', color: '#92400e',
+                                  }}>
+                                    Edited
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                <button
+                                  onClick={() => { setEditingNote(note); setEditNoteBody(note.body); }}
+                                  style={{ background: '#f3f4f6', border: '1px solid #d1d5db', color: '#374151', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
+                                  title="Edit note"
+                                >Edit</button>
+                                {(note.status !== 'signed' ? canDeleteNote(note) : isAdminUser) && (
+                                  <button
+                                    onClick={() => handleDeleteNote(note.id)}
+                                    style={{ background: note.status === 'signed' ? '#fef2f2' : '#f3f4f6', border: `1px solid ${note.status === 'signed' ? '#fca5a5' : '#d1d5db'}`, color: note.status === 'signed' ? '#dc2626' : '#6b7280', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
+                                    title={note.status === 'signed' ? 'Delete signed note (admin)' : 'Delete note'}
+                                  >Delete</button>
+                                )}
+                              </div>
+                            </div>
+                            <div
+                              className="note-body"
+                              style={{
+                                maxHeight: expandedNotes[note.id] ? 'none' : '120px',
+                                overflow: 'hidden',
+                                cursor: note.body && note.body.length > 200 ? 'pointer' : 'default',
+                              }}
+                              onClick={() => {
+                                if (note.body && note.body.length > 200) {
+                                  setExpandedNotes(prev => ({ ...prev, [note.id]: !prev[note.id] }));
+                                }
+                              }}
+                            >
+                              {renderFormattedText(note.body)}
+                            </div>
+                            {note.body && note.body.length > 200 && !expandedNotes[note.id] && (
+                              <button
+                                onClick={() => setExpandedNotes(prev => ({ ...prev, [note.id]: true }))}
+                                style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: 13, padding: '4px 0' }}
+                              >
+                                Show more ↓
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                );
+              })()}
+
               {/* Vitals Flowsheet (PF-style: dates as columns) */}
               {vitalsHistory.length > 0 && (() => {
                 const fmtHt = (inches) => {

@@ -540,6 +540,70 @@ async function handlePost(req, res) {
       console.log(`[service-log] Created ${hrtInjectionLogs.length} injection entries from HRT pickup (qty ${hrtPickupQty})`);
     }
 
+    // 1b. Auto-decrement recovery enrollment if patient has one for this category
+    let recoveryUpdate = null;
+    if (['hbot', 'red_light'].includes(category) && resolvedEntryType === 'session') {
+      try {
+        const { data: activeEnrollments } = await supabase
+          .from('recovery_enrollments')
+          .select('id, modality_preference, sessions_used, sessions_allowed, recovery_offers(offer_type)')
+          .eq('patient_id', patient_id)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+
+        if (activeEnrollments && activeEnrollments.length > 0) {
+          // Find the enrollment whose modality matches this category
+          const matchingEnrollment = activeEnrollments.find(e => {
+            if (e.modality_preference === 'COMBINED') return true; // matches both
+            if (e.modality_preference === 'HBOT_ONLY' && category === 'hbot') return true;
+            if (e.modality_preference === 'RLT_ONLY' && category === 'red_light') return true;
+            return false;
+          });
+
+          if (matchingEnrollment && matchingEnrollment.sessions_used < matchingEnrollment.sessions_allowed) {
+            // For COMBINED: only count as 1 Recovery Session when BOTH hbot+rlt logged same day
+            // We increment on the first one logged, skip on the second
+            let shouldIncrement = true;
+            if (matchingEnrollment.modality_preference === 'COMBINED') {
+              const otherCategory = category === 'hbot' ? 'red_light' : 'hbot';
+              const { data: sameDayOther } = await supabase
+                .from('service_logs')
+                .select('id')
+                .eq('patient_id', patient_id)
+                .eq('entry_date', logDate)
+                .eq('category', otherCategory)
+                .eq('entry_type', 'session')
+                .limit(1);
+              // If the other modality was already logged today, don't increment again
+              if (sameDayOther && sameDayOther.length > 0) {
+                shouldIncrement = false;
+              }
+            }
+
+            if (shouldIncrement) {
+              const newUsed = matchingEnrollment.sessions_used + 1;
+              const updateData = { sessions_used: newUsed, updated_at: new Date().toISOString() };
+              if (newUsed >= matchingEnrollment.sessions_allowed && matchingEnrollment.recovery_offers?.offer_type !== 'MEMBERSHIP') {
+                updateData.status = 'completed';
+              }
+              await supabase
+                .from('recovery_enrollments')
+                .update(updateData)
+                .eq('id', matchingEnrollment.id);
+
+              recoveryUpdate = {
+                enrollment_id: matchingEnrollment.id,
+                sessions_used: newUsed,
+                sessions_allowed: matchingEnrollment.sessions_allowed,
+              };
+            }
+          }
+        }
+      } catch (recoveryErr) {
+        console.error('[service-log] Recovery enrollment update error (non-fatal):', recoveryErr.message);
+      }
+    }
+
     // 2. Check for active package and decrement if found
     // Skip protocol logic for supplements — they're one-time purchases, not ongoing protocols
     const packageUpdate = category === 'supplement'
@@ -685,7 +749,8 @@ async function handlePost(req, res) {
       success: true,
       log,
       package_update: packageUpdate,
-      protocol_update: protocolUpdate
+      protocol_update: protocolUpdate,
+      recovery_update: recoveryUpdate,
     });
   } catch (err) {
     console.error('Error creating service log:', err);

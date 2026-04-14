@@ -133,6 +133,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [patientProtocols, setPatientProtocols] = useState([]);
   const [loadingProtocols, setLoadingProtocols] = useState(false);
+  const [recoveryEnrollment, setRecoveryEnrollment] = useState(null);
 
   // Visit items (multi-service)
   const [visitItems, setVisitItems] = useState([]);
@@ -275,6 +276,20 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
       setPatientProtocols([]);
     }
     setLoadingProtocols(false);
+
+    // Also fetch active recovery enrollment
+    try {
+      const recoveryRes = await fetch(`/api/recovery/status?patient_id=${patientId}`);
+      if (recoveryRes.ok) {
+        const recoveryData = await recoveryRes.json();
+        const active = (recoveryData.enrollments || []).find(e => e.status === 'active');
+        setRecoveryEnrollment(active || null);
+      } else {
+        setRecoveryEnrollment(null);
+      }
+    } catch {
+      setRecoveryEnrollment(null);
+    }
   };
 
   // Patient search filtering — client-side first, then server-side fallback
@@ -2139,6 +2154,27 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                           </div>
                         )}
                       </>
+                    )}
+
+                    {/* === Recovery Enrollment Banner (HBOT or RLT) === */}
+                    {recoveryEnrollment && ['hbot', 'red_light'].includes(currentServiceType.id) && (
+                      <div style={{
+                        background: '#f0fdf4',
+                        border: '1px solid #86efac',
+                        padding: '12px 16px',
+                        marginBottom: 16,
+                      }}>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: '#166534', marginBottom: 2 }}>
+                          Active Recovery Enrollment — {recoveryEnrollment.recovery_offers?.name || 'Recovery Program'}
+                        </div>
+                        <div style={{ fontSize: 13, color: '#333' }}>
+                          Sessions: {recoveryEnrollment.sessions_used}/{recoveryEnrollment.sessions_allowed}
+                          {' | '}Modality: {recoveryEnrollment.modality_preference === 'COMBINED' ? 'HBOT + RLT' : recoveryEnrollment.modality_preference === 'HBOT_ONLY' ? 'HBOT Only' : 'RLT Only'}
+                          {recoveryEnrollment.sessions_used < recoveryEnrollment.sessions_allowed
+                            ? ` | ${recoveryEnrollment.sessions_allowed - recoveryEnrollment.sessions_used} remaining`
+                            : ' | No sessions remaining'}
+                        </div>
+                      </div>
                     )}
 
                     {/* === HBOT === */}

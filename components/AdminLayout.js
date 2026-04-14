@@ -570,6 +570,7 @@ const NAV_ITEMS = [
   { href: '/admin/referrals', label: 'Referrals', icon: 'user-plus', group: 'business' },
   { href: '/admin/patients', label: 'Patients', icon: 'users' },
   { href: '/admin/schedule', label: 'Schedule', icon: 'calendar', group: 'medical' },
+  { href: '/admin/recovery', label: 'Recovery', icon: 'activity', group: 'medical' },
   { href: '/admin/checkout', label: 'Checkout', icon: 'shopping-bag', group: 'business' },
   { href: '/admin/quotes', label: 'Quotes', icon: 'file-text', group: 'business' },
   { href: '/admin/payments', label: 'Payments', icon: 'credit-card', group: 'business' },

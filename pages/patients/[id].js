@@ -4619,8 +4619,8 @@ export default function PatientProfile() {
             const protoLogs = (serviceLogs || [])
               .filter(l => l.protocol_id === proto.id && (l.entry_type === 'pickup' || l.entry_type === 'injection'))
               .sort((a, b) => b.entry_date.localeCompare(a.entry_date));
-            const alwaysShow = proto.category === 'hrt' || proto.category === 'peptide';
-            // HRT and peptide protocols always surface here so the patient's
+            const alwaysShow = proto.category === 'hrt' || proto.category === 'peptide' || proto.category === 'weight_loss';
+            // HRT, peptide, and weight loss protocols always surface here so the patient's
             // current medication is visible at the top of the profile, even
             // before any injection or pickup has been logged.
             if (protoLogs.length === 0 && !alwaysShow) return;

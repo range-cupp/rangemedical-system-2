@@ -240,6 +240,9 @@ export default async function handler(req, res) {
     // Use the per-item amount from the POS — this is what the patient paid
     // for THIS specific item. Stripe's amount_received is the cart total
     // and must NOT be used as the per-item amount.
+    // Safety net: comps always record as $0 regardless of what was sent
+    const isComp = payment_method === 'comp';
+    const finalAmountDollars = isComp ? 0 : amountDollars;
     const insertData = {
       patient_id,
       patient_name: patient?.name || 'Unknown',
@@ -247,9 +250,9 @@ export default async function handler(req, res) {
       patient_phone: patient?.phone || null,
       item_name: description || 'Stripe charge',
       product_name: description || 'Stripe charge',
-      amount: amountDollars,
-      amount_paid: amountDollars,
-      stripe_amount_cents: Math.round(amountDollars * 100),
+      amount: isComp ? amountDollars : amountDollars, // keep catalog price in amount
+      amount_paid: finalAmountDollars,
+      stripe_amount_cents: Math.round(finalAmountDollars * 100),
       stripe_status: stripeStatus || (stripe_payment_intent_id ? 'succeeded' : null),
       category: service_category || 'Other',
       quantity: quantity || 1,

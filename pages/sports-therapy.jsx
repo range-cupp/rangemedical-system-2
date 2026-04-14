@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 export default function SportsTherapy() {
   const [visible, setVisible] = useState({});
 
-  const smsLink = 'sms:9499973988?&body=' + encodeURIComponent("Hi, I'm at Range Sports Therapy and I'd like to get some information about Range Medical.");
+  const smsLink = 'sms:9495395023?&body=' + encodeURIComponent("Hi, I'm at Range Sports Therapy and I'd like to get some information about Range Medical.");
 
   useEffect(() => {
     const observer = new IntersectionObserver(

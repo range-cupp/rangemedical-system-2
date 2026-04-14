@@ -3,12 +3,10 @@
 // Range Medical System V2
 
 import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
+import { useRouter } from 'next/router';
 import Link from 'next/link';
 import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
 import { TESTOSTERONE_DOSES, WEIGHT_LOSS_DOSAGES, getDoseOptions, getPeptideVialSupply } from '../../lib/protocol-config';
-
-const MedicationCheckoutModal = dynamic(() => import('../../components/MedicationCheckoutModal'), { ssr: false });
 
 // Friendly labels for supply types
 const SUPPLY_LABELS = {
@@ -180,9 +178,7 @@ export default function MedicationsPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [search, setSearch] = useState('');
 
-  // Checkout modal state (unified dispense flow)
-  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-  const [checkoutPatient, setCheckoutPatient] = useState(null);
+  const router = useRouter();
   const [dismissing, setDismissing] = useState(null); // protocol id being dismissed
 
   useEffect(() => {
@@ -226,13 +222,9 @@ export default function MedicationsPage() {
     }
   };
 
-  // Open checkout modal with patient pre-selected
+  // Navigate to checkout page with patient pre-selected
   const openDispenseModal = (med) => {
-    setCheckoutPatient({
-      id: med.patient_id,
-      name: med.patient_name,
-    });
-    setShowCheckoutModal(true);
+    router.push(`/admin/checkout?patient_id=${med.patient_id}&patient_name=${encodeURIComponent(med.patient_name)}`);
   };
 
   // Category matching helper
@@ -487,15 +479,6 @@ export default function MedicationsPage() {
         </div>
       )}
 
-      {/* Medication Checkout Modal (unified dispense flow) */}
-      {showCheckoutModal && (
-        <MedicationCheckoutModal
-          isOpen={showCheckoutModal}
-          onClose={() => { setShowCheckoutModal(false); setCheckoutPatient(null); }}
-          preselectedPatient={checkoutPatient}
-          onCheckoutComplete={() => { setShowCheckoutModal(false); setCheckoutPatient(null); fetchMedications(); }}
-        />
-      )}
     </AdminLayout>
   );
 }

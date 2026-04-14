@@ -60,7 +60,6 @@ const EncounterQuickView = dynamic(() => import('../../components/EncounterQuick
 const ServiceLogContent = dynamic(() => import('../../components/ServiceLogContent'), { ssr: false });
 const EmailComposeModal = dynamic(() => import('../../components/EmailComposeModal'), { ssr: false });
 const SMSComposeModal = dynamic(() => import('../../components/SMSComposeModal'), { ssr: false });
-const MedicationCheckoutModal = dynamic(() => import('../../components/MedicationCheckoutModal'), { ssr: false });
 import { PROTOCOL_TYPES, getHRTMedication, getHRTConcentration } from '../../lib/protocol-types';
 
 // Parse **bold** markdown into React elements
@@ -426,8 +425,6 @@ export default function PatientProfile() {
   const [cycleInfo, setCycleInfo] = useState(null);
   const [ghCycleInfo, setGhCycleInfo] = useState(null);
 
-  // Checkout modal state (unified dispense flow via MedicationCheckoutModal)
-  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
   // Protocol edit modal — custom dose helpers
   const [editCustomDoseMode, setEditCustomDoseMode] = useState(false);
@@ -4163,7 +4160,7 @@ export default function PatientProfile() {
             <div className="toolbar-divider" />
             <div className="toolbar-group">
               <button onClick={() => setShowBookingModal(true)} className="toolbar-btn toolbar-btn-blue" title="Book appointment">📅 <span className="toolbar-label">Book</span></button>
-              <button onClick={() => setShowCheckoutModal(true)} className="toolbar-btn toolbar-btn-green" title="Checkout / Dispense / Charge">💳 <span className="toolbar-label">Checkout</span></button>
+              <button onClick={() => router.push(`/admin/checkout?patient_id=${patient.id}&patient_name=${encodeURIComponent(patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim())}`)} className="toolbar-btn toolbar-btn-green" title="Checkout / Dispense / Charge">💳 <span className="toolbar-label">Checkout</span></button>
               <button onClick={() => setShowAddCreditModal(true)} className="toolbar-btn toolbar-btn-credit" title="Add account credit">🎁 <span className="toolbar-label">Credit</span></button>
               <button onClick={() => { setShowSendFormsModal(true); setSendFormsSelected(new Set()); setSendGuidesSelected(new Set()); setSendFormsResult(null); setSendFormsTab('guides'); setSendGuidesCategory('all'); }} className="toolbar-btn" title="Send guides">📖 <span className="toolbar-label">Guides</span></button>
             </div>
@@ -15976,15 +15973,7 @@ export default function PatientProfile() {
         session={session}
       />
 
-      {/* Medication Checkout Modal (unified dispense flow) */}
-      {showCheckoutModal && (
-        <MedicationCheckoutModal
-          isOpen={showCheckoutModal}
-          onClose={() => setShowCheckoutModal(false)}
-          preselectedPatient={patient ? { id: patient.id, name: patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim(), email: patient.email, phone: patient.phone } : null}
-          onCheckoutComplete={() => { setShowCheckoutModal(false); fetchPatient(); }}
-        />
-      )}
+      {/* Medication Checkout Modal — removed, now routes to /admin/checkout */}
 
       {/* OLD Dispense Modal — REMOVED, replaced by MedicationCheckoutModal above */}
       {false && (

@@ -4,11 +4,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/router';
 import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
 import InvoiceModal from '../../components/InvoiceModal';
 import POSChargeModal from '../../components/POSChargeModal';
-import MedicationCheckoutModal from '../../components/MedicationCheckoutModal';
 import PaymentCalendar from '../../components/PaymentCalendar';
 import { loadStripe } from '@stripe/stripe-js';
 import { List, Calendar, CreditCard, AlertTriangle, CheckCircle, XCircle, Clock, RefreshCw, X } from 'lucide-react';
@@ -91,9 +91,7 @@ export default function PaymentsPage() {
   const [chargeCardLoading, setChargeCardLoading] = useState(false);
   const [chargingCard, setChargingCard] = useState(false);
 
-  // Medication Checkout state
-  const [showMedCheckout, setShowMedCheckout] = useState(false);
-  const [medCheckoutPatient, setMedCheckoutPatient] = useState(null);
+  const router = useRouter();
   const [recentCheckouts, setRecentCheckouts] = useState([]);
   const [loadingCheckouts, setLoadingCheckouts] = useState(false);
 
@@ -756,7 +754,7 @@ export default function PaymentsPage() {
         </div>
         {tab === 'checkout' && (
           <button
-            onClick={() => setShowMedCheckout(true)}
+            onClick={() => router.push('/admin/checkout')}
             style={{ padding: '10px 20px', background: '#000', color: '#fff', border: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
           >
             + New Checkout
@@ -859,17 +857,11 @@ export default function PaymentsPage() {
         <>
           <CheckoutTab
             onStartCheckout={(patient) => {
-              setMedCheckoutPatient(patient || null);
-              setShowMedCheckout(true);
-            }}
-          />
-          <MedicationCheckoutModal
-            isOpen={showMedCheckout}
-            onClose={() => { setShowMedCheckout(false); setMedCheckoutPatient(null); }}
-            preselectedPatient={medCheckoutPatient}
-            onCheckoutComplete={() => {
-              setActionMsg('Checkout completed successfully');
-              setTimeout(() => setActionMsg(''), 3000);
+              if (patient) {
+                router.push(`/admin/checkout?patient_id=${patient.id}&patient_name=${encodeURIComponent(patient.name || '')}`);
+              } else {
+                router.push('/admin/checkout');
+              }
             }}
           />
         </>

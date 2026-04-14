@@ -4,10 +4,10 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/router';
 import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
 import EncounterModal from '../../components/EncounterModal';
-import MedicationCheckoutModal from '../../components/MedicationCheckoutModal';
 import { useAuth } from '../../components/AuthProvider';
 
 // Dynamic import CalendarView (it uses browser APIs)
@@ -37,8 +37,7 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(true);
   const [renewalMap, setRenewalMap] = useState({}); // patient_id -> [renewals]
   const [encounterAppt, setEncounterAppt] = useState(null);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [checkoutPatient, setCheckoutPatient] = useState(null);
+  const router = useRouter();
 
   const today = toPacificDateStr(new Date());
   const [selectedDate, setSelectedDate] = useState(today);
@@ -282,13 +281,7 @@ export default function SchedulePage() {
                       {apt.patient_id && (
                         <button
                           onClick={() => {
-                            setCheckoutPatient({
-                              id: apt.patient_id,
-                              name: apt.patient_name || apt.attendee_name,
-                              email: apt.attendee_email || null,
-                              phone: apt.attendee_phone || null,
-                            });
-                            setShowCheckout(true);
+                            router.push(`/admin/checkout?patient_id=${apt.patient_id}&patient_name=${encodeURIComponent(apt.patient_name || apt.attendee_name)}`);
                           }}
                           style={{
                             background: '#f0fdf4',
@@ -406,13 +399,6 @@ export default function SchedulePage() {
         />
       )}
 
-      {/* Medication Checkout Modal */}
-      <MedicationCheckoutModal
-        isOpen={showCheckout}
-        onClose={() => { setShowCheckout(false); setCheckoutPatient(null); }}
-        preselectedPatient={checkoutPatient}
-        onCheckoutComplete={() => {}}
-      />
     </AdminLayout>
   );
 }

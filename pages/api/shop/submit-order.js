@@ -110,8 +110,8 @@ function buildInternalOrderEmail(patient, orderNumber, items, subtotalCents, shi
       </div>
 
       ${notes ? `
-        <div style="margin-bottom: 20px; background: #f0f7ff; padding: 12px 16px; border-left: 3px solid #3b82f6;">
-          <p style="font-size: 12px; text-transform: uppercase; color: #666; margin: 0 0 4px; font-weight: 600;">Patient Notes</p>
+        <div style="margin-bottom: 20px; background: #f8f8f8; padding: 12px 16px;">
+          <p style="font-size: 12px; text-transform: uppercase; color: #666; margin: 0 0 4px; font-weight: 600; letter-spacing: 0.5px;">Patient Notes</p>
           <p style="font-size: 14px; margin: 0; color: #333;">${notes}</p>
         </div>
       ` : ''}
@@ -199,7 +199,7 @@ function buildPatientConfirmationEmail(patient, orderNumber, items, subtotalCent
         </div>
       `}
 
-      <div style="background: #f0f7ff; padding: 14px 16px; margin-bottom: 20px; border-left: 3px solid #3b82f6;">
+      <div style="background: #f8f8f8; padding: 14px 16px; margin-bottom: 20px;">
         <p style="font-size: 14px; margin: 0; color: #333;">
           <strong>What happens next?</strong> You'll receive an invoice from us shortly. Once payment is complete, we'll prepare your order.
         </p>

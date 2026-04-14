@@ -2,7 +2,7 @@
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { CheckCircle, Clock } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { SHIPPING_OPTIONS } from '../../lib/vial-catalog';
 
 export default function ShopConfirmation() {
@@ -39,11 +39,8 @@ export default function ShopConfirmation() {
             <p style={{ fontSize: 13, color: '#999', margin: '0 0 28px' }}>Order #{order.orderNumber}</p>
 
             {/* What happens next */}
-            <div style={{ background: '#f0f7ff', padding: '16px 18px', marginBottom: 24, textAlign: 'left', borderLeft: '3px solid #3b82f6' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <Clock size={16} color="#3b82f6" />
-                <strong style={{ fontSize: 14, color: '#1e40af' }}>What happens next</strong>
-              </div>
+            <div style={{ background: '#f8f8f8', padding: '16px 18px', marginBottom: 24, textAlign: 'left' }}>
+              <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#999', margin: '0 0 8px' }}>What happens next</p>
               <p style={{ fontSize: 13, color: '#555', margin: 0, lineHeight: 1.6 }}>
                 We'll send you an invoice shortly. Once payment is received, we'll {isPickup ? 'have your order ready for pickup' : 'ship your order right away'}.
               </p>

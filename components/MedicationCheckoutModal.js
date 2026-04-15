@@ -298,14 +298,14 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   }
 
   function addToCart() {
-    // Controlled substance validation — testosterone requires dual verification
-    if (selectedCategory?.id === 'testosterone') {
+    // Controlled substance validation — testosterone & weight loss require dual verification
+    if (['testosterone', 'weight_loss'].includes(selectedCategory?.id)) {
       if (!administeredBy || !verifiedBy) {
-        setError('Controlled substance: Both "Dispensed By" and "Verified By" are required for testosterone.');
+        setError('Controlled substance: Both "Prepared By" and "Verified By" are required.');
         return;
       }
       if (administeredBy === verifiedBy) {
-        setError('Dispensing and verifying staff must be different people.');
+        setError('Prepared By and Verified By must be different people.');
         return;
       }
     }
@@ -1578,7 +1578,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
               {/* Staff / dispensing details */}
               {['testosterone', 'weight_loss'].includes(selectedCategory?.id) ? (() => {
                 const isControlled = selectedCategory?.id === 'testosterone';
-                // For testosterone (controlled substance), only authorized medical staff can dispense/verify
+                // For controlled substances (testosterone), only authorized medical staff can prepare/verify
                 const authorizedStaff = isControlled
                   ? employees.filter(emp => emp.email && CONTROLLED_DISPENSE_STAFF.includes(emp.email.toLowerCase()))
                   : employees;
@@ -1591,12 +1591,12 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                   {isControlled && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 6, marginBottom: 8 }}>
                       <AlertTriangle size={16} style={{ color: '#d97706', flexShrink: 0 }} />
-                      <span style={{ fontSize: 13, color: '#92400e', fontWeight: 500 }}>Controlled substance — dual verification required by authorized medical staff</span>
+                      <span style={{ fontSize: 13, color: '#92400e', fontWeight: 500 }}>Controlled substance — Prepared By and Verified By required</span>
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: '12px' }}>
                     <div style={{ ...styles.fieldGroup, flex: 1 }}>
-                      <label style={styles.label}>Dispensed By {isControlled && <span style={{ color: '#dc2626' }}>*</span>}</label>
+                      <label style={styles.label}>Prepared By {isControlled && <span style={{ color: '#dc2626' }}>*</span>}</label>
                       <select value={administeredBy} onChange={e => setAdministeredBy(e.target.value)} style={{ ...styles.select, ...(isControlled && !administeredBy ? { borderColor: '#f59e0b' } : {}) }}>
                         <option value="">{isControlled ? 'Select authorized staff...' : 'Select staff...'}</option>
                         {authorizedStaff.map(emp => (
@@ -1607,7 +1607,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                       </select>
                     </div>
                     <div style={{ ...styles.fieldGroup, flex: 1 }}>
-                      <label style={styles.label}>Verified By (2nd eyes) {isControlled && <span style={{ color: '#dc2626' }}>*</span>}</label>
+                      <label style={styles.label}>Verified By {isControlled && <span style={{ color: '#dc2626' }}>*</span>}</label>
                       <select value={verifiedBy} onChange={e => setVerifiedBy(e.target.value)} style={{ ...styles.select, ...(isControlled && !verifiedBy ? { borderColor: '#f59e0b' } : {}) }}>
                         <option value="">{isControlled ? 'Select 2nd authorized staff...' : 'Select staff...'}</option>
                         {verifierStaff.map(emp => (

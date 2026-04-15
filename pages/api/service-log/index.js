@@ -275,6 +275,7 @@ async function handlePost(req, res) {
     notes,
     protocol_id, // optional: link to a specific protocol (e.g. when patient has multiple vitamin protocols)
     administered_by,
+    verified_by,
     lot_number,
     expiration_date,
     signature_url,
@@ -340,6 +341,7 @@ async function handlePost(req, res) {
       notes: notes || null,
       protocol_id: protocol_id || null,
       administered_by: administered_by || null,
+      verified_by: verified_by || null,
       lot_number: lot_number || null,
       expiration_date: expiration_date || null,
       signature_url: signature_url || null,

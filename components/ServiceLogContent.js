@@ -175,6 +175,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
   // Dispensing state
   const [dispensingData, setDispensingData] = useState({
     administered_by: '',
+    verified_by: '',
     lot_number: '',
     expiration_date: ''
   });
@@ -611,6 +612,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
           notes: item.formData.notes || null,
           protocol_id: item.protocolId || null,
           administered_by: dispensingData.administered_by || null,
+          verified_by: dispensingData.verified_by || null,
           lot_number: dispensingData.lot_number || null,
           expiration_date: dispensingData.expiration_date || null,
           signature_url: null
@@ -1349,18 +1351,33 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                 {visitItems.length > 0 && (
                   <div style={slcStyles.dispensingSection}>
                     <div style={slcStyles.dispensingSectionTitle}>DISPENSING DETAILS</div>
-                    <div style={slcStyles.formGroup}>
-                      <label style={slcStyles.label}>Administered / Dispensed By</label>
-                      <select
-                        value={dispensingData.administered_by}
-                        onChange={(e) => setDispensingData({ ...dispensingData, administered_by: e.target.value })}
-                        style={slcStyles.input}
-                      >
-                        <option value="">Select staff</option>
-                        {employees.map(emp => (
-                          <option key={emp.id} value={emp.name}>{emp.name}</option>
-                        ))}
-                      </select>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <div style={{ ...slcStyles.formGroup, flex: 1 }}>
+                        <label style={slcStyles.label}>Prepared By</label>
+                        <select
+                          value={dispensingData.administered_by}
+                          onChange={(e) => setDispensingData({ ...dispensingData, administered_by: e.target.value })}
+                          style={slcStyles.input}
+                        >
+                          <option value="">Select staff</option>
+                          {employees.map(emp => (
+                            <option key={emp.id} value={emp.name}>{emp.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={{ ...slcStyles.formGroup, flex: 1 }}>
+                        <label style={slcStyles.label}>Verified By</label>
+                        <select
+                          value={dispensingData.verified_by}
+                          onChange={(e) => setDispensingData({ ...dispensingData, verified_by: e.target.value })}
+                          style={slcStyles.input}
+                        >
+                          <option value="">Select staff</option>
+                          {employees.filter(emp => emp.name !== dispensingData.administered_by).map(emp => (
+                            <option key={emp.id} value={emp.name}>{emp.name}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   </div>
                 )}

@@ -83,7 +83,7 @@ export default async function handler(req, res) {
     // Build line items — use amount_paid (per-item price) and show discount info
     const items = purchases.map(p => {
       const qty = p.quantity || 1;
-      const paidAmount = parseFloat(p.amount_paid) || parseFloat(p.amount) || 0;
+      const paidAmount = parseFloat(p.amount_paid ?? p.amount ?? 0);
       const lineTotalCents = Math.round(paidAmount * 100);
       const origAmount = parseFloat(p.original_amount) || 0;
       const hasItemDiscount = origAmount > 0 && origAmount !== paidAmount;
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
     });
 
     // Sum from per-item amount_paid — never use Stripe PI amount_received
-    const totalAmountCents = purchases.reduce((sum, p) => sum + Math.round((parseFloat(p.amount_paid) || parseFloat(p.amount) || 0) * 100), 0);
+    const totalAmountCents = purchases.reduce((sum, p) => sum + Math.round(parseFloat(p.amount_paid ?? p.amount ?? 0) * 100), 0);
     const isComp = totalAmountCents === 0;
 
     // Build patient address

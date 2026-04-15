@@ -104,7 +104,7 @@ export default async function handler(req, res) {
       // Consolidated receipt — use amount_paid and show discount info
       const items = allPurchases.map(p => {
         const qty = p.quantity || 1;
-        const paidAmount = parseFloat(p.amount_paid) || parseFloat(p.amount) || 0;
+        const paidAmount = parseFloat(p.amount_paid ?? p.amount ?? 0);
         const lineTotalCents = Math.round(paidAmount * 100);
         const origAmount = parseFloat(p.original_amount) || 0;
         const hasItemDiscount = origAmount > 0 && origAmount !== paidAmount;
@@ -124,7 +124,7 @@ export default async function handler(req, res) {
         };
       });
 
-      const totalAmountCents = allPurchases.reduce((sum, p) => sum + Math.round((parseFloat(p.amount_paid) || parseFloat(p.amount) || 0) * 100), 0);
+      const totalAmountCents = allPurchases.reduce((sum, p) => sum + Math.round(parseFloat(p.amount_paid ?? p.amount ?? 0) * 100), 0);
 
       receiptParams = {
         firstName,
@@ -188,7 +188,7 @@ export default async function handler(req, res) {
 
     // Calculate total for subject line — always use amount_paid
     const totalCents = isMultiItem
-      ? allPurchases.reduce((sum, p) => sum + Math.round((parseFloat(p.amount_paid) || parseFloat(p.amount) || 0) * 100), 0)
+      ? allPurchases.reduce((sum, p) => sum + Math.round(parseFloat(p.amount_paid ?? p.amount ?? 0) * 100), 0)
       : receiptParams.amountPaidCents;
     const isComp = totalCents === 0;
     const totalLabel = isComp ? 'Complimentary' : `$${(totalCents / 100).toFixed(2)}`;

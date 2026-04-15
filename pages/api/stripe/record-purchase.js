@@ -53,7 +53,8 @@ async function sendReceiptEmail(purchase) {
     }
 
     // Use the per-item amount_paid from the DB — this is the correct per-item price
-    const actualPaidCents = Math.round((purchase.amount_paid || purchase.amount) * 100);
+    // Use ?? (not ||) so that amount_paid=0 (comp) doesn't fall through to catalog price
+    const actualPaidCents = Math.round((purchase.amount_paid ?? purchase.amount) * 100);
 
     // Build patient address line
     const patientAddress = [patient.address, [patient.city, patient.state, patient.zip_code].filter(Boolean).join(', ')].filter(Boolean).join(', ');

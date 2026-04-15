@@ -280,6 +280,7 @@ function CheckoutInner() {
   const [dispSelectedService, setDispSelectedService] = useState(null); // POS service for paid dispensing
   const [dispItemQty, setDispItemQty] = useState(1);
   const [dispSecondaryDetails, setDispSecondaryDetails] = useState([]); // parsed secondary_medication_details for current protocol
+  const [dispCategoryOverride, setDispCategoryOverride] = useState(null); // override category (e.g. 'vitamin' for WL included injections)
   const [dispSubmitting, setDispSubmitting] = useState(false);
   const [dispResult, setDispResult] = useState(null);
 
@@ -1222,9 +1223,17 @@ function CheckoutInner() {
         });
         const subData = await subRes.json();
         if (!subRes.ok) throw new Error(subData.error);
-        await recordPurchasesWithReturn({ stripe_subscription_id: subData.subscription_id, description: `${description} (monthly subscription)` });
+        // Use the actual amount Stripe charged (not the cart price) and pass the
+        // payment intent ID so the invoice.paid webhook's idempotency check skips this
+        await recordPurchasesWithReturn({
+          stripe_subscription_id: subData.subscription_id,
+          stripe_payment_intent_id: subData.stripe_payment_intent_id || null,
+          description: `${description} (monthly subscription)`,
+          ...(subData.actual_amount_cents != null ? { amount_override: subData.actual_amount_cents } : {}),
+        });
+        const displayAmount = subData.actual_amount_cents != null ? subData.actual_amount_cents : amount;
         setResultStatus('success');
-        setResultMessage(`Subscription created for ${description} — ${formatPrice(amount)}/mo`);
+        setResultMessage(`Subscription created for ${description} — ${formatPrice(displayAmount)}/mo`);
         setStep('result');
         return;
       }
@@ -1429,6 +1438,7 @@ function CheckoutInner() {
     setDispSelectedService(null);
     setDispItemQty(1);
     setDispSecondaryDetails([]);
+    setDispCategoryOverride(null);
     setDispSubmitting(false);
     setDispResult(null);
   }
@@ -1456,9 +1466,12 @@ function CheckoutInner() {
     return map[programType] || programType;
   }
 
-  async function openDispensing(protocol, secondaryMed) {
+  async function openDispensing(protocol, secondaryMed, categoryOverride) {
     resetDispensing();
     setDispensingProtocolId(protocol.id);
+
+    // Store category override (e.g. 'vitamin' for included vitamin injections on WL protocols)
+    if (categoryOverride) setDispCategoryOverride(categoryOverride);
 
     // Parse secondary medication details from protocol
     let secDetails = [];
@@ -1468,8 +1481,13 @@ function CheckoutInner() {
     } catch { secDetails = []; }
     setDispSecondaryDetails(secDetails);
 
-    // Pre-fill from protocol (or specific secondary med)
-    if (secondaryMed) {
+    // Use override category if provided, otherwise derive from protocol
+    const cat = categoryOverride || protocolToCategory(protocol.program_type);
+
+    // Pre-fill from protocol (or specific secondary med) — skip pre-fill for vitamin override
+    if (categoryOverride) {
+      // Vitamin override: don't pre-fill medication — let staff pick from injection list
+    } else if (secondaryMed) {
       setDispMedication(secondaryMed);
       const detail = secDetails.find(d => d.medication === secondaryMed);
       if (detail?.dosage) setDispDosage(detail.dosage);
@@ -1488,7 +1506,6 @@ function CheckoutInner() {
     }
 
     // Auto-set entry type based on category
-    const cat = protocolToCategory(protocol.program_type);
     if (['hbot', 'iv_therapy', 'red_light', 'labs', 'prp', 'packages', 'combo_membership'].includes(cat)) {
       setDispEntryType('session');
     } else if (['testosterone', 'peptide'].includes(cat)) {
@@ -1519,7 +1536,7 @@ function CheckoutInner() {
   function handleAddDispenseToCart() {
     const protocol = activeProtocols.find(p => p.id === dispensingProtocolId);
     if (!protocol) return;
-    const cat = protocolToCategory(protocol.program_type);
+    const cat = dispCategoryOverride || protocolToCategory(protocol.program_type);
     const isCovered = dispCoverageType === 'subscription' || dispCoverageType === 'protocol' || dispCoverageType === 'comp';
     const covSource = dispCoverageType === 'subscription'
       ? (dispCoverage?.coverage_source || 'Active Membership')
@@ -2067,7 +2084,7 @@ function CheckoutInner() {
                         const isExpanded = dispensingProtocolId === proto.id;
                         const hasSessions = proto.total_sessions > 0;
                         const sessionsRemaining = hasSessions ? Math.max(0, proto.total_sessions - (proto.sessions_used || 0)) : null;
-                        const cat = protocolToCategory(proto.program_type);
+                        const cat = (isExpanded && dispCategoryOverride) ? dispCategoryOverride : protocolToCategory(proto.program_type);
 
                         // Parse secondary medications for HRT protocols
                         let secondaryMeds = [];
@@ -2142,8 +2159,8 @@ function CheckoutInner() {
                               </div>
                             </button>
 
-                            {/* Quick-dispense buttons for secondary meds */}
-                            {!isExpanded && secondaryMeds.length > 0 && (
+                            {/* Quick-dispense buttons for secondary meds + vitamin injection for WL */}
+                            {!isExpanded && (secondaryMeds.length > 0 || protocolToCategory(proto.program_type) === 'weight_loss') && (
                               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', padding: '8px 14px', borderTop: '1px solid #f0f0f0' }}>
                                 {secondaryMeds.map(med => (
                                   <button
@@ -2158,6 +2175,18 @@ function CheckoutInner() {
                                     Dispense {med} →
                                   </button>
                                 ))}
+                                {protocolToCategory(proto.program_type) === 'weight_loss' && (
+                                  <button
+                                    style={{
+                                      fontSize: '12px', fontWeight: 600, color: '#047857',
+                                      background: '#ecfdf5', border: '1px solid #a7f3d0',
+                                      padding: '4px 12px', cursor: 'pointer',
+                                    }}
+                                    onClick={() => openDispensing(proto, null, 'vitamin')}
+                                  >
+                                    + Vitamin Injection
+                                  </button>
+                                )}
                               </div>
                             )}
 
@@ -2168,6 +2197,21 @@ function CheckoutInner() {
                                   <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>Loading coverage...</div>
                                 ) : (
                                   <>
+                                    {/* Vitamin injection mode label */}
+                                    {dispCategoryOverride === 'vitamin' && (
+                                      <div style={{
+                                        padding: '8px 14px',
+                                        background: '#ecfdf5',
+                                        border: '1px solid #a7f3d0',
+                                        marginBottom: '8px',
+                                        fontSize: '13px',
+                                        fontWeight: 600,
+                                        color: '#047857',
+                                      }}>
+                                        Included Vitamin Injection — Weight Loss Program
+                                      </div>
+                                    )}
+
                                     {/* Coverage status */}
                                     {dispCoverage && (
                                       <div style={{

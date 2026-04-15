@@ -43,7 +43,7 @@ import {
   isWeightLossType
 } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, buildAdaptiveHRTSchedule, isHRTProtocol, getLabStatusSummary } from '../../lib/hrt-lab-schedule';
-import { isRecoveryPeptide, isGHPeptide } from '../../lib/protocol-config';
+import { isRecoveryPeptide, isGHPeptide, findPeptideProduct } from '../../lib/protocol-config';
 import { VIAL_CATALOG } from '../../lib/vial-catalog';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -7614,7 +7614,7 @@ export default function PatientProfile() {
                                   <div className="px-actions">
                                     {(() => {
                                       // Build preview URL using same logic as the send-guide API
-                                      const buildGuidePreviewUrl = () => {
+                                      const buildGuidePreviewUrl = (overrideDose, overrideNote) => {
                                         const allPeptideProtos = activeProtocols.filter(p =>
                                           ['peptide', 'recovery', 'longevity', 'gh_blend', 'skin', 'neuro', 'immune', 'sexual_health', 'injection'].includes(p.category) && p.status === 'active'
                                         );
@@ -7638,16 +7638,16 @@ export default function PatientProfile() {
                                               deliveryStr.includes('prefilled') ||
                                               deliveryStr.includes('pre-filled');
                                             const delivery = isVial ? 'vial' : isPrefilled ? 'prefilled' : (p.supply_type || p.delivery_method || 'prefilled');
-                                            // For vial protocols, calculate days from num_vials × catalog injectionsPerVial
                                             let days = p.total_sessions || 0;
-                                            if (isVialPurchase) {
+                                            if (isVial) {
                                               const catalogEntry = VIAL_CATALOG.find(v => v.id === vialId);
                                               if (catalogEntry && (catalogEntry.daysPerVial || catalogEntry.injectionsPerVial)) {
                                                 days = p.num_vials * (catalogEntry.daysPerVial || catalogEntry.injectionsPerVial);
                                               }
                                             }
                                             entries.push(`${vialId}.${days}.${delivery}`);
-                                            if (p.selected_dose) doseParams.push(`d_${vialId}=${encodeURIComponent(p.selected_dose)}`);
+                                            const dose = (p.id === protocol.id && overrideDose) ? overrideDose : p.selected_dose;
+                                            if (dose) doseParams.push(`d_${vialId}=${encodeURIComponent(dose)}`);
                                             if (p.frequency) freqParams.push(`f_${vialId}=${encodeURIComponent(p.frequency)}`);
                                           }
                                         }
@@ -7655,17 +7655,54 @@ export default function PatientProfile() {
                                           const fallback = getVialIdForMedication(protocol.medication, protocol.program_name);
                                           if (fallback) entries.push(`${fallback}.0.vial`);
                                         }
-                                        const noteParam = protocol.notes ? `note=${encodeURIComponent(protocol.notes)}` : '';
+                                        const noteText = overrideNote || protocol.notes || '';
+                                        const noteParam = noteText ? `note=${encodeURIComponent(noteText)}` : '';
                                         const extraParams = [...doseParams, ...freqParams, noteParam].filter(Boolean).join('&');
                                         return entries.length > 0 ? `https://www.range-medical.com/peptide-guide?v=${entries.join(',')}${extraParams ? '&' + extraParams : ''}` : null;
                                       };
+                                      // Get phases from protocol-config if this protocol has them
+                                      const product = findPeptideProduct(protocol.medication) || findPeptideProduct(protocol.program_name);
+                                      const phases = product?.phases || [];
                                       const previewUrl = buildGuidePreviewUrl();
                                       return (
                                         <>
-                                          {previewUrl && (
+                                          {phases.length > 0 && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+                                              <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9ca3af' }}>Send Guide by Phase</span>
+                                              {phases.map(ph => {
+                                                const phaseUrl = buildGuidePreviewUrl(ph.dose, `${ph.label} — ${ph.dose}`);
+                                                return (
+                                                  <div key={ph.phase} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                                    {phaseUrl && (
+                                                      <a href={phaseUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary-sm" style={{ textDecoration: 'none', display: 'inline-block', fontSize: '11px', padding: '4px 10px' }}>
+                                                        👁 {ph.label}
+                                                      </a>
+                                                    )}
+                                                    <button
+                                                      onClick={async () => {
+                                                        try {
+                                                          const res = await fetch(`/api/admin/protocols/${protocol.id}/send-guide`, {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ phaseDose: ph.dose, phaseLabel: ph.label }),
+                                                          });
+                                                          const data = await res.json();
+                                                          if (res.ok) { alert(data.twoStep ? 'Guide will deliver when patient replies.' : `${ph.label} guide sent!`); fetchPatient(); }
+                                                          else { alert(data.error || 'Failed to send'); }
+                                                        } catch (e) { alert('Failed to send'); }
+                                                      }}
+                                                      className="btn-secondary-sm"
+                                                      style={{ fontSize: '11px', padding: '4px 10px' }}
+                                                    >📖 Send {ph.label} <span style={{ color: '#737373', fontWeight: 400 }}>({ph.dose})</span></button>
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          )}
+                                          {phases.length === 0 && previewUrl && (
                                             <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary-sm" style={{ textDecoration: 'none', display: 'inline-block' }}>👁 Preview Guide</a>
                                           )}
-                                          {!protocol.peptide_guide_sent && (
+                                          {phases.length === 0 && !protocol.peptide_guide_sent && (
                                             <button
                                               onClick={async () => {
                                                 try {

@@ -22,6 +22,7 @@ export default async function handler(req, res) {
   }
 
   const { id } = req.query;
+  const { phaseDose, phaseLabel } = req.body || {};
 
   try {
     // Fetch the clicked protocol
@@ -100,13 +101,15 @@ export default async function handler(req, res) {
         const delivery = isVial ? 'vial' : isPrefilled ? 'prefilled' : (p.supply_type || p.delivery_method || 'prefilled');
         // For vial protocols, calculate days from num_vials × catalog injectionsPerVial
         let days = p.total_sessions || null;
-        if (isVialPurchase) {
+        if (isVial) {
           const catalogEntry = VIAL_CATALOG.find(v => v.id === vialId);
           if (catalogEntry && (catalogEntry.daysPerVial || catalogEntry.injectionsPerVial)) {
             days = p.num_vials * (catalogEntry.daysPerVial || catalogEntry.injectionsPerVial);
           }
         }
-        vialEntries.push({ vialId, days, delivery, dose: p.selected_dose || '', freq: p.frequency || '' });
+        // Use phase dose override if this is the clicked protocol and a phase was selected
+        const dose = (p.id === id && phaseDose) ? phaseDose : (p.selected_dose || '');
+        vialEntries.push({ vialId, days, delivery, dose, freq: p.frequency || '' });
       }
       protocolIds.push(p.id);
     }
@@ -139,7 +142,8 @@ export default async function handler(req, res) {
       .filter(e => e.freq)
       .map(e => `f_${e.vialId}=${encodeURIComponent(e.freq)}`)
       .join('&');
-    const noteParam = protocol.notes ? `note=${encodeURIComponent(protocol.notes)}` : '';
+    const noteText = phaseLabel ? `${phaseLabel} — ${phaseDose}` : (protocol.notes || '');
+    const noteParam = noteText ? `note=${encodeURIComponent(noteText)}` : '';
     const extraParams = [doseParams, freqParams, noteParam].filter(Boolean).join('&');
     const guideUrl = `https://www.range-medical.com/peptide-guide?v=${vParam}${extraParams ? '&' + extraParams : ''}`;
     const guideMessage = `Hi ${firstName}! Here's your personalized peptide guide with ${vialEntries.some(e => e.delivery === 'vial') ? 'reconstitution and ' : ''}injection instructions: ${guideUrl} - Range Medical`;

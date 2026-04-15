@@ -39,6 +39,23 @@ function parseVialParams(query) {
   return [];
 }
 
+// Calculate actual injection count from frequency and protocol days
+// e.g., "5 on / 2 off" over 30 days = 4 weeks × 5 = 20 injections
+function getInjectionCount(frequency, protocolDays) {
+  if (!protocolDays) return null;
+  const freq = (frequency || '').toLowerCase();
+  const match = freq.match(/(\d+)\s*on\s*\/?\s*(\d+)\s*off/);
+  if (match) {
+    const onDays = parseInt(match[1]);
+    const offDays = parseInt(match[2]);
+    const cycleLen = onDays + offDays;
+    return Math.floor(protocolDays / cycleLen) * onDays;
+  }
+  // Daily = 1 injection per day
+  if (freq.includes('daily')) return protocolDays;
+  return protocolDays;
+}
+
 export default function PeptideGuide() {
   const router = useRouter();
 
@@ -166,7 +183,7 @@ export default function PeptideGuide() {
                       <div className="pg-vial-row"><span>Injections Per Vial</span><span>{v.injectionsPerVial}</span></div>
                     )}
                     {v.delivery === 'prefilled' && v.protocolDays && (
-                      <div className="pg-vial-row"><span>Syringes Included</span><span>{v.protocolDays}</span></div>
+                      <div className="pg-vial-row"><span>Syringes Included</span><span>{getInjectionCount(v.frequency, v.protocolDays)}</span></div>
                     )}
                     {v.delivery !== 'prefilled' && v.reconstitution !== 'Pre-reconstituted' && (
                       <div className="pg-vial-row pg-vial-row-highlight">
@@ -503,7 +520,7 @@ export default function PeptideGuide() {
                     <div><span>Frequency:</span> {v.frequency}</div>
                     {v.timing && <div><span>Timing:</span> {v.timing}</div>}
                     {v.delivery === 'prefilled'
-                      ? v.protocolDays && <div><span>Syringes:</span> {v.protocolDays} pre-filled</div>
+                      ? v.protocolDays && <div><span>Syringes:</span> {getInjectionCount(v.frequency, v.protocolDays)} pre-filled</div>
                       : <div><span>Injections in Vial:</span> {v.injectionsPerVial}</div>
                     }
                   </div>

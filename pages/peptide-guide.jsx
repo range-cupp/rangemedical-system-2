@@ -45,6 +45,7 @@ export default function PeptideGuide() {
   if (!router.isReady) return null;
 
   const items = parseVialParams(router.query);
+  const providerNote = router.query.note || null;
 
   if (items.length === 0) {
     return (
@@ -158,6 +159,9 @@ export default function PeptideGuide() {
                     </div>
                     <div className="pg-vial-row"><span>Dose</span><span>{v.dosage}</span></div>
                     <div className="pg-vial-row"><span>Frequency</span><span>{v.frequency}</span></div>
+                    {v.timing && (
+                      <div className="pg-vial-row"><span>Timing</span><span>{v.timing}</span></div>
+                    )}
                     {v.delivery !== 'prefilled' && (
                       <div className="pg-vial-row"><span>Injections Per Vial</span><span>{v.injectionsPerVial}</span></div>
                     )}
@@ -175,6 +179,13 @@ export default function PeptideGuide() {
                 </div>
               ))}
             </div>
+
+            {providerNote && (
+              <div className="pg-provider-note">
+                <div className="pg-provider-note-label">Note from your provider</div>
+                <p>{providerNote}</p>
+              </div>
+            )}
           </div>
         </section>
 
@@ -490,6 +501,7 @@ export default function PeptideGuide() {
                     {v.protocolDays && <div><span>Protocol:</span> {v.protocolDays} days</div>}
                     <div><span>Dose:</span> {v.dosage}</div>
                     <div><span>Frequency:</span> {v.frequency}</div>
+                    {v.timing && <div><span>Timing:</span> {v.timing}</div>}
                     {v.delivery === 'prefilled'
                       ? v.protocolDays && <div><span>Syringes:</span> {v.protocolDays} pre-filled</div>
                       : <div><span>Injections in Vial:</span> {v.injectionsPerVial}</div>
@@ -635,6 +647,10 @@ const styles = `
   .pg-schedule-name { font-weight: 900; font-size: 1.125rem; text-transform: uppercase; letter-spacing: -0.01em; flex-shrink: 0; }
   .pg-schedule-details { font-size: 0.875rem; color: #737373; line-height: 1.8; text-align: right; }
   .pg-schedule-details span { font-weight: 600; color: #171717; }
+
+  .pg-provider-note { background: #ffffff; border: 1px solid #e0e0e0; border-left: 3px solid #1a1a1a; padding: 1.25rem 1.5rem; margin-top: 2rem; }
+  .pg-provider-note-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #737373; margin-bottom: 0.5rem; }
+  .pg-provider-note p { font-size: 0.95rem; color: #171717; line-height: 1.7; margin: 0; }
 
   .pg-tip-box { background: #ffffff; border-left: 3px solid #1a1a1a; padding: 1.25rem 1.5rem; margin-top: 2rem; font-size: 0.9rem; color: #737373; line-height: 1.7; }
   .pg-tip-box strong { color: #171717; }

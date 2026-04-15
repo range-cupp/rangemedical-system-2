@@ -5677,11 +5677,35 @@ export default function PatientProfile() {
               const dose = proto.selected_dose || proto.starting_dose || '';
               const freq = proto.frequency || '';
               const supply = proto.supply_type ? proto.supply_type.replace(/_/g, ' ') : '';
+
+              // Enrich display for HRT injectable medications (testosterone)
+              let displayName = medName;
+              let displayStrength = dose;
+              let displaySig = [freq, supply].filter(Boolean).join(' · ');
+              const isTestosterone = /^testosterone/i.test(medName);
+
+              if (isTestosterone && dose) {
+                const isFemale = proto.hrt_type === 'female' || (proto.program_type || '').includes('female');
+                const concentration = isFemale ? '100 MG/ML' : '200 MG/ML';
+                const injMethod = proto.injection_method || 'im';
+                const routeLabel = injMethod === 'subq' ? 'Subcutaneous' : 'Intramuscular';
+                const routeAdverb = injMethod === 'subq' ? 'Subcutaneously' : 'Intramuscularly';
+
+                displayName = `${medName} ${concentration} ${routeLabel} Solution`;
+                displayStrength = `${concentration} · Solution`;
+
+                const doseMatch = dose.match(/^([\d.]+ml)\/([\d.]+mg)$/i);
+                if (doseMatch && freq) {
+                  const freqFormatted = freq.replace(/\//g, ' per ');
+                  displaySig = `Administer ${doseMatch[1]} (${doseMatch[2]}) ${routeAdverb} ${freqFormatted}.`;
+                }
+              }
+
               protocolMeds.push({
                 id: `proto-${proto.id}`,
-                medication_name: medName,
-                strength: dose,
-                sig: [freq, supply].filter(Boolean).join(' · '),
+                medication_name: displayName,
+                strength: displayStrength,
+                sig: displaySig,
                 start_date: proto.start_date,
                 source: proto.category ? proto.category.toUpperCase() : 'Protocol',
                 catStyle,
@@ -7621,7 +7645,8 @@ export default function PatientProfile() {
                                           const fallback = getVialIdForMedication(protocol.medication, protocol.program_name);
                                           if (fallback) entries.push(`${fallback}.0.vial`);
                                         }
-                                        const extraParams = [...doseParams, ...freqParams].filter(Boolean).join('&');
+                                        const noteParam = protocol.notes ? `note=${encodeURIComponent(protocol.notes)}` : '';
+                                        const extraParams = [...doseParams, ...freqParams, noteParam].filter(Boolean).join('&');
                                         return entries.length > 0 ? `https://www.range-medical.com/peptide-guide?v=${entries.join(',')}${extraParams ? '&' + extraParams : ''}` : null;
                                       };
                                       const previewUrl = buildGuidePreviewUrl();

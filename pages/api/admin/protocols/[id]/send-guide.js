@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     // Fetch the clicked protocol
     const { data: protocol, error: protocolError } = await supabase
       .from('protocols')
-      .select('id, patient_id, medication, program_name, patient_name, peptide_guide_sent')
+      .select('id, patient_id, medication, program_name, patient_name, peptide_guide_sent, notes')
       .eq('id', id)
       .single();
 
@@ -135,7 +135,8 @@ export default async function handler(req, res) {
       .filter(e => e.freq)
       .map(e => `f_${e.vialId}=${encodeURIComponent(e.freq)}`)
       .join('&');
-    const extraParams = [doseParams, freqParams].filter(Boolean).join('&');
+    const noteParam = protocol.notes ? `note=${encodeURIComponent(protocol.notes)}` : '';
+    const extraParams = [doseParams, freqParams, noteParam].filter(Boolean).join('&');
     const guideUrl = `https://www.range-medical.com/peptide-guide?v=${vParam}${extraParams ? '&' + extraParams : ''}`;
     const guideMessage = `Hi ${firstName}! Here's your personalized peptide guide with ${vialEntries.some(e => e.delivery === 'vial') ? 'reconstitution and ' : ''}injection instructions: ${guideUrl} - Range Medical`;
 

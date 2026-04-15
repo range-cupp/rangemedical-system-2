@@ -2595,18 +2595,20 @@ export default function ProtocolDetail() {
                   </select>
                 </div>
 
-                {/* Comp */}
-                <div style={styles.section}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '15px' }}>
-                    <input
-                      type="checkbox"
-                      checked={form.comp || false}
-                      onChange={e => setForm({ ...form, comp: e.target.checked })}
-                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                    />
-                    <span style={{ fontWeight: '500' }}>Complimentary (no payment tracking)</span>
-                  </label>
-                </div>
+                {/* Comp — admin only */}
+                {isAdminUser && (
+                  <div style={styles.section}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '15px' }}>
+                      <input
+                        type="checkbox"
+                        checked={form.comp || false}
+                        onChange={e => setForm({ ...form, comp: e.target.checked })}
+                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                      />
+                      <span style={{ fontWeight: '500' }}>Complimentary (no payment tracking)</span>
+                    </label>
+                  </div>
+                )}
 
                 {/* Notes */}
                 <div style={styles.section}>

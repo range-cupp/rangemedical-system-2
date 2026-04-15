@@ -34,6 +34,19 @@ const GUIDE_DEFINITIONS = {
   'elite-panel-male-guide': { name: 'Elite Male Panel', path: '/elite-panel-male-guide' },
   'elite-panel-female-guide': { name: 'Elite Female Panel', path: '/elite-panel-female-guide' },
   'the-blu-guide': { name: 'The Blu', path: '/the-blu-guide' },
+  'bpc-157-guide': { name: 'BPC-157 Guide', path: '/bpc-157-guide' },
+  'klow-guide': { name: 'KLOW Guide', path: '/klow-guide' },
+  'bdnf-guide': { name: 'BDNF Guide', path: '/bdnf-guide' },
+  'aod-9604-guide': { name: 'AOD-9604 Guide', path: '/aod-9604-guide' },
+  'dsip-guide': { name: 'DSIP Guide', path: '/dsip-guide' },
+  'slupp-guide': { name: '5-Amino / SLUPP Guide', path: '/slupp-guide' },
+  'cjc-ipamorelin-guide': { name: 'CJC/Ipamorelin Guide', path: '/cjc-ipamorelin-guide' },
+  '4x-blend-guide': { name: '4X Blend Guide', path: '/4x-blend-guide' },
+  'igf1-lr3-guide': { name: 'IGF-1 LR3 Guide', path: '/igf1-lr3-guide' },
+  'mots-c-guide': { name: 'MOTS-C Guide', path: '/mots-c-guide' },
+  'ss31-guide': { name: 'SS-31 Guide', path: '/ss31-guide' },
+  'peptide-guide': { name: 'Peptide Guide (General)', path: '/peptide-guide' },
+  'pt-141-guide': { name: 'PT-141 Guide', path: '/pt-141-guide' },
 };
 
 export default async function handler(req, res) {

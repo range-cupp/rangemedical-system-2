@@ -554,6 +554,11 @@ export default function Assessment() {
 
       setLeadId(data.leadId);
       setLeadSubmitted(true);
+
+      // Fire Meta Pixel Lead event
+      if (typeof window !== 'undefined' && window.fbq) {
+        window.fbq('track', 'Lead', { content_name: selectedPath });
+      }
     } catch (err) {
       console.error('Lead submit error:', err);
       setLeadSubmitted(true);
@@ -706,6 +711,11 @@ export default function Assessment() {
 
       // Push /assessment/confirmed for Google Ads conversion tracking
       window.history.pushState({}, '', '/assessment/confirmed');
+
+      // Fire Meta Pixel Purchase event
+      if (typeof window !== 'undefined' && window.fbq) {
+        window.fbq('track', 'Purchase', { value: 197.00, currency: 'USD' });
+      }
     } catch (err) {
       console.error('Confirm error:', err);
       setError(err.message);
@@ -760,7 +770,7 @@ export default function Assessment() {
                   <span style={s.dot} /> YOUR ASSESSMENT
                 </div>
                 <h1 style={s.headline}>
-                  WHAT DO YOU<br />NEED HELP<br />WITH?
+                  BETTER ENERGY.<br />FASTER RECOVERY.<br />OPTIMIZED HEALTH.
                 </h1>
                 <div style={s.rule} />
                 <p style={s.headlineSub}>
@@ -809,6 +819,54 @@ export default function Assessment() {
                   </div>
                 ))}
               </div>
+
+              {/* Testimonials */}
+              <div style={{ marginTop: 48 }}>
+                <div style={s.label}>
+                  <span style={s.dot} /> WHAT OUR PATIENTS SAY
+                </div>
+                <div style={s.rule} />
+
+                {[
+                  {
+                    name: 'Mark T.',
+                    text: 'I recently experienced a shoulder injury and scheduled a few PT appointments. When I asked about peptides to help fast-track my recovery, they walked me upstairs and introduced me to the team at Range Medical. My labs were thoroughly reviewed, clearly explained, and a thoughtful health plan was put in place.',
+                    highlight: 'Labs thoroughly reviewed, clearly explained, and a thoughtful health plan was put in place.',
+                  },
+                  {
+                    name: 'Jessica R.',
+                    text: 'Range Medical has been an integral part of my healing journey. I noticed significant improvement shortly after starting recovery peptides. My results are consistent and I trust the quality and providers. All of the providers are friendly, incredibly knowledgeable and go above and beyond.',
+                    highlight: 'My results are consistent and I trust the quality and providers.',
+                  },
+                  {
+                    name: 'Michael B.',
+                    text: 'Best medical experience I\'ve had. No rushed appointments, no feeling like just another number. They genuinely care about helping you optimize your health. The peptide protocols have been excellent for my recovery.',
+                    highlight: 'No rushed appointments, no feeling like just another number.',
+                  },
+                ].map((review) => (
+                  <div key={review.name} style={{ padding: '24px 0', borderBottom: '1px solid #e0e0e0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <span style={{ fontSize: 14, color: '#f59e0b' }}>&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a' }}>{review.name}</span>
+                    </div>
+                    <p style={{ fontSize: 15, lineHeight: 1.7, color: '#737373', margin: '0 0 8px', fontStyle: 'italic' }}>
+                      &ldquo;{review.highlight}&rdquo;
+                    </p>
+                    <p style={{ fontSize: 13, lineHeight: 1.7, color: '#a0a0a0', margin: 0 }}>
+                      {review.text}
+                    </p>
+                  </div>
+                ))}
+
+                <div style={{ textAlign: 'center', marginTop: 20 }}>
+                  <a
+                    href="/reviews"
+                    style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: '#1a1a1a', textTransform: 'uppercase', borderBottom: '1.5px solid #1a1a1a', paddingBottom: 3, textDecoration: 'none' }}
+                  >
+                    READ MORE REVIEWS &rarr;
+                  </a>
+                </div>
+              </div>
             </>
           )}
 
@@ -841,6 +899,29 @@ export default function Assessment() {
 
                 <div style={s.price}>
                   <strong>$197</strong> — applied as credit toward your first treatment or lab package
+                  <ul style={{ margin: '12px 0 0', paddingLeft: 18, listStyle: 'none' }}>
+                    {selectedPath === 'injury' && (
+                      <>
+                        <li style={{ fontSize: 14, color: '#4a4a4a', lineHeight: 1.8 }}>&#10003;&ensp;1-on-1 consultation focused on your injury and recovery timeline</li>
+                        <li style={{ fontSize: 14, color: '#4a4a4a', lineHeight: 1.8 }}>&#10003;&ensp;Custom recovery protocol built around your goals</li>
+                        <li style={{ fontSize: 14, color: '#4a4a4a', lineHeight: 1.8 }}>&#10003;&ensp;$197 applied as credit toward your treatment plan</li>
+                      </>
+                    )}
+                    {selectedPath === 'energy' && (
+                      <>
+                        <li style={{ fontSize: 14, color: '#4a4a4a', lineHeight: 1.8 }}>&#10003;&ensp;1-on-1 consultation focused on energy, hormones, and metabolism</li>
+                        <li style={{ fontSize: 14, color: '#4a4a4a', lineHeight: 1.8 }}>&#10003;&ensp;Personalized roadmap based on your symptoms and goals</li>
+                        <li style={{ fontSize: 14, color: '#4a4a4a', lineHeight: 1.8 }}>&#10003;&ensp;$197 applied as credit toward your labs or treatment plan</li>
+                      </>
+                    )}
+                    {selectedPath === 'both' && (
+                      <>
+                        <li style={{ fontSize: 14, color: '#4a4a4a', lineHeight: 1.8 }}>&#10003;&ensp;1-on-1 consultation covering injury recovery and hormone optimization</li>
+                        <li style={{ fontSize: 14, color: '#4a4a4a', lineHeight: 1.8 }}>&#10003;&ensp;Full-spectrum health assessment with a personalized plan</li>
+                        <li style={{ fontSize: 14, color: '#4a4a4a', lineHeight: 1.8 }}>&#10003;&ensp;$197 applied as credit toward your treatment or labs</li>
+                      </>
+                    )}
+                  </ul>
                 </div>
 
                 <button

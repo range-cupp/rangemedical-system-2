@@ -1,11 +1,21 @@
 // /pages/admin/actions.js
 // Daily Action Board — Who needs medication? Who's due for payment?
+// Segmented by category: HRT, Weight Loss, Peptides, Injections
 // Range Medical
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
-import { getCategoryBadge, formatDate } from '../../lib/protocol-tracking';
+import { formatDate } from '../../lib/protocol-tracking';
+
+const CATEGORIES = [
+  { key: 'hrt', label: 'HRT', color: '#fed7aa' },
+  { key: 'weight_loss', label: 'Weight Loss', color: '#bbf7d0' },
+  { key: 'peptide', label: 'Peptides', color: '#ddd6fe' },
+  { key: 'injection', label: 'Injections', color: '#e9d5ff' },
+  { key: 'other', label: 'Other', color: '#e5e7eb' },
+];
 
 export default function ActionsPage() {
   const router = useRouter();
@@ -41,10 +51,171 @@ export default function ActionsPage() {
     };
   };
 
+  // Group items by category
+  const groupByCategory = (items) => {
+    const groups = {};
+    CATEGORIES.forEach(cat => { groups[cat.key] = []; });
+
+    (items || []).forEach(item => {
+      const cat = item.category || 'other';
+      // Map iv, hbot, rlt to 'injection' bucket
+      const bucket = ['iv', 'hbot', 'rlt', 'injection'].includes(cat) ? 'injection' : cat;
+      if (groups[bucket]) {
+        groups[bucket].push(item);
+      } else {
+        groups['other'].push(item);
+      }
+    });
+
+    return groups;
+  };
+
   const medCount = data?.medication_due?.length || 0;
   const payCount = data?.payment_due?.length || 0;
   const medOverdue = data?.counts?.medication_overdue || 0;
   const payOverdue = data?.counts?.payment_overdue || 0;
+
+  const medGroups = groupByCategory(data?.medication_due);
+  const payGroups = groupByCategory(data?.payment_due);
+
+  const renderMedicationRow = (item, i) => (
+    <tr
+      key={`med-${i}`}
+      style={{ ...sharedStyles.trHover, background: item.color === 'red' ? '#fef2f2' : 'transparent' }}
+      onMouseEnter={e => { if (item.color !== 'red') e.currentTarget.style.background = '#fafafa'; }}
+      onMouseLeave={e => { if (item.color !== 'red') e.currentTarget.style.background = 'transparent'; }}
+    >
+      <td style={sharedStyles.td}>
+        <span style={statusBadge(item.status, item.color)}>{item.status}</span>
+      </td>
+      <td style={{ ...sharedStyles.td, fontWeight: '600', fontSize: '16px' }}>
+        <Link
+          href={`/patients/${item.patient_id}`}
+          style={{ color: '#000', textDecoration: 'none' }}
+        >
+          {item.patient_name}
+        </Link>
+      </td>
+      <td style={{ ...sharedStyles.td, color: '#333' }}>
+        {item.medication}
+      </td>
+      <td style={{ ...sharedStyles.td, color: '#666' }}>
+        {item.days_remaining !== null && item.days_remaining !== undefined
+          ? (item.days_remaining <= 0
+            ? `${Math.abs(item.days_remaining)}d overdue`
+            : `${item.days_remaining}d left`)
+          : item.sessions_remaining !== null && item.sessions_remaining !== undefined
+            ? `${item.sessions_remaining} sessions left`
+            : item.status_text || '-'
+        }
+      </td>
+      <td style={{ ...sharedStyles.td, color: '#666' }}>
+        {item.last_dispensed ? formatDate(item.last_dispensed) : 'Never'}
+      </td>
+      <td style={sharedStyles.td}>
+        <button
+          onClick={() => router.push(`/patients/${item.patient_id}?tab=messages`)}
+          style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall }}
+        >
+          Text
+        </button>
+      </td>
+    </tr>
+  );
+
+  const renderPaymentRow = (item, i) => (
+    <tr
+      key={`pay-${i}`}
+      style={{ ...sharedStyles.trHover, background: item.color === 'red' ? '#fef2f2' : 'transparent' }}
+      onMouseEnter={e => { if (item.color !== 'red') e.currentTarget.style.background = '#fafafa'; }}
+      onMouseLeave={e => { if (item.color !== 'red') e.currentTarget.style.background = 'transparent'; }}
+    >
+      <td style={sharedStyles.td}>
+        <span style={statusBadge(item.status, item.color)}>{item.status}</span>
+      </td>
+      <td style={{ ...sharedStyles.td, fontWeight: '600', fontSize: '16px' }}>
+        <Link
+          href={`/patients/${item.patient_id}`}
+          style={{ color: '#000', textDecoration: 'none' }}
+        >
+          {item.patient_name}
+        </Link>
+      </td>
+      <td style={{ ...sharedStyles.td, color: '#333' }}>
+        {item.medication}
+      </td>
+      <td style={{ ...sharedStyles.td, color: '#666' }}>
+        {item.last_payment ? formatDate(item.last_payment) : 'No payment recorded'}
+        {item.last_amount ? ` ($${item.last_amount})` : ''}
+      </td>
+      <td style={{ ...sharedStyles.td, color: '#666' }}>
+        {item.next_due ? formatDate(item.next_due) : '-'}
+        {item.days_until !== null && item.days_until !== undefined && (
+          <span style={{ marginLeft: '8px', color: item.days_until <= 0 ? '#dc2626' : '#666' }}>
+            ({item.days_until <= 0 ? `${Math.abs(item.days_until)}d overdue` : `${item.days_until}d`})
+          </span>
+        )}
+      </td>
+      <td style={sharedStyles.td}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => router.push(`/patients/${item.patient_id}?tab=messages`)}
+            style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}
+          >
+            Text
+          </button>
+          <button
+            onClick={() => router.push(`/admin/checkout?patient_id=${item.patient_id}`)}
+            style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall }}
+          >
+            Charge
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+
+  const renderCategorySection = (catKey, catLabel, catColor, items, renderRow, columns) => {
+    if (!items || items.length === 0) return null;
+    return (
+      <div key={catKey} style={{ marginBottom: '8px' }}>
+        <div style={{
+          padding: '12px 24px',
+          background: '#fafafa',
+          borderBottom: '1px solid #e5e5e5',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <span style={{
+            display: 'inline-block',
+            width: '10px',
+            height: '10px',
+            background: catColor,
+            border: '1px solid rgba(0,0,0,0.1)'
+          }} />
+          <span style={{ fontSize: '14px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#333' }}>
+            {catLabel}
+          </span>
+          <span style={{ fontSize: '13px', color: '#999', fontWeight: '500' }}>
+            ({items.length})
+          </span>
+        </div>
+        <table style={sharedStyles.table}>
+          <thead>
+            <tr>
+              {columns.map(col => (
+                <th key={col} style={sharedStyles.th}>{col}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, i) => renderRow(item, `${catKey}-${i}`))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   return (
     <AdminLayout title="Actions">
@@ -143,175 +314,42 @@ export default function ActionsPage() {
             </div>
           </div>
 
-          {/* Medication table */}
+          {/* Medication — segmented by category */}
           {activeTab === 'medication' && (
-            <div style={{ overflowX: 'auto' }}>
+            <div>
               {medCount === 0 ? (
                 <div style={{ padding: '48px 24px', textAlign: 'center', color: '#999', fontSize: '16px' }}>
                   No medication due right now. Everyone's supplied.
                 </div>
               ) : (
-                <table style={sharedStyles.table}>
-                  <thead>
-                    <tr>
-                      <th style={sharedStyles.th}>Status</th>
-                      <th style={sharedStyles.th}>Patient</th>
-                      <th style={sharedStyles.th}>Protocol</th>
-                      <th style={sharedStyles.th}>Details</th>
-                      <th style={sharedStyles.th}>Last Dispensed</th>
-                      <th style={sharedStyles.th}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.medication_due.map((item, i) => {
-                      const badge = getCategoryBadge(item.category);
-                      return (
-                        <tr
-                          key={`med-${i}`}
-                          style={{ ...sharedStyles.trHover, background: item.color === 'red' ? '#fef2f2' : 'transparent' }}
-                          onMouseEnter={e => { if (item.color !== 'red') e.currentTarget.style.background = '#fafafa'; }}
-                          onMouseLeave={e => { if (item.color !== 'red') e.currentTarget.style.background = 'transparent'; }}
-                        >
-                          <td style={sharedStyles.td}>
-                            <span style={statusBadge(item.status, item.color)}>{item.status}</span>
-                          </td>
-                          <td style={{ ...sharedStyles.td, fontWeight: '600' }}>
-                            <span
-                              style={{ cursor: 'pointer', color: '#000', textDecoration: 'none' }}
-                              onClick={() => router.push(`/patients/${item.patient_id}`)}
-                            >
-                              {item.patient_name}
-                            </span>
-                          </td>
-                          <td style={sharedStyles.td}>
-                            <span style={{
-                              display: 'inline-block',
-                              padding: '3px 8px',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              background: badge.color,
-                              marginRight: '8px'
-                            }}>
-                              {badge.text}
-                            </span>
-                            {item.medication}
-                          </td>
-                          <td style={{ ...sharedStyles.td, color: '#666' }}>
-                            {item.days_remaining !== null && item.days_remaining !== undefined
-                              ? (item.days_remaining <= 0
-                                ? `${Math.abs(item.days_remaining)}d overdue`
-                                : `${item.days_remaining}d left`)
-                              : item.sessions_remaining !== null && item.sessions_remaining !== undefined
-                                ? `${item.sessions_remaining} sessions left`
-                                : item.status_text || '-'
-                            }
-                          </td>
-                          <td style={{ ...sharedStyles.td, color: '#666' }}>
-                            {item.last_dispensed ? formatDate(item.last_dispensed) : 'Never'}
-                          </td>
-                          <td style={sharedStyles.td}>
-                            <button
-                              onClick={() => router.push(`/patients/${item.patient_id}?tab=messages`)}
-                              style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall }}
-                            >
-                              Text
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <>
+                  {CATEGORIES.map(cat => renderCategorySection(
+                    cat.key, cat.label, cat.color,
+                    medGroups[cat.key],
+                    renderMedicationRow,
+                    ['Status', 'Patient', 'Medication', 'Details', 'Last Dispensed', 'Action']
+                  ))}
+                </>
               )}
             </div>
           )}
 
-          {/* Payment table */}
+          {/* Payment — segmented by category */}
           {activeTab === 'payment' && (
-            <div style={{ overflowX: 'auto' }}>
+            <div>
               {payCount === 0 ? (
                 <div style={{ padding: '48px 24px', textAlign: 'center', color: '#999', fontSize: '16px' }}>
                   No payments due right now. Everyone's current.
                 </div>
               ) : (
-                <table style={sharedStyles.table}>
-                  <thead>
-                    <tr>
-                      <th style={sharedStyles.th}>Status</th>
-                      <th style={sharedStyles.th}>Patient</th>
-                      <th style={sharedStyles.th}>Protocol</th>
-                      <th style={sharedStyles.th}>Last Payment</th>
-                      <th style={sharedStyles.th}>Next Due</th>
-                      <th style={sharedStyles.th}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.payment_due.map((item, i) => {
-                      const badge = getCategoryBadge(item.category);
-                      return (
-                        <tr
-                          key={`pay-${i}`}
-                          style={{ ...sharedStyles.trHover, background: item.color === 'red' ? '#fef2f2' : 'transparent' }}
-                          onMouseEnter={e => { if (item.color !== 'red') e.currentTarget.style.background = '#fafafa'; }}
-                          onMouseLeave={e => { if (item.color !== 'red') e.currentTarget.style.background = 'transparent'; }}
-                        >
-                          <td style={sharedStyles.td}>
-                            <span style={statusBadge(item.status, item.color)}>{item.status}</span>
-                          </td>
-                          <td style={{ ...sharedStyles.td, fontWeight: '600' }}>
-                            <span
-                              style={{ cursor: 'pointer', color: '#000', textDecoration: 'none' }}
-                              onClick={() => router.push(`/patients/${item.patient_id}`)}
-                            >
-                              {item.patient_name}
-                            </span>
-                          </td>
-                          <td style={sharedStyles.td}>
-                            <span style={{
-                              display: 'inline-block',
-                              padding: '3px 8px',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              background: badge.color,
-                              marginRight: '8px'
-                            }}>
-                              {badge.text}
-                            </span>
-                            {item.medication}
-                          </td>
-                          <td style={{ ...sharedStyles.td, color: '#666' }}>
-                            {item.last_payment ? formatDate(item.last_payment) : 'No payment recorded'}
-                            {item.last_amount ? ` ($${item.last_amount})` : ''}
-                          </td>
-                          <td style={{ ...sharedStyles.td, color: '#666' }}>
-                            {item.next_due ? formatDate(item.next_due) : '-'}
-                            {item.days_until !== null && item.days_until !== undefined && (
-                              <span style={{ marginLeft: '8px', color: item.days_until <= 0 ? '#dc2626' : '#666' }}>
-                                ({item.days_until <= 0 ? `${Math.abs(item.days_until)}d overdue` : `${item.days_until}d`})
-                              </span>
-                            )}
-                          </td>
-                          <td style={sharedStyles.td}>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                              <button
-                                onClick={() => router.push(`/patients/${item.patient_id}?tab=messages`)}
-                                style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}
-                              >
-                                Text
-                              </button>
-                              <button
-                                onClick={() => router.push(`/admin/checkout?patient_id=${item.patient_id}`)}
-                                style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall }}
-                              >
-                                Charge
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <>
+                  {CATEGORIES.map(cat => renderCategorySection(
+                    cat.key, cat.label, cat.color,
+                    payGroups[cat.key],
+                    renderPaymentRow,
+                    ['Status', 'Patient', 'Medication', 'Last Payment', 'Next Due', 'Action']
+                  ))}
+                </>
               )}
             </div>
           )}

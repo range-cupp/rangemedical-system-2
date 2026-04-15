@@ -49,6 +49,7 @@ export default async function handler(req, res) {
           id,
           name,
           first_name,
+          last_name,
           preferred_name,
           phone,
           email
@@ -115,7 +116,10 @@ export default async function handler(req, res) {
 
     protocols.forEach(protocol => {
       const tracking = getProtocolTracking(protocol);
-      const patientName = protocol.patients?.preferred_name || protocol.patients?.first_name || protocol.patients?.name || protocol.patient_name || 'Unknown';
+      // Full name: "First Last" or fall back to name field
+      const firstName = protocol.patients?.preferred_name || protocol.patients?.first_name || '';
+      const lastName = protocol.patients?.last_name || '';
+      const patientName = (firstName && lastName) ? `${firstName} ${lastName}` : protocol.patients?.name || protocol.patient_name || 'Unknown';
       const patientId = protocol.patient_id || protocol.patients?.id;
       const phone = protocol.patients?.phone || null;
 

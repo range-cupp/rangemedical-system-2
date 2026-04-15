@@ -88,17 +88,13 @@ export default async function handler(req, res) {
         seenVialIds.add(vialId);
         const supplyTypeStr = (p.supply_type || '').toLowerCase();
         const deliveryStr = (p.delivery_method || '').toLowerCase();
+        // Vial only if explicitly marked: num_vials set, or supply_type is exactly 'vial'
         const isVial =
           (p.num_vials && p.num_vials > 0) ||
-          supplyTypeStr.includes('vial') ||
+          supplyTypeStr === 'vial' ||
           deliveryStr.includes('vial');
-        const isPrefilled =
-          supplyTypeStr.includes('prefilled') ||
-          supplyTypeStr.includes('pre-filled') ||
-          deliveryStr.includes('prefilled') ||
-          deliveryStr.includes('pre-filled');
-        // No default — delivery type comes from protocol data
-        const delivery = isVial ? 'vial' : isPrefilled ? 'prefilled' : (p.supply_type || p.delivery_method || 'prefilled');
+        // Everything else is prefilled
+        const delivery = isVial ? 'vial' : 'prefilled';
         // For vial protocols, calculate days from num_vials × catalog injectionsPerVial
         let days = p.total_sessions || null;
         if (isVial) {

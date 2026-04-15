@@ -7496,7 +7496,7 @@ export default function PatientProfile() {
                                     const vid = getVialIdForMedication(p.medication, p.program_name);
                                     if (vid && !seen.has(vid)) {
                                       seen.add(vid);
-                                      const isVP = p.num_vials && p.num_vials > 0;
+                                      const isVP = (p.num_vials && p.num_vials > 0) || (p.supply_type || '').toLowerCase() === 'vial';
                                       const del = isVP ? 'vial' : 'prefilled';
                                       let days = p.total_sessions || 0;
                                       if (isVP) {
@@ -7630,14 +7630,9 @@ export default function PatientProfile() {
                                             const deliveryStr = (p.delivery_method || '').toLowerCase();
                                             const isVial =
                                               (p.num_vials && p.num_vials > 0) ||
-                                              supplyTypeStr.includes('vial') ||
+                                              supplyTypeStr === 'vial' ||
                                               deliveryStr.includes('vial');
-                                            const isPrefilled =
-                                              supplyTypeStr.includes('prefilled') ||
-                                              supplyTypeStr.includes('pre-filled') ||
-                                              deliveryStr.includes('prefilled') ||
-                                              deliveryStr.includes('pre-filled');
-                                            const delivery = isVial ? 'vial' : isPrefilled ? 'prefilled' : (p.supply_type || p.delivery_method || 'prefilled');
+                                            const delivery = isVial ? 'vial' : 'prefilled';
                                             let days = p.total_sessions || 0;
                                             if (isVial) {
                                               const catalogEntry = VIAL_CATALOG.find(v => v.id === vialId);

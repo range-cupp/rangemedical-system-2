@@ -7626,8 +7626,18 @@ export default function PatientProfile() {
                                           const vialId = getVialIdForMedication(p.medication, p.program_name);
                                           if (vialId && !seen.has(vialId)) {
                                             seen.add(vialId);
-                                            const isVialPurchase = p.num_vials && p.num_vials > 0;
-                                            const delivery = isVialPurchase ? 'vial' : 'prefilled';
+                                            const supplyTypeStr = (p.supply_type || '').toLowerCase();
+                                            const deliveryStr = (p.delivery_method || '').toLowerCase();
+                                            const isVial =
+                                              (p.num_vials && p.num_vials > 0) ||
+                                              supplyTypeStr.includes('vial') ||
+                                              deliveryStr.includes('vial');
+                                            const isPrefilled =
+                                              supplyTypeStr.includes('prefilled') ||
+                                              supplyTypeStr.includes('pre-filled') ||
+                                              deliveryStr.includes('prefilled') ||
+                                              deliveryStr.includes('pre-filled');
+                                            const delivery = isVial ? 'vial' : isPrefilled ? 'prefilled' : (p.supply_type || p.delivery_method || 'prefilled');
                                             // For vial protocols, calculate days from num_vials × catalog injectionsPerVial
                                             let days = p.total_sessions || 0;
                                             if (isVialPurchase) {

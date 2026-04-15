@@ -2651,6 +2651,7 @@ export default function PatientProfile() {
           ? JSON.parse(protocol.secondary_medications)
           : protocol.secondary_medications)
         : [],
+      comp: protocol.comp || false,
       secondaryMedDetails: (() => {
         const details = protocol.secondary_medication_details
           ? (typeof protocol.secondary_medication_details === 'string'
@@ -2795,7 +2796,8 @@ export default function PatientProfile() {
           visit_frequency: editForm.visitFrequency || null,
           scheduled_days: editForm.scheduledDays?.length > 0 ? editForm.scheduledDays : null,
           last_visit_date: dateOrNull(editForm.lastVisitDate),
-          next_expected_date: dateOrNull(editForm.nextExpectedDate)
+          next_expected_date: dateOrNull(editForm.nextExpectedDate),
+          comp: editForm.comp || false
         })
       });
 
@@ -12049,6 +12051,21 @@ export default function PatientProfile() {
                     {PROTOCOL_STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
+
+                {/* ── Comp (admin only) ── */}
+                {isAdminUser && (
+                  <div className="form-group" style={{ marginTop: '12px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px' }}>
+                      <input
+                        type="checkbox"
+                        checked={editForm.comp || false}
+                        onChange={e => setEditForm({...editForm, comp: e.target.checked})}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                      />
+                      Complimentary (no payment tracking)
+                    </label>
+                  </div>
+                )}
 
                 {/* ── Notes ── */}
                 <div className="form-group">

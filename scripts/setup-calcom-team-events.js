@@ -62,6 +62,10 @@ const EVENT_TYPES = [
   { slug: 'range-assessment-energy', title: 'Range Assessment — Energy & Optimization', length: 30, desc: '$197 Range Assessment for energy, hormones, and weight. Credited toward treatment if you move forward within 7 days.', loc: LOC_IN_PERSON, hosts: hosts([CHRIS, DAMON, DAMIEN]) },
   { slug: 'range-assessment-both', title: 'Range Assessment — Both', length: 45, desc: '$197 Range Assessment covering both injury recovery and energy optimization. Credited toward treatment if you move forward within 7 days.', loc: LOC_IN_PERSON, hosts: hosts([CHRIS, DAMON, DAMIEN]) },
 
+  // MEDICAL PROCEDURES (Dr. Burgess only)
+  { slug: 'medical-procedure-prp', title: 'PRP Procedure', length: 60, desc: 'PRP (platelet-rich plasma) procedure with Dr. Burgess. Approximately 1 hour.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
+  { slug: 'medical-procedure-pellet', title: 'Testosterone Pellet Procedure', length: 60, desc: 'Testosterone pellet insertion procedure with Dr. Burgess. Approximately 1 hour.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
+
   // DIAGNOSTICS
   { slug: 'dexa-scan', title: 'DEXA Scan', length: 45, desc: 'DEXA body composition scan at Range Medical. Approximately 45 minutes.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
 

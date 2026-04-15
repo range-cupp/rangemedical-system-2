@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { fileData, fileName, labType, panelType, collectionDate, notes } = req.body;
+    const { fileData, fileName, labType, panelType, collectionDate, notes, uploaded_by } = req.body;
 
     if (!fileData || !fileName) {
       return res.status(400).json({ error: 'File data and name are required' });
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
         panel_type: panelType || null,
         collection_date: collectionDate || null,
         notes: notes || null,
-        uploaded_by: 'staff',
+        uploaded_by: uploaded_by || 'Staff',
       })
       .select()
       .single();

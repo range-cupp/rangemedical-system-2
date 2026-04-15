@@ -3021,7 +3021,8 @@ export default function PatientProfile() {
             labType: uploadForm.labType,
             panelType: uploadForm.panelType,
             collectionDate: uploadForm.collectionDate,
-            notes: uploadForm.notes
+            notes: uploadForm.notes,
+            uploaded_by: employee?.name || 'Staff'
           }),
         });
 
@@ -3095,6 +3096,7 @@ export default function PatientProfile() {
           documentName: docUploadForm.documentName.trim(),
           documentType: docUploadForm.documentType,
           notes: docUploadForm.notes,
+          uploaded_by: employee?.name || 'Staff',
         }),
       });
 
@@ -8146,7 +8148,7 @@ export default function PatientProfile() {
                           </span>
                         </div>
                         <div style={{ fontSize: 11, color: '#737373' }}>
-                          {doc.lab_type || 'Lab'} {doc.panel_type ? `· ${doc.panel_type}` : ''} {doc.collection_date ? `· ${formatShortDate(doc.collection_date)}` : ''}
+                          {doc.lab_type || 'Lab'} {doc.panel_type ? `· ${doc.panel_type}` : ''} {doc.collection_date ? `· ${formatShortDate(doc.collection_date)}` : ''}{doc.uploaded_by ? ` · by ${doc.uploaded_by}` : ''}
                         </div>
                         <div style={{ display: 'flex', gap: 6 }}>
                           {doc.url && (

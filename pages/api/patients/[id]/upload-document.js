@@ -32,7 +32,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { fileData, fileName, fileType, documentName, documentType, notes } = req.body;
+    const { fileData, fileName, fileType, documentName, documentType, notes, uploaded_by } = req.body;
 
     if (!fileData || !fileName) {
       return res.status(400).json({ error: 'File data and name are required' });
@@ -83,7 +83,7 @@ export default async function handler(req, res) {
         file_path: filePath,
         file_size: fileBuffer.length,
         notes: notes || null,
-        uploaded_by: 'Staff',
+        uploaded_by: uploaded_by || 'Staff',
       })
       .select()
       .single();

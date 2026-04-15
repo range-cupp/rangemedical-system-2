@@ -485,8 +485,16 @@ export default function Assessment() {
   const stripeRef = useRef(null);
   const elementsRef = useRef(null);
 
-  // Restore path from localStorage
+  // Check for ?path= query param (deep link from home page) or restore from localStorage
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const pathParam = params.get('path');
+    if (pathParam && ['injury', 'energy', 'both'].includes(pathParam)) {
+      setSelectedPath(pathParam);
+      setScreen(2);
+      try { localStorage.setItem('assessment_path', pathParam); } catch (e) {}
+      return;
+    }
     try {
       const saved = localStorage.getItem('assessment_path');
       if (saved && ['injury', 'energy', 'both'].includes(saved)) {

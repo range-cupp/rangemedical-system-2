@@ -4362,7 +4362,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '13px', color: '#666' }}>
                         {pt.date_of_birth && (
                           <span style={{ background: '#f3f4f6', padding: '3px 8px', borderRadius: '0' }}>
-                            DOB: {new Date(pt.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
+                            DOB: {new Date(pt.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', timeZone: 'America/Los_Angeles' })}
                           </span>
                         )}
                         {pt.gender && <span style={{ background: '#f3f4f6', padding: '3px 8px', borderRadius: '0' }}>{pt.gender}</span>}

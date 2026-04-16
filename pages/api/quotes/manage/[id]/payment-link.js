@@ -89,7 +89,7 @@ export default async function handler(req, res) {
     const resolveMeta = (it) => {
       if (it.pos_service_id && posById.has(it.pos_service_id)) {
         const p = posById.get(it.pos_service_id);
-        return { category: p.category, sub_category: p.sub_category, peptide_identifier: p.peptide_identifier, duration_days: p.duration_days, pos_service_id: p.id };
+        return { category: p.category, sub_category: p.sub_category, peptide_identifier: p.peptide_identifier, duration_days: p.duration_days, pos_service_id: p.id, source: 'pos_id' };
       }
       if (it.category || it.peptide_identifier || it.duration_days) {
         return {
@@ -98,14 +98,53 @@ export default async function handler(req, res) {
           peptide_identifier: it.peptide_identifier || null,
           duration_days: it.duration_days || null,
           pos_service_id: it.pos_service_id || null,
+          source: 'snapshot',
         };
       }
       if (it.name && posByName.has(it.name)) {
         const p = posByName.get(it.name);
-        return { category: p.category, sub_category: p.sub_category, peptide_identifier: p.peptide_identifier, duration_days: p.duration_days, pos_service_id: p.id };
+        return { category: p.category, sub_category: p.sub_category, peptide_identifier: p.peptide_identifier, duration_days: p.duration_days, pos_service_id: p.id, source: 'name_match' };
       }
-      return { category: null, sub_category: null, peptide_identifier: null, duration_days: null, pos_service_id: null };
+      return { category: null, sub_category: null, peptide_identifier: null, duration_days: null, pos_service_id: null, source: 'unresolved' };
     };
+
+    // ── Validation gate ──────────────────────────────────────────────
+    // Before we create the Stripe session, confirm every line item either
+    // (a) resolved to a POS category, or (b) is obviously non-protocol
+    // (shipping / tax / fee). Anything else gets surfaced to the admin so
+    // they can either fix it in the quote or explicitly confirm it's
+    // intentional. This is the hard stop that ensures paid quotes always
+    // produce correct protocols when they should.
+    const NON_PROTOCOL_NAME = /\b(shipping|delivery|overnight|tax|fee|surcharge|handling|discount|rebate)\b/i;
+    const enriched = chosenItems.map((it, idx) => {
+      const meta = resolveMeta(it);
+      const resolved = !!meta.category;
+      const looksNonProtocol = NON_PROTOCOL_NAME.test(String(it.name || ''));
+      return { idx, item: it, meta, resolved, looksNonProtocol };
+    });
+    const unresolvedProtocolLike = enriched.filter((e) => !e.resolved && !e.looksNonProtocol);
+
+    if (unresolvedProtocolLike.length > 0 && !req.body?.confirm_unresolved) {
+      return res.status(422).json({
+        error: 'One or more line items are not linked to a POS service',
+        needs_confirmation: true,
+        unresolved: unresolvedProtocolLike.map((e) => ({
+          index: e.idx,
+          name: e.item.name,
+          price: e.item.price,
+          qty: e.item.qty,
+        })),
+        all_items: enriched.map((e) => ({
+          index: e.idx,
+          name: e.item.name,
+          price: e.item.price,
+          resolved: e.resolved,
+          resolution_source: e.meta.source,
+          category: e.meta.category,
+          looks_non_protocol: e.looksNonProtocol,
+        })),
+      });
+    }
 
     // Build Stripe Checkout line items with inline price_data (no pre-created Prices needed).
     // Category / peptide / duration metadata flows through so the stripe webhook can
@@ -118,8 +157,7 @@ export default async function handler(req, res) {
       }
       return out;
     };
-    const line_items = chosenItems.map((it) => {
-      const meta = resolveMeta(it);
+    const line_items = enriched.map(({ item: it, meta }) => {
       const productMeta = compactMeta({
         category: meta.category,
         sub_category: meta.sub_category,

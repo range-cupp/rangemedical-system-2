@@ -219,20 +219,30 @@ export default function QuotesIndex() {
     }
   };
 
-  const createPaymentLink = async (quote, optionIndex) => {
+  const createPaymentLink = async (quote, optionIndex, confirmUnresolved = false) => {
     setPaymentLinkModal({ quote, step: 'loading', optionIndex });
     try {
       const res = await fetch(`/api/quotes/manage/${quote.id}/payment-link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ option_index: optionIndex }),
+        body: JSON.stringify({ option_index: optionIndex, confirm_unresolved: confirmUnresolved }),
       });
       const data = await res.json();
+      if (res.status === 422 && data.needs_confirmation) {
+        setPaymentLinkModal({
+          quote,
+          step: 'confirm_unresolved',
+          optionIndex,
+          unresolved: data.unresolved || [],
+          allItems: data.all_items || [],
+        });
+        return;
+      }
       if (!res.ok) throw new Error(data.error || 'Failed to create payment link');
       setPaymentLinkModal({ quote, step: 'show', url: data.url, optionIndex, amount_cents: data.amount_cents });
       loadQuotes();
     } catch (err) {
-      setPaymentLinkModal({ quote, step: 'pick', error: err.message, optionIndex });
+      setPaymentLinkModal({ quote, step: Array.isArray(quote.options) && quote.options.length ? 'pick' : 'confirm_unresolved', error: err.message, optionIndex });
     }
   };
 
@@ -303,7 +313,7 @@ export default function QuotesIndex() {
         <PaymentLinkModal
           state={paymentLinkModal}
           onClose={() => setPaymentLinkModal(null)}
-          onCreate={(idx) => createPaymentLink(paymentLinkModal.quote, idx)}
+          onCreate={(idx, confirmUnresolved) => createPaymentLink(paymentLinkModal.quote, idx, !!confirmUnresolved)}
           onCopy={() => {
             navigator.clipboard.writeText(paymentLinkModal.url || '');
             showMsg('Payment link copied');
@@ -391,7 +401,7 @@ export default function QuotesIndex() {
 }
 
 function PaymentLinkModal({ state, onClose, onCreate, onCopy, onSendSMS }) {
-  const { quote, step, url, optionIndex, error, amount_cents, existing } = state;
+  const { quote, step, url, optionIndex, error, amount_cents, existing, unresolved, allItems } = state;
   const hasOptions = Array.isArray(quote.options) && quote.options.length > 0;
   const options = hasOptions ? quote.options : [];
 
@@ -465,6 +475,58 @@ function PaymentLinkModal({ state, onClose, onCreate, onCopy, onSendSMS }) {
 
           {step === 'loading' && (
             <p style={{ fontSize: 14, color: '#888' }}>Creating payment link…</p>
+          )}
+
+          {step === 'confirm_unresolved' && (
+            <>
+              <div style={{ padding: 12, background: '#fef3c7', border: '1px solid #f59e0b', marginBottom: 14 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#92400e', marginBottom: 6 }}>
+                  Heads up — these items aren't linked to a POS service
+                </div>
+                <p style={{ fontSize: 13, color: '#78350f', lineHeight: 1.5, margin: 0 }}>
+                  Unlinked items won't auto-create or extend a protocol when the patient pays.
+                  If that's intentional (e.g. shipping, a one-off fee), click <strong>Proceed anyway</strong>.
+                  Otherwise, close this, edit the quote, and pick the item from the POS dropdown.
+                </p>
+              </div>
+              <div style={{ border: '1px solid #e5e5e5', maxHeight: 260, overflow: 'auto' }}>
+                {(allItems || unresolved || []).map((it, i) => {
+                  const isResolved = it.resolved;
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        borderBottom: '1px solid #f0f0f0',
+                        fontSize: 13,
+                        background: isResolved ? '#f0fdf4' : '#fff',
+                      }}
+                    >
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: 600, color: '#0a0a0a' }}>{it.name}</div>
+                        <div style={{ fontSize: 11, color: '#666', marginTop: 3 }}>
+                          {isResolved
+                            ? `✓ ${it.category}${it.resolution_source ? ` · via ${it.resolution_source.replace('_', ' ')}` : ''}`
+                            : (it.looks_non_protocol ? '○ non-protocol item (shipping/fee)' : '⚠ no POS match — will not auto-create protocol')}
+                        </div>
+                      </div>
+                      <div style={{ fontWeight: 700, color: '#0a0a0a', whiteSpace: 'nowrap', marginLeft: 10 }}>${Number(it.price || 0).toFixed(2)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              {error && (
+                <div style={{ marginTop: 12, padding: 10, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: 13 }}>
+                  {error}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                <button onClick={onClose} style={s.btnSecondary}>Close &amp; Edit Quote</button>
+                <button onClick={() => onCreate(optionIndex, true)} style={s.btnPrimary}>Proceed anyway</button>
+              </div>
+            </>
           )}
 
           {step === 'show' && (

@@ -19,16 +19,23 @@ export default async function handler(req, res) {
 
   const dryRun = req.body?.dry_run === true;
   const since = req.body?.since || '2025-12-01'; // Default: only recent purchases, not old GHL imports
+  const patientId = req.body?.patient_id || null; // Optional: scope to a single patient
+  const purchaseIds = Array.isArray(req.body?.purchase_ids) ? req.body.purchase_ids : null; // Optional: scope to specific purchases
 
   try {
     // Find all purchases that should have protocols but don't
-    const { data: orphaned, error } = await supabase
+    let query = supabase
       .from('purchases')
       .select('id, patient_id, purchase_date, medication, item_name, category, amount_paid, payment_method')
       .is('protocol_id', null)
       .in('category', PROTOCOL_CATEGORIES)
       .gte('purchase_date', since)
       .order('purchase_date', { ascending: true });
+
+    if (patientId) query = query.eq('patient_id', patientId);
+    if (purchaseIds && purchaseIds.length) query = query.in('id', purchaseIds);
+
+    const { data: orphaned, error } = await query;
 
     if (error) return res.status(500).json({ error: error.message });
 

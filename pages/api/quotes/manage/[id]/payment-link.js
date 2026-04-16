@@ -55,6 +55,58 @@ export default async function handler(req, res) {
     if (!chosenItems.length) return res.status(400).json({ error: 'Quote has no items' });
     if (chosenTotal <= 0) return res.status(400).json({ error: 'Quote total must be greater than zero' });
 
+    // Re-hydrate POS metadata at link-creation time so category / peptide / duration
+    // always reflect the live POS catalog — not a stale snapshot captured at quote time.
+    // Resolution order: (1) by pos_service_id, (2) stored snapshot fields on the item,
+    // (3) exact name match against pos_services. This way legacy quotes created before
+    // we captured pos_service_id still flow correctly.
+    const posIds = chosenItems.map((it) => it.pos_service_id).filter(Boolean);
+    const itemNames = [...new Set(
+      chosenItems
+        .filter((it) => !it.pos_service_id && it.name)
+        .map((it) => it.name)
+    )];
+
+    const posById = new Map();
+    if (posIds.length) {
+      const { data: rows } = await supabase
+        .from('pos_services')
+        .select('id, name, category, sub_category, peptide_identifier, duration_days')
+        .in('id', posIds);
+      (rows || []).forEach((r) => posById.set(r.id, r));
+    }
+
+    const posByName = new Map();
+    if (itemNames.length) {
+      const { data: rows } = await supabase
+        .from('pos_services')
+        .select('id, name, category, sub_category, peptide_identifier, duration_days')
+        .in('name', itemNames);
+      // First match wins per name (catalog shouldn't have duplicate names within category)
+      (rows || []).forEach((r) => { if (!posByName.has(r.name)) posByName.set(r.name, r); });
+    }
+
+    const resolveMeta = (it) => {
+      if (it.pos_service_id && posById.has(it.pos_service_id)) {
+        const p = posById.get(it.pos_service_id);
+        return { category: p.category, sub_category: p.sub_category, peptide_identifier: p.peptide_identifier, duration_days: p.duration_days, pos_service_id: p.id };
+      }
+      if (it.category || it.peptide_identifier || it.duration_days) {
+        return {
+          category: it.category || null,
+          sub_category: it.sub_category || null,
+          peptide_identifier: it.peptide_identifier || null,
+          duration_days: it.duration_days || null,
+          pos_service_id: it.pos_service_id || null,
+        };
+      }
+      if (it.name && posByName.has(it.name)) {
+        const p = posByName.get(it.name);
+        return { category: p.category, sub_category: p.sub_category, peptide_identifier: p.peptide_identifier, duration_days: p.duration_days, pos_service_id: p.id };
+      }
+      return { category: null, sub_category: null, peptide_identifier: null, duration_days: null, pos_service_id: null };
+    };
+
     // Build Stripe Checkout line items with inline price_data (no pre-created Prices needed).
     // Category / peptide / duration metadata flows through so the stripe webhook can
     // auto-create the matching protocol when the patient pays.
@@ -67,16 +119,17 @@ export default async function handler(req, res) {
       return out;
     };
     const line_items = chosenItems.map((it) => {
+      const meta = resolveMeta(it);
       const productMeta = compactMeta({
-        category: it.category,
-        sub_category: it.sub_category,
-        peptide_identifier: it.peptide_identifier,
-        duration_days: it.duration_days,
-        pos_service_id: it.pos_service_id,
+        category: meta.category,
+        sub_category: meta.sub_category,
+        peptide_identifier: meta.peptide_identifier,
+        duration_days: meta.duration_days,
+        pos_service_id: meta.pos_service_id,
       });
       const priceMeta = compactMeta({
-        peptide_identifier: it.peptide_identifier,
-        duration_days: it.duration_days,
+        peptide_identifier: meta.peptide_identifier,
+        duration_days: meta.duration_days,
       });
       return {
         quantity: Number(it.qty) || 1,

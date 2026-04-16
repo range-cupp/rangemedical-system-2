@@ -4442,6 +4442,14 @@ export default function PatientProfile() {
                     )}
                   </div>
                   <div className="demo-item">
+                    <label>Address</label>
+                    <span>{patient.address || '—'}</span>
+                  </div>
+                  <div className="demo-item">
+                    <label>City, State, Zip</label>
+                    <span>{[patient.city, patient.state, patient.zip_code].filter(Boolean).join(', ') || '—'}</span>
+                  </div>
+                  <div className="demo-item">
                     <label>Referred By / How Heard</label>
                     {patient.referral_source ? (
                       <span>{patient.referral_source}</span>
@@ -4454,14 +4462,6 @@ export default function PatientProfile() {
                   <div className="demo-item">
                     <label>Phone</label>
                     <span>{patient.phone ? formatPhone(patient.phone) : '—'}</span>
-                  </div>
-                  <div className="demo-item">
-                    <label>Address</label>
-                    <span>{patient.address || '—'}</span>
-                  </div>
-                  <div className="demo-item">
-                    <label>City, State, Zip</label>
-                    <span>{[patient.city, patient.state, patient.zip_code].filter(Boolean).join(', ') || '—'}</span>
                   </div>
                   <div className="demo-item">
                     <label>Patient Since</label>

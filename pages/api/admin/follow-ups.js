@@ -27,7 +27,7 @@ export default async function handler(req, res) {
 }
 
 async function handleGet(req, res, employee) {
-  const { tab = 'queue', type, assigned_to, priority, status, follow_up_id } = req.query;
+  const { tab = 'queue', type, assigned_to, priority, status, follow_up_id, patient_id } = req.query;
 
   // ── LOGS: fetch attempt log for a specific follow-up ──
   if (tab === 'logs' && follow_up_id) {
@@ -55,6 +55,7 @@ async function handleGet(req, res, employee) {
       query = query.in('status', ['pending', 'in_progress']);
     }
 
+    if (patient_id) query = query.eq('patient_id', patient_id);
     if (type) query = query.eq('type', type);
     if (assigned_to) query = query.eq('assigned_to', assigned_to);
     if (priority) query = query.eq('priority', priority);

@@ -424,6 +424,8 @@ export default function PatientProfile() {
   const [hrtLabSchedules, setHrtLabSchedules] = useState({});
   const [cycleInfo, setCycleInfo] = useState(null);
   const [ghCycleInfo, setGhCycleInfo] = useState(null);
+  const [followUps, setFollowUps] = useState([]);
+  const [followUpsFetched, setFollowUpsFetched] = useState(false);
 
 
   // Protocol edit modal — custom dose helpers
@@ -1082,6 +1084,20 @@ export default function PatientProfile() {
       console.error('Error fetching Stripe charges:', err);
     } finally {
       setLoadingStripeCharges(false);
+    }
+  };
+
+  const fetchFollowUps = async () => {
+    if (!id || followUpsFetched) return;
+    try {
+      const res = await fetch(`/api/admin/follow-ups?tab=queue&patient_id=${id}`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      const data = await res.json();
+      setFollowUps(Array.isArray(data) ? data : []);
+      setFollowUpsFetched(true);
+    } catch (err) {
+      console.error('Error fetching follow-ups:', err);
     }
   };
 
@@ -5003,6 +5019,7 @@ export default function PatientProfile() {
             { key: 'messages', label: 'Messages', icon: '💬', count: commsLog.filter(c => c.direction === 'inbound' && c.status !== 'read').length || 0 },
             { key: 'notes', label: 'Staff Notes', icon: '📝', count: notes.length || 0 },
             { key: 'tasks', label: 'Tasks', icon: '✅', count: patientTasks.filter(t => (t.task_category || 'business') === 'business' && t.status === 'pending').length || 0 },
+            { key: 'follow_ups', label: 'Follow-Ups', icon: '🔔', count: followUps.filter(f => f.status === 'pending' || f.status === 'in_progress').length || 0 },
             { key: 'billing', label: 'Billing', icon: '💳' },
           ]).map(tab => (
             <button
@@ -5011,6 +5028,7 @@ export default function PatientProfile() {
               onClick={() => {
                 setActiveTab(tab.key);
                 if (tab.key === 'records' && timeline.length === 0) fetchTimeline();
+                if (tab.key === 'follow_ups' && !followUpsFetched) fetchFollowUps();
               }}
             >
               <span className="px-tab-icon">{tab.icon}</span>
@@ -9729,6 +9747,106 @@ export default function PatientProfile() {
                 );
               })()}
             </>
+            );
+          })()}
+
+          {/* Follow-Ups Tab */}
+          {activeTab === 'follow_ups' && (() => {
+            const TYPE_STYLES = {
+              peptide_renewal:      { label: 'Peptide Renewal',  color: '#7c3aed', bg: '#f5f3ff' },
+              protocol_ending:      { label: 'Protocol Ending',  color: '#ea580c', bg: '#fff7ed' },
+              wl_payment_due:       { label: 'WL Payment Due',   color: '#2563eb', bg: '#eff6ff' },
+              labs_ready:           { label: 'Labs Ready',       color: '#059669', bg: '#ecfdf5' },
+              session_verification: { label: 'Session Verify',   color: '#dc2626', bg: '#fef2f2' },
+              lead_stale:           { label: 'Stale Lead',       color: '#6b7280', bg: '#f3f4f6' },
+              inactive_patient:     { label: 'Inactive',         color: '#9ca3af', bg: '#f9fafb' },
+              custom:               { label: 'Custom',           color: '#111',    bg: '#f3f4f6' },
+            };
+            const PRIORITY_STYLES = {
+              urgent: { label: 'Urgent', color: '#dc2626', bg: '#fef2f2' },
+              high:   { label: 'High',   color: '#ea580c', bg: '#fff7ed' },
+              medium: { label: 'Medium', color: '#d97706', bg: '#fffbeb' },
+              low:    { label: 'Low',    color: '#6b7280', bg: '#f3f4f6' },
+            };
+
+            const handleComplete = async (fuId) => {
+              await fetch('/api/admin/follow-ups', {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: fuId, outcome: 'completed' }),
+              });
+              setFollowUps(prev => prev.filter(f => f.id !== fuId));
+            };
+
+            const handleDismiss = async (fuId) => {
+              await fetch('/api/admin/follow-ups', {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: fuId, status: 'dismissed' }),
+              });
+              setFollowUps(prev => prev.filter(f => f.id !== fuId));
+            };
+
+            const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+
+            return (
+              <section className="card">
+                <div className="card-header">
+                  <h3>Follow-Ups ({followUps.length})</h3>
+                  <a href="/admin/follow-ups" target="_blank" style={{ fontSize: 13, color: '#2563eb', textDecoration: 'none' }}>
+                    Open Follow-Up Hub →
+                  </a>
+                </div>
+                {followUps.length === 0 ? (
+                  <div className="empty">No pending follow-ups for this patient</div>
+                ) : (
+                  <div>
+                    {followUps.map(f => {
+                      const ts = TYPE_STYLES[f.type] || TYPE_STYLES.custom;
+                      const ps = PRIORITY_STYLES[f.priority] || PRIORITY_STYLES.medium;
+                      const overdue = f.due_date && f.due_date < todayStr;
+                      return (
+                        <div key={f.id} style={{
+                          padding: '12px 16px', borderBottom: '1px solid #eee',
+                          display: 'flex', alignItems: 'center', gap: 12,
+                        }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                              <span style={{
+                                fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4,
+                                color: ts.color, background: ts.bg,
+                              }}>{ts.label}</span>
+                              {(f.priority === 'urgent' || f.priority === 'high') && (
+                                <span style={{
+                                  fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4,
+                                  color: ps.color, background: ps.bg,
+                                }}>{ps.label}</span>
+                              )}
+                              {overdue && (
+                                <span style={{ fontSize: 11, fontWeight: 600, color: '#dc2626' }}>OVERDUE</span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: 13, color: '#333' }}>{f.trigger_reason}</div>
+                            {f.due_date && (
+                              <div style={{ fontSize: 12, color: '#999', marginTop: 2 }}>Due: {formatDate(f.due_date)}</div>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <button
+                              onClick={() => handleComplete(f.id)}
+                              style={{ ...sharedStyles.btnPrimary, fontSize: 12, padding: '5px 12px' }}
+                            >Done</button>
+                            <button
+                              onClick={() => handleDismiss(f.id)}
+                              style={{ fontSize: 12, color: '#999', background: 'none', border: 'none', cursor: 'pointer' }}
+                            >Dismiss</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
             );
           })()}
 

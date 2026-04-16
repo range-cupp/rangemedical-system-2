@@ -135,8 +135,9 @@ export default async function handler(req, res) {
     try {
       const { data: wlProtocols } = await supabase
         .from('protocols')
-        .select('id, patient_id, patient_name, program_name, medication, next_expected_date, last_payment_date, last_refill_date, start_date')
+        .select('id, patient_id, patient_name, program_name, medication, next_expected_date, last_payment_date, last_refill_date, start_date, comp')
         .eq('status', 'active')
+        .neq('comp', true)
         .in('program_type', WEIGHT_LOSS_PROGRAM_TYPES);
 
       if (wlProtocols) {

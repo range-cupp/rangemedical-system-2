@@ -18,6 +18,9 @@ import {
   HRT_SUPPLY_TYPES,
   HRT_MEDICATIONS,
   HRT_SECONDARY_MEDICATIONS,
+  INJECTION_PRICING,
+  BUY_10_GET_12_THRESHOLD,
+  BUY_10_GET_12_BONUS,
   HRT_SECONDARY_DOSAGES,
   INJECTION_MEDICATIONS,
   NAD_INJECTION_DOSAGES,
@@ -44,7 +47,7 @@ const SERVICE_SEGMENTS = [
     label: 'Injections',
     icon: '💉',
     description: 'Standard, premium, NAD+, and injection packs',
-    categories: ['injection_standard', 'injection_premium', 'nad_injection', 'injection_pack'],
+    categories: ['injections_builder'],
   },
   {
     id: 'recovery',
@@ -85,6 +88,7 @@ const CATEGORY_LABELS = {
   weight_loss: 'Weight Loss',
   iv_therapy: 'IV Therapy',
   specialty_iv: 'Specialty IVs',
+  injections_builder: 'Injections',
   injection_standard: 'Standard Injections',
   injection_premium: 'Premium Injections',
   injection_pack: 'Injection Packs',
@@ -227,6 +231,12 @@ function CheckoutInner() {
   // ── WL Injection Builder ──
   const [wlMedication, setWlMedication] = useState('');
   const [wlGroups, setWlGroups] = useState([{ dose: '', quantity: 1, fulfillment: 'take_home' }]);
+
+  // ── Injection Builder (NAD+, Standard, Premium) ──
+  const [injBuilderType, setInjBuilderType] = useState(''); // 'nad', 'standard', 'premium'
+  const [injMedication, setInjMedication] = useState('');
+  const [injNadDose, setInjNadDose] = useState('');
+  const [injQuantity, setInjQuantity] = useState(1);
   const [shippingAmount, setShippingAmount] = useState('');
 
   // ── Split payment ──
@@ -594,6 +604,66 @@ function CheckoutInner() {
     setWlGroups([{ dose: '', quantity: 1, fulfillment: 'take_home' }]);
   }
 
+  // ── Injection Builder helpers ──
+  function getInjPricePerUnit() {
+    if (injBuilderType === 'nad') return INJECTION_PRICING.nad.doses[injNadDose] || 0;
+    if (injBuilderType === 'standard') return INJECTION_PRICING.standard.price;
+    if (injBuilderType === 'premium') return INJECTION_PRICING.premium.price;
+    return 0;
+  }
+
+  function getInjBuilderTotal() {
+    const pricePerUnit = getInjPricePerUnit();
+    // Buy 10, Get 12: charge for 10 when quantity >= threshold
+    const chargeQty = injQuantity >= BUY_10_GET_12_THRESHOLD ? BUY_10_GET_12_THRESHOLD : injQuantity;
+    return pricePerUnit * chargeQty;
+  }
+
+  function getInjDeliveredQty() {
+    return injQuantity >= BUY_10_GET_12_THRESHOLD ? BUY_10_GET_12_BONUS : injQuantity;
+  }
+
+  function addInjBuilderToCart() {
+    if (!injBuilderType || !injMedication) return;
+    if (injBuilderType === 'nad' && !injNadDose) return;
+
+    const totalCents = getInjBuilderTotal();
+    const deliveredQty = getInjDeliveredQty();
+    const isBonusPack = injQuantity >= BUY_10_GET_12_THRESHOLD;
+    const displayName = injBuilderType === 'nad'
+      ? `NAD+ Injection — ${injNadDose}`
+      : injMedication;
+    const packLabel = isBonusPack ? ` (Buy 10, Get 12)` : '';
+
+    const cartItem = {
+      id: 'inj-builder-' + Date.now(),
+      name: `${displayName}${packLabel}`,
+      category: injBuilderType === 'nad' ? 'nad_injection' : 'injection_pack',
+      price: totalCents,
+      quantity: 1,
+      itemDiscountType: 'none',
+      itemDiscountValue: '',
+      injConfig: {
+        type: injBuilderType,
+        medication: injMedication,
+        nadDose: injBuilderType === 'nad' ? injNadDose : null,
+        quantity: deliveredQty,
+        chargeQuantity: isBonusPack ? BUY_10_GET_12_THRESHOLD : injQuantity,
+        isBonusPack,
+        internalName: `${displayName} x${deliveredQty}${packLabel}`,
+      },
+    };
+
+    setCartItems(prev => [...prev, cartItem]);
+    setCartOpen(true);
+
+    // Reset builder
+    setInjBuilderType('');
+    setInjMedication('');
+    setInjNadDose('');
+    setInjQuantity(1);
+  }
+
   function updateItemQuantity(itemId, newQty) {
     if (newQty < 1) { setCartItems(cartItems.filter(i => i.id !== itemId)); return; }
     setCartItems(cartItems.map(i => i.id === itemId ? { ...i, quantity: newQty } : i));
@@ -818,10 +888,13 @@ function CheckoutInner() {
       const itemShipping = !shippingApplied && shippingCents > 0 ? shippingCents : 0;
       shippingApplied = true;
 
-      // For WL builder items, use internal name for protocol creation, display name for receipt
+      // For builder items, use internal name for protocol creation, display name for receipt
       const isWlBuilder = !!item.wlConfig;
+      const isInjBuilder = !!item.injConfig;
       const serviceName = isWlBuilder
         ? item.wlConfig.internalName
+        : isInjBuilder
+        ? item.injConfig.internalName
         : item.peptide_identifier ? `${item.name} — ${item.peptide_identifier}` : item.name;
 
       let recordAmount = itemFinal;
@@ -852,7 +925,7 @@ function CheckoutInner() {
           payment_method: 'stripe',
           service_category: item.category,
           service_name: serviceName,
-          quantity: isWlBuilder ? item.wlConfig.totalInjections : qty,
+          quantity: isWlBuilder ? item.wlConfig.totalInjections : isInjBuilder ? item.injConfig.quantity : qty,
           delivery_method: item.delivery_method || null,
           duration_days: item.duration_days || null,
           shipping: amount_override ? 0 : itemShipping,
@@ -2991,6 +3064,158 @@ function CheckoutInner() {
                                   }}
                                 >Add to Cart — Weight Loss Program ({formatPrice(getWlBuilderTotal())})</button>
                               </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ) : activeSubCategory === 'injections_builder' ? (
+                    /* ── Injection Builder (NAD+, Standard, Premium) ── */
+                    <div style={{ marginTop: '16px' }}>
+                      <div style={{ background: '#fff', border: '1px solid #e0e0e0', padding: '24px' }}>
+                        {/* Type Selection */}
+                        <div style={{ marginBottom: '20px' }}>
+                          <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>INJECTION TYPE</label>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            {[
+                              { key: 'nad', label: 'NAD+' },
+                              { key: 'standard', label: 'Standard ($35)' },
+                              { key: 'premium', label: 'Premium ($50)' },
+                            ].map(t => (
+                              <button
+                                key={t.key}
+                                onClick={() => { setInjBuilderType(t.key); setInjMedication(''); setInjNadDose(''); setInjQuantity(1); }}
+                                style={{
+                                  ...styles.fulfillmentBtn,
+                                  flex: 1,
+                                  padding: '12px 16px',
+                                  fontSize: '15px',
+                                  fontWeight: 600,
+                                  ...(injBuilderType === t.key ? { border: '2px solid #1a1a1a', background: '#f9fafb', color: '#1a1a1a' } : {}),
+                                }}
+                              >{t.label}</button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {injBuilderType && (
+                          <>
+                            {/* Medication / Item Selection */}
+                            <div style={{ marginBottom: '20px' }}>
+                              <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>
+                                {injBuilderType === 'nad' ? 'DOSAGE' : 'INJECTION'}
+                              </label>
+                              {injBuilderType === 'nad' ? (
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                  {Object.keys(INJECTION_PRICING.nad.doses).map(dose => (
+                                    <button
+                                      key={dose}
+                                      onClick={() => { setInjNadDose(dose); setInjMedication(`NAD+ (${dose})`); }}
+                                      style={{
+                                        ...styles.fulfillmentBtn,
+                                        padding: '10px 16px',
+                                        fontSize: '14px',
+                                        fontWeight: 600,
+                                        ...(injNadDose === dose ? { border: '2px solid #1a1a1a', background: '#f9fafb', color: '#1a1a1a' } : {}),
+                                      }}
+                                    >{dose} — {formatPrice(INJECTION_PRICING.nad.doses[dose])}</button>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                  {(injBuilderType === 'standard' ? INJECTION_PRICING.standard.items : INJECTION_PRICING.premium.items).map(item => (
+                                    <button
+                                      key={item}
+                                      onClick={() => setInjMedication(item)}
+                                      style={{
+                                        ...styles.fulfillmentBtn,
+                                        padding: '10px 16px',
+                                        fontSize: '14px',
+                                        fontWeight: 600,
+                                        ...(injMedication === item ? { border: '2px solid #1a1a1a', background: '#f9fafb', color: '#1a1a1a' } : {}),
+                                      }}
+                                    >{item}</button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Quantity — only show when medication is selected */}
+                            {(injMedication || (injBuilderType === 'nad' && injNadDose)) && (
+                              <>
+                                <div style={{ marginBottom: '20px' }}>
+                                  <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}># OF INJECTIONS</label>
+                                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    {[1, 2, 3, 4, 5, 6].map(n => (
+                                      <button
+                                        key={n}
+                                        onClick={() => setInjQuantity(n)}
+                                        style={{
+                                          ...styles.fulfillmentBtn,
+                                          width: '48px', padding: '10px 0',
+                                          fontSize: '15px', fontWeight: 600, textAlign: 'center',
+                                          ...(injQuantity === n ? { border: '2px solid #1a1a1a', background: '#f9fafb', color: '#1a1a1a' } : {}),
+                                        }}
+                                      >{n}</button>
+                                    ))}
+                                    <button
+                                      onClick={() => setInjQuantity(BUY_10_GET_12_THRESHOLD)}
+                                      style={{
+                                        ...styles.fulfillmentBtn,
+                                        padding: '10px 16px',
+                                        fontSize: '14px',
+                                        fontWeight: 700,
+                                        ...(injQuantity >= BUY_10_GET_12_THRESHOLD
+                                          ? { border: '2px solid #16a34a', background: '#f0fdf4', color: '#16a34a' }
+                                          : { border: '2px dashed #16a34a', color: '#16a34a' }),
+                                      }}
+                                    >Buy 10, Get 12</button>
+                                  </div>
+                                </div>
+
+                                {/* Buy 10 Get 12 banner */}
+                                {injQuantity >= BUY_10_GET_12_THRESHOLD && (
+                                  <div style={{
+                                    background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '12px 16px',
+                                    marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px',
+                                  }}>
+                                    <span style={{ fontSize: '20px' }}>🎉</span>
+                                    <div>
+                                      <div style={{ fontWeight: 700, color: '#16a34a', fontSize: '14px' }}>Buy 10, Get 12!</div>
+                                      <div style={{ fontSize: '13px', color: '#666' }}>
+                                        Paying for {BUY_10_GET_12_THRESHOLD} — receiving {BUY_10_GET_12_BONUS}. Saves {formatPrice(getInjPricePerUnit() * 2)}.
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Summary + Add to Cart */}
+                                <div style={{ borderTop: '2px solid #1a1a1a', paddingTop: '16px', marginTop: '8px' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                    <div>
+                                      <span style={{ fontSize: '14px', color: '#666' }}>
+                                        {injMedication}{injBuilderType === 'nad' ? '' : ` Injection`} × {getInjDeliveredQty()}
+                                        {injQuantity >= BUY_10_GET_12_THRESHOLD && <span style={{ color: '#16a34a', fontWeight: 600 }}> (2 bonus)</span>}
+                                      </span>
+                                    </div>
+                                    <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1a1a' }}>
+                                      {formatPrice(getInjBuilderTotal())}
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={addInjBuilderToCart}
+                                    style={{
+                                      ...styles.primaryBtn,
+                                      width: '100%',
+                                      padding: '14px',
+                                      fontSize: '15px',
+                                      fontWeight: 700,
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.05em',
+                                    }}
+                                  >Add to Cart — {injMedication} × {getInjDeliveredQty()} ({formatPrice(getInjBuilderTotal())})</button>
+                                </div>
+                              </>
                             )}
                           </>
                         )}

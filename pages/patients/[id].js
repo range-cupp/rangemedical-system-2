@@ -6834,32 +6834,11 @@ export default function PatientProfile() {
                                         });
                                       }
 
-                                      // Assign purchases to blocks chronologically: each purchase covers 1 block (4 injections).
-                                      // Match by date — purchase goes to the earliest block whose first injection is >= purchase_date
-                                      // (or the latest block if no future block fits). Falls back to sequence if no logs exist yet.
-                                      const unassignedPurchases = [...protoLinkedPurchases];
-                                      const usedBlockIdx = new Set();
-                                      unassignedPurchases.forEach((p) => {
-                                        const pDate = p.purchase_date;
-                                        // Find the earliest unused block whose first injection date is >= purchase date
-                                        let targetIdx = -1;
-                                        for (let i = 0; i < purchaseBoundaries.length; i++) {
-                                          if (usedBlockIdx.has(i)) continue;
-                                          const bDate = purchaseBoundaries[i].blockFirstDate;
-                                          if (!bDate || bDate >= pDate) {
-                                            targetIdx = i;
-                                            break;
-                                          }
-                                        }
-                                        // No future block — assign to last unused block
-                                        if (targetIdx < 0) {
-                                          for (let i = purchaseBoundaries.length - 1; i >= 0; i--) {
-                                            if (!usedBlockIdx.has(i)) { targetIdx = i; break; }
-                                          }
-                                        }
-                                        if (targetIdx >= 0) {
-                                          purchaseBoundaries[targetIdx].purchase = p;
-                                          usedBlockIdx.add(targetIdx);
+                                      // Assign purchases to blocks sequentially: 1st purchase → Block 1, 2nd → Block 2, etc.
+                                      // Purchases are sorted by date — each purchase covers one block of 4 injections.
+                                      protoLinkedPurchases.forEach((p, idx) => {
+                                        if (idx < purchaseBoundaries.length) {
+                                          purchaseBoundaries[idx].purchase = p;
                                         }
                                       });
 

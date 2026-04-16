@@ -567,7 +567,7 @@ function useUnreadTasks(employeeId, router) {
 const NAV_ITEMS = [
   { href: '/admin', label: 'Dashboard', icon: 'grid' },
   { href: '/admin/actions', label: 'Actions', icon: 'alert-circle' },
-  { href: '/admin/follow-ups', label: 'Follow-Ups', icon: 'phone' },
+  { href: '/admin/follow-ups', label: 'Follow-Ups', icon: 'bell' },
   { href: '/admin/sales-pipeline', label: 'Sales Pipeline', icon: 'trending-down', group: 'business' },
   { href: '/admin/referrals', label: 'Referrals', icon: 'user-plus', group: 'business' },
   { href: '/admin/patients', label: 'Patients', icon: 'users' },
@@ -731,6 +731,11 @@ const icons = {
   'alert-circle': (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+  ),
+  bell: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </svg>
   ),
 };

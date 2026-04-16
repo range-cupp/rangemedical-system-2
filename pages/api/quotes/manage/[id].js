@@ -26,6 +26,12 @@ const cleanItemList = (arr) => (Array.isArray(arr) ? arr : []).map((it) => ({
   description: String(it.description || '').trim(),
   price: Number(it.price) || 0,
   qty: Number(it.qty) || 1,
+  // Preserve POS metadata for Stripe → webhook → auto-protocol
+  pos_service_id: it.pos_service_id || null,
+  category: it.category || null,
+  sub_category: it.sub_category || null,
+  peptide_identifier: it.peptide_identifier || null,
+  duration_days: it.duration_days ? Number(it.duration_days) : null,
 })).filter((it) => it.name);
 
 export default async function handler(req, res) {

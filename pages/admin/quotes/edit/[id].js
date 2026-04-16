@@ -124,6 +124,12 @@ export default function EditQuote() {
       description: svc.description || svc.sub_category || '',
       price: priceDollars,
       qty: 1,
+      // POS metadata for downstream auto-protocol + category reporting when paid
+      pos_service_id: svc.id || null,
+      category: svc.category || null,
+      sub_category: svc.sub_category || null,
+      peptide_identifier: svc.peptide_identifier || null,
+      duration_days: svc.duration_days || null,
     };
   };
   const addFromCatalog = (svc) => {

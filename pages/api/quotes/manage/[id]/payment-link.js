@@ -55,18 +55,43 @@ export default async function handler(req, res) {
     if (!chosenItems.length) return res.status(400).json({ error: 'Quote has no items' });
     if (chosenTotal <= 0) return res.status(400).json({ error: 'Quote total must be greater than zero' });
 
-    // Build Stripe Checkout line items with inline price_data (no pre-created Prices needed)
-    const line_items = chosenItems.map((it) => ({
-      quantity: Number(it.qty) || 1,
-      price_data: {
-        currency: 'usd',
-        unit_amount: Math.round(Number(it.price || 0) * 100),
-        product_data: {
-          name: String(it.name || 'Item'),
-          ...(it.description ? { description: String(it.description).slice(0, 500) } : {}),
+    // Build Stripe Checkout line items with inline price_data (no pre-created Prices needed).
+    // Category / peptide / duration metadata flows through so the stripe webhook can
+    // auto-create the matching protocol when the patient pays.
+    const compactMeta = (obj) => {
+      const out = {};
+      for (const [k, v] of Object.entries(obj || {})) {
+        if (v === null || v === undefined || v === '') continue;
+        out[k] = String(v);
+      }
+      return out;
+    };
+    const line_items = chosenItems.map((it) => {
+      const productMeta = compactMeta({
+        category: it.category,
+        sub_category: it.sub_category,
+        peptide_identifier: it.peptide_identifier,
+        duration_days: it.duration_days,
+        pos_service_id: it.pos_service_id,
+      });
+      const priceMeta = compactMeta({
+        peptide_identifier: it.peptide_identifier,
+        duration_days: it.duration_days,
+      });
+      return {
+        quantity: Number(it.qty) || 1,
+        price_data: {
+          currency: 'usd',
+          unit_amount: Math.round(Number(it.price || 0) * 100),
+          ...(Object.keys(priceMeta).length ? { metadata: priceMeta } : {}),
+          product_data: {
+            name: String(it.name || 'Item'),
+            ...(it.description ? { description: String(it.description).slice(0, 500) } : {}),
+            ...(Object.keys(productMeta).length ? { metadata: productMeta } : {}),
+          },
         },
-      },
-    }));
+      };
+    });
 
     // Apply discount via a one-off coupon so the patient sees the breakdown on Stripe too
     let discounts;

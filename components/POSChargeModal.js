@@ -702,11 +702,11 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   // Like recordPurchases but returns the first purchase record (used for gift card linking)
   // extraFields can include amount_override (cents) and description_suffix for split payments
   async function recordPurchasesWithReturn(extraFields) {
-    const { amount_override, description_suffix, ...restFields } = extraFields || {};
+    const { amount_override, description_suffix, stripe_charged_amount, ...restFields } = extraFields || {};
     const shippingCents = getShippingCents();
 
     if (activeCategory === 'custom') {
-      const amount = amount_override || getChargeAmount();
+      const amount = amount_override ?? stripe_charged_amount ?? getChargeAmount();
       const desc = getChargeDescription();
       const discountData = getDiscountData();
       const discountSuffix = discountType === 'percent'
@@ -753,11 +753,16 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       // For peptides, reconstruct full name so auto-protocol parsing works
       const serviceName = item.peptide_identifier ? `${item.name} — ${item.peptide_identifier}` : item.name;
 
-      // For split payments: use overridden amount (proportionally split across items)
+      // Use the actual Stripe charge amount as source of truth when available.
+      // This prevents any mismatch between what Stripe charged and what we record.
+      // For split payments, use the override amount (proportionally split across items).
       let recordAmount = itemFinal;
       if (amount_override !== undefined) {
         const totalCharge = getChargeAmount();
         recordAmount = cartItems.length === 1 ? amount_override : Math.round(amount_override * (itemFinal / totalCharge));
+      } else if (stripe_charged_amount !== undefined) {
+        const totalCharge = getChargeAmount() || itemFinal;
+        recordAmount = cartItems.length === 1 ? stripe_charged_amount : Math.round(stripe_charged_amount * (itemFinal / totalCharge));
       }
 
       let desc = itemDiscountAmt > 0 ? `${itemName} (${discSuffix})` : itemName;
@@ -874,7 +879,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   // Shared success handler — records purchase, creates gift card if needed, shows result
   async function handlePaymentSuccess(stripePaymentIntentId, amount) {
     const extraFields = stripePaymentIntentId
-      ? { stripe_payment_intent_id: stripePaymentIntentId }
+      ? { stripe_payment_intent_id: stripePaymentIntentId, stripe_charged_amount: amount }
       : {};
     const purchaseData = await recordPurchasesWithReturn(extraFields);
 
@@ -1160,13 +1165,18 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         const subData = await subRes.json();
         if (!subRes.ok) throw new Error(subData.error);
 
+        // Use the actual amount Stripe charged (not the cart price) and pass the
+        // payment intent ID so the invoice.paid webhook's idempotency check skips this
         await recordPurchases({
           stripe_subscription_id: subData.subscription_id,
+          stripe_payment_intent_id: subData.stripe_payment_intent_id || null,
           description: `${description} (monthly subscription)`,
+          ...(subData.actual_amount_cents != null ? { amount_override: subData.actual_amount_cents } : {}),
         });
 
+        const displayAmount = subData.actual_amount_cents != null ? subData.actual_amount_cents : amount;
         setResultStatus('success');
-        setResultMessage(`Subscription created for ${description} — ${formatPrice(amount)}/mo`);
+        setResultMessage(`Subscription created for ${description} — ${formatPrice(displayAmount)}/mo`);
         setStep('result');
         return;
       }

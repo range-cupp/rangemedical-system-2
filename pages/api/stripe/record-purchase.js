@@ -217,12 +217,10 @@ export default async function handler(req, res) {
     }
 
     // Retrieve card details and verify payment status from Stripe.
-    // The per-item amount comes from the POS (amountDollars) — Stripe's
-    // amount_received is the CART TOTAL which covers all items in the
-    // transaction. Never override per-item amounts with the cart total.
     let cardBrand = null;
     let cardLast4 = null;
     let stripeStatus = null;
+    let stripeAmountCents = null;
     if (stripe_payment_intent_id) {
       try {
         const pi = await stripe.paymentIntents.retrieve(stripe_payment_intent_id, {
@@ -233,17 +231,26 @@ export default async function handler(req, res) {
           cardLast4 = pi.payment_method.card.last4;
         }
         stripeStatus = pi.status === 'succeeded' ? 'succeeded' : pi.status;
+        stripeAmountCents = pi.amount_received || pi.amount;
       } catch (err) {
         console.error('Failed to retrieve card details for purchase:', err.message);
       }
     }
 
-    // Use the per-item amount from the POS — this is what the patient paid
-    // for THIS specific item. Stripe's amount_received is the cart total
-    // and must NOT be used as the per-item amount.
-    // Safety net: comps always record as $0 regardless of what was sent
+    // Safety net: if the POS sent a higher amount than what Stripe actually charged,
+    // cap at the Stripe amount. This catches cases where the list price is recorded
+    // instead of the discounted price (e.g., $699 recorded when Stripe charged $400).
+    // Only applies when POS amount > Stripe amount (multi-item carts send per-item
+    // amounts that are naturally less than the cart total, so they're unaffected).
     const isComp = payment_method === 'comp';
-    const finalAmountDollars = isComp ? 0 : amountDollars;
+    let finalAmountDollars = isComp ? 0 : amountDollars;
+    if (!isComp && stripeAmountCents) {
+      const stripeAmountDollars = stripeAmountCents / 100;
+      if (finalAmountDollars > stripeAmountDollars + 0.01) {
+        console.warn(`Amount mismatch: POS sent $${finalAmountDollars}, Stripe charged $${stripeAmountDollars}. Capping to Stripe amount.`);
+        finalAmountDollars = stripeAmountDollars;
+      }
+    }
     const insertData = {
       patient_id,
       patient_name: patient?.name || 'Unknown',

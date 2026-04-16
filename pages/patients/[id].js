@@ -4529,8 +4529,8 @@ export default function PatientProfile() {
           )}
         </header>
 
-        {/* Protocol Action Banners — payment due, sessions exhausted, refill overdue */}
-        {!loading && (() => {
+        {/* Protocol Action Banners — payment due, sessions exhausted, refill overdue (business view only) */}
+        {!loading && viewMode === 'business' && (() => {
           const banners = [];
           (activeProtocols || []).forEach(proto => {
             if (proto.status !== 'active') return;

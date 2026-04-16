@@ -9834,7 +9834,7 @@ export default function PatientProfile() {
                           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                             <button
                               onClick={() => handleComplete(f.id)}
-                              style={{ ...sharedStyles.btnPrimary, fontSize: 12, padding: '5px 12px' }}
+                              className="btn-primary-sm"
                             >Done</button>
                             <button
                               onClick={() => handleDismiss(f.id)}

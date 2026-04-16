@@ -4228,7 +4228,7 @@ export default function PatientProfile() {
               <span className="demographics-preview">
                 {(patient.date_of_birth || intakeDemographics?.date_of_birth) && <span>{formatDOB(patient.date_of_birth || intakeDemographics?.date_of_birth)}{calcAge(patient.date_of_birth || intakeDemographics?.date_of_birth) !== null && ` (${calcAge(patient.date_of_birth || intakeDemographics?.date_of_birth)}yo)`}</span>}
                 {(patient.gender || intakeDemographics?.gender) && <span>{patient.gender || intakeDemographics?.gender}</span>}
-                {patient.phone && <span>{patient.phone}</span>}
+                {patient.phone && <span>{formatPhone(patient.phone)}</span>}
                 {patient.email && <span>{patient.email}</span>}
                 {patient.created_at && <span>Since {formatDate(patient.created_at)}</span>}
               </span>
@@ -4446,10 +4446,6 @@ export default function PatientProfile() {
                     <span>{patient.address || '—'}</span>
                   </div>
                   <div className="demo-item">
-                    <label>City, State, Zip</label>
-                    <span>{[patient.city, patient.state, patient.zip_code].filter(Boolean).join(', ') || '—'}</span>
-                  </div>
-                  <div className="demo-item">
                     <label>Referred By / How Heard</label>
                     {patient.referral_source ? (
                       <span>{patient.referral_source}</span>
@@ -4462,6 +4458,10 @@ export default function PatientProfile() {
                   <div className="demo-item">
                     <label>Phone</label>
                     <span>{patient.phone ? formatPhone(patient.phone) : '—'}</span>
+                  </div>
+                  <div className="demo-item">
+                    <label>City, State, Zip</label>
+                    <span>{[patient.city, patient.state, patient.zip_code].filter(Boolean).join(', ') || '—'}</span>
                   </div>
                   <div className="demo-item">
                     <label>Patient Since</label>
@@ -16312,7 +16312,7 @@ export default function PatientProfile() {
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#6b7280' }}>Phone:</span>
                   <span style={{ color: patient?.phone ? '#111827' : '#ef4444', fontWeight: 500 }}>
-                    {patient?.phone || 'Not on file'}
+                    {patient?.phone ? formatPhone(patient.phone) : 'Not on file'}
                   </span>
                 </div>
               </div>

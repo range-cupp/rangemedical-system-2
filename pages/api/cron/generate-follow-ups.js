@@ -47,16 +47,19 @@ export default async function handler(req, res) {
     try {
       const { data: peptideProtocols } = await supabase
         .from('protocols')
-        .select('id, patient_id, patient_name, program_name, program_type, start_date, end_date, duration_days')
+        .select('id, patient_id, patient_name, program_name, program_type, start_date, end_date')
         .eq('status', 'active')
         .in('program_type', PEPTIDE_PROGRAM_TYPES)
-        .not('duration_days', 'is', null);
+        .not('end_date', 'is', null);
 
       if (peptideProtocols) {
         for (const p of peptideProtocols) {
           const startDate = new Date(p.start_date + 'T00:00:00');
+          const endDate = new Date(p.end_date + 'T00:00:00');
+          const durationDays = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
+          if (durationDays <= 0) continue;
           const daysElapsed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
-          const pctComplete = daysElapsed / p.duration_days;
+          const pctComplete = daysElapsed / durationDays;
 
           if (pctComplete >= 0.7 && pctComplete < 1.0) {
             const created = await createFollowUp({
@@ -64,7 +67,7 @@ export default async function handler(req, res) {
               patient_name: p.patient_name,
               protocol_id: p.id,
               type: 'peptide_renewal',
-              trigger_reason: `${p.program_name} is ${Math.round(pctComplete * 100)}% complete (day ${daysElapsed} of ${p.duration_days}) — time to discuss renewal`,
+              trigger_reason: `${p.program_name} is ${Math.round(pctComplete * 100)}% complete (day ${daysElapsed} of ${durationDays}) — time to discuss renewal`,
               priority: 'high',
               due_date: todayStr,
             });

@@ -112,6 +112,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [providerSchedules, setProviderSchedules] = useState({}); // username → { newport: { monday: [{start,end}], ... }, locations: { placentia: { monday: [{start,end}] } } }
   const [availableSlots, setAvailableSlots] = useState(null); // null = not loaded, [] = no slots, [...] = available
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [slotsError, setSlotsError] = useState(false); // true when Cal.com API fails
   // Multi-service availability: fetched per-service slots (null = no cal.com, [] = none available, [...] = slots)
   const [multiServiceSlots, setMultiServiceSlots] = useState({}); // { svcName: string[] | null }
   const [loadingMultiSlots, setLoadingMultiSlots] = useState(false);
@@ -566,6 +567,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     let cancelled = false;
     setLoadingSlots(true);
     setAvailableSlots(null);
+    setSlotsError(false);
     setApptTime(''); // Reset selected time when date changes
     setSelectedProvider(null); // Reset provider when date changes
 
@@ -575,6 +577,16 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       .then(r => r.json())
       .then(data => {
         if (cancelled) return;
+
+        // Detect API error (server returned error instead of slots)
+        if (data.error || !data.slots) {
+          console.error('Slots API error:', data.error);
+          setSlotsError(true);
+          setAvailableSlots([]);
+          setLoadingSlots(false);
+          return;
+        }
+
         // Parse slot data — Cal.com returns { slots: { "YYYY-MM-DD": [{ start, end }] } }
         // Only use slots for the requested date (Cal.com sometimes returns nearby dates).
         const daySlots = data.slots || {};
@@ -600,7 +612,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       .catch(err => {
         if (!cancelled) {
           console.error('Failed to fetch slots:', err);
-          setAvailableSlots(null);
+          setSlotsError(true);
+          setAvailableSlots([]);
           setLoadingSlots(false);
         }
       });
@@ -3664,7 +3677,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                         }}>
                           {prov.label}
                           <div style={{ fontSize: '11px', fontWeight: '400', opacity: 0.7, marginTop: '1px' }}>
-                            {provSlots.length > 0 ? `${provSlots.length} slot${provSlots.length > 1 ? 's' : ''}` : 'Off'}
+                            {provSlots.length > 0 ? `${provSlots.length} slot${provSlots.length > 1 ? 's' : ''}` : slotsError ? '—' : 'Off'}
                           </div>
                         </div>
                         <div style={{
@@ -3718,8 +3731,30 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </div>
             )}
 
-            {/* No availability for any provider */}
-            {!loadingSlots && hasCalcom && apptDate && availableSlots && availableSlots.length === 0 && !useCustomTime && (
+            {/* Slots API error — show retry */}
+            {!loadingSlots && hasCalcom && apptDate && slotsError && !useCustomTime && (
+              <div style={{ padding: '16px', background: '#fee2e2', borderRadius: '0', color: '#991b1b', fontSize: '13px', textAlign: 'center' }}>
+                Failed to load availability from Cal.com.{' '}
+                <button
+                  onClick={() => {
+                    setSlotsError(false);
+                    setAvailableSlots(null);
+                    setLoadingSlots(true);
+                    // Re-trigger the effect by toggling apptDate
+                    const d = apptDate;
+                    setApptDate('');
+                    setTimeout(() => setApptDate(d), 0);
+                  }}
+                  style={{ background: 'none', border: 'none', color: '#991b1b', fontWeight: '700', cursor: 'pointer', textDecoration: 'underline', fontSize: '13px' }}
+                >
+                  Retry
+                </button>
+                {' '}or use custom time below.
+              </div>
+            )}
+
+            {/* No availability for any provider (genuine — not an API error) */}
+            {!loadingSlots && hasCalcom && apptDate && !slotsError && availableSlots && availableSlots.length === 0 && !useCustomTime && (
               <div style={{ padding: '16px', background: '#fef3c7', borderRadius: '0', color: '#92400e', fontSize: '13px', textAlign: 'center' }}>
                 No availability on this date. Try a different date or use custom time below.
               </div>

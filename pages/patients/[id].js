@@ -499,7 +499,7 @@ export default function PatientProfile() {
   const [showProtocolPdfModal, setShowProtocolPdfModal] = useState(false);
   const [protocolPdfSelections, setProtocolPdfSelections] = useState({});
   const [protocolPdfCombine, setProtocolPdfCombine] = useState(true);
-  const [protocolPdfPlanDate, setProtocolPdfPlanDate] = useState(new Date().toISOString().split('T')[0]);
+  const [protocolPdfPlanDate, setProtocolPdfPlanDate] = useState(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
   const [protocolPdfGenerating, setProtocolPdfGenerating] = useState(false);
   const [protocolPdfSaving, setProtocolPdfSaving] = useState(false);
   const [sendingWlLink, setSendingWlLink] = useState(null); // protocol id being sent
@@ -657,7 +657,7 @@ export default function PatientProfile() {
 
   const [assignForm, setAssignForm] = useState({
     templateId: '', peptideId: '', selectedDose: '', frequency: '',
-    startDate: new Date().toISOString().split('T')[0], notes: '',
+    startDate: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }), notes: '',
     injectionMedication: '', injectionDose: '', vialDuration: '',
     medication: '', deliveryMethod: '', injectionDay: '', pickupFrequencyDays: '',
     // HRT-specific fields
@@ -680,12 +680,12 @@ export default function PatientProfile() {
 
   const [labForm, setLabForm] = useState({
     labType: 'Baseline', labPanel: 'Elite',
-    completedDate: new Date().toISOString().split('T')[0], notes: ''
+    completedDate: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }), notes: ''
   });
 
   const [uploadForm, setUploadForm] = useState({
     files: [], labType: 'Baseline', panelType: 'Elite',
-    collectionDate: new Date().toISOString().split('T')[0], notes: ''
+    collectionDate: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }), notes: ''
   });
   const [dragOver, setDragOver] = useState(false);
 
@@ -1373,7 +1373,7 @@ export default function PatientProfile() {
   const openDoseChangeModal = (protocol) => {
     setDoseChangeProtocol(protocol);
     setDoseChangeForm({
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
       dose: '',
       injectionsPerWeek: protocol.injections_per_week || 2,
       notes: ''
@@ -1521,7 +1521,7 @@ export default function PatientProfile() {
   };
 
   const handleBloodDrawClick = (draw, protocolId) => {
-    setBloodDrawDate(draw.completedDate || new Date().toISOString().split('T')[0]);
+    setBloodDrawDate(draw.completedDate || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
     setBloodDrawModal({ ...draw, protocolId });
   };
 
@@ -2124,7 +2124,7 @@ export default function PatientProfile() {
     setSelectedNotification(notification);
     setAssignForm({
       templateId: '', peptideId: '', selectedDose: '', frequency: '',
-      startDate: new Date().toISOString().split('T')[0], notes: '',
+      startDate: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }), notes: '',
       injectionMedication: '', injectionDose: '', vialDuration: ''
     });
     setAddToPackMode(false);
@@ -3039,7 +3039,7 @@ export default function PatientProfile() {
       if (errors.length > 0) throw new Error(errors.join('\n'));
 
       await fetchLabDocuments();
-      setUploadForm({ files: [], labType: 'Baseline', panelType: 'Elite', collectionDate: new Date().toISOString().split('T')[0], notes: '' });
+      setUploadForm({ files: [], labType: 'Baseline', panelType: 'Elite', collectionDate: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }), notes: '' });
       setShowUploadModal(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
@@ -3639,7 +3639,7 @@ export default function PatientProfile() {
     }
     setProtocolPdfSelections(selections);
     setProtocolPdfCombine(peptideProtos.length > 1);
-    setProtocolPdfPlanDate(new Date().toISOString().split('T')[0]);
+    setProtocolPdfPlanDate(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
     setShowProtocolPdfModal(true);
   };
 
@@ -10721,7 +10721,7 @@ export default function PatientProfile() {
                           await fetch(`/api/patients/${patient.id}/medications`, {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: medEditForm.id, is_active: false, stop_date: new Date().toISOString().split('T')[0], discontinued_reason: 'Discontinued by provider' }),
+                            body: JSON.stringify({ id: medEditForm.id, is_active: false, stop_date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }), discontinued_reason: 'Discontinued by provider' }),
                           });
                           setShowMedEditModal(false);
                           // Refresh medications
@@ -16441,7 +16441,7 @@ export default function PatientProfile() {
                   type="date"
                   value={dispenseDate}
                   onChange={e => setDispenseDate(e.target.value)}
-                  max={new Date().toISOString().split('T')[0]}
+                  max={new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })}
                   style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 0, fontSize: '14px', fontFamily: 'inherit', color: '#111', boxSizing: 'border-box' }}
                 />
               </div>

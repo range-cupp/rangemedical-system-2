@@ -2,8 +2,9 @@ import { Html, Head, Main, NextScript } from 'next/document';
 
 export default function Document() {
   return (
-    <Html lang="en">
+    <Html lang="en" translate="no">
       <Head>
+        <meta name="google" content="notranslate" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         {/* Google tag (gtag.js) — Google Ads tracking */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-DTZG1RQCYV" />

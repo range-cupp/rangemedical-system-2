@@ -240,28 +240,37 @@ export default async function handler(req, res) {
       errors.push(`labs_ready: ${e.message}`);
     }
 
-    // ── 5. SESSION VERIFICATION (appointments today without service logs) ──
+    // ── 5. SESSION VERIFICATION (yesterday's appointments without service logs) ──
+    // Check yesterday (Pacific) since the cron runs early morning and we want to verify
+    // that appointments from the previous business day were properly logged.
     try {
-      const todayStart = todayStr + 'T00:00:00.000Z';
-      const todayEnd = todayStr + 'T23:59:59.999Z';
+      // Yesterday in Pacific time
+      const yesterdayPT = new Date(today.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+      yesterdayPT.setDate(yesterdayPT.getDate() - 1);
+      const yesterdayStr = yesterdayPT.toISOString().split('T')[0];
 
-      const { data: todayAppts } = await supabase
+      // Query appointments from yesterday (Pacific) — use UTC range that covers the full Pacific day
+      const yesterdayStartUTC = new Date(yesterdayStr + 'T07:00:00.000Z'); // midnight PT = 7 AM UTC
+      const yesterdayEndUTC = new Date(yesterdayStr + 'T07:00:00.000Z');
+      yesterdayEndUTC.setDate(yesterdayEndUTC.getDate() + 1); // next day 7 AM UTC = midnight PT
+
+      const { data: yesterdayAppts } = await supabase
         .from('appointments')
         .select('id, patient_id, patient_name, service_name')
         .eq('status', 'completed')
-        .gte('start_time', todayStart)
-        .lte('start_time', todayEnd);
+        .gte('start_time', yesterdayStartUTC.toISOString())
+        .lt('start_time', yesterdayEndUTC.toISOString());
 
-      if (todayAppts) {
-        for (const appt of todayAppts) {
+      if (yesterdayAppts) {
+        for (const appt of yesterdayAppts) {
           if (!appt.patient_id) continue;
 
-          // Check if there's a matching service_log for this patient today
+          // Check if there's a matching service_log for this patient on the appointment date (Pacific)
           const { data: logs } = await supabase
             .from('service_logs')
             .select('id')
             .eq('patient_id', appt.patient_id)
-            .eq('entry_date', todayStr)
+            .eq('entry_date', yesterdayStr)
             .limit(1);
 
           if (!logs || logs.length === 0) {

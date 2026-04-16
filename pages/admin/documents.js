@@ -4,7 +4,7 @@
 
 import { useState, useRef } from 'react';
 import AdminLayout, { sharedStyles, overlayClickProps } from '../../components/AdminLayout';
-import { Printer, Mail, MessageSquare, Search, X, FileText, Package, FlaskConical, BookOpen, CheckSquare, Square } from 'lucide-react';
+import { Printer, Mail, MessageSquare, Search, X, FileText, Package, FlaskConical, BookOpen, CheckSquare, Square, Eye } from 'lucide-react';
 
 // ── Document Registry ──
 
@@ -438,14 +438,30 @@ export default function DocumentsPage() {
                   {sendModal.docs.map(d => (
                     <div key={d.id} style={{ ...pageStyles.sendDocPreview, marginBottom: 4 }}>
                       <FileText size={14} style={{ color: '#666', flexShrink: 0 }} />
-                      <span style={{ fontSize: 13 }}>{d.name}</span>
+                      <span style={{ fontSize: 13, flex: 1 }}>{d.name}</span>
+                      <button
+                        onClick={() => window.open(d.url, '_blank')}
+                        style={pageStyles.previewBtn}
+                        title="Preview guide"
+                      >
+                        <Eye size={13} />
+                        Preview
+                      </button>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div style={pageStyles.sendDocPreview}>
                   <FileText size={16} style={{ color: '#666', flexShrink: 0 }} />
-                  <span style={{ fontWeight: 600 }}>{sendModal.name}</span>
+                  <span style={{ fontWeight: 600, flex: 1 }}>{sendModal.name}</span>
+                  <button
+                    onClick={() => window.open(sendModal.url || getDocUrl(sendModal.category, sendModal.file), '_blank')}
+                    style={pageStyles.previewBtn}
+                    title="Preview before sending"
+                  >
+                    <Eye size={14} />
+                    Preview
+                  </button>
                 </div>
               )}
 
@@ -701,6 +717,20 @@ const pageStyles = {
     borderRadius: 0,
     marginBottom: 16,
     fontSize: 14,
+  },
+  previewBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 5,
+    padding: '6px 10px',
+    background: '#fff',
+    border: '1px solid #ddd',
+    borderRadius: 0,
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 500,
+    color: '#333',
+    flexShrink: 0,
   },
   modeToggle: {
     display: 'flex',

@@ -416,6 +416,22 @@ export default async function handler(req, res) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
 
+    // If this session came from a custom quote, flip the quote to paid.
+    // Runs before the purchase-record logic so it still fires on edge-case failures.
+    const quoteId = session.metadata?.quote_id;
+    if (quoteId) {
+      try {
+        const { error: qErr } = await supabase
+          .from('quotes')
+          .update({ status: 'paid', paid_at: new Date().toISOString() })
+          .eq('id', quoteId);
+        if (qErr) console.error('Quote paid-status update failed:', qErr.message);
+        else console.log(`Quote ${quoteId} marked paid from session ${session.id}`);
+      } catch (qCatch) {
+        console.error('Quote paid-status update threw:', qCatch.message);
+      }
+    }
+
     try {
       // Get line items with product details to identify what was purchased
       const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {

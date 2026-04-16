@@ -2216,8 +2216,9 @@ function CheckoutInner() {
                     )}
                     {SERVICE_SEGMENTS.map(seg => {
                       const segCats = seg.categories.filter(c => c !== 'custom');
+                      const hasBuilder = segCats.some(c => c === 'weight_loss' || c === 'injections_builder');
                       const itemCount = segCats.reduce((sum, c) => sum + getItemsByCategory(c).length, 0);
-                      if (itemCount === 0 && seg.id !== 'other') return null;
+                      if (itemCount === 0 && !hasBuilder && seg.id !== 'other') return null;
                       return (
                         <button
                           key={seg.id}
@@ -2231,7 +2232,7 @@ function CheckoutInner() {
                           <div style={styles.segmentIcon}>{seg.icon}</div>
                           <div style={styles.segmentLabel}>{seg.label}</div>
                           <div style={styles.segmentDesc}>{seg.description}</div>
-                          <div style={styles.segmentCount}>{itemCount} items</div>
+                          <div style={styles.segmentCount}>{hasBuilder && itemCount === 0 ? 'Builder' : `${itemCount} items`}</div>
                         </button>
                       );
                     })}
@@ -2783,7 +2784,8 @@ function CheckoutInner() {
                     <div style={styles.subCategoryTabs}>
                       {activeSegment.categories.map(catId => {
                         const items = getItemsByCategory(catId);
-                        if (items.length === 0 && catId !== 'custom') return null;
+                        const isBuilderCat = catId === 'weight_loss' || catId === 'injections_builder';
+                        if (items.length === 0 && !isBuilderCat && catId !== 'custom') return null;
                         return (
                           <button
                             key={catId}

@@ -567,6 +567,7 @@ function useUnreadTasks(employeeId, router) {
 const NAV_ITEMS = [
   { href: '/admin', label: 'Dashboard', icon: 'grid' },
   { href: '/admin/actions', label: 'Actions', icon: 'alert-circle' },
+  { href: '/admin/follow-ups', label: 'Follow-Ups', icon: 'phone' },
   { href: '/admin/sales-pipeline', label: 'Sales Pipeline', icon: 'trending-down', group: 'business' },
   { href: '/admin/referrals', label: 'Referrals', icon: 'user-plus', group: 'business' },
   { href: '/admin/patients', label: 'Patients', icon: 'users' },

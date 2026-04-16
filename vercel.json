@@ -80,6 +80,10 @@
     {
       "path": "/api/cron/iv-followup",
       "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/generate-follow-ups",
+      "schedule": "15 14 * * *"
     }
   ]
 }

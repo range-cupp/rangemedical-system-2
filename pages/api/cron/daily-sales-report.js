@@ -61,8 +61,9 @@ export default async function handler(req, res) {
 
     if (purchaseErr) throw purchaseErr;
 
+    // Use ?? (not ||) so amount_paid=0 (comps) doesn't fall through to catalog price
     const totalRevenue = (purchases || []).reduce((sum, p) => {
-      const amt = parseFloat(p.amount_paid) || parseFloat(p.amount) || 0;
+      const amt = parseFloat(p.amount_paid ?? p.amount ?? 0);
       return sum + amt;
     }, 0);
 
@@ -74,7 +75,7 @@ export default async function handler(req, res) {
       const cat = p.category || 'other';
       if (!revenueByCategory[cat]) revenueByCategory[cat] = { count: 0, total: 0 };
       revenueByCategory[cat].count++;
-      revenueByCategory[cat].total += parseFloat(p.amount_paid) || parseFloat(p.amount) || 0;
+      revenueByCategory[cat].total += parseFloat(p.amount_paid ?? p.amount ?? 0);
     });
 
     // Revenue by payment method
@@ -83,7 +84,7 @@ export default async function handler(req, res) {
       const method = p.payment_method || 'unknown';
       if (!revenueByPayment[method]) revenueByPayment[method] = { count: 0, total: 0 };
       revenueByPayment[method].count++;
-      revenueByPayment[method].total += parseFloat(p.amount_paid) || parseFloat(p.amount) || 0;
+      revenueByPayment[method].total += parseFloat(p.amount_paid ?? p.amount ?? 0);
     });
 
     // ── 2. Sessions: today's service log entries ───────────────────────

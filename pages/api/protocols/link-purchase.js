@@ -56,7 +56,7 @@ export default async function handler(req, res) {
 
     // Update protocol payment info
     const existingPaid = parseFloat(protocol.amount_paid) || 0;
-    const newPayment = parseFloat(purchase.amount_paid) || parseFloat(purchase.amount) || 0;
+    const newPayment = parseFloat(purchase.amount_paid ?? purchase.amount ?? 0);
 
     const { error: updateProtocolError } = await supabase
       .from('protocols')

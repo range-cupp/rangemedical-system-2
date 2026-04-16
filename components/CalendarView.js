@@ -29,6 +29,18 @@ const CONSENT_TYPE_TO_FORM_ID = {
 import { getRenewalStatus } from '../lib/protocol-tracking';
 import { formatPhone } from '../lib/format-utils';
 
+function stripNoteHtml(html) {
+  if (!html) return '';
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+    .replace(/<\/div>\s*<div[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ').replace(/&#39;/g, "'").replace(/&quot;/g, '"')
+    .trim();
+}
+
 const STATUS_LABELS = {
   scheduled: { label: 'Scheduled', bg: '#dbeafe', text: '#1e40af' },
   confirmed: { label: 'Confirmed', bg: '#dcfce7', text: '#166534' },
@@ -4742,8 +4754,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                               {new Date(note.note_date || note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}
                               {note.source && <> · {note.source}</>}
                             </div>
-                            <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.4', maxHeight: '60px', overflow: 'hidden' }}>
-                              {note.body}
+                            <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.4', maxHeight: '60px', overflow: 'hidden', whiteSpace: 'pre-line' }}>
+                              {stripNoteHtml(note.body)}
                             </div>
                           </div>
                         ))}

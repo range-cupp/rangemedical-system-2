@@ -106,6 +106,9 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   const [creditBalanceCents, setCreditBalanceCents] = useState(0);
   const [loadingCredit, setLoadingCredit] = useState(false);
 
+  // Cash payment state — staff must confirm actual amount received
+  const [cashReceivedAmount, setCashReceivedAmount] = useState('');
+
   // Split payment state
   const [splitCashAmount, setSplitCashAmount] = useState(''); // dollar string for cash portion
   const [splitCardSelection, setSplitCardSelection] = useState(null); // card id or 'new' for card portion
@@ -919,22 +922,27 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       return;
     }
 
-    // Cash payment — skip Stripe, just record the purchase
+    // Cash payment — skip Stripe, record the actual cash amount received
     if (selectedCard === 'cash') {
+      const cashCents = Math.round((parseFloat(cashReceivedAmount) || 0) * 100);
+      if (cashCents <= 0) return;
       setStep('processing');
       try {
-        const purchaseData = await recordPurchasesWithReturn({ payment_method: 'cash' });
-    
+        const purchaseData = await recordPurchasesWithReturn({
+          payment_method: 'cash',
+          ...(cashCents !== amount ? { amount_override: cashCents } : {}),
+        });
+
         // If this was a gift card purchase, create the gift card
         if (isGiftCardPurchase() && purchaseData?.purchase?.id) {
-          const code = await createGiftCardAfterPurchase(purchaseData.purchase.id, amount);
+          const code = await createGiftCardAfterPurchase(purchaseData.purchase.id, cashCents);
           setResultStatus('success');
           setResultMessage(code
-            ? `Cash payment recorded: ${formatPrice(amount)}\nGift Card Created: ${code}\nGive this code to the recipient`
-            : `Cash payment recorded: ${description} — ${formatPrice(amount)} for ${patient.name}`);
+            ? `Cash payment recorded: ${formatPrice(cashCents)}\nGift Card Created: ${code}\nGive this code to the recipient`
+            : `Cash payment recorded: ${description} — ${formatPrice(cashCents)} for ${patient.name}`);
         } else {
           setResultStatus('success');
-          setResultMessage(`Cash payment recorded: ${description} — ${formatPrice(amount)} for ${patient.name}`);
+          setResultMessage(`Cash payment recorded: ${description} — ${formatPrice(cashCents)} for ${patient.name}`);
         }
         setStep('result');
       } catch (error) {
@@ -2228,10 +2236,49 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                       type="radio"
                       name="payment_method"
                       checked={selectedCard === 'cash'}
-                      onChange={() => setSelectedCard('cash')}
+                      onChange={() => {
+                        setSelectedCard('cash');
+                        setCashReceivedAmount((finalAmount / 100).toFixed(2));
+                      }}
                     />
                     <span>💵 Cash</span>
                   </label>
+
+                  {selectedCard === 'cash' && (
+                    <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0' }}>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
+                        Cash Amount Received
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '16px', fontWeight: 600, color: '#374151' }}>$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={cashReceivedAmount}
+                          onChange={(e) => setCashReceivedAmount(e.target.value)}
+                          style={{
+                            flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px',
+                            fontSize: '16px', fontWeight: 600,
+                          }}
+                        />
+                      </div>
+                      {(() => {
+                        const cashCents = Math.round((parseFloat(cashReceivedAmount) || 0) * 100);
+                        if (cashCents > 0 && cashCents !== finalAmount) {
+                          return (
+                            <div style={{
+                              marginTop: '8px', padding: '8px 12px', background: '#fef3c7',
+                              border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '13px', color: '#92400e',
+                            }}>
+                              ⚠️ Cart total is {formatPrice(finalAmount)} — recording {formatPrice(cashCents)}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+                  )}
                 </div>
 
                 {/* Split Payment Option */}
@@ -2487,11 +2534,13 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                     ? (!giftCardLookup || giftCardLookup.error || giftCardLookup.remaining_amount < finalAmount)
                     : selectedCard === 'account_credit'
                     ? (creditBalanceCents < finalAmount)
-                    : (selectedCard !== 'cash' && !stripe)
+                    : selectedCard === 'cash'
+                    ? (Math.round((parseFloat(cashReceivedAmount) || 0) * 100) <= 0)
+                    : !stripe
                 }
               >
                 {selectedCard === 'cash'
-                  ? `Record Cash ${formatPrice(finalAmount)}`
+                  ? `Record Cash ${formatPrice(Math.round((parseFloat(cashReceivedAmount) || 0) * 100))}`
                   : selectedCard === 'split'
                   ? (() => {
                       const cashCents = Math.round((parseFloat(splitCashAmount) || 0) * 100);

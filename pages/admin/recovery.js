@@ -41,7 +41,7 @@ export default function RecoveryAdmin() {
 
   // Log session modal
   const [logModal, setLogModal] = useState(null);
-  const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
+  const [logDate, setLogDate] = useState(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
   const [logAdministeredBy, setLogAdministeredBy] = useState('');
   const [logging, setLogging] = useState(false);
 
@@ -434,7 +434,7 @@ export default function RecoveryAdmin() {
                         {/* Action buttons */}
                         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
                           <button
-                            onClick={(ev) => { ev.stopPropagation(); setLogModal(e); setLogDate(new Date().toISOString().split('T')[0]); }}
+                            onClick={(ev) => { ev.stopPropagation(); setLogModal(e); setLogDate(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })); }}
                             style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall }}
                             disabled={sessionsRemaining <= 0}
                           >

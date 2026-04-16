@@ -2,6 +2,7 @@
 // CRUD for patient_medications table — admin/provider only
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -25,7 +26,7 @@ export default async function handler(req, res) {
         strength: strength || null,
         form: form || null,
         sig: sig || null,
-        start_date: start_date || new Date().toISOString().split('T')[0],
+        start_date: start_date || todayPacific(),
         source: source || null,
         is_active: is_active !== false,
         last_pickup_date: last_pickup_date && last_pickup_date !== '' ? last_pickup_date : null,

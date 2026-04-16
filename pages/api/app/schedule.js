@@ -3,6 +3,7 @@
 // Range Medical Employee App
 
 import { createClient } from '@supabase/supabase-js';
+import { toPacificDate } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -52,7 +53,7 @@ export default async function handler(req, res) {
   // Group by date
   const grouped = {};
   for (const appt of appointments || []) {
-    const day = new Date(appt.start_time).toISOString().split('T')[0];
+    const day = toPacificDate(appt.start_time);
     if (!grouped[day]) grouped[day] = [];
     grouped[day].push(appt);
   }

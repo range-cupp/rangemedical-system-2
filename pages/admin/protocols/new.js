@@ -92,7 +92,7 @@ export default function NewProtocol() {
     deliveryMethod: 'take_home',
     
     // Duration
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
     duration: '',
     totalSessions: '',
     

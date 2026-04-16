@@ -40,9 +40,13 @@ export default function PatientPortal() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
-    const [year, month, day] = dateStr.split('T')[0].split('-');
-    const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('en-US', {
+    // Date-only strings (YYYY-MM-DD) — render as-is without timezone shift
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [y, m, d] = dateStr.split('-');
+      return new Date(Date.UTC(+y, +m - 1, +d)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+    }
+    // Timestamps — convert to Pacific
+    return new Date(dateStr).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',

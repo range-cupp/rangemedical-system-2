@@ -5,6 +5,7 @@
 // GET = preview, POST = sync
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 import { isWeightLossType, isHRTType } from '../../../lib/protocol-config';
 
 const supabase = createClient(
@@ -99,7 +100,7 @@ export default async function handler(req, res) {
 
         // Find next scheduled visit (future, not cancelled/no-show)
         const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
+        const todayStr = todayPacific();
         const futureAppointments = (appointments || []).filter(apt => {
           const status = (apt.status || '').toLowerCase();
           return apt.appointment_date >= todayStr &&

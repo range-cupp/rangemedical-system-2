@@ -4,6 +4,7 @@
 // Range Medical System
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -37,7 +38,7 @@ export default async function handler(req, res) {
     }
 
     // Get overdue count (pending tasks with due_date in the past)
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const today = todayPacific();
     const { count: overdueCount, error: overdueError } = await supabase
       .from('tasks')
       .select('*', { count: 'exact', head: true })

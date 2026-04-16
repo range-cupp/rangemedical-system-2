@@ -11,7 +11,7 @@ export default function AppSchedule() {
   const [appointments, setAppointments] = useState([]);
   const [grouped, setGrouped] = useState({});
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
 
   useEffect(() => {
     fetchSchedule();

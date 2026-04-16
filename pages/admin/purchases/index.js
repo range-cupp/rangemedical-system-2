@@ -545,7 +545,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     dosageNotes: '',
     frequency: PROTOCOL_TYPES[initialType]?.frequencies?.[0]?.value || 'daily',
     deliveryMethod: PROTOCOL_TYPES[initialType]?.deliveryMethods?.[0]?.value || 'take_home',
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
     duration: PROTOCOL_TYPES[initialType]?.durations?.[0]?.value || 10,
     totalSessions: PROTOCOL_TYPES[initialType]?.sessions?.[0] || 1,
     totalInjections: getInitialInjections(),
@@ -712,7 +712,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
 
       // Membership modes — create protocol(s) with correct program_type for service log
       if (isMembershipMode) {
-        const today = form.startDate || new Date().toISOString().split('T')[0];
+        const today = form.startDate || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
         const periodDays = isCellularReset ? 42 : (selectedFreq.period || 30);
         const endDate = new Date(today + 'T12:00:00');
         endDate.setDate(endDate.getDate() + periodDays);
@@ -1553,7 +1553,7 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            last_payment_date: new Date().toISOString().split('T')[0]
+            last_payment_date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })
           })
         });
         if (!res.ok) throw new Error('Failed to update protocol');
@@ -1565,7 +1565,7 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             total_sessions: newTotalSessions,
-            last_payment_date: new Date().toISOString().split('T')[0]
+            last_payment_date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })
           })
         });
         if (!res.ok) throw new Error('Failed to update protocol');
@@ -1751,7 +1751,7 @@ function LogSessionModal({ purchase, onClose, onSuccess }) {
   const [patient, setPatient] = useState(null);
   const [patientLoading, setPatientLoading] = useState(true);
   const [form, setForm] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
     medication: purchase?.item_name || '',
     notes: ''
   });

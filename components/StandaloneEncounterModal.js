@@ -102,7 +102,7 @@ function htmlToMd(html) {
 
 export default function StandaloneEncounterModal({ patient, currentUser, onClose, onRefresh }) {
   const now = new Date();
-  const today = now.toISOString().split('T')[0];
+  const today = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
   const currentTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', timeZone: 'America/Los_Angeles' });
 
   const [form, setForm] = useState({

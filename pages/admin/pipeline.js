@@ -359,7 +359,7 @@ export default function UnifiedPipeline() {
     window.open(`https://app.gohighlevel.com/v2/location/WICdvbXmTjQORW6GiHWW/contacts/detail/${ghlId}`, '_blank');
   };
 
-  const openRenewModal = (protocol) => setRenewModal({ protocol, duration: '30', startDate: new Date().toISOString().split('T')[0] });
+  const openRenewModal = (protocol) => setRenewModal({ protocol, duration: '30', startDate: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }) });
   const closeRenewModal = () => setRenewModal(null);
 
   const confirmRenew = async () => {
@@ -393,7 +393,7 @@ export default function UnifiedPipeline() {
     setSelectedPatient(null);
     setPatientSearch('');
     setProtocolType('');
-    setProtocolForm({ start_date: new Date().toISOString().split('T')[0] });
+    setProtocolForm({ start_date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }) });
   };
 
   const closeStartModal = () => {
@@ -508,7 +508,7 @@ export default function UnifiedPipeline() {
 
   const openLogModal = (protocol) => {
     setLogModal(protocol);
-    setLogForm({ date: new Date().toISOString().split('T')[0], log_type: protocol.category === 'weight_loss' ? 'injection' : protocol.category === 'hrt' ? 'injection' : 'session' });
+    setLogForm({ date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }), log_type: protocol.category === 'weight_loss' ? 'injection' : protocol.category === 'hrt' ? 'injection' : 'session' });
   };
   const closeLogModal = () => { setLogModal(null); setLogForm({}); };
 

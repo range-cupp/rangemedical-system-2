@@ -2,6 +2,7 @@
 // Create an addendum to a signed note
 
 import { createClient } from '@supabase/supabase-js';
+import { nowPacificISO } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
         parent_note_id,
         appointment_id: appointment_id || parentNote.appointment_id || null,
         encounter_service: encounter_service || parentNote.encounter_service || null,
-        note_date: new Date().toISOString(),
+        note_date: nowPacificISO(),
       })
       .select()
       .single();

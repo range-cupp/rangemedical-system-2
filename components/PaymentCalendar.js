@@ -55,7 +55,7 @@ export default function PaymentCalendar({ onDaySelect, selectedDate, onMonthChan
   const month = currentMonth.getMonth();
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 
   const cells = [];
   // Leading empty cells

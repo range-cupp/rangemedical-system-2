@@ -4,6 +4,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 import { logComm } from '../../../lib/comms-log';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 
@@ -61,7 +62,7 @@ export default async function handler(req, res) {
   const results = { sent: [], skipped: [], errors: [] };
 
   try {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = todayPacific();
 
     // Get active peptide protocols (category = 'peptide')
     const { data: protocols, error: protocolsError } = await supabase

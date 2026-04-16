@@ -1443,7 +1443,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                     <input
                       type="date"
                       value={rescheduleDate}
-                      min={new Date().toISOString().split('T')[0]}
+                      min={new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })}
                       onChange={e => handleRescheduleDateChange(e.target.value, selectedAppt)}
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }}
                     />

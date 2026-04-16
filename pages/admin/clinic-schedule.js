@@ -21,7 +21,7 @@ export default function ClinicSchedule() {
   const [syncing, setSyncing] = useState(false);
   const [appointments, setAppointments] = useState([]);
   const [stats, setStats] = useState({ scheduled: 0, showed: 0, noShow: 0 });
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
   const [error, setError] = useState(null);
   const [syncMessage, setSyncMessage] = useState(null);
   const [sendingForms, setSendingForms] = useState({});
@@ -125,10 +125,10 @@ export default function ClinicSchedule() {
   };
 
   const goToToday = () => {
-    setSelectedDate(new Date().toISOString().split('T')[0]);
+    setSelectedDate(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
   };
 
-  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+  const isToday = selectedDate === new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 
   // Group appointments by calendar type
   const groupedByCalendar = {};

@@ -7,7 +7,7 @@ import AdminLayout from '../../components/AdminLayout';
 
 export default function BackfillLabs() {
   const [startDate, setStartDate] = useState('2025-01-01');
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);

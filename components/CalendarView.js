@@ -1099,7 +1099,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
           patient_id: appt.patient_id,
           category: serviceLogCategory,
           entry_type: 'session',
-          entry_date: new Date().toISOString().split('T')[0],
+          entry_date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
           protocol_id: protocol.id,
           notes: `Logged from appointment: ${appt.service_name}`,
         }),

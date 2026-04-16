@@ -6,7 +6,7 @@
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { isWeightLossType } from '../../../lib/protocol-config';
-import { todayPacific } from '../../../lib/date-utils';
+import { todayPacific, nowPacificISO } from '../../../lib/date-utils';
 import { buildAdaptiveHRTSchedule, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
 
 const supabase = createClient(
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
         body: noteBody,
         raw_input: raw_input || null,
         created_by: created_by || null,
-        note_date: note_date || new Date().toISOString(),
+        note_date: note_date || nowPacificISO(),
         source: (appointment_id || encounter_service) ? 'encounter' : (protocol_id ? 'protocol' : 'manual'),
         status: 'draft',
         protocol_id: protocol_id || null,
@@ -89,7 +89,7 @@ export default async function handler(req, res) {
         .insert({
           patient_id,
           body: noteBody,
-          note_date: new Date().toISOString(),
+          note_date: nowPacificISO(),
           source: 'manual',
         })
         .select()

@@ -108,7 +108,7 @@ export default function ProviderSchedulePage() {
 
   const fetchScheduleBlocks = useCallback(async () => {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
       const res = await fetch(`/api/schedule-blocks?start_date=${today}`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) setScheduleBlocks(data.blocks || []);
@@ -349,7 +349,7 @@ export default function ProviderSchedulePage() {
                   const location = getScheduleLocation(schedule);
                   const overrides = schedule.overrides || [];
                   // Filter to future overrides only
-                  const today = new Date().toISOString().split('T')[0];
+                  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
                   const futureOverrides = overrides.filter(o => o.date >= today);
 
                   return (
@@ -596,7 +596,7 @@ export default function ProviderSchedulePage() {
                     value={overrideDate}
                     onChange={e => { setOverrideDate(e.target.value); if (!overrideEndDate || e.target.value > overrideEndDate) setOverrideEndDate(e.target.value); }}
                     style={sharedStyles.input}
-                    min={new Date().toISOString().split('T')[0]}
+                    min={new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })}
                   />
                 </div>
                 <div>
@@ -606,7 +606,7 @@ export default function ProviderSchedulePage() {
                     value={overrideEndDate || overrideDate}
                     onChange={e => setOverrideEndDate(e.target.value)}
                     style={sharedStyles.input}
-                    min={overrideDate || new Date().toISOString().split('T')[0]}
+                    min={overrideDate || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })}
                   />
                 </div>
 

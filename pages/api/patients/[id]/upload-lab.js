@@ -2,6 +2,7 @@
 // Upload lab PDF for a patient - No external dependencies version
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../../lib/date-utils';
 import { HRT_PROGRAM_TYPES } from '../../../../lib/protocol-config';
 
 export const config = {
@@ -150,7 +151,7 @@ export default async function handler(req, res) {
                 protocol_id: hrtProto.id,
                 patient_id: patientId,
                 log_type: 'blood_draw',
-                log_date: collectionDate || new Date().toISOString().split('T')[0],
+                log_date: collectionDate || todayPacific(),
                 notes: entry.label
               });
               console.log(`✓ Auto-logged blood draw for HRT protocol ${hrtProto.id}: ${entry.label}`);

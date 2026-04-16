@@ -183,7 +183,7 @@ export default function ProtocolDetail() {
   const [hrtReminderSchedule, setHrtReminderSchedule] = useState('mon_thu');
   const [enablingHrtReminders, setEnablingHrtReminders] = useState(false);
   const [sessionModal, setSessionModal] = useState(null); // { sessionNum }
-  const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0]);
+  const [sessionDate, setSessionDate] = useState(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
   const [sessionSaving, setSessionSaving] = useState(false);
   const [clinicalNotes, setClinicalNotes] = useState([]);
   const [encounterNotes, setEncounterNotes] = useState([]); // All encounter notes for this patient (for matching to injection dates)
@@ -450,13 +450,13 @@ export default function ProtocolDetail() {
     setLogForm({ weight: '', dose: defaultDose, notes: '', sideEffects: [], deliveryMethod: 'take_home', bloodPressure: '', missed: false });
     setLogModal({
       injectionNum,
-      date: date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      date: date ? date.toISOString().split('T')[0] : new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
     });
   };
 
   // Blood draw handlers
   const handleBloodDrawClick = (draw) => {
-    setBloodDrawDate(draw.completedDate || new Date().toISOString().split('T')[0]);
+    setBloodDrawDate(draw.completedDate || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
     setBloodDrawModal({ ...draw, protocolId: protocol?.id });
   };
 
@@ -554,7 +554,7 @@ export default function ProtocolDetail() {
     try {
       const dateStr = injectionDate
         ? injectionDate.toISOString().split('T')[0]
-        : new Date().toISOString().split('T')[0];
+        : new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
       const lastDose = injectionLogs.length > 0
         ? (injectionLogs[0].dosage || (injectionLogs[0].notes || '').match(/Dose:\s*([^|]+)/)?.[1]?.trim())
         : null;
@@ -607,7 +607,7 @@ export default function ProtocolDetail() {
     try {
       const dateStr = injectionDate
         ? injectionDate.toISOString().split('T')[0]
-        : new Date().toISOString().split('T')[0];
+        : new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
       const res = await fetch(`/api/protocols/${id}/log-injection`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -754,7 +754,7 @@ export default function ProtocolDetail() {
       if (!res.ok) throw new Error(data.error || 'Failed to log session');
       setSuccess(`Session #${sessionModal.sessionNum} logged for ${new Date(sessionDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' })}`);
       setSessionModal(null);
-      setSessionDate(new Date().toISOString().split('T')[0]);
+      setSessionDate(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
       fetchProtocol();
     } catch (err) {
       setError(err.message);
@@ -1376,7 +1376,7 @@ export default function ProtocolDetail() {
                                 onClick={() => {
                                   setSecMedPickupModal({ medication: med, detail });
                                   setSecMedPickupForm({
-                                    date: new Date().toISOString().split('T')[0],
+                                    date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
                                     num_vials: detail?.num_vials || 1,
                                     dosage: detail?.dosage || '',
                                     frequency: detail?.frequency || '',
@@ -1439,7 +1439,7 @@ export default function ProtocolDetail() {
                     return (
                       <div
                         key={num}
-                        onClick={isClickable ? () => { setSessionModal({ sessionNum: sessionsCompleted + 1 }); setSessionDate(new Date().toISOString().split('T')[0]); } : undefined}
+                        onClick={isClickable ? () => { setSessionModal({ sessionNum: sessionsCompleted + 1 }); setSessionDate(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })); } : undefined}
                         style={{
                           ...styles.calendarDay,
                           background: isUsed ? '#22c55e' : isNext ? '#000' : '#fff',

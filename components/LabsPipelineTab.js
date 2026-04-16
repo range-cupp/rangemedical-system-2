@@ -468,7 +468,7 @@ function AddLabModal({ patientSearch, onPatientSearch, patientResults, onAdd, on
   const [manualName, setManualName] = useState('');
   const [panelType, setPanelType] = useState('essential');
   const [labType, setLabType] = useState('new_patient');
-  const [bloodDrawDate, setBloodDrawDate] = useState(new Date().toISOString().split('T')[0]);
+  const [bloodDrawDate, setBloodDrawDate] = useState(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
   const [notes, setNotes] = useState('');
 
   const handleSubmit = () => {

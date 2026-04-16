@@ -4,6 +4,7 @@
 // Range Medical System V2
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -106,7 +107,7 @@ export default async function handler(req, res) {
         case 'hrt_onboarding':
           // Clear onboarding_start_date to stop the sequence
           updateFields = active
-            ? { onboarding_start_date: new Date().toISOString().split('T')[0] }
+            ? { onboarding_start_date: todayPacific() }
             : { onboarding_start_date: null };
           break;
         case 'peptide_checkin':

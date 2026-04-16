@@ -410,6 +410,17 @@ export default async function handler(req, res) {
  * Returns true if created, false if duplicate exists.
  */
 async function createFollowUp({ patient_id, patient_name, protocol_id, type, trigger_reason, priority, due_date }) {
+  // Resolve patient name if missing
+  let resolvedName = patient_name;
+  if (!resolvedName || resolvedName === 'Unknown') {
+    const { data: patient } = await supabase
+      .from('patients')
+      .select('name')
+      .eq('id', patient_id)
+      .single();
+    resolvedName = patient?.name || 'Unknown';
+  }
+
   // Check for existing pending/in_progress follow-up with same patient + type + protocol
   const query = supabase
     .from('follow_ups')
@@ -429,7 +440,7 @@ async function createFollowUp({ patient_id, patient_name, protocol_id, type, tri
 
   const { error } = await supabase.from('follow_ups').insert({
     patient_id,
-    patient_name,
+    patient_name: resolvedName,
     protocol_id,
     type,
     trigger_reason,

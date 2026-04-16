@@ -228,6 +228,7 @@ function CheckoutInner() {
   // ── Fulfillment ──
   const [fulfillmentMethod, setFulfillmentMethod] = useState('in_clinic');
   const [trackingNumber, setTrackingNumber] = useState('');
+  const [wlFrequencyDays, setWlFrequencyDays] = useState(7); // 7 = Weekly, 10 = Every 10 Days
   const [shippingAmount, setShippingAmount] = useState('');
 
   // ── Split payment ──
@@ -502,6 +503,16 @@ function CheckoutInner() {
     }
     setCartItems([...cartItems, { ...item, quantity: 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
     setCartOpen(true);
+
+    // Auto-set WL frequency from product name (10-day programs → 10, monthly/single → 7)
+    if (item.category === 'weight_loss') {
+      const lower = (item.name || '').toLowerCase();
+      if (lower.includes('10-day') || lower.includes('10 day') || lower.includes('every 10')) {
+        setWlFrequencyDays(10);
+      } else {
+        setWlFrequencyDays(7);
+      }
+    }
   }
 
   function showWarning(msg) {
@@ -760,6 +771,7 @@ function CheckoutInner() {
           shipping: amount_override ? 0 : itemShipping,
           fulfillment_method: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) ? fulfillmentMethod : null,
           tracking_number: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) && fulfillmentMethod === 'overnight' ? trackingNumber : null,
+          wl_frequency_days: item.category === 'weight_loss' ? wlFrequencyDays : undefined,
           skip_receipt: skipNotification || cartItems.length > 1,
           ...(itemDiscountAmt > 0 && !amount_override ? {
             discount_type: item.itemDiscountType,
@@ -1388,6 +1400,7 @@ function CheckoutInner() {
     setSelectedCard(null);
     setSaveNewCard(false);
     setFulfillmentMethod('in_clinic');
+    setWlFrequencyDays(7);
     setTrackingNumber('');
     setShippingAmount('');
     setSplitCashAmount('');
@@ -3316,6 +3329,39 @@ function CheckoutInner() {
                       onChange={e => setTrackingNumber(e.target.value)}
                       style={{ width: '100%', padding: '8px 12px', border: '1px solid #e0e0e0', fontSize: '13px', boxSizing: 'border-box', marginTop: '8px' }}
                     />
+                  )}
+                </div>
+              )}
+
+              {/* Weight Loss Injection Frequency */}
+              {cartItems.some(i => i.category === 'weight_loss') && (
+                <div style={styles.paymentSection}>
+                  <div style={styles.paymentSectionLabel}>INJECTION FREQUENCY</div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => setWlFrequencyDays(7)}
+                      style={{
+                        ...styles.fulfillmentBtn,
+                        ...(wlFrequencyDays === 7 ? { border: '2px solid #2E75B6', background: '#EBF3FB', color: '#2E75B6' } : {}),
+                      }}
+                    >Weekly (every 7 days)</button>
+                    <button
+                      onClick={() => setWlFrequencyDays(10)}
+                      style={{
+                        ...styles.fulfillmentBtn,
+                        ...(wlFrequencyDays === 10 ? { border: '2px solid #e67e22', background: '#FFF5EB', color: '#e67e22' } : {}),
+                      }}
+                    >Every 10 Days</button>
+                  </div>
+                  {cartItems.some(i => i.category === 'weight_loss') && (
+                    <div style={{ fontSize: '12px', color: '#888', marginTop: '6px' }}>
+                      {(() => {
+                        const wlItems = cartItems.filter(i => i.category === 'weight_loss');
+                        const totalInj = wlItems.reduce((sum, i) => sum + (i.quantity || 1), 0);
+                        const totalDays = totalInj * wlFrequencyDays;
+                        return `${totalInj} injection${totalInj > 1 ? 's' : ''} × ${wlFrequencyDays} days = ${totalDays} day supply`;
+                      })()}
+                    </div>
                   )}
                 </div>
               )}

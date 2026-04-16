@@ -57,6 +57,7 @@ export default async function handler(req, res) {
     // Weight loss multi-injection
     injection_method,
     injection_frequency,
+    wl_frequency_days,
 
     // Date override (for backdating)
     entry_date,
@@ -175,10 +176,19 @@ export default async function handler(req, res) {
       const atMatch = pickupDosage.match(/@\s*(.+)/);
       const injectionDose = atMatch ? atMatch[1].trim() : pickupDosage;
 
+      // Use frequency from request, or look up from protocol, default 7 (weekly)
+      let wlFreqDays = wl_frequency_days ? parseInt(wl_frequency_days) : 0;
+      if (!wlFreqDays && protocol_id) {
+        const { data: proto } = await supabase.from('protocols').select('frequency').eq('id', protocol_id).single();
+        if (proto?.frequency && proto.frequency.toLowerCase().includes('10')) wlFreqDays = 10;
+      }
+      if (!wlFreqDays) wlFreqDays = 7;
+
       for (let i = 0; i < parseInt(quantity); i++) {
         const injDate = new Date(logDate + 'T12:00:00');
-        injDate.setDate(injDate.getDate() + i * 7);
+        injDate.setDate(injDate.getDate() + i * wlFreqDays);
         const injDateStr = injDate.toISOString().split('T')[0];
+        const freqLabel = wlFreqDays === 10 ? `injection ${i + 1} of ${quantity}, every 10 days` : `week ${i + 1} of ${quantity}`;
         await supabase.from('service_logs').insert([{
           patient_id,
           category,
@@ -187,7 +197,7 @@ export default async function handler(req, res) {
           medication: medication || null,
           dosage: injectionDose || null,
           quantity: 1,
-          notes: `Dispensed on ${logDate} (${quantity}-injection pickup, week ${i + 1} of ${quantity})`,
+          notes: `Dispensed on ${logDate} (${quantity}-injection pickup, ${freqLabel})`,
           protocol_id: protocol_id || null,
           administered_by: administered_by || null,
           fulfillment_method: fulfillment_method || 'in_clinic',
@@ -331,15 +341,10 @@ async function updateProtocol(protocolId, opts) {
     if (isInClinicPurchase) {
       const purchaseQty = quantity ? parseInt(quantity) : 1;
       const currentTotal = protocol.total_sessions || 0;
-      const currentUsed = protocol.sessions_used || 0;
 
-      // If patient has remaining sessions, this is a replenishment (e.g., new month)
-      // If sessions_used >= total_sessions, extend total to give them more
-      if (currentUsed >= currentTotal) {
-        updates.total_sessions = currentTotal + purchaseQty;
-      }
-      // If they still have sessions remaining, don't change total_sessions
-      // (they already have available injections from a prior purchase)
+      // Always add to total_sessions — each checkout represents a new injection being made available.
+      // The nurse logs the actual injection via encounter notes, which increments sessions_used.
+      updates.total_sessions = currentTotal + purchaseQty;
 
       // Update medication details if provided
       if (categoryMatchesProtocol || category === 'peptide') {
@@ -449,11 +454,20 @@ async function updateProtocol(protocolId, opts) {
           updates.next_expected_date = nextDate.toISOString().split('T')[0];
         }
       } else if (quantity) {
-        // For peptide/WL pickups, use quantity as weeks
-        let days = parseInt(quantity) * 7;
+        // For peptide/WL pickups, use quantity × frequency days
+        // Check protocol frequency for WL: "Every 10 Days" → 10, else 7
+        let perInjDays = 7;
+        if (isWeightLossType(category)) {
+          if (wl_frequency_days) {
+            perInjDays = parseInt(wl_frequency_days);
+          } else if (protocol.frequency && protocol.frequency.toLowerCase().includes('10')) {
+            perInjDays = 10;
+          }
+        }
+        let days = parseInt(quantity) * perInjDays;
 
         // If there's an in-clinic injection on the same day as the pickup,
-        // the take-home supply starts the following week (add 7 days)
+        // the take-home supply starts the following interval
         if (isWeightLossType(category)) {
           const { data: sameDayInjection } = await supabase
             .from('service_logs')
@@ -464,7 +478,7 @@ async function updateProtocol(protocolId, opts) {
             .eq('entry_type', 'injection')
             .limit(1);
           if (sameDayInjection && sameDayInjection.length > 0) {
-            days += 7;
+            days += perInjDays;
           }
         }
 

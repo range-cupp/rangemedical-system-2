@@ -15675,6 +15675,14 @@ export default function PatientProfile() {
         .sf-form-icon { font-size: 14px; flex-shrink: 0; }
         .sf-form-name { font-size: 12px; font-weight: 500; color: #1e293b; flex: 1; }
         .sf-form-time { font-size: 10px; color: #94a3b8; flex-shrink: 0; }
+        .sf-form-preview {
+          font-size: 11px; font-weight: 500; color: #334155;
+          background: #fff; border: 1px solid #cbd5e1;
+          padding: 4px 8px; border-radius: 0;
+          flex-shrink: 0; cursor: pointer;
+          transition: all 0.15s;
+        }
+        .sf-form-preview:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
         .sf-delivery {
           display: flex; align-items: center; gap: 12px;
           padding: 12px 24px;
@@ -16228,7 +16236,7 @@ export default function PatientProfile() {
                     .map(guide => {
                       const checked = sendGuidesSelected.has(guide.id);
                       return (
-                        <button key={guide.id} className={`sf-form-card ${checked ? 'active' : ''}`}
+                        <div key={guide.id} className={`sf-form-card ${checked ? 'active' : ''}`}
                           onClick={() => {
                             const next = new Set(sendGuidesSelected);
                             if (checked) next.delete(guide.id); else next.add(guide.id);
@@ -16237,7 +16245,17 @@ export default function PatientProfile() {
                           <span className="sf-form-check">{checked ? '✓' : ''}</span>
                           <span className="sf-form-icon">{guide.icon}</span>
                           <span className="sf-form-name">{guide.name}</span>
-                        </button>
+                          <span
+                            className="sf-form-preview"
+                            title="Preview this guide"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`/${guide.id}`, '_blank');
+                            }}
+                          >
+                            👁 Preview
+                          </span>
+                        </div>
                       );
                     })}
                 </div>

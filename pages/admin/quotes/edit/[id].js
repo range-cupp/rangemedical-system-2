@@ -23,6 +23,7 @@ export default function EditQuote() {
   const [catalog, setCatalog] = useState([]);
   const [catalogSearch, setCatalogSearch] = useState('');
   const [catalogCategory, setCatalogCategory] = useState('');
+  const [pickerFor, setPickerFor] = useState(null); // item index whose inline POS picker is open
   const [expires, setExpires] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -110,7 +111,7 @@ export default function EditQuote() {
     setOptions((opts) => opts.filter((_, idx) => idx !== i));
     setActiveOpt((cur) => Math.max(0, cur >= i ? cur - 1 : cur));
   };
-  const addFromCatalog = (svc) => {
+  const svcToItem = (svc) => {
     const priceDollars = (Number(svc.price_cents ?? svc.price) || 0) / 100;
     let displayName = svc.name;
     if (svc.peptide_identifier) {
@@ -118,12 +119,37 @@ export default function EditQuote() {
         ? `${svc.peptide_identifier} — ${svc.duration_days} Day Protocol`
         : svc.peptide_identifier;
     }
-    const newItem = { name: displayName, description: svc.description || svc.sub_category || '', price: priceDollars, qty: 1 };
+    return {
+      name: displayName,
+      description: svc.description || svc.sub_category || '',
+      price: priceDollars,
+      qty: 1,
+    };
+  };
+  const addFromCatalog = (svc) => {
+    const newItem = svcToItem(svc);
     mutateActive((o) => {
       const arr = o.items;
       if (arr.length === 1 && !arr[0].name && !arr[0].price) return { ...o, items: [newItem] };
       return { ...o, items: [...arr, newItem] };
     });
+  };
+  const fillItemFromCatalog = (i, svc) => {
+    const filled = svcToItem(svc);
+    mutateActive((o) => ({
+      ...o,
+      items: o.items.map((it, idx) => idx === i ? { ...filled, qty: Number(it.qty) || 1 } : it),
+    }));
+    setPickerFor(null);
+  };
+  const filterCatalogFor = (query) => {
+    const q = (query || '').toLowerCase().trim();
+    if (!q) return catalog.slice(0, 40);
+    return catalog.filter((c) => {
+      const haystack = [c.name, c.peptide_identifier, c.sub_category, c.description, c.category]
+        .filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(q);
+    }).slice(0, 40);
   };
 
   const categories = Array.from(new Set(catalog.map((c) => c.category).filter(Boolean))).sort();
@@ -281,51 +307,6 @@ export default function EditQuote() {
       </div>
 
       <div style={{ ...s.card, marginBottom: 20 }}>
-        <div style={s.cardHeader}><h3 style={s.cardTitle}>Add from POS Catalog</h3></div>
-        <div style={s.cardBody}>
-          <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-            <input
-              style={{ ...s.input, flex: 2 }}
-              placeholder="Search catalog…"
-              value={catalogSearch}
-              onChange={(e) => setCatalogSearch(e.target.value)}
-            />
-            <select
-              style={{ ...s.select, flex: 1 }}
-              value={catalogCategory}
-              onChange={(e) => setCatalogCategory(e.target.value)}
-            >
-              <option value="">All categories</option>
-              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div style={{ maxHeight: 280, overflow: 'auto', border: '1px solid #e5e5e5' }}>
-            {filteredCatalog.length === 0 && (
-              <div style={{ padding: 14, color: '#888', fontSize: 14 }}>
-                {catalog.length === 0 ? 'Loading catalog…' : 'No matches.'}
-              </div>
-            )}
-            {filteredCatalog.map((svc) => {
-              const cents = Number(svc.price_cents ?? svc.price) || 0;
-              return (
-                <div
-                  key={svc.id}
-                  onClick={() => addFromCatalog(svc)}
-                  style={{ padding: '10px 14px', borderBottom: '1px solid #f0f0f0', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{internalLabel(svc)}</div>
-                    <div style={{ fontSize: 12, color: '#888' }}>{svc.name} · {svc.category}</div>
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>${(cents / 100).toFixed(2)}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ ...s.card, marginBottom: 20 }}>
         <div style={s.cardHeader}>
           <h3 style={s.cardTitle}>Line Items{isComparison ? ' — Comparison' : ''}</h3>
           {options.length < 3 && (
@@ -337,7 +318,7 @@ export default function EditQuote() {
             {options.map((o, i) => (
               <div
                 key={i}
-                onClick={() => setActiveOpt(i)}
+                onClick={() => { setActiveOpt(i); setPickerFor(null); }}
                 style={{
                   padding: '10px 16px',
                   cursor: 'pointer',
@@ -367,15 +348,93 @@ export default function EditQuote() {
             </div>
           )}
 
-          {items.map((it, i) => (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 3fr 1fr 0.6fr 0.4fr', gap: 10, marginBottom: 10, alignItems: 'start' }}>
-              <input style={s.input} placeholder="Item name (e.g. Tesamorelin 12-week)" value={it.name} onChange={(e) => updateItem(i, 'name', e.target.value)} />
-              <input style={s.input} placeholder="Short description" value={it.description} onChange={(e) => updateItem(i, 'description', e.target.value)} />
-              <input style={s.input} placeholder="Price" type="number" value={it.price} onChange={(e) => updateItem(i, 'price', e.target.value)} />
-              <input style={s.input} placeholder="Qty" type="number" value={it.qty} onChange={(e) => updateItem(i, 'qty', e.target.value)} />
-              <button onClick={() => removeItem(i)} style={{ ...s.btnSecondary, ...s.btnSmall }}>×</button>
+          {/* POS Catalog — scoped to active option */}
+          <div style={{ marginBottom: 20, padding: 14, background: '#fafafa', border: '1px solid #e5e5e5' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#555', marginBottom: 10 }}>
+              Add from POS Catalog {isComparison && <span style={{ color: '#888', fontWeight: 500 }}>→ adds to {active.name || `Option ${activeOpt + 1}`}</span>}
             </div>
-          ))}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+              <input
+                style={{ ...s.input, flex: 2 }}
+                placeholder="Search catalog…"
+                value={catalogSearch}
+                onChange={(e) => setCatalogSearch(e.target.value)}
+              />
+              <select
+                style={{ ...s.select, flex: 1 }}
+                value={catalogCategory}
+                onChange={(e) => setCatalogCategory(e.target.value)}
+              >
+                <option value="">All categories</option>
+                {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div style={{ maxHeight: 240, overflow: 'auto', border: '1px solid #e5e5e5', background: '#fff' }}>
+              {filteredCatalog.length === 0 && (
+                <div style={{ padding: 14, color: '#888', fontSize: 14 }}>
+                  {catalog.length === 0 ? 'Loading catalog…' : 'No matches.'}
+                </div>
+              )}
+              {filteredCatalog.map((svc) => {
+                const cents = Number(svc.price_cents ?? svc.price) || 0;
+                return (
+                  <div
+                    key={svc.id}
+                    onClick={() => addFromCatalog(svc)}
+                    style={{ padding: '10px 14px', borderBottom: '1px solid #f0f0f0', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>{internalLabel(svc)}</div>
+                      <div style={{ fontSize: 12, color: '#888' }}>{svc.name} · {svc.category}</div>
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>${(cents / 100).toFixed(2)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {items.map((it, i) => {
+            const suggestions = pickerFor === i ? filterCatalogFor(it.name) : [];
+            return (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 3fr 1fr 0.6fr 0.4fr', gap: 10, marginBottom: 10, alignItems: 'start' }}>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    style={s.input}
+                    placeholder="Item name — type or pick from POS"
+                    value={it.name}
+                    onChange={(e) => { updateItem(i, 'name', e.target.value); setPickerFor(i); }}
+                    onFocus={() => setPickerFor(i)}
+                    onBlur={() => setTimeout(() => setPickerFor((cur) => (cur === i ? null : cur)), 180)}
+                  />
+                  {pickerFor === i && suggestions.length > 0 && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, background: '#fff', border: '1px solid #ddd', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', maxHeight: 260, overflow: 'auto' }}>
+                      {suggestions.map((svc) => {
+                        const cents = Number(svc.price_cents ?? svc.price) || 0;
+                        return (
+                          <div
+                            key={svc.id}
+                            onMouseDown={(e) => { e.preventDefault(); fillItemFromCatalog(i, svc); }}
+                            style={{ padding: '8px 12px', borderBottom: '1px solid #f0f0f0', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
+                          >
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{internalLabel(svc)}</div>
+                              <div style={{ fontSize: 11, color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{svc.name} · {svc.category}</div>
+                            </div>
+                            <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>${(cents / 100).toFixed(2)}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <input style={s.input} placeholder="Short description" value={it.description} onChange={(e) => updateItem(i, 'description', e.target.value)} />
+                <input style={s.input} placeholder="Price" type="number" value={it.price} onChange={(e) => updateItem(i, 'price', e.target.value)} />
+                <input style={s.input} placeholder="Qty" type="number" value={it.qty} onChange={(e) => updateItem(i, 'qty', e.target.value)} />
+                <button onClick={() => removeItem(i)} style={{ ...s.btnSecondary, ...s.btnSmall }}>×</button>
+              </div>
+            );
+          })}
           <button onClick={addItem} style={{ ...s.btnSecondary, ...s.btnSmall }}>+ Add Item</button>
 
           <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>

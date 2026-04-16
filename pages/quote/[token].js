@@ -90,28 +90,45 @@ export default function QuotePage() {
 
             {opts ? (
               <div className="options-grid" style={{ gridTemplateColumns: `repeat(${opts.length}, minmax(0, 1fr))` }}>
-                {opts.map((opt, oi) => (
-                  <div key={oi} className="option-card">
-                    <div className="opt-name">{opt.name || `Option ${oi + 1}`}</div>
-                    <div className="opt-items">
-                      {(opt.items || []).map((it, i) => (
-                        <div key={i} className="opt-item">
-                          <div className="opt-item-name">
-                            {it.name}{Number(it.qty) > 1 ? ` × ${it.qty}` : ''}
+                {opts.map((opt, oi) => {
+                  const optDiscount = Number(opt.discount_cents) || 0;
+                  return (
+                    <div key={oi} className="option-card">
+                      <div className="opt-name">{opt.name || `Option ${oi + 1}`}</div>
+                      <div className="opt-items">
+                        {(opt.items || []).map((it, i) => (
+                          <div key={i} className="opt-item">
+                            <div className="opt-item-name">
+                              {it.name}{Number(it.qty) > 1 ? ` × ${it.qty}` : ''}
+                            </div>
+                            {it.description && <div className="opt-item-desc">{it.description}</div>}
+                            <div className="opt-item-price">
+                              ${(Number(it.price) * Number(it.qty || 1)).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                            </div>
                           </div>
-                          {it.description && <div className="opt-item-desc">{it.description}</div>}
-                          <div className="opt-item-price">
-                            ${(Number(it.price) * Number(it.qty || 1)).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                          </div>
+                        ))}
+                      </div>
+                      <div className={`opt-total${optDiscount > 0 ? ' opt-total-has-adj' : ''}`}>
+                        {optDiscount > 0 && (
+                          <>
+                            <div className="opt-adj">
+                              <span>Subtotal</span>
+                              <span>{fmt(opt.subtotal_cents)}</span>
+                            </div>
+                            <div className="opt-adj opt-adj-discount">
+                              <span>Bundle Discount</span>
+                              <span>−{fmt(optDiscount)}</span>
+                            </div>
+                          </>
+                        )}
+                        <div className="opt-total-main">
+                          <div className="opt-total-label">TOTAL</div>
+                          <div className="opt-total-value">{fmt(opt.total_cents)}</div>
                         </div>
-                      ))}
+                      </div>
                     </div>
-                    <div className="opt-total">
-                      <div className="opt-total-label">TOTAL</div>
-                      <div className="opt-total-value">{fmt(opt.total_cents)}</div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <>
@@ -133,9 +150,23 @@ export default function QuotePage() {
                   ))}
                 </div>
 
-                <div className="total-row">
-                  <div className="total-label">TOTAL</div>
-                  <div className="total-value">{fmt(quote.total_cents)}</div>
+                <div className="totals-block">
+                  {Number(quote.discount_cents) > 0 && (
+                    <>
+                      <div className="adj-row">
+                        <span className="adj-label">Subtotal</span>
+                        <span className="adj-value">{fmt(quote.subtotal_cents)}</span>
+                      </div>
+                      <div className="adj-row adj-discount">
+                        <span className="adj-label">Bundle Discount</span>
+                        <span className="adj-value">−{fmt(quote.discount_cents)}</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="total-row">
+                    <div className="total-label">TOTAL</div>
+                    <div className="total-value">{fmt(quote.total_cents)}</div>
+                  </div>
                 </div>
               </>
             )}
@@ -231,15 +262,32 @@ export default function QuotePage() {
           white-space: nowrap;
           color: #0a0a0a;
         }
+        .totals-block {
+          margin-top: 28px;
+          border-top: 3px solid #0a0a0a;
+          border-bottom: 3px solid #0a0a0a;
+        }
+        .adj-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: baseline;
+          padding: 14px 0;
+          font-size: 16px;
+          color: #525252;
+          border-bottom: 1px solid #e0e0e0;
+        }
+        .adj-row:first-child { padding-top: 22px; }
+        .adj-label { font-weight: 500; }
+        .adj-value { font-weight: 700; }
+        .adj-discount { color: #c0392b; }
+        .adj-discount .adj-label { font-weight: 600; }
         .total-row {
           display: flex;
           justify-content: space-between;
           align-items: baseline;
-          margin-top: 28px;
           padding: 28px 0;
-          border-top: 3px solid #0a0a0a;
-          border-bottom: 3px solid #0a0a0a;
         }
+        .adj-row + .total-row { padding-top: 22px; }
         .total-label {
           font-size: 12px;
           font-weight: 700;
@@ -347,9 +395,26 @@ export default function QuotePage() {
           margin-top: 24px;
           padding-top: 18px;
           border-top: 2px solid #0a0a0a;
+        }
+        .opt-adj {
           display: flex;
           justify-content: space-between;
           align-items: baseline;
+          font-size: 13px;
+          color: #525252;
+          padding: 6px 0;
+        }
+        .opt-adj > span:last-child { font-weight: 700; }
+        .opt-adj-discount { color: #c0392b; }
+        .opt-total-main {
+          display: flex;
+          justify-content: space-between;
+          align-items: baseline;
+        }
+        .opt-total-has-adj .opt-total-main {
+          margin-top: 10px;
+          padding-top: 12px;
+          border-top: 1px solid #e0e0e0;
         }
         .opt-total-label {
           font-size: 11px;

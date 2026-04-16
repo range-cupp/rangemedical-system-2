@@ -5,6 +5,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { addGHLNote } from '../../../../lib/ghl-sync';
 import { todayPacific } from '../../../../lib/date-utils';
+import { resolvePaymentFollowUps } from '../../../../lib/auto-protocol';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -120,6 +121,9 @@ Billing period extended for another month.${notes ? `\n\nNotes: ${notes}` : ''}`
         console.error('GHL note error (non-fatal):', ghlError);
       }
     }
+
+    // Auto-resolve any payment-related follow-ups
+    await resolvePaymentFollowUps(protocol.patient_id, id);
 
     console.log(`✓ Payment recorded for protocol ${id} for ${patientName}. New end date: ${newEndDate}`);
 

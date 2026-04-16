@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
+import { useAuth } from '../../components/AuthProvider';
 import { supabase } from '../../lib/supabase';
 
 // ── Type config ──
@@ -55,6 +56,12 @@ export default function FollowUpsPage() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
+  const { session } = useAuth();
+  const authHeaders = useCallback(() => ({
+    Authorization: `Bearer ${session?.access_token}`,
+    'Content-Type': 'application/json',
+  }), [session]);
+
   // Filters
   const [typeFilter, setTypeFilter] = useState('');
   const [assignedFilter, setAssignedFilter] = useState('');
@@ -84,15 +91,15 @@ export default function FollowUpsPage() {
     setLoading(true);
     try {
       if (tab === 'queue') {
-        const res = await fetch('/api/admin/follow-ups?tab=queue');
+        const res = await fetch('/api/admin/follow-ups?tab=queue', { headers: authHeaders() });
         const data = await res.json();
         setFollowUps(Array.isArray(data) ? data : []);
       } else if (tab === 'leads') {
-        const res = await fetch('/api/admin/follow-ups?tab=leads');
+        const res = await fetch('/api/admin/follow-ups?tab=leads', { headers: authHeaders() });
         const data = await res.json();
         setLeads(Array.isArray(data) ? data : []);
       } else if (tab === 'inactive') {
-        const res = await fetch('/api/admin/follow-ups?tab=inactive');
+        const res = await fetch('/api/admin/follow-ups?tab=inactive', { headers: authHeaders() });
         const data = await res.json();
         setInactive(Array.isArray(data) ? data : []);
       }
@@ -100,17 +107,17 @@ export default function FollowUpsPage() {
       console.error('Fetch error:', e);
     }
     setLoading(false);
-  }, [tab]);
+  }, [tab, authHeaders]);
 
   const fetchEmployees = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/employees?basic=true');
+      const res = await fetch('/api/admin/employees?basic=true', { headers: authHeaders() });
       const data = await res.json();
       setEmployees(Array.isArray(data) ? data.filter(e => e.is_active) : []);
     } catch (e) {
       console.error('Employee fetch error:', e);
     }
-  }, []);
+  }, [authHeaders]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
@@ -118,7 +125,7 @@ export default function FollowUpsPage() {
   // ── Fetch attempt logs ──
   const fetchLogs = async (followUpId) => {
     try {
-      const res = await fetch(`/api/admin/follow-ups?tab=logs&follow_up_id=${followUpId}`);
+      const res = await fetch(`/api/admin/follow-ups?tab=logs&follow_up_id=${followUpId}`, { headers: authHeaders() });
       const data = await res.json();
       setAttemptLogs(prev => ({ ...prev, [followUpId]: Array.isArray(data) ? data : [] }));
     } catch (e) {
@@ -147,7 +154,7 @@ export default function FollowUpsPage() {
     try {
       await fetch('/api/admin/follow-ups', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ action: 'log', follow_up_id: followUpId, log_action: logAction, notes: logNotes }),
       });
       setLogAction('');
@@ -164,7 +171,7 @@ export default function FollowUpsPage() {
   const assignFollowUp = async (id, employeeId) => {
     await fetch('/api/admin/follow-ups', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ id, assigned_to: employeeId || null }),
     });
     showToast('Assigned');
@@ -175,7 +182,7 @@ export default function FollowUpsPage() {
     if (!snoozeDate) return;
     await fetch('/api/admin/follow-ups', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ id, snoozed_until: snoozeDate }),
     });
     setSnoozeId(null);
@@ -187,7 +194,7 @@ export default function FollowUpsPage() {
   const completeFollowUp = async (id, outcome = 'completed') => {
     await fetch('/api/admin/follow-ups', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ id, outcome }),
     });
     showToast('Completed');
@@ -197,7 +204,7 @@ export default function FollowUpsPage() {
   const dismissFollowUp = async (id) => {
     await fetch('/api/admin/follow-ups', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ id, status: 'dismissed' }),
     });
     showToast('Dismissed');

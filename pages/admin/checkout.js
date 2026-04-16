@@ -110,7 +110,9 @@ const SUBGROUP_RULES = {
   ],
   weight_loss: [
     { label: 'Tirzepatide — Monthly Program', match: i => i.name.toLowerCase().includes('tirzepatide') && i.name.toLowerCase().includes('monthly') },
+    { label: 'Tirzepatide — Every 10-Day Program', match: i => i.name.toLowerCase().includes('tirzepatide') && i.name.toLowerCase().includes('10-day') },
     { label: 'Retatrutide — Monthly Program', match: i => i.name.toLowerCase().includes('retatrutide') && i.name.toLowerCase().includes('monthly') },
+    { label: 'Retatrutide — Every 10-Day Program', match: i => i.name.toLowerCase().includes('retatrutide') && i.name.toLowerCase().includes('10-day') },
     { label: 'Tirzepatide — Single Injections', match: i => i.name.toLowerCase().includes('tirzepatide') && i.name.toLowerCase().includes('single') },
     { label: 'Retatrutide — Single Injections', match: i => i.name.toLowerCase().includes('retatrutide') && i.name.toLowerCase().includes('single') },
     { label: 'Semaglutide', match: i => i.name.toLowerCase().includes('semaglutide') },

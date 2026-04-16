@@ -2427,7 +2427,9 @@ function CheckoutInner() {
 
                                     {/* Quantity */}
                                     <div style={styles.dispenseFieldGroup}>
-                                      <label style={styles.fieldLabel}>Quantity</label>
+                                      <label style={styles.fieldLabel}>
+                                        {dispEntryType === 'injection' ? '# of Injections' : dispEntryType === 'session' ? '# of Sessions' : 'Quantity'}
+                                      </label>
                                       <input
                                         type="number"
                                         min="1"
@@ -2545,7 +2547,7 @@ function CheckoutInner() {
                                         </div>
                                         {dispSelectedService && (
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
-                                            <label style={{ fontSize: '12px', color: '#666' }}>Qty:</label>
+                                            <label style={{ fontSize: '12px', color: '#666' }}># to charge:</label>
                                             <input
                                               type="number"
                                               min="1"
@@ -2850,7 +2852,7 @@ function CheckoutInner() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ fontSize: '11px', color: '#888' }}>
                               {getDispenseEntryLabel(d?.entryType || 'pickup')}
-                              {d?.quantity ? ` · Qty: ${d.quantity}` : ''}
+                              {d?.quantity ? ` · ${d.quantity} ${d?.entryType === 'injection' ? 'injection' : 'unit'}${d.quantity > 1 ? 's' : ''}` : ''}
                               {d?.fulfillmentMethod === 'overnight' ? ' · Overnighted' : ''}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -2908,10 +2910,15 @@ function CheckoutInner() {
                           >×</button>
                         </div>
                         <div style={styles.cartItemDetails}>
-                          <div style={styles.qtyControls}>
-                            <button style={styles.qtyBtn} onClick={() => updateItemQuantity(item.id, qty - 1)}>−</button>
-                            <span style={styles.qtyValue}>{qty}</span>
-                            <button style={styles.qtyBtn} onClick={() => updateItemQuantity(item.id, qty + 1)}>+</button>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={styles.qtyControls}>
+                              <button style={styles.qtyBtn} onClick={() => updateItemQuantity(item.id, qty - 1)}>−</button>
+                              <span style={styles.qtyValue}>{qty}</span>
+                              <button style={styles.qtyBtn} onClick={() => updateItemQuantity(item.id, qty + 1)}>+</button>
+                            </div>
+                            {item.category === 'weight_loss' && (
+                              <span style={{ fontSize: '11px', color: '#666' }}>injection{qty > 1 ? 's' : ''}</span>
+                            )}
                           </div>
                           <div style={styles.cartItemPrice}>
                             {lineDiscount > 0 && (

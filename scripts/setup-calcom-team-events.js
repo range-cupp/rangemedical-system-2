@@ -11,6 +11,7 @@ const TEAM_ID = 207558;
 // Member IDs
 const CHRIS = 2189658;
 const DAMIEN = 2197563;
+const BRENDYN = 2357975;
 const LILY = 2197567;
 const EVAN = 2197566;
 const DAMON = 2197565;

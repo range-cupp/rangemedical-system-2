@@ -3580,7 +3580,7 @@ export default function PatientProfile() {
       });
       const data = await res.json();
       if (data.success) {
-        setNotes(prev => prev.map(n => n.id === editingNote.id ? { ...n, body: mdBody, edited_after_signing: editingNote.status === 'signed' ? true : n.edited_after_signing } : n));
+        setNotes(prev => prev.map(n => n.id === editingNote.id ? { ...n, body: mdBody, last_edited_by: session?.user?.email || 'Staff', last_edited_at: new Date().toISOString(), edited_after_signing: editingNote.status === 'signed' ? true : n.edited_after_signing } : n));
         setEditingNote(null);
         setEditNoteBody('');
       } else {
@@ -8588,6 +8588,11 @@ export default function PatientProfile() {
                                     Edited
                                   </span>
                                 )}
+                                {note.last_edited_by && (
+                                  <span style={{ marginLeft: 8, fontSize: 11, color: '#9ca3af' }}>
+                                    Last edited by {getStaffDisplayName(note.last_edited_by)}{note.last_edited_at && ` — ${formatDate(note.last_edited_at)}`}
+                                  </span>
+                                )}
                               </div>
                               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                                 <button
@@ -8989,6 +8994,11 @@ export default function PatientProfile() {
                                 background: '#fef3c7', color: '#92400e',
                               }}>
                                 📌 Pinned
+                              </span>
+                            )}
+                            {note.last_edited_by && (
+                              <span style={{ marginLeft: 8, fontSize: 11, color: '#9ca3af' }}>
+                                Last edited by {getStaffDisplayName(note.last_edited_by)}{note.last_edited_at && ` — ${formatDate(note.last_edited_at)}`}
                               </span>
                             )}
                           </div>
@@ -10876,10 +10886,15 @@ export default function PatientProfile() {
                 <button onClick={() => { setEditingNote(null); setEditNoteBody(''); }} className="close-btn">&times;</button>
               </div>
               <div className="modal-body">
-                <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: '#888', marginBottom: editingNote.last_edited_by ? 4 : 12 }}>
                   {formatDate(editingNote.note_date || editingNote.created_at)}
                   {editingNote.created_by && ` — by ${getStaffDisplayName(editingNote.created_by)}`}
                 </div>
+                {editingNote.last_edited_by && (
+                  <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 12 }}>
+                    Last edited by {getStaffDisplayName(editingNote.last_edited_by)}{editingNote.last_edited_at && ` — ${formatDate(editingNote.last_edited_at)}`}
+                  </div>
+                )}
                 {editingNote.status === 'signed' && (
                   <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 13, color: '#92400e' }}>
                     This note is signed. Your edit will be saved and the change will be logged.

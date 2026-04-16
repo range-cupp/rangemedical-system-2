@@ -488,13 +488,15 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
 
               {editingNoteId !== note.id && canAuthorNotes && (
                 <div style={s.noteActions}>
-                  {note.status !== 'signed' && isNoteAuthor(note.created_by, currentUser) && (
+                  {note.status !== 'signed' && (
                     <>
                       <button onClick={() => { setEditingNoteId(note.id); setEditNoteInput(note.body); }} style={{ ...s.btn, ...s.btnSecondary }}>Edit</button>
-                      <button onClick={() => handleSignNote(note.id)} style={{ ...s.btn, ...s.btnSign }}>✍ Sign & Lock</button>
+                      {isNoteAuthor(note.created_by, currentUser) && (
+                        <button onClick={() => handleSignNote(note.id)} style={{ ...s.btn, ...s.btnSign }}>✍ Sign & Lock</button>
+                      )}
                     </>
                   )}
-                  {note.status === 'signed' && isNoteAuthor(note.created_by, currentUser) && (
+                  {note.status === 'signed' && (
                     <button onClick={() => { setEditingNoteId(note.id); setEditNoteInput(note.body); }} style={{ ...s.btn, ...s.btnSecondary }}>Edit</button>
                   )}
                   {note.status === 'signed' && (
@@ -1233,7 +1235,7 @@ export default function TasksPage() {
   // Group tasks by due date sections
   const groupTasksByDate = (taskList) => {
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0];

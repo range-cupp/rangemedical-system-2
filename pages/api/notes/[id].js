@@ -80,10 +80,10 @@ export default async function handler(req, res) {
     try {
       const { pinned, body } = req.body;
 
-      // Get the note to find its patient_id, authorship, and status
+      // Get the note to find its patient_id, authorship, status, and pin state
       const { data: note, error: fetchError } = await supabase
         .from('patient_notes')
-        .select('id, patient_id, created_by, status')
+        .select('id, patient_id, created_by, status, pinned')
         .eq('id', id)
         .single();
 
@@ -91,20 +91,8 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Note not found' });
       }
 
-      // Authorship check for content edits
+      // Any authorized staff can edit any note — edits are tracked in note_edits audit table
       const { requesting_user, note_date } = req.body;
-
-      // Signed notes can only be edited by the original author
-      if (note.status === 'signed' && typeof body === 'string') {
-        if (!requesting_user || !note.created_by || !isNoteAuthor(note.created_by, requesting_user)) {
-          return res.status(403).json({ error: 'Only the original author can edit a signed note.' });
-        }
-      }
-
-      // Draft notes — only author can edit
-      if (note.status !== 'signed' && (typeof body === 'string' || note_date) && note.created_by && requesting_user && !isNoteAuthor(note.created_by, requesting_user)) {
-        return res.status(403).json({ error: 'Only the note author can edit this note' });
-      }
 
       // Build update object
       const updates = {};
@@ -136,8 +124,8 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'No valid fields to update (body, pinned, or note_date)' });
       }
 
-      // Log edit history when a signed note body is modified
-      if (note.status === 'signed' && typeof body === 'string') {
+      // Log edit history for ALL body edits (audit trail)
+      if (typeof body === 'string' && requesting_user) {
         // Fetch current body for audit trail
         const { data: fullNote } = await supabase
           .from('patient_notes')
@@ -153,7 +141,11 @@ export default async function handler(req, res) {
             new_body: body,
           });
         }
-        updates.edited_after_signing = true;
+        updates.last_edited_by = requesting_user;
+        updates.last_edited_at = new Date().toISOString();
+        if (note.status === 'signed') {
+          updates.edited_after_signing = true;
+        }
       }
 
       const { error: updateError } = await supabase

@@ -742,7 +742,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
       const data = await res.json();
       if (data.success) {
         const updatedDate = editNoteDate ? new Date(editNoteDate + 'T12:00:00').toISOString() : undefined;
-        setEncounterNotes(prev => prev.map(n => n.id === editingNoteId ? { ...n, body: editBody, ...(updatedDate ? { note_date: updatedDate } : {}) } : n));
+        setEncounterNotes(prev => prev.map(n => n.id === editingNoteId ? { ...n, body: editBody, last_edited_by: currentUser, last_edited_at: new Date().toISOString(), ...(updatedDate ? { note_date: updatedDate } : {}) } : n));
         setEditingNoteId(null);
         setEditNoteDate('');
         if (onRefresh) onRefresh();
@@ -1441,6 +1441,12 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                               : 'Draft'}
                           </span>
                         </div>
+                        {note.last_edited_by && (
+                          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
+                            Last edited by {note.last_edited_by}
+                            {note.last_edited_at && ` — ${formatShortDate(note.last_edited_at)}`}
+                          </div>
+                        )}
 
                         {/* Note body — editable if this is the draft being edited */}
                         {editingNoteId === note.id ? (
@@ -1517,11 +1523,11 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         {/* Note actions — hide while editing, only for authorized users */}
                         {editingNoteId !== note.id && canAuthorNotes && (
                           <div className="enc-note-actions">
-                            {note.status !== 'signed' && isNoteAuthor(note.created_by, currentUser) && (
+                            {note.status !== 'signed' && (
                               <>
                                 <button onClick={() => {
                                   setEditingNoteId(note.id);
-                                  setEditNoteDate((note.note_date || note.created_at || '').slice(0, 10));
+                                  setEditNoteDate(new Date(note.note_date || note.created_at).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
                                   setEditNoteEmpty(!(note.body || '').trim());
                                   setShowEditHighlightPicker(false);
                                   // Load note body into contentEditable after it renders
@@ -1533,15 +1539,32 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                                 }} className="enc-btn enc-btn-secondary enc-btn-sm">
                                   ✏️ Edit
                                 </button>
-                                <button onClick={() => handleSignNote(note.id)} className="enc-btn enc-btn-sign enc-btn-sm">
-                                  ✍ Sign & Lock
-                                </button>
+                                {isNoteAuthor(note.created_by, currentUser) && (
+                                  <button onClick={() => handleSignNote(note.id)} className="enc-btn enc-btn-sign enc-btn-sm">
+                                    ✍ Sign & Lock
+                                  </button>
+                                )}
                               </>
                             )}
                             {note.status === 'signed' && (
-                              <button onClick={() => setAddendumParentId(note.id)} className="enc-btn enc-btn-ghost enc-btn-sm">
-                                + Add Addendum
-                              </button>
+                              <>
+                                <button onClick={() => {
+                                  setEditingNoteId(note.id);
+                                  setEditNoteDate(new Date(note.note_date || note.created_at).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
+                                  setEditNoteEmpty(!(note.body || '').trim());
+                                  setShowEditHighlightPicker(false);
+                                  setTimeout(() => {
+                                    if (editNoteRef.current) {
+                                      editNoteRef.current.innerHTML = mdToHtml(note.body || '');
+                                    }
+                                  }, 50);
+                                }} className="enc-btn enc-btn-secondary enc-btn-sm">
+                                  ✏️ Edit
+                                </button>
+                                <button onClick={() => setAddendumParentId(note.id)} className="enc-btn enc-btn-ghost enc-btn-sm">
+                                  + Add Addendum
+                                </button>
+                              </>
                             )}
                           </div>
                         )}

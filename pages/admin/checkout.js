@@ -24,6 +24,8 @@ import {
   PEPTIDE_OPTIONS,
   IV_THERAPY_TYPES,
   getDoseOptions,
+  WL_BUILDER_DOSES,
+  getWlInjectionPrice,
 } from '../../lib/protocol-config';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
@@ -229,6 +231,10 @@ function CheckoutInner() {
   const [fulfillmentMethod, setFulfillmentMethod] = useState('in_clinic');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [wlFrequencyDays, setWlFrequencyDays] = useState(7); // 7 = Weekly, 10 = Every 10 Days
+
+  // ── WL Injection Builder ──
+  const [wlMedication, setWlMedication] = useState('');
+  const [wlGroups, setWlGroups] = useState([{ dose: '', quantity: 1, fulfillment: 'take_home' }]);
   const [shippingAmount, setShippingAmount] = useState('');
 
   // ── Split payment ──
@@ -520,6 +526,82 @@ function CheckoutInner() {
     setTimeout(() => setCartWarning(''), 3000);
   }
 
+  // ── WL Injection Builder helpers ──
+  function updateWlGroup(index, field, value) {
+    setWlGroups(prev => prev.map((g, i) => i === index ? { ...g, [field]: value } : g));
+  }
+
+  function addWlGroup() {
+    // Default new group to same dose as last group
+    const lastDose = wlGroups[wlGroups.length - 1]?.dose || '';
+    setWlGroups(prev => [...prev, { dose: lastDose, quantity: 1, fulfillment: 'take_home' }]);
+  }
+
+  function removeWlGroup(index) {
+    if (wlGroups.length <= 1) return;
+    setWlGroups(prev => prev.filter((_, i) => i !== index));
+  }
+
+  function getWlBuilderTotal() {
+    return wlGroups.reduce((sum, g) => {
+      const price = getWlInjectionPrice(wlMedication, g.dose);
+      return sum + (price || 0) * (g.quantity || 0);
+    }, 0);
+  }
+
+  function getWlBuilderTotalInjections() {
+    return wlGroups.reduce((sum, g) => sum + (g.quantity || 0), 0);
+  }
+
+  function addWlBuilderToCart() {
+    if (!wlMedication || wlGroups.every(g => !g.dose || !g.quantity)) return;
+
+    const totalCents = getWlBuilderTotal();
+    const totalInj = getWlBuilderTotalInjections();
+    const hasInClinic = wlGroups.some(g => g.fulfillment === 'in_clinic');
+    const hasTakeHome = wlGroups.some(g => g.fulfillment !== 'in_clinic');
+
+    // Build service name for internal tracking (protocol creation)
+    // e.g. "Tirzepatide — 2x 4mg + 2x 5mg"
+    const groupDescs = wlGroups.filter(g => g.dose && g.quantity).map(g => `${g.quantity}x ${g.dose}`);
+    const internalName = `${wlMedication} — ${groupDescs.join(' + ')}`;
+
+    const cartItem = {
+      id: 'wl-builder-' + Date.now(),
+      name: 'Weight Loss Program',
+      category: 'weight_loss',
+      price: totalCents,
+      quantity: 1,
+      itemDiscountType: 'none',
+      itemDiscountValue: '',
+      // WL builder config — passed through to protocol creation
+      wlConfig: {
+        medication: wlMedication,
+        frequency: wlFrequencyDays,
+        groups: wlGroups.filter(g => g.dose && g.quantity).map(g => ({ ...g })),
+        internalName,
+        totalInjections: totalInj,
+        hasInClinic,
+        hasTakeHome,
+      },
+    };
+
+    // Determine fulfillment for the payment step
+    if (hasInClinic && !hasTakeHome) {
+      setFulfillmentMethod('in_clinic_injections');
+    } else if (hasTakeHome && !hasInClinic) {
+      setFulfillmentMethod('in_clinic');
+    }
+    // Mixed: leave as-is, groups carry their own fulfillment
+
+    setCartItems(prev => [...prev, cartItem]);
+    setCartOpen(true);
+
+    // Reset builder
+    setWlMedication('');
+    setWlGroups([{ dose: '', quantity: 1, fulfillment: 'take_home' }]);
+  }
+
   function updateItemQuantity(itemId, newQty) {
     if (newQty < 1) { setCartItems(cartItems.filter(i => i.id !== itemId)); return; }
     setCartItems(cartItems.map(i => i.id === itemId ? { ...i, quantity: newQty } : i));
@@ -744,7 +826,11 @@ function CheckoutInner() {
       const itemShipping = !shippingApplied && shippingCents > 0 ? shippingCents : 0;
       shippingApplied = true;
 
-      const serviceName = item.peptide_identifier ? `${item.name} — ${item.peptide_identifier}` : item.name;
+      // For WL builder items, use internal name for protocol creation, display name for receipt
+      const isWlBuilder = !!item.wlConfig;
+      const serviceName = isWlBuilder
+        ? item.wlConfig.internalName
+        : item.peptide_identifier ? `${item.name} — ${item.peptide_identifier}` : item.name;
 
       let recordAmount = itemFinal;
       if (amount_override !== undefined) {
@@ -755,6 +841,14 @@ function CheckoutInner() {
       let desc = itemDiscountAmt > 0 ? `${itemName} (${discSuffix})` : itemName;
       if (description_suffix) desc = `${desc} ${description_suffix}`;
 
+      // For WL builder: determine fulfillment from groups
+      let wlFulfillment = fulfillmentMethod;
+      if (isWlBuilder) {
+        if (item.wlConfig.hasInClinic && !item.wlConfig.hasTakeHome) wlFulfillment = 'in_clinic_injections';
+        else if (item.wlConfig.hasTakeHome && !item.wlConfig.hasInClinic) wlFulfillment = 'in_clinic';
+        // Mixed: pass 'mixed' — backend handles per-group
+      }
+
       const res = await fetch('/api/stripe/record-purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -762,16 +856,18 @@ function CheckoutInner() {
           patient_id: patient.id,
           amount: recordAmount,
           description: desc,
+          item_description: isWlBuilder ? 'Weight Loss Program' : undefined,
           payment_method: 'stripe',
           service_category: item.category,
           service_name: serviceName,
-          quantity: qty,
+          quantity: isWlBuilder ? item.wlConfig.totalInjections : qty,
           delivery_method: item.delivery_method || null,
           duration_days: item.duration_days || null,
           shipping: amount_override ? 0 : itemShipping,
-          fulfillment_method: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) ? fulfillmentMethod : null,
+          fulfillment_method: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) ? wlFulfillment : null,
           tracking_number: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) && fulfillmentMethod === 'overnight' ? trackingNumber : null,
-          wl_frequency_days: item.category === 'weight_loss' ? wlFrequencyDays : undefined,
+          wl_frequency_days: item.category === 'weight_loss' ? (isWlBuilder ? item.wlConfig.frequency : wlFrequencyDays) : undefined,
+          wl_config: isWlBuilder ? item.wlConfig : undefined,
           skip_receipt: skipNotification || cartItems.length > 1,
           ...(itemDiscountAmt > 0 && !amount_override ? {
             discount_type: item.itemDiscountType,
@@ -1401,6 +1497,8 @@ function CheckoutInner() {
     setSaveNewCard(false);
     setFulfillmentMethod('in_clinic');
     setWlFrequencyDays(7);
+    setWlMedication('');
+    setWlGroups([{ dose: '', quantity: 1, fulfillment: 'take_home' }]);
     setTrackingNumber('');
     setShippingAmount('');
     setSplitCashAmount('');
@@ -2749,6 +2847,163 @@ function CheckoutInner() {
                         </div>
                       );
                     })()
+                  ) : activeSubCategory === 'weight_loss' ? (
+                    /* ── WL Injection Builder ── */
+                    <div style={{ marginTop: '16px' }}>
+                      <div style={{ background: '#fff', border: '1px solid #e0e0e0', padding: '24px' }}>
+                        {/* Medication */}
+                        <div style={{ marginBottom: '20px' }}>
+                          <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>MEDICATION</label>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            {['Tirzepatide', 'Retatrutide'].map(med => (
+                              <button
+                                key={med}
+                                onClick={() => { setWlMedication(med); setWlGroups([{ dose: '', quantity: 1, fulfillment: 'take_home' }]); }}
+                                style={{
+                                  ...styles.fulfillmentBtn,
+                                  flex: 1,
+                                  padding: '12px 16px',
+                                  fontSize: '15px',
+                                  fontWeight: 600,
+                                  ...(wlMedication === med ? { border: '2px solid #1a1a1a', background: '#f9fafb', color: '#1a1a1a' } : {}),
+                                }}
+                              >{med}</button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {wlMedication && (
+                          <>
+                            {/* Frequency */}
+                            <div style={{ marginBottom: '20px' }}>
+                              <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>INJECTION FREQUENCY</label>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button
+                                  onClick={() => setWlFrequencyDays(7)}
+                                  style={{
+                                    ...styles.fulfillmentBtn,
+                                    ...(wlFrequencyDays === 7 ? { border: '2px solid #2E75B6', background: '#EBF3FB', color: '#2E75B6' } : {}),
+                                  }}
+                                >Weekly (every 7 days)</button>
+                                <button
+                                  onClick={() => setWlFrequencyDays(10)}
+                                  style={{
+                                    ...styles.fulfillmentBtn,
+                                    ...(wlFrequencyDays === 10 ? { border: '2px solid #e67e22', background: '#FFF5EB', color: '#e67e22' } : {}),
+                                  }}
+                                >Every 10 Days</button>
+                              </div>
+                            </div>
+
+                            {/* Injection Groups */}
+                            <div style={{ marginBottom: '20px' }}>
+                              <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>INJECTIONS</label>
+                              {wlGroups.map((group, idx) => {
+                                const groupPrice = getWlInjectionPrice(wlMedication, group.dose);
+                                const groupTotal = (groupPrice || 0) * (group.quantity || 0);
+                                return (
+                                  <div key={idx} style={{
+                                    display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px',
+                                    padding: '12px', background: '#f9fafb', border: '1px solid #e5e5e5',
+                                  }}>
+                                    {/* Quantity */}
+                                    <div style={{ minWidth: '70px' }}>
+                                      <label style={{ fontSize: '10px', color: '#888', display: 'block', marginBottom: '4px' }}># of Inj.</label>
+                                      <input
+                                        type="number" min="1" value={group.quantity}
+                                        onChange={e => updateWlGroup(idx, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
+                                        style={{ width: '60px', padding: '8px', border: '1px solid #ddd', fontSize: '15px', fontWeight: 600, textAlign: 'center' }}
+                                      />
+                                    </div>
+                                    {/* Dose */}
+                                    <div style={{ flex: 1 }}>
+                                      <label style={{ fontSize: '10px', color: '#888', display: 'block', marginBottom: '4px' }}>Dosage</label>
+                                      <select
+                                        value={group.dose}
+                                        onChange={e => updateWlGroup(idx, 'dose', e.target.value)}
+                                        style={{ width: '100%', padding: '8px', border: '1px solid #ddd', fontSize: '14px' }}
+                                      >
+                                        <option value="">Select dose...</option>
+                                        {(WL_BUILDER_DOSES[wlMedication] || []).map(d => {
+                                          const p = getWlInjectionPrice(wlMedication, d);
+                                          return <option key={d} value={d}>{d} — {formatPrice(p)}/ea</option>;
+                                        })}
+                                      </select>
+                                    </div>
+                                    {/* Fulfillment */}
+                                    <div>
+                                      <label style={{ fontSize: '10px', color: '#888', display: 'block', marginBottom: '4px' }}>Fulfillment</label>
+                                      <div style={{ display: 'flex', gap: '4px' }}>
+                                        <button
+                                          onClick={() => updateWlGroup(idx, 'fulfillment', 'in_clinic')}
+                                          style={{
+                                            padding: '7px 10px', fontSize: '12px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
+                                            ...(group.fulfillment === 'in_clinic' ? { border: '2px solid #7c3aed', background: '#f5f3ff', color: '#7c3aed', fontWeight: 600 } : {}),
+                                          }}
+                                        >In Clinic</button>
+                                        <button
+                                          onClick={() => updateWlGroup(idx, 'fulfillment', 'take_home')}
+                                          style={{
+                                            padding: '7px 10px', fontSize: '12px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
+                                            ...(group.fulfillment === 'take_home' ? { border: '2px solid #2E75B6', background: '#EBF3FB', color: '#2E75B6', fontWeight: 600 } : {}),
+                                          }}
+                                        >Take Home</button>
+                                      </div>
+                                    </div>
+                                    {/* Line total */}
+                                    <div style={{ minWidth: '80px', textAlign: 'right' }}>
+                                      <label style={{ fontSize: '10px', color: '#888', display: 'block', marginBottom: '4px' }}>&nbsp;</label>
+                                      <span style={{ fontSize: '15px', fontWeight: 700, color: groupPrice ? '#1a1a1a' : '#ccc' }}>
+                                        {groupPrice ? formatPrice(groupTotal) : '—'}
+                                      </span>
+                                    </div>
+                                    {/* Remove */}
+                                    {wlGroups.length > 1 && (
+                                      <button
+                                        onClick={() => removeWlGroup(idx)}
+                                        style={{ padding: '4px 8px', fontSize: '16px', border: 'none', background: 'none', color: '#999', cursor: 'pointer', marginTop: '14px' }}
+                                      >×</button>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              <button
+                                onClick={addWlGroup}
+                                style={{ padding: '8px 16px', fontSize: '13px', border: '1px dashed #ccc', background: '#fff', color: '#666', cursor: 'pointer', width: '100%', marginTop: '4px' }}
+                              >+ Add Group (different dose or fulfillment)</button>
+                            </div>
+
+                            {/* Summary + Add to Cart */}
+                            {getWlBuilderTotal() > 0 && (
+                              <div style={{ borderTop: '2px solid #1a1a1a', paddingTop: '16px', marginTop: '16px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                  <div>
+                                    <span style={{ fontSize: '14px', color: '#666' }}>
+                                      {getWlBuilderTotalInjections()} injection{getWlBuilderTotalInjections() > 1 ? 's' : ''} × {wlFrequencyDays} days = <strong>{getWlBuilderTotalInjections() * wlFrequencyDays} day supply</strong>
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1a1a' }}>
+                                    {formatPrice(getWlBuilderTotal())}
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={addWlBuilderToCart}
+                                  style={{
+                                    ...styles.primaryBtn,
+                                    width: '100%',
+                                    padding: '14px',
+                                    fontSize: '15px',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em',
+                                  }}
+                                >Add to Cart — Weight Loss Program ({formatPrice(getWlBuilderTotal())})</button>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
                   ) : (
                     /* Standard category with optional sub-groups */
                     (() => {

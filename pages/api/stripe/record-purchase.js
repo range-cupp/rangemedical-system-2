@@ -149,6 +149,7 @@ export default async function handler(req, res) {
       fulfillment_method,
       tracking_number,
       wl_frequency_days,
+      wl_config,
       item_description,
     } = req.body;
 
@@ -318,6 +319,7 @@ export default async function handler(req, res) {
           fulfillmentMethod: fulfillment_method || null,
           trackingNumber: tracking_number || null,
           wlFrequencyDays: wl_frequency_days || null,
+          wlConfig: wl_config || null,
         });
       } catch (err) {
         console.error(`Auto-protocol FAILED for purchase ${data.id} (${service_category}/${service_name}):`, err);

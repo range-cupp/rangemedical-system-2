@@ -110,15 +110,7 @@ const SUBGROUP_RULES = {
     { label: 'Memberships', match: i => i.recurring },
     { label: 'Add-Ons', match: i => !i.recurring && i.name.toLowerCase().includes('additional') },
   ],
-  weight_loss: [
-    { label: 'Tirzepatide — Monthly Program', match: i => i.name.toLowerCase().includes('tirzepatide') && i.name.toLowerCase().includes('monthly') },
-    { label: 'Tirzepatide — Every 10-Day Program', match: i => i.name.toLowerCase().includes('tirzepatide') && i.name.toLowerCase().includes('10-day') },
-    { label: 'Retatrutide — Monthly Program', match: i => i.name.toLowerCase().includes('retatrutide') && i.name.toLowerCase().includes('monthly') },
-    { label: 'Retatrutide — Every 10-Day Program', match: i => i.name.toLowerCase().includes('retatrutide') && i.name.toLowerCase().includes('10-day') },
-    { label: 'Tirzepatide — Single Injections', match: i => i.name.toLowerCase().includes('tirzepatide') && i.name.toLowerCase().includes('single') },
-    { label: 'Retatrutide — Single Injections', match: i => i.name.toLowerCase().includes('retatrutide') && i.name.toLowerCase().includes('single') },
-    { label: 'Semaglutide', match: i => i.name.toLowerCase().includes('semaglutide') },
-  ],
+  // weight_loss: handled entirely by WL Injection Builder — no POS products needed
   iv_therapy: [
     { label: 'Signature Formulas', match: i => i.name.toLowerCase().startsWith('range iv') && i.name !== 'Range IV' },
     { label: 'Base IV', match: i => i.name === 'Range IV' },

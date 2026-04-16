@@ -50,7 +50,32 @@ export default async function handler(req, res) {
 
     if (calResult.error) {
       console.error('Cal.com booking failed:', calResult);
-      return res.status(500).json({ error: 'Failed to create booking in Cal.com', details: calResult.error });
+
+      // Parse Cal.com error for user-friendly message
+      let errorMsg = 'Failed to create booking in Cal.com';
+      try {
+        const parsed = typeof calResult.error === 'string' ? JSON.parse(calResult.error) : calResult.error;
+        const detail = parsed?.error?.message || parsed?.message || '';
+        if (detail.includes('already has booking') || detail.includes('not available')) {
+          errorMsg = 'This time slot is no longer available — all providers are booked. Please select a different time.';
+        } else if (detail.includes('not found')) {
+          errorMsg = 'This appointment type is no longer available. Please refresh and try again.';
+        } else if (detail) {
+          errorMsg = detail;
+        }
+      } catch {
+        // If error is a plain string, check it directly
+        const errStr = String(calResult.error);
+        if (errStr.includes('already has booking') || errStr.includes('not available')) {
+          errorMsg = 'This time slot is no longer available — all providers are booked. Please select a different time.';
+        }
+      }
+
+      return res.status(calResult.status === 400 ? 400 : 500).json({
+        error: errorMsg,
+        slotUnavailable: errorMsg.includes('no longer available'),
+        details: calResult.error,
+      });
     }
 
     console.log('📅 Cal.com booking created:', calResult.id || calResult.uid);

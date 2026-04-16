@@ -499,6 +499,13 @@ export default function BookingTab({ preselectedPatient = null }) {
         alert('Booking created successfully!');
       } else {
         alert('Booking failed: ' + (json.error || 'Unknown error'));
+        // If slot is no longer available, refresh slots and clear selection
+        if (json.slotUnavailable) {
+          setSelectedSlot(null);
+          if (selectedService?.id && selectedDate) {
+            fetchSlots(selectedService.id, selectedDate, selectedProvider?.username || null);
+          }
+        }
       }
     } catch (err) {
       console.error('Booking error:', err);

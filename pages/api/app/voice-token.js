@@ -1,6 +1,12 @@
 // /pages/api/app/voice-token.js
-// GET: generate a Twilio Access Token with VoiceGrant for the staff app
-// Reads credentials from env vars first, falls back to system_config in Supabase
+// GET: generate a Twilio Access Token with VoiceGrant for the staff app.
+// Reads Twilio credentials from env vars first, falls back to system_config.
+//
+// Requires ?employee_id=<uuid>. Will 403 if the employee has
+// voice_browser_enabled = false (e.g. provider opted out of ringing their laptop).
+// Identity = employee.id (stable UUID), so inbound TwiML can target specific clients.
+//
+// Also records voice_last_registered_at so the inbound router knows who's online.
 // Range Medical Employee App
 
 import { createClient } from '@supabase/supabase-js';
@@ -10,7 +16,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Cache config in memory for 10 min (avoids DB hit on every call)
+// Cache Twilio config in memory for 10 min (avoids DB hit on every call)
 let configCache = null;
 let configCacheTime = 0;
 const CONFIG_TTL = 10 * 60 * 1000;
@@ -58,8 +64,31 @@ async function getVoiceConfig() {
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const config = await getVoiceConfig();
+  const employeeId = (req.query.employee_id || '').trim();
+  if (!employeeId) {
+    return res.status(400).json({ error: 'employee_id is required' });
+  }
 
+  // 1. Verify employee exists, is active, and has opted in to browser calling
+  const { data: employee, error: empErr } = await supabase
+    .from('employees')
+    .select('id, name, is_active, voice_browser_enabled')
+    .eq('id', employeeId)
+    .maybeSingle();
+
+  if (empErr || !employee || !employee.is_active) {
+    return res.status(404).json({ error: 'Employee not found' });
+  }
+
+  if (!employee.voice_browser_enabled) {
+    return res.status(403).json({
+      error: 'Browser phone is disabled for this user. Enable it in More → Browser Phone.',
+      enabled: false,
+    });
+  }
+
+  // 2. Load Twilio config
+  const config = await getVoiceConfig();
   if (!config || !config.apiKeySid || !config.apiKeySecret || !config.twimlAppSid) {
     return res.status(503).json({
       error: 'Voice calling not yet configured. Run /api/app/setup-voice to initialize.',
@@ -67,14 +96,14 @@ export default async function handler(req, res) {
     });
   }
 
+  // 3. Mint the token
   try {
     const twilio = await import('twilio');
     const { AccessToken } = twilio.default.jwt;
     const { VoiceGrant }  = AccessToken;
 
-    const identity = (req.query.identity || 'staff')
-      .replace(/[^a-zA-Z0-9_\-]/g, '_')
-      .slice(0, 64);
+    // Use employee UUID as Twilio identity — stable, unique, URL-safe.
+    const identity = employee.id;
 
     const token = new AccessToken(
       config.accountSid,
@@ -87,6 +116,13 @@ export default async function handler(req, res) {
       outgoingApplicationSid: config.twimlAppSid,
       incomingAllow: true,
     }));
+
+    // 4. Record presence — fire-and-forget, don't block token response
+    supabase
+      .from('employees')
+      .update({ voice_last_registered_at: new Date().toISOString() })
+      .eq('id', employee.id)
+      .then(() => {}, () => {});
 
     return res.status(200).json({
       token: token.toJwt(),

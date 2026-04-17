@@ -1,8 +1,42 @@
 // /pages/api/twilio/voice.js
-// Twilio Voice Webhook — routes incoming calls and handles extension transfers
+// Twilio Voice Webhook — routes incoming calls and handles extension transfers.
+// Inbound calls simulring:
+//   - Grandstream desk phones (always)
+//   - Browser softphones for employees who have opted-in AND are currently online
 // Range Medical
 
+const { createClient } = require('@supabase/supabase-js');
 const { EXTENSIONS, ALL_SIP_ENDPOINTS } = require('../../../lib/extensions');
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+// How recent a heartbeat has to be for a browser client to count as "online".
+// The hook sends a heartbeat every 30s, so 90s gives 2 missed beats of slack.
+const PRESENCE_STALE_MS = 90 * 1000;
+
+async function getOnlineBrowserClients() {
+  try {
+    const cutoff = new Date(Date.now() - PRESENCE_STALE_MS).toISOString();
+    const { data, error } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('is_active', true)
+      .eq('voice_browser_enabled', true)
+      .gte('voice_last_registered_at', cutoff);
+
+    if (error) {
+      console.error('[voice] presence query failed:', error);
+      return [];
+    }
+    return (data || []).map(e => e.id);
+  } catch (err) {
+    console.error('[voice] presence query threw:', err);
+    return [];
+  }
+}
 
 export default async function handler(req, res) {
   const to = req.body?.To || req.query?.To || '';
@@ -56,15 +90,23 @@ export default async function handler(req, res) {
 </Response>`);
   }
 
-  // --- Incoming call — ring all Grandstream phones simultaneously ---
-  const sipEndpoints = ALL_SIP_ENDPOINTS.map(sip =>
+  // --- Incoming call — ring Grandstream desk phones + online browser clients ---
+  const browserClientIds = await getOnlineBrowserClients();
+
+  const sipLegs = ALL_SIP_ENDPOINTS.map(sip =>
     `    <Sip statusCallbackEvent="initiated ringing answered completed" statusCallback="${statusCallback}" statusCallbackMethod="POST">${sip}</Sip>`
-  ).join('\n');
+  );
+
+  const clientLegs = browserClientIds.map(id =>
+    `    <Client statusCallbackEvent="initiated ringing answered completed" statusCallback="${statusCallback}" statusCallbackMethod="POST">${id}</Client>`
+  );
+
+  const allLegs = [...sipLegs, ...clientLegs].join('\n');
 
   return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial timeout="30" action="${baseUrl}/api/twilio/voicemail">
-${sipEndpoints}
+${allLegs}
   </Dial>
 </Response>`);
 }

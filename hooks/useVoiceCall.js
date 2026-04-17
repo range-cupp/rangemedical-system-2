@@ -1,6 +1,12 @@
 // hooks/useVoiceCall.js
-// Manages Twilio Voice Device lifecycle for the Range Medical Staff App
-// Handles: token fetch, device init, outbound calls, inbound calls, cleanup
+// Manages Twilio Voice Device lifecycle for the Range Medical Staff App.
+// Handles: token fetch, device init, outbound calls, inbound calls, presence
+// heartbeat, and cleanup.
+//
+// Identity = employee.id (UUID). The device only registers if the employee
+// has opted in via the "Ring this computer" toggle (voice_browser_enabled).
+// While registered, the hook heartbeats /api/app/voice-presence every 30s so
+// the inbound TwiML router knows this browser is online and should be rung.
 // Range Medical
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -15,38 +21,70 @@ export const CALL_STATE = {
   ENDED:       'ended',        // Call just ended
   ERROR:       'error',        // Device or call error
   UNAVAILABLE: 'unavailable',  // Voice not configured on server
+  DISABLED:    'disabled',     // User has opted out of browser calling
 };
 
-export default function useVoiceCall({ staffName } = {}) {
+const HEARTBEAT_INTERVAL_MS = 30 * 1000;
+
+export default function useVoiceCall({ employeeId } = {}) {
   const [callState, setCallState]   = useState(CALL_STATE.IDLE);
   const [activeCall, setActiveCall] = useState(null);   // Twilio Call object
   const [callInfo, setCallInfo]     = useState(null);   // { to, name, duration, direction }
   const [error, setError]           = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
 
-  const deviceRef    = useRef(null);
-  const timerRef     = useRef(null);
-  const durationRef  = useRef(0);
+  const deviceRef     = useRef(null);
+  const timerRef      = useRef(null);
+  const durationRef   = useRef(0);
+  const heartbeatRef  = useRef(null);
+
+  // ── Heartbeat (tells inbound TwiML router we're still online) ────────────────
+  const startHeartbeat = useCallback(() => {
+    if (!employeeId || heartbeatRef.current) return;
+    const beat = () => {
+      fetch('/api/app/voice-presence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee_id: employeeId }),
+      }).catch(() => {});
+    };
+    beat(); // immediate first beat
+    heartbeatRef.current = setInterval(beat, HEARTBEAT_INTERVAL_MS);
+  }, [employeeId]);
+
+  const stopHeartbeat = useCallback(() => {
+    if (heartbeatRef.current) {
+      clearInterval(heartbeatRef.current);
+      heartbeatRef.current = null;
+    }
+  }, []);
 
   // ── Initialize Twilio Device ─────────────────────────────────────────────────
   const initDevice = useCallback(async () => {
     if (typeof window === 'undefined') return;
     if (deviceRef.current) return; // Already initialized
+    if (!employeeId) {
+      setError('Not signed in');
+      setCallState(CALL_STATE.ERROR);
+      return;
+    }
 
     setCallState(CALL_STATE.CONNECTING);
     setError(null);
 
     try {
-      const identity = staffName
-        ? staffName.toLowerCase().replace(/[^a-z0-9]/g, '_')
-        : 'staff';
-      const res = await fetch(`/api/app/voice-token?identity=${encodeURIComponent(identity)}`);
+      const res = await fetch(`/api/app/voice-token?employee_id=${encodeURIComponent(employeeId)}`);
       const data = await res.json();
 
       if (!res.ok) {
         if (res.status === 503) {
           setCallState(CALL_STATE.UNAVAILABLE);
           setError(data.error || 'Voice calling not configured');
+          return;
+        }
+        if (res.status === 403 && data.enabled === false) {
+          setCallState(CALL_STATE.DISABLED);
+          setError(null);
           return;
         }
         throw new Error(data.error || 'Failed to get voice token');
@@ -64,6 +102,7 @@ export default function useVoiceCall({ staffName } = {}) {
       device.on('ready', () => {
         setCallState(CALL_STATE.READY);
         setError(null);
+        startHeartbeat();
       });
 
       device.on('error', (twilioError) => {
@@ -85,20 +124,68 @@ export default function useVoiceCall({ staffName } = {}) {
       device.on('tokenWillExpire', async () => {
         // Refresh token before it expires
         try {
-          const r = await fetch(`/api/app/voice-token?identity=${encodeURIComponent(identity)}`);
+          const r = await fetch(`/api/app/voice-token?employee_id=${encodeURIComponent(employeeId)}`);
           const d = await r.json();
-          if (r.ok) device.updateToken(d.token);
+          if (r.ok) {
+            device.updateToken(d.token);
+          } else if (r.status === 403 && d.enabled === false) {
+            // User disabled browser phone mid-session — tear down
+            device.destroy();
+            deviceRef.current = null;
+            stopHeartbeat();
+            setCallState(CALL_STATE.DISABLED);
+          }
         } catch {}
       });
 
       await device.register();
       deviceRef.current = device;
+      startHeartbeat();
     } catch (err) {
       console.error('[Voice] Init error:', err);
       setError(err.message || 'Failed to initialize voice');
       setCallState(CALL_STATE.ERROR);
     }
-  }, [staffName]);
+  }, [employeeId, startHeartbeat, stopHeartbeat]);
+
+  // ── Tear down device (e.g. when user toggles off) ────────────────────────────
+  const teardown = useCallback(() => {
+    stopHeartbeat();
+    if (deviceRef.current) {
+      try { deviceRef.current.destroy(); } catch {}
+      deviceRef.current = null;
+    }
+    setCallState(CALL_STATE.IDLE);
+    setActiveCall(null);
+    setCallInfo(null);
+    setIncomingCall(null);
+    setError(null);
+  }, [stopHeartbeat]);
+
+  // ── Auto-init on mount if the employee has opted in ──────────────────────────
+  // Fetches settings, then registers only if voice_browser_enabled = true.
+  useEffect(() => {
+    if (!employeeId) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const r = await fetch(`/api/app/voice-settings?employee_id=${encodeURIComponent(employeeId)}`);
+        if (!r.ok) return;
+        const d = await r.json();
+        if (cancelled) return;
+        if (d.voice_browser_enabled) {
+          initDevice();
+        } else {
+          setCallState(CALL_STATE.DISABLED);
+        }
+      } catch {
+        // Silent — leave device IDLE, user can retry manually
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [employeeId, initDevice]);
 
   // ── Start duration timer ─────────────────────────────────────────────────────
   const startTimer = useCallback(() => {
@@ -158,6 +245,10 @@ export default function useVoiceCall({ staffName } = {}) {
 
   // ── Make outbound call ───────────────────────────────────────────────────────
   const call = useCallback(async ({ to, name }) => {
+    if (callState === CALL_STATE.DISABLED) {
+      setError('Browser phone is off. Enable it in More → Browser Phone.');
+      return;
+    }
     if (!deviceRef.current) {
       await initDevice();
       // Wait for ready
@@ -228,12 +319,13 @@ export default function useVoiceCall({ staffName } = {}) {
   useEffect(() => {
     return () => {
       stopTimer();
+      stopHeartbeat();
       if (deviceRef.current) {
-        deviceRef.current.destroy();
+        try { deviceRef.current.destroy(); } catch {}
         deviceRef.current = null;
       }
     };
-  }, [stopTimer]);
+  }, [stopTimer, stopHeartbeat]);
 
   // ── Format duration as MM:SS ─────────────────────────────────────────────────
   const formatDuration = useCallback((secs) => {
@@ -250,6 +342,7 @@ export default function useVoiceCall({ staffName } = {}) {
     muted,
     incomingCall,
     initDevice,
+    teardown,
     call,
     hangUp,
     answer,
@@ -258,5 +351,6 @@ export default function useVoiceCall({ staffName } = {}) {
     formatDuration,
     isActive: callState === CALL_STATE.IN_CALL || callState === CALL_STATE.CALLING,
     isIdle:   callState === CALL_STATE.IDLE || callState === CALL_STATE.READY,
+    isDisabled: callState === CALL_STATE.DISABLED,
   };
 }

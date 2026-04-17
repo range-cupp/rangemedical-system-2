@@ -35,9 +35,13 @@ export default async function handler(req, res) {
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const callStatusUrl = `${protocol}://${host}/api/twilio/call-status`;
 
+  // NOTE: Call recording is OFF by default. Recordings are PHI under HIPAA and
+  // require a BAA + explicit patient consent disclosure. Re-enable by adding
+  // record="record-from-answer-dual-channel" recordingStatusCallback="/api/twilio/recording/status"
+  // only after consent + BAA coverage is confirmed.
   return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${callerIdNumber}" timeout="30" record="record-from-answer-dual-channel" recordingStatusCallback="/api/twilio/recording/status">
+  <Dial callerId="${callerIdNumber}" timeout="30">
     <Number statusCallbackEvent="initiated ringing answered completed" statusCallback="${callStatusUrl}" statusCallbackMethod="POST">${dialNumber}</Number>
   </Dial>
 </Response>`);

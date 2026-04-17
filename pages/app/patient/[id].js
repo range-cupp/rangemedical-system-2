@@ -21,7 +21,7 @@ export default function AppPatientDetail() {
     if (session) try { setStaff(JSON.parse(session)); } catch {}
   }, []);
 
-  const voice = useVoiceCall({ staffName: staff?.name });
+  const voice = useVoiceCall({ employeeId: staff?.id });
 
   useEffect(() => {
     if (!id) return;

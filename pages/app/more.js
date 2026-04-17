@@ -1,5 +1,5 @@
 // /pages/app/more.js
-// More menu — quick links + logout — Range Medical Employee App
+// More menu — quick links, browser phone toggle, logout — Range Medical Employee App
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -20,11 +20,54 @@ const LINKS = [
 export default function AppMore() {
   const router = useRouter();
   const [staff, setStaff] = useState(null);
+  const [browserPhoneEnabled, setBrowserPhoneEnabled] = useState(null); // null = loading
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     const session = localStorage.getItem('staff_session');
     if (session) try { setStaff(JSON.parse(session)); } catch {}
   }, []);
+
+  // Load current browser phone setting
+  useEffect(() => {
+    if (!staff?.id) return;
+    fetch(`/api/app/voice-settings?employee_id=${encodeURIComponent(staff.id)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d) setBrowserPhoneEnabled(!!d.voice_browser_enabled);
+      })
+      .catch(() => {});
+  }, [staff?.id]);
+
+  const handleToggleBrowserPhone = async () => {
+    if (!staff?.id || saving) return;
+    const next = !browserPhoneEnabled;
+    setSaving(true);
+    setSaveError('');
+    // Optimistic update
+    setBrowserPhoneEnabled(next);
+    try {
+      const r = await fetch('/api/app/voice-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee_id: staff.id, voice_browser_enabled: next }),
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error || 'Failed to save');
+      }
+      const d = await r.json();
+      setBrowserPhoneEnabled(!!d.voice_browser_enabled);
+      // Reload so useVoiceCall re-reads the setting and registers/tears down the device
+      setTimeout(() => window.location.reload(), 400);
+    } catch (err) {
+      setBrowserPhoneEnabled(!next); // revert
+      setSaveError(err.message || 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleLogout = () => {
     if (!confirm('Log out of the staff app?')) return;
@@ -51,6 +94,33 @@ export default function AppMore() {
             <div style={{ fontSize: 18, fontWeight: 700 }}>{staff.name}</div>
             <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 2 }}>{staff.title}</div>
             {staff.email && <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{staff.email}</div>}
+          </div>
+        )}
+
+        {/* Browser phone toggle */}
+        {staff && (
+          <div style={{ margin: '0 12px 10px', background: '#fff', borderRadius: 0, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 20, width: 28, textAlign: 'center' }}>💻</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>Browser Phone</div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, lineHeight: 1.4 }}>
+                  {browserPhoneEnabled === null
+                    ? 'Loading…'
+                    : browserPhoneEnabled
+                      ? 'Incoming calls will ring this computer. You can dial out from Calls.'
+                      : 'This computer will not ring. Desk phones and cell extensions still ring as normal.'}
+                </div>
+              </div>
+              <ToggleSwitch
+                checked={browserPhoneEnabled === true}
+                disabled={browserPhoneEnabled === null || saving}
+                onChange={handleToggleBrowserPhone}
+              />
+            </div>
+            {saveError && (
+              <div style={{ marginTop: 10, fontSize: 12, color: '#dc2626' }}>{saveError}</div>
+            )}
           </div>
         )}
 
@@ -108,5 +178,45 @@ export default function AppMore() {
         </div>
       </AppLayout>
     </>
+  );
+}
+
+// Simple iOS-style toggle switch
+function ToggleSwitch({ checked, disabled, onChange }) {
+  return (
+    <button
+      type="button"
+      onClick={() => !disabled && onChange()}
+      disabled={disabled}
+      aria-pressed={checked}
+      style={{
+        position: 'relative',
+        width: 48,
+        height: 28,
+        borderRadius: 14,
+        border: 'none',
+        background: checked ? '#22c55e' : '#cbd5e1',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.6 : 1,
+        transition: 'background 0.15s',
+        flexShrink: 0,
+        padding: 0,
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          top: 2,
+          left: checked ? 22 : 2,
+          width: 24,
+          height: 24,
+          borderRadius: '50%',
+          background: '#fff',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+          transition: 'left 0.15s',
+        }}
+      />
+    </button>
   );
 }

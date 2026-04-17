@@ -19,7 +19,7 @@ export default function AppCalls() {
     fetchCalls();
   }, []);
 
-  const voice = useVoiceCall({ staffName: staff?.name });
+  const voice = useVoiceCall({ employeeId: staff?.id });
 
   const fetchCalls = async () => {
     setLoading(true);

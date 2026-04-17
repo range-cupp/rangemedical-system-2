@@ -32,8 +32,9 @@ export default function AppLayout({ title, children, unreadMessages = 0, voiceHo
     }
   }, [router]);
 
-  // Use passed voice hook or create a local one (for pages that don't pass one in)
-  const localVoice = useVoiceCall({ staffName: staff?.name });
+  // Use passed voice hook or create a local one (for pages that don't pass one in).
+  // Identity is employee.id (stable UUID) so inbound TwiML can target this client.
+  const localVoice = useVoiceCall({ employeeId: staff?.id });
   const voice = voiceHook || localVoice;
 
   // Determine active tab

@@ -50,7 +50,7 @@ import { VIAL_CATALOG } from '../../lib/vial-catalog';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import CycleProgressCard from '../../components/CycleProgressCard';
-import { STAFF_DISPLAY_NAMES as _STAFF_NAMES, getStaffDisplayName, AUTHOR_ALIASES as _AUTHOR_ALIASES, isNoteAuthor as _isNoteAuthor, isAdmin as _isStaffAdmin, ADMIN_EMAILS, NOTE_AUTHORS, DOSE_APPROVAL_STAFF } from '../../lib/staff-config';
+import { STAFF_DISPLAY_NAMES as _STAFF_NAMES, getStaffDisplayName, AUTHOR_ALIASES as _AUTHOR_ALIASES, isNoteAuthor as _isNoteAuthor, isAdmin as _isStaffAdmin, ADMIN_EMAILS, NOTE_AUTHORS, DOSE_APPROVAL_STAFF, canUserAuthorNotes } from '../../lib/staff-config';
 
 // Lazy-load heavy components that aren't needed on initial render
 const CalendarView = dynamic(() => import('../../components/CalendarView'), { ssr: false });
@@ -372,9 +372,15 @@ export default function PatientProfile() {
   // Staff names & permissions imported from lib/staff-config.js (single source of truth)
   const currentUserEmail = session?.user?.email?.toLowerCase() || '';
   const isAdminUser = _isStaffAdmin(currentUserEmail);
+  const canAuthorNotes = canUserAuthorNotes(currentUserEmail);
   const canDeleteNote = (note) => {
     if (isAdminUser) return true;
     if (!note.created_by) return false;
+    return _isNoteAuthor(note.created_by, currentUserEmail);
+  };
+  const canSignNote = (note) => {
+    if (!canAuthorNotes) return false;
+    if (!note.created_by || note.status === 'signed') return false;
     return _isNoteAuthor(note.created_by, currentUserEmail);
   };
 
@@ -3605,6 +3611,29 @@ export default function PatientProfile() {
       } catch (error) {
         console.error('Delete note error:', error);
       }
+    }
+  };
+
+  const handleSignNote = async (noteId) => {
+    if (!confirm('Sign and lock this note? It will become read-only. You can add addendums after signing.')) return;
+    try {
+      const res = await fetch('/api/notes/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note_id: noteId, signed_by: currentUserEmail }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNotes(prev => prev.map(n => n.id === noteId
+          ? { ...n, status: 'signed', signed_by: currentUserEmail, signed_at: new Date().toISOString() }
+          : n
+        ));
+      } else {
+        alert(data.error || 'Failed to sign note');
+      }
+    } catch (error) {
+      console.error('Sign note error:', error);
+      alert('Failed to sign note');
     }
   };
 
@@ -8681,6 +8710,13 @@ export default function PatientProfile() {
                                   style={{ background: '#f3f4f6', border: '1px solid #d1d5db', color: '#374151', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
                                   title="Edit note"
                                 >Edit</button>
+                                {canSignNote(note) && (
+                                  <button
+                                    onClick={() => handleSignNote(note.id)}
+                                    style={{ background: '#065f46', border: '1px solid #065f46', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
+                                    title="Sign and lock note"
+                                  >✍ Sign & Lock</button>
+                                )}
                                 {(note.status !== 'signed' ? canDeleteNote(note) : isAdminUser) && (
                                   <button
                                     onClick={() => handleDeleteNote(note.id)}
@@ -9089,6 +9125,13 @@ export default function PatientProfile() {
                               style={{ background: '#f3f4f6', border: '1px solid #d1d5db', color: '#374151', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
                               title="Edit note"
                             >Edit</button>
+                            {canSignNote(note) && (
+                              <button
+                                onClick={() => handleSignNote(note.id)}
+                                style={{ background: '#065f46', border: '1px solid #065f46', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
+                                title="Sign and lock note"
+                              >✍ Sign & Lock</button>
+                            )}
                             <button
                               onClick={() => handleTogglePin(note.id, note.pinned)}
                               style={{

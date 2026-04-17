@@ -99,10 +99,22 @@ export default function useVoiceCall({ employeeId } = {}) {
         enableIceRestart: true,
       });
 
-      device.on('ready', () => {
+      // Twilio Voice SDK v2 renamed 'ready' → 'registered' and 'offline' → 'unregistered'
+      device.on('registered', () => {
         setCallState(CALL_STATE.READY);
         setError(null);
         startHeartbeat();
+      });
+
+      device.on('unregistered', () => {
+        stopHeartbeat();
+        // Only flip state to IDLE if we're not mid-call (registered event may fire
+        // again shortly if this was just a reconnect)
+        setCallState((prev) => (
+          prev === CALL_STATE.IN_CALL || prev === CALL_STATE.CALLING || prev === CALL_STATE.INCOMING
+            ? prev
+            : CALL_STATE.IDLE
+        ));
       });
 
       device.on('error', (twilioError) => {

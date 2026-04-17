@@ -6,6 +6,68 @@
 import Layout from '../../components/Layout';
 import { INJECTION_VIDEOS, INJECTION_VIDEO_LIST } from '../../lib/injection-videos';
 
+const stepsListStyle = {
+  maxWidth: '720px',
+  margin: '2.5rem auto 0',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '12px',
+};
+
+const stepCardStyle = {
+  display: 'flex',
+  alignItems: 'stretch',
+  background: '#ffffff',
+  border: '1px solid #e5e5e5',
+};
+
+const stepBadgeStyle = {
+  flexShrink: 0,
+  width: '56px',
+  background: '#0a0a0a',
+  color: '#ffffff',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '20px',
+  fontWeight: 800,
+  fontFamily: 'Inter, -apple-system, sans-serif',
+  letterSpacing: '0.02em',
+};
+
+const stepTextWrapStyle = {
+  flex: 1,
+  padding: '18px 22px',
+  display: 'flex',
+  alignItems: 'center',
+};
+
+const stepTextStyle = {
+  margin: 0,
+  fontSize: '1rem',
+  lineHeight: 1.55,
+  color: '#1a1a1a',
+};
+
+const videoWrapStyle = {
+  width: '100%',
+  background: '#000',
+  border: '1px solid #1a1a1a',
+};
+
+const videoStyle = {
+  width: '100%',
+  height: 'auto',
+  display: 'block',
+};
+
+const videoCaptionStyle = {
+  marginTop: '1rem',
+  fontSize: '0.875rem',
+  color: '#737373',
+  textAlign: 'center',
+};
+
 export default function InjectionVideoPage({ video }) {
   if (!video) {
     return (
@@ -62,16 +124,16 @@ export default function InjectionVideoPage({ video }) {
           <h2 className="section-title">WHAT TO DO</h2>
           <p className="section-subtitle">Same sequence every time. The red flip-top cap comes off first — it's a stopper that keeps the medication from leaking in shipping. Then thread the needle onto the Luer lock.</p>
 
-          <div className="steps-list" style={{ marginTop: '2rem' }}>
+          <ol style={stepsListStyle}>
             {video.steps.map((step, i) => (
-              <div key={i} className="step-item">
-                <div className="step-number">{i + 1}</div>
-                <div className="step-content">
-                  <p style={{ margin: 0 }}>{step}</p>
+              <li key={i} style={stepCardStyle}>
+                <div style={stepBadgeStyle} aria-hidden="true">{i + 1}</div>
+                <div style={stepTextWrapStyle}>
+                  <p style={stepTextStyle}>{step}</p>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 
@@ -103,22 +165,3 @@ export async function getStaticProps({ params }) {
   const video = INJECTION_VIDEOS[params.slug] || null;
   return { props: { video } };
 }
-
-const videoWrapStyle = {
-  width: '100%',
-  background: '#000',
-  border: '1px solid #1a1a1a',
-};
-
-const videoStyle = {
-  width: '100%',
-  height: 'auto',
-  display: 'block',
-};
-
-const videoCaptionStyle = {
-  marginTop: '1rem',
-  fontSize: '0.875rem',
-  color: '#737373',
-  textAlign: 'center',
-};

@@ -1,15 +1,20 @@
-// One-off uploader for injection demo videos to Vercel Blob.
+// One-off uploader for the injection demo video to Vercel Blob.
 // Run: `node scripts/upload-injection-videos.js`
 // Requires BLOB_READ_WRITE_TOKEN in .env.local.
 
 require('dotenv').config({ path: '.env.local' });
 const fs = require('fs');
 const path = require('path');
-const { put } = require('@vercel/blob');
+const { put, del } = require('@vercel/blob');
 
 const VIDEOS = [
-  { local: 'tmp-videos/b12-injection.mp4',           blob: 'injection-videos/b12-injection.mp4' },
-  { local: 'tmp-videos/weight-loss-injection.mp4',   blob: 'injection-videos/weight-loss-injection.mp4' },
+  { local: 'tmp-videos/weight-loss-injection.mp4', blob: 'injection-videos/injection.mp4' },
+];
+
+// Blob paths of any legacy videos to remove.
+const STALE_BLOBS = [
+  'injection-videos/b12-injection.mp4',
+  'injection-videos/weight-loss-injection.mp4',
 ];
 
 (async () => {
@@ -26,7 +31,18 @@ const VIDEOS = [
       allowOverwrite: true,
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
-    console.log(`${v.blob}  ->  ${res.url}`);
+    console.log(`uploaded ${v.blob}  ->  ${res.url}`);
+  }
+
+  for (const stale of STALE_BLOBS) {
+    try {
+      await del(`https://sixcoo3swhy8bu1g.public.blob.vercel-storage.com/${stale}`, {
+        token: process.env.BLOB_READ_WRITE_TOKEN,
+      });
+      console.log(`deleted ${stale}`);
+    } catch (err) {
+      console.warn(`skip ${stale}: ${err.message}`);
+    }
   }
 })().catch(err => {
   console.error(err);

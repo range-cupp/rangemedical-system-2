@@ -131,6 +131,24 @@ export default function useVoiceCall({ employeeId } = {}) {
           name: call.parameters?.CallerName || null,
           direction: 'inbound',
         });
+
+        // Pre-accept lifecycle: if another endpoint (e.g. a desk phone) answers
+        // first, or the caller hangs up, Twilio cancels this leg. Without this
+        // listener the ring UI stays on screen forever. `cancel` only fires
+        // before the call is accepted — once accepted, `disconnect` takes over
+        // via attachCallListeners().
+        const clearIncoming = () => {
+          setIncomingCall(null);
+          setCallInfo(null);
+          setCallState(CALL_STATE.READY);
+        };
+        call.on('cancel', clearIncoming);
+        call.on('disconnect', clearIncoming);
+        call.on('reject', clearIncoming);
+        call.on('error', (err) => {
+          console.error('[Voice] Incoming call error:', err);
+          clearIncoming();
+        });
       });
 
       device.on('tokenWillExpire', async () => {

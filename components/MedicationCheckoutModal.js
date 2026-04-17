@@ -23,6 +23,10 @@ import {
   PEPTIDE_OPTIONS,
   PEPTIDE_DURATIONS,
   IV_THERAPY_TYPES,
+  RANGE_IV_OPTIONS,
+  SPECIALTY_IV_OPTIONS,
+  HBOT_VOLUME_PRICING,
+  RLT_VOLUME_PRICING,
   CATEGORY_COLORS,
   getDoseOptions,
 } from '../lib/protocol-config';
@@ -175,6 +179,12 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   // Weight loss included add-ons (B12, vitamins)
   const [wlAddons, setWlAddons] = useState([]); // [{type:'b12', inClinic:0, takeHome:0}]
 
+  // IV picker cascade: 'range' | 'specialty'
+  const [ivMenuType, setIvMenuType] = useState('');
+  const [ivSpecialtyType, setIvSpecialtyType] = useState(''); // e.g. 'NAD+', 'Vitamin C'
+  // HBOT / RLT pack tier (1, 5, 10) — drives both itemQty and per-session price
+  const [sessionPackQty, setSessionPackQty] = useState(null);
+
   // Protocol linking
   const [selectedProtocol, setSelectedProtocol] = useState(null);
   const [coverageType, setCoverageType] = useState(null); // subscription, protocol, paid, comp
@@ -242,6 +252,9 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setFulfillmentMethod('in_clinic');
     setTrackingNumber('');
     setWlAddons([]);
+    setIvMenuType('');
+    setIvSpecialtyType('');
+    setSessionPackQty(null);
     setSelectedProtocol(null);
     setCoverageType(null);
     setCoverageOverride(false);
@@ -282,6 +295,9 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setFulfillmentMethod('in_clinic');
     setTrackingNumber('');
     setWlAddons([]);
+    setIvMenuType('');
+    setIvSpecialtyType('');
+    setSessionPackQty(null);
     setSelectedProtocol(null);
     setCoverageType(null);
     setCoverageOverride(false);
@@ -322,6 +338,9 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       itemQty: itemQty || 1,
       shippingAmount: shippingAmount || '',
       wlAddons: [...wlAddons],
+      ivMenuType,
+      ivSpecialtyType,
+      sessionPackQty,
     };
     if (editingItemId) {
       // Replace existing item in place
@@ -365,6 +384,9 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setDiscountValue(item.discountValue || '');
     setItemQty(item.itemQty || 1);
     setShippingAmount(item.shippingAmount || '');
+    setIvMenuType(item.ivMenuType || '');
+    setIvSpecialtyType(item.ivSpecialtyType || '');
+    setSessionPackQty(item.sessionPackQty || null);
     setStep(3);
   }
 
@@ -413,6 +435,66 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       setSearching(false);
     }, 300);
   }, [patientSearch]);
+
+  // Auto-build selectedService from cascading pickers (IV menu, HBOT/RLT pack tier).
+  // Runs when category, picker values, or qty change — no manual service dropdown needed.
+  useEffect(() => {
+    const cat = selectedCategory?.id;
+    if (!cat) return;
+
+    // IV Therapy — Range drip or specialty + dose
+    if (cat === 'iv_therapy') {
+      if (ivMenuType === 'range' && medication) {
+        const opt = RANGE_IV_OPTIONS.find(o => o.value === medication);
+        if (opt) {
+          setSelectedService({
+            id: `synthetic-iv-range-${opt.value}`,
+            name: `${opt.label} IV`,
+            category: 'iv_therapy',
+            price_cents: opt.price_cents,
+            price_display: `$${(opt.price_cents / 100).toFixed(2)}`,
+            recurring: false,
+            interval: null,
+          });
+          return;
+        }
+      }
+      if (ivMenuType === 'specialty' && ivSpecialtyType && dosage) {
+        const spec = SPECIALTY_IV_OPTIONS.find(s => s.value === ivSpecialtyType);
+        const dose = spec?.doses.find(d => d.value === dosage);
+        if (spec && dose) {
+          setSelectedService({
+            id: `synthetic-iv-${spec.value}-${dose.value}`,
+            name: `${spec.label} ${dose.label}`.trim(),
+            category: 'iv_therapy',
+            price_cents: dose.price_cents,
+            price_display: `$${(dose.price_cents / 100).toFixed(2)}`,
+            recurring: false,
+            interval: null,
+          });
+          return;
+        }
+      }
+    }
+
+    // HBOT / Red Light — pack tier sets both qty and per-session price
+    if ((cat === 'hbot' || cat === 'red_light') && sessionPackQty) {
+      const tiers = cat === 'hbot' ? HBOT_VOLUME_PRICING : RLT_VOLUME_PRICING;
+      const tier = tiers.find(t => t.qty === sessionPackQty);
+      if (tier) {
+        const label = cat === 'hbot' ? 'HBOT' : 'Red Light Therapy';
+        setSelectedService({
+          id: `synthetic-${cat}-${tier.qty}pack`,
+          name: tier.qty === 1 ? `${label} — Single Session` : `${label} — ${tier.label} ($${(tier.per_session_cents / 100).toFixed(0)}/session)`,
+          category: cat,
+          price_cents: tier.per_session_cents,
+          price_display: `$${(tier.per_session_cents / 100).toFixed(2)}`,
+          recurring: false,
+          interval: null,
+        });
+      }
+    }
+  }, [selectedCategory?.id, ivMenuType, ivSpecialtyType, medication, dosage, sessionPackQty]);
 
   // Fetch coverage when patient + category are selected
   async function fetchCoverage(patientId, category) {
@@ -1480,14 +1562,154 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                 </div>
               )}
 
-              {/* IV type */}
+              {/* IV Therapy — cascading picker (menu type → variant/dose) */}
               {selectedCategory?.id === 'iv_therapy' && (
+                <>
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>IV Menu</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {[
+                        { value: 'range',     label: 'Range IV ($225)' },
+                        { value: 'specialty', label: 'Specialty IV' },
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            setIvMenuType(opt.value);
+                            setIvSpecialtyType('');
+                            setMedication('');
+                            setDosage('');
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: '10px 14px',
+                            border: `1px solid ${ivMenuType === opt.value ? '#2563eb' : '#ddd'}`,
+                            background: ivMenuType === opt.value ? '#eff6ff' : '#fff',
+                            color: ivMenuType === opt.value ? '#1d4ed8' : '#333',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            fontWeight: ivMenuType === opt.value ? 600 : 500,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {ivMenuType === 'range' && (
+                    <div style={styles.fieldGroup}>
+                      <label style={styles.label}>Range IV Drip</label>
+                      <select
+                        value={medication}
+                        onChange={e => { setMedication(e.target.value); setDosage(''); }}
+                        style={styles.select}
+                      >
+                        <option value="">Select drip...</option>
+                        {RANGE_IV_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label} — ${(opt.price_cents / 100).toFixed(0)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {ivMenuType === 'specialty' && (
+                    <>
+                      <div style={styles.fieldGroup}>
+                        <label style={styles.label}>Specialty IV</label>
+                        <select
+                          value={ivSpecialtyType}
+                          onChange={e => {
+                            setIvSpecialtyType(e.target.value);
+                            const spec = SPECIALTY_IV_OPTIONS.find(s => s.value === e.target.value);
+                            // Auto-pick dose if only one option (e.g. Methylene Blue)
+                            if (spec && spec.doses.length === 1) {
+                              setMedication(`${spec.label} ${spec.doses[0].label}`.trim());
+                              setDosage(spec.doses[0].value);
+                            } else {
+                              setMedication('');
+                              setDosage('');
+                            }
+                          }}
+                          style={styles.select}
+                        >
+                          <option value="">Select specialty IV...</option>
+                          {SPECIALTY_IV_OPTIONS.map(s => (
+                            <option key={s.value} value={s.value}>{s.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {ivSpecialtyType && (() => {
+                        const spec = SPECIALTY_IV_OPTIONS.find(s => s.value === ivSpecialtyType);
+                        if (!spec || spec.doses.length <= 1) return null;
+                        return (
+                          <div style={styles.fieldGroup}>
+                            <label style={styles.label}>Dose</label>
+                            <select
+                              value={dosage}
+                              onChange={e => {
+                                setDosage(e.target.value);
+                                const dose = spec.doses.find(d => d.value === e.target.value);
+                                setMedication(dose ? `${spec.label} ${dose.label}` : '');
+                              }}
+                              style={styles.select}
+                            >
+                              <option value="">Select dose...</option>
+                              {spec.doses.map(d => (
+                                <option key={d.value} value={d.value}>
+                                  {d.label} — ${(d.price_cents / 100).toFixed(0)}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        );
+                      })()}
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* HBOT / RLT — session pack tier (drives qty + per-session price) */}
+              {['hbot', 'red_light'].includes(selectedCategory?.id) && (
                 <div style={styles.fieldGroup}>
-                  <label style={styles.label}>IV Type</label>
-                  <select value={medication} onChange={e => setMedication(e.target.value)} style={styles.select}>
-                    <option value="">Select...</option>
-                    {IV_THERAPY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                  <label style={styles.label}>Session Pack</label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {(selectedCategory?.id === 'hbot' ? HBOT_VOLUME_PRICING : RLT_VOLUME_PRICING).map(tier => {
+                      const isActive = sessionPackQty === tier.qty;
+                      return (
+                        <button
+                          key={tier.qty}
+                          type="button"
+                          onClick={() => {
+                            setSessionPackQty(tier.qty);
+                            setItemQty(tier.qty);
+                          }}
+                          style={{
+                            flex: '1 1 30%',
+                            padding: '12px 10px',
+                            border: `1px solid ${isActive ? '#2563eb' : '#ddd'}`,
+                            background: isActive ? '#eff6ff' : '#fff',
+                            color: isActive ? '#1d4ed8' : '#333',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            fontWeight: isActive ? 600 : 500,
+                          }}
+                        >
+                          <div style={{ fontSize: '13px' }}>{tier.label}</div>
+                          <div style={{ fontSize: '12px', color: isActive ? '#1d4ed8' : '#666', marginTop: '2px' }}>
+                            ${(tier.total_cents / 100).toFixed(0)}
+                            {tier.qty > 1 && <span style={{ color: '#666' }}> &nbsp;·&nbsp; ${(tier.per_session_cents / 100).toFixed(0)}/session</span>}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -1695,8 +1917,31 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                     Payment
                   </div>
 
-                  {/* Service/price selector */}
-                  {coverage?.suggested_services?.length > 0 && coverageType !== 'comp' && (
+                  {/* Smart-picker readout — IV / HBOT / RLT auto-set price from cascading pickers above */}
+                  {selectedService?.id?.toString().startsWith('synthetic-') && coverageType !== 'comp' && (
+                    <div style={styles.fieldGroup}>
+                      <label style={styles.label}>Selected Service</label>
+                      <div style={{
+                        padding: '12px 14px',
+                        border: '1px solid #bfdbfe',
+                        background: '#eff6ff',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}>
+                        <div style={{ fontSize: '14px', fontWeight: 500, color: '#1e3a8a' }}>
+                          {selectedService.name}
+                        </div>
+                        <div style={{ fontSize: '14px', fontWeight: 600, color: '#1d4ed8' }}>
+                          {selectedService.price_display}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Manual service/price selector — hidden when smart pickers drive price */}
+                  {coverage?.suggested_services?.length > 0 && coverageType !== 'comp' && !selectedService?.id?.toString().startsWith('synthetic-') && (
                     <div style={styles.fieldGroup}>
                       <label style={styles.label}>Select Service & Price</label>
                       <select

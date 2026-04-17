@@ -4,6 +4,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import AdminLayout from '../../components/AdminLayout';
+import { INJECTION_VIDEO_LIST } from '../../lib/injection-videos';
 
 const AVAILABLE_FORMS = [
   { id: 'intake', name: 'Medical Intake', icon: '📋', time: '10 min', required: true },
@@ -104,8 +105,8 @@ const GUIDE_CATEGORIES = [
 ];
 
 export default function SendFormsPage() {
-  // Page mode: forms, guides, or questionnaire
-  const [pageMode, setPageMode] = useState('forms'); // 'forms' | 'guides' | 'questionnaire'
+  // Page mode: forms, guides, videos, or questionnaire
+  const [pageMode, setPageMode] = useState('forms'); // 'forms' | 'guides' | 'videos' | 'questionnaire'
 
   // Patient selection
   const [mode, setMode] = useState('search'); // 'search' | 'manual'
@@ -124,6 +125,9 @@ export default function SendFormsPage() {
   const [selectedGuides, setSelectedGuides] = useState([]);
   const [guideCategory, setGuideCategory] = useState('all');
   const [guideSearch, setGuideSearch] = useState('');
+
+  // Video selection
+  const [selectedVideos, setSelectedVideos] = useState([]);
 
   // Delivery method
   const [deliveryMethod, setDeliveryMethod] = useState('email'); // 'sms' | 'email'
@@ -225,6 +229,12 @@ export default function SendFormsPage() {
     );
   };
 
+  const toggleVideo = (videoSlug) => {
+    setSelectedVideos(prev =>
+      prev.includes(videoSlug) ? prev.filter(s => s !== videoSlug) : [...prev, videoSlug]
+    );
+  };
+
   const applyQuickSelect = (forms) => {
     setSelectedForms(forms);
   };
@@ -256,7 +266,9 @@ export default function SendFormsPage() {
 
   const getSelectedCount = () => {
     if (pageMode === 'questionnaire') return selectedPatient ? 1 : 0;
-    return pageMode === 'forms' ? selectedForms.length : selectedGuides.length;
+    if (pageMode === 'forms') return selectedForms.length;
+    if (pageMode === 'videos') return selectedVideos.length;
+    return selectedGuides.length;
   };
 
   const canSend = () => {
@@ -289,6 +301,8 @@ export default function SendFormsPage() {
         await sendQuestionnaire(patient);
       } else if (pageMode === 'forms') {
         await sendForms(firstName, patient);
+      } else if (pageMode === 'videos') {
+        await sendVideos(firstName, patient);
       } else {
         await sendGuides(firstName, patient);
       }
@@ -401,6 +415,56 @@ export default function SendFormsPage() {
     setSelectedGuides([]);
   };
 
+  const sendVideos = async (firstName, patient) => {
+    if (deliveryMethod === 'email') {
+      const email = mode === 'search' ? selectedPatient.email : manualEmail;
+      const res = await fetch('/api/admin/send-videos-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          firstName: firstName || null,
+          videoSlugs: selectedVideos,
+          patientId: patient?.id || null,
+          patientName: patient?.name || manualName || null,
+          ghlContactId: patient?.ghl_contact_id || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send email');
+
+      setResult({ success: true, message: `${selectedVideos.length} video${selectedVideos.length > 1 ? 's' : ''} sent via email` });
+      addRecentSend(patient?.name || manualName || email, 'email', selectedVideos.length, 'videos');
+    } else {
+      const phone = mode === 'search' ? selectedPatient.phone : manualPhone;
+      const digits = phone.replace(/\D/g, '');
+      const res = await fetch('/api/send-video-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits,
+          firstName: firstName || null,
+          videoSlugs: selectedVideos,
+          patientId: patient?.id || null,
+          patientName: patient?.name || manualName || null,
+          ghlContactId: patient?.ghl_contact_id || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send SMS');
+
+      if (data.twoStep) {
+        setResult({ success: true, message: `Opt-in message sent. ${selectedVideos.length} video${selectedVideos.length > 1 ? 's' : ''} will deliver when patient replies.` });
+        addRecentSend(patient?.name || manualName || phone, 'sms', selectedVideos.length, 'videos (pending reply)');
+      } else {
+        setResult({ success: true, message: `${selectedVideos.length} video${selectedVideos.length > 1 ? 's' : ''} sent via SMS` });
+        addRecentSend(patient?.name || manualName || phone, 'sms', selectedVideos.length, 'videos');
+      }
+    }
+
+    setSelectedVideos([]);
+  };
+
   const sendQuestionnaire = async (patient) => {
     if (!patient) throw new Error('Patient must be selected from search');
 
@@ -479,8 +543,8 @@ export default function SendFormsPage() {
     return matchCategory && matchSearch;
   });
 
-  const itemLabel = pageMode === 'questionnaire' ? 'Questionnaire' : pageMode === 'forms' ? 'Form' : 'Guide';
-  const itemLabelPlural = pageMode === 'questionnaire' ? 'Questionnaire' : pageMode === 'forms' ? 'Forms' : 'Guides';
+  const itemLabel = pageMode === 'questionnaire' ? 'Questionnaire' : pageMode === 'forms' ? 'Form' : pageMode === 'videos' ? 'Video' : 'Guide';
+  const itemLabelPlural = pageMode === 'questionnaire' ? 'Questionnaire' : pageMode === 'forms' ? 'Forms' : pageMode === 'videos' ? 'Videos' : 'Guides';
   const selectedCount = getSelectedCount();
 
   return (
@@ -508,6 +572,15 @@ export default function SendFormsPage() {
               }}
             >
               📖 Guides
+            </button>
+            <button
+              onClick={() => { setPageMode('videos'); setResult(null); }}
+              style={{
+                ...styles.pageModeBtn,
+                ...(pageMode === 'videos' ? styles.pageModeBtnActive : {}),
+              }}
+            >
+              🎥 Videos
             </button>
             <button
               onClick={() => { setPageMode('questionnaire'); setResult(null); }}
@@ -715,6 +788,35 @@ export default function SendFormsPage() {
                         <span style={styles.formIcon}>{form.icon}</span>
                         <span style={styles.formName}>{form.name}</span>
                         <span style={styles.formTime}>{form.time}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            ) : pageMode === 'videos' ? (
+              <>
+                <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#666' }}>
+                  Send patients step-by-step injection demo videos. Includes the red flip-top cap and Luer lock technique.
+                </p>
+                <div style={styles.formGrid}>
+                  {INJECTION_VIDEO_LIST.map(video => {
+                    const isChecked = selectedVideos.includes(video.slug);
+                    return (
+                      <label
+                        key={video.slug}
+                        style={{
+                          ...styles.formItem,
+                          ...(isChecked ? styles.formItemChecked : {}),
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleVideo(video.slug)}
+                          style={styles.checkbox}
+                        />
+                        <span style={styles.formIcon}>{video.icon}</span>
+                        <span style={styles.formName}>{video.name}</span>
                       </label>
                     );
                   })}

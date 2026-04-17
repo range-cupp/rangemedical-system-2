@@ -30,3 +30,6 @@ Thumbs.db
 .env*.local
 .claude/settings.local.json
 supabase/.temp/
+
+# Local working files
+tmp-videos/

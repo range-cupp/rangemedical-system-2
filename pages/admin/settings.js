@@ -6,6 +6,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
+import { useVoice } from '../../components/VoiceContext';
+import { CALL_STATE } from '../../hooks/useVoiceCall';
 
 const TOOLS = [
   {
@@ -174,6 +176,96 @@ function BrowserPhoneCard() {
         />
       </div>
       {error && <div style={styles.browserPhoneError}>{error}</div>}
+
+      {/* Test dialer — only visible when enabled. Quick way to verify the chain. */}
+      {isOn && <TestDialer />}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test dialer — dial any number to verify the browser softphone end-to-end.
+// Uses the shared voice hook from AdminLayout (via VoiceContext) so there's
+// only ever one Twilio Device registered.
+// ─────────────────────────────────────────────────────────────────────────────
+function TestDialer() {
+  const voice = useVoice();
+  const [number, setNumber] = useState('');
+  const [hint, setHint] = useState('');
+
+  // Show a live status line from the voice hook
+  const statusLine = (() => {
+    if (!voice) return 'Voice not available on this page';
+    switch (voice.callState) {
+      case CALL_STATE.IDLE:        return 'Ready — device not yet initialized';
+      case CALL_STATE.CONNECTING:  return 'Connecting to Twilio…';
+      case CALL_STATE.READY:       return '✓ Registered — ready to make and receive calls';
+      case CALL_STATE.CALLING:     return 'Calling…';
+      case CALL_STATE.IN_CALL:     return `On call · ${voice.formatDuration(voice.callInfo?.duration || 0)}`;
+      case CALL_STATE.INCOMING:    return 'Incoming call — use the popup to answer';
+      case CALL_STATE.ENDED:       return 'Call ended';
+      case CALL_STATE.ERROR:       return `Error: ${voice.error || 'unknown'}`;
+      case CALL_STATE.UNAVAILABLE: return 'Voice not configured on the server';
+      case CALL_STATE.DISABLED:    return 'Browser phone is disabled — toggle above';
+      default:                     return '';
+    }
+  })();
+
+  const normalize = (raw) => {
+    const digits = String(raw).replace(/\D/g, '');
+    if (digits.length === 10) return '+1' + digits;
+    if (digits.length === 11 && digits.startsWith('1')) return '+' + digits;
+    if (raw.startsWith('+')) return raw.replace(/\s/g, '');
+    return '+' + digits;
+  };
+
+  const handleCall = () => {
+    if (!voice) return;
+    if (!number.trim()) {
+      setHint('Enter a phone number first');
+      return;
+    }
+    if (voice.isActive) return;
+    setHint('');
+    const to = normalize(number);
+    voice.call({ to });
+  };
+
+  const readyToDial = voice?.callState === CALL_STATE.READY && !voice.isActive;
+  const canType = voice?.callState !== CALL_STATE.IN_CALL && voice?.callState !== CALL_STATE.CALLING;
+
+  return (
+    <div style={styles.testDialer}>
+      <div style={styles.testDialerLabel}>Test Outbound Call</div>
+      <div style={styles.testDialerRow}>
+        <input
+          type="tel"
+          placeholder="Enter phone number (e.g. your cell)"
+          value={number}
+          onChange={(e) => setNumber(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && readyToDial && handleCall()}
+          disabled={!canType}
+          style={{
+            ...styles.testDialerInput,
+            background: canType ? '#fff' : '#f8fafc',
+            cursor: canType ? 'text' : 'not-allowed',
+          }}
+        />
+        <button
+          onClick={handleCall}
+          disabled={!readyToDial || !number.trim()}
+          style={{
+            ...styles.testDialerButton,
+            background: (readyToDial && number.trim()) ? '#22c55e' : '#e2e8f0',
+            color: (readyToDial && number.trim()) ? '#fff' : '#94a3b8',
+            cursor: (readyToDial && number.trim()) ? 'pointer' : 'not-allowed',
+          }}
+        >
+          Call
+        </button>
+      </div>
+      <div style={styles.testDialerStatus}>{statusLine}</div>
+      {hint && <div style={styles.testDialerHint}>{hint}</div>}
     </div>
   );
 }
@@ -296,6 +388,48 @@ const styles = {
   browserPhoneError: {
     marginTop: 12,
     fontSize: 13,
+    color: '#dc2626',
+  },
+  testDialer: {
+    marginTop: 20,
+    paddingTop: 20,
+    borderTop: '1px solid #f1f5f9',
+  },
+  testDialerLabel: {
+    fontSize: 11,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    color: '#64748b',
+    marginBottom: 10,
+  },
+  testDialerRow: {
+    display: 'flex',
+    gap: 8,
+  },
+  testDialerInput: {
+    flex: 1,
+    padding: '10px 14px',
+    border: '1.5px solid #e2e8f0',
+    fontSize: 15,
+    outline: 'none',
+    color: '#0f172a',
+  },
+  testDialerButton: {
+    padding: '10px 20px',
+    border: 'none',
+    fontSize: 14,
+    fontWeight: 600,
+    minWidth: 90,
+  },
+  testDialerStatus: {
+    marginTop: 10,
+    fontSize: 12,
+    color: '#64748b',
+  },
+  testDialerHint: {
+    marginTop: 6,
+    fontSize: 12,
     color: '#dc2626',
   },
 };

@@ -11,6 +11,7 @@ import StaffChatPanel from './StaffChatPanel';
 import StaffMessagingPanel from './StaffMessagingPanel';
 import AdminCallBar from './AdminCallBar';
 import useVoiceCall from '../hooks/useVoiceCall';
+import { VoiceProvider } from './VoiceContext';
 
 // SMS notification sound — two-tone "ding-ding" (880Hz + 1100Hz)
 function playNotificationSound() {
@@ -1065,7 +1066,9 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
 
           {/* Page content */}
           <main style={styles.main}>
-            {children}
+            <VoiceProvider value={voice}>
+              {children}
+            </VoiceProvider>
           </main>
         </div>
       </div>

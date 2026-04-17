@@ -31,6 +31,7 @@ export default async function handler(req, res) {
       weight_lbs,
       bp_systolic,
       bp_diastolic,
+      bp_arm,
       temperature,
       pulse,
       respiratory_rate,
@@ -51,6 +52,40 @@ export default async function handler(req, res) {
     const w = parseNum(weight_lbs);
     const bmi = calculateBMI(h, w);
 
+    // recorded_at accepts:
+    //   - Full ISO datetime string ("2026-04-17T14:30:00-07:00") → stored as-is
+    //   - Datetime-local ("2026-04-17T14:30") → interpreted as Pacific
+    //   - Date only ("2026-04-17") → interpreted as noon Pacific (legacy)
+    //   - Empty/null → current time
+    const normalizeRecordedAt = (val) => {
+      if (!val) return new Date().toISOString();
+      if (typeof val !== 'string') return new Date(val).toISOString();
+      // Already has timezone info — trust it
+      if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(val)) return new Date(val).toISOString();
+      // Date-only (YYYY-MM-DD)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+        return new Date(val + 'T12:00:00-07:00').toISOString();
+      }
+      // Datetime-local (YYYY-MM-DDTHH:MM[:SS]) — treat as Pacific
+      // Determine PT offset by checking DST for that date
+      const d = new Date(val + 'Z'); // placeholder parse to get date parts
+      const year = parseInt(val.slice(0, 4), 10);
+      const month = parseInt(val.slice(5, 7), 10);
+      const day = parseInt(val.slice(8, 10), 10);
+      // Use a fixed reference date for DST lookup; Intl handles it
+      const probe = new Date(Date.UTC(year, month - 1, day, 20, 0, 0));
+      const ptParts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Los_Angeles',
+        timeZoneName: 'shortOffset',
+      }).formatToParts(probe);
+      const offsetPart = ptParts.find(p => p.type === 'timeZoneName')?.value || 'GMT-8';
+      const match = offsetPart.match(/GMT([+-]\d{1,2})/);
+      const offsetHours = match ? parseInt(match[1], 10) : -8;
+      const offsetStr = (offsetHours >= 0 ? '+' : '-') + String(Math.abs(offsetHours)).padStart(2, '0') + ':00';
+      const withSeconds = val.length === 16 ? val + ':00' : val;
+      return new Date(withSeconds + offsetStr).toISOString();
+    };
+
     const vitalsData = {
       patient_id,
       appointment_id: appointment_id || null,
@@ -58,15 +93,14 @@ export default async function handler(req, res) {
       weight_lbs: w,
       bp_systolic: parseInt2(bp_systolic),
       bp_diastolic: parseInt2(bp_diastolic),
+      bp_arm: bp_arm === 'left' || bp_arm === 'right' ? bp_arm : null,
       temperature: parseNum(temperature),
       pulse: parseInt2(pulse),
       respiratory_rate: parseInt2(respiratory_rate),
       o2_saturation: parseNum(o2_saturation),
       bmi,
       recorded_by: recorded_by || null,
-      recorded_at: recorded_at
-        ? new Date(recorded_at + 'T12:00:00-07:00').toISOString()
-        : new Date().toISOString()
+      recorded_at: normalizeRecordedAt(recorded_at),
     };
 
     // Check if vitals already exist for this appointment

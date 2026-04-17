@@ -436,7 +436,7 @@ export default function PatientProfile() {
   const [vitalsHistory, setVitalsHistory] = useState([]);
   const [vitalsDisplayCount, setVitalsDisplayCount] = useState(5);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
-  const [vitalsModalData, setVitalsModalData] = useState({ recorded_at: '', weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
+  const [vitalsModalData, setVitalsModalData] = useState({ recorded_at: '', weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', bp_arm: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
   const [vitalsModalSaving, setVitalsModalSaving] = useState(false);
   const [editingVitalsId, setEditingVitalsId] = useState(null);
   const [commsLog, setCommsLog] = useState([]);
@@ -689,6 +689,10 @@ export default function PatientProfile() {
   const [selectedLinkProtocolId, setSelectedLinkProtocolId] = useState('');
   const [selectedPackId, setSelectedPackId] = useState('');
 
+  // Link-purchase-to-block modal (used from protocol detail block headers)
+  const [linkPurchaseModal, setLinkPurchaseModal] = useState(null); // { protocol, blockNum }
+  const [linkingPurchaseId, setLinkingPurchaseId] = useState(null);
+
   const [assignForm, setAssignForm] = useState({
     templateId: '', peptideId: '', selectedDose: '', frequency: '',
     startDate: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }), notes: '',
@@ -890,7 +894,7 @@ export default function PatientProfile() {
       const vitalsData = await vitalsRes.json();
       setVitalsHistory(vitalsData.vitals || []);
       setShowVitalsModal(false);
-      setVitalsModalData({ recorded_at: '', weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
+      setVitalsModalData({ recorded_at: '', weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', bp_arm: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
       setEditingVitalsId(null);
     } catch (err) {
       alert('Error deleting vitals: ' + err.message);
@@ -921,6 +925,7 @@ export default function PatientProfile() {
           weight_lbs: vitalsModalData.weight_lbs,
           bp_systolic: vitalsModalData.bp_systolic,
           bp_diastolic: vitalsModalData.bp_diastolic,
+          bp_arm: vitalsModalData.bp_arm || null,
           temperature: vitalsModalData.temperature,
           pulse: vitalsModalData.pulse,
           respiratory_rate: vitalsModalData.respiratory_rate,
@@ -935,7 +940,7 @@ export default function PatientProfile() {
       const vitalsData = await vitalsRes.json();
       setVitalsHistory(vitalsData.vitals || []);
       setShowVitalsModal(false);
-      setVitalsModalData({ recorded_at: '', weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
+      setVitalsModalData({ recorded_at: '', weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', bp_arm: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
       setEditingVitalsId(null);
     } catch (err) {
       alert('Error saving vitals: ' + err.message);
@@ -2325,6 +2330,31 @@ export default function PatientProfile() {
       }
     } catch (error) {
       console.error('Error linking purchase to protocol:', error);
+    }
+  };
+
+  const handleLinkPurchaseToBlock = async (purchaseId) => {
+    const protocolId = linkPurchaseModal?.protocol?.id;
+    if (!protocolId || !purchaseId) return;
+    setLinkingPurchaseId(purchaseId);
+    try {
+      const res = await fetch('/api/protocols/link-purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ protocolId, purchaseId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setLinkPurchaseModal(null);
+        fetchPatient();
+      } else {
+        alert(data.error || 'Failed to link purchase');
+      }
+    } catch (error) {
+      console.error('Error linking purchase:', error);
+      alert('Failed to link purchase');
+    } finally {
+      setLinkingPurchaseId(null);
     }
   };
 
@@ -5300,7 +5330,7 @@ export default function PatientProfile() {
                   { label: 'Height', key: 'height_inches', fmt: (v) => fmtHt(v) },
                   { label: 'Weight', key: 'weight_lbs', fmt: (v) => v ? `${v} lb` : null },
                   { label: 'BMI', key: 'bmi', fmt: (v) => v ? `${v}` : null },
-                  { label: 'BP', key: 'bp_systolic', fmt: (v, row) => (row.bp_systolic && row.bp_diastolic) ? `${row.bp_systolic}/${row.bp_diastolic}` : null },
+                  { label: 'BP', key: 'bp_systolic', fmt: (v, row) => (row.bp_systolic && row.bp_diastolic) ? `${row.bp_systolic}/${row.bp_diastolic}${row.bp_arm === 'left' ? ' L' : row.bp_arm === 'right' ? ' R' : ''}` : null },
                   { label: 'Temperature', key: 'temperature', fmt: (v) => v ? `${v}°F` : null },
                   { label: 'Pulse', key: 'pulse', fmt: (v) => v ? `${v}` : null },
                   { label: 'Respiratory Rate', key: 'respiratory_rate', fmt: (v) => v ? `${v}` : null },
@@ -5361,9 +5391,9 @@ export default function PatientProfile() {
                           onClick={() => {
                             // Pre-fill height from last vitals if available
                             const lastHeight = vitalsHistory.find(v => v.height_inches)?.height_inches || '';
-                            const now = new Date();
-                            const pacificDate = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-                            setVitalsModalData({ recorded_at: pacificDate, weight_lbs: '', height_inches: lastHeight, bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
+                            // Current Pacific datetime as "YYYY-MM-DDTHH:MM" for datetime-local input
+                            const pacificNow = new Date().toLocaleString('sv-SE', { timeZone: 'America/Los_Angeles' }).replace(' ', 'T').slice(0, 16);
+                            setVitalsModalData({ recorded_at: pacificNow, weight_lbs: '', height_inches: lastHeight, bp_systolic: '', bp_diastolic: '', bp_arm: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
                             setEditingVitalsId(null);
                             setShowVitalsModal(true);
                           }}
@@ -5389,13 +5419,16 @@ export default function PatientProfile() {
                               const isLatest = i === displayVitals.length - 1;
                               return (
                                 <th key={v.id || i} title="Click to edit" onClick={() => {
-                                  const recDate = v.recorded_at ? new Date(v.recorded_at).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }) : '';
+                                  const recDateTime = v.recorded_at
+                                    ? new Date(v.recorded_at).toLocaleString('sv-SE', { timeZone: 'America/Los_Angeles' }).replace(' ', 'T').slice(0, 16)
+                                    : '';
                                   setVitalsModalData({
-                                    recorded_at: recDate,
+                                    recorded_at: recDateTime,
                                     weight_lbs: v.weight_lbs ?? '',
                                     height_inches: v.height_inches ?? '',
                                     bp_systolic: v.bp_systolic ?? '',
                                     bp_diastolic: v.bp_diastolic ?? '',
+                                    bp_arm: v.bp_arm ?? '',
                                     temperature: v.temperature ?? '',
                                     pulse: v.pulse ?? '',
                                     respiratory_rate: v.respiratory_rate ?? '',
@@ -6928,6 +6961,13 @@ export default function PatientProfile() {
                                               <span style={{ marginRight: 6 }}>⚠️</span>
                                               Block {blockNum} · {injRange} — <span style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Unpaid</span>
                                               <span style={{ fontWeight: 500, color: '#991b1b', marginLeft: 6 }}>(no purchase linked)</span>
+                                              <button
+                                                onClick={(e) => { e.stopPropagation(); setLinkPurchaseModal({ protocol, blockNum }); }}
+                                                style={{ marginLeft: 10, padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#fff', color: '#b91c1c', border: '1px solid #fca5a5', borderRadius: 4, cursor: 'pointer' }}
+                                                title="Link a purchase to this block"
+                                              >
+                                                + Link Purchase
+                                              </button>
                                             </td>
                                           </tr>
                                         );
@@ -8695,7 +8735,7 @@ export default function PatientProfile() {
                   { label: 'Height', key: 'height_inches', fmt: (v) => fmtHt(v) },
                   { label: 'Weight', key: 'weight_lbs', fmt: (v) => v ? `${v} lb` : null },
                   { label: 'BMI', key: 'bmi', fmt: (v) => v ? `${v}` : null },
-                  { label: 'BP', key: 'bp_systolic', fmt: (v, row) => (row.bp_systolic && row.bp_diastolic) ? `${row.bp_systolic}/${row.bp_diastolic}` : null },
+                  { label: 'BP', key: 'bp_systolic', fmt: (v, row) => (row.bp_systolic && row.bp_diastolic) ? `${row.bp_systolic}/${row.bp_diastolic}${row.bp_arm === 'left' ? ' L' : row.bp_arm === 'right' ? ' R' : ''}` : null },
                   { label: 'Temperature', key: 'temperature', fmt: (v) => v ? `${v}°F` : null },
                   { label: 'Pulse', key: 'pulse', fmt: (v) => v ? `${v}` : null },
                   { label: 'Resp. Rate', key: 'respiratory_rate', fmt: (v) => v ? `${v}` : null },
@@ -11600,6 +11640,116 @@ export default function PatientProfile() {
             </div>
           </div>
         )}
+
+        {/* Link Purchase to Block Modal */}
+        {linkPurchaseModal && (() => {
+          const targetProtocol = linkPurchaseModal.protocol;
+          const protoCategory = targetProtocol?.category;
+          const candidatePurchases = (allPurchases || [])
+            .filter(p => !p.protocol_id && p.purchase_date)
+            .filter(p => !protoCategory || !p.category || p.category === protoCategory)
+            .sort((a, b) => new Date(a.purchase_date) - new Date(b.purchase_date));
+          const otherUnlinked = (allPurchases || [])
+            .filter(p => !p.protocol_id && p.purchase_date)
+            .filter(p => protoCategory && p.category && p.category !== protoCategory)
+            .sort((a, b) => new Date(a.purchase_date) - new Date(b.purchase_date));
+
+          return (
+            <div className="modal-overlay" {...overlayClickProps(() => setLinkPurchaseModal(null))}>
+              <div className="modal" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h3>Link Purchase — Block {linkPurchaseModal.blockNum}</h3>
+                  <button onClick={() => setLinkPurchaseModal(null)} className="close-btn">×</button>
+                </div>
+                <div className="modal-body">
+                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 12, lineHeight: 1.5 }}>
+                    Purchases are assigned to blocks in date order — the earliest unlinked purchase fills the first unpaid block. Pick any unlinked purchase below to link it to this protocol.
+                  </div>
+                  {candidatePurchases.length === 0 && otherUnlinked.length === 0 ? (
+                    <div style={{ padding: 20, textAlign: 'center', color: '#64748b', fontSize: 13, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                      No unlinked purchases available for this patient.
+                    </div>
+                  ) : (
+                    <>
+                      {candidatePurchases.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {candidatePurchases.map(p => {
+                            const pDate = new Date(p.purchase_date + 'T12:00:00');
+                            const dateLabel = pDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' });
+                            const amount = p.amount_paid != null ? `$${parseFloat(p.amount_paid).toFixed(0)}` : '—';
+                            const name = p.product_name || p.service_name || p.item_name || 'Purchase';
+                            const isLinking = linkingPurchaseId === p.id;
+                            return (
+                              <button
+                                key={p.id}
+                                onClick={() => handleLinkPurchaseToBlock(p.id)}
+                                disabled={!!linkingPurchaseId}
+                                style={{
+                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                  padding: '10px 12px',
+                                  background: isLinking ? '#eff6ff' : '#fff',
+                                  border: '1px solid #cbd5e1', borderRadius: 4,
+                                  textAlign: 'left', cursor: linkingPurchaseId ? 'wait' : 'pointer', fontSize: 13,
+                                  width: '100%',
+                                }}
+                              >
+                                <div>
+                                  <div style={{ fontWeight: 600, color: '#0f172a' }}>{name}</div>
+                                  <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>{dateLabel} · {amount}</div>
+                                </div>
+                                <div style={{ color: '#2563eb', fontSize: 12, fontWeight: 600 }}>{isLinking ? 'Linking…' : 'Link →'}</div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {otherUnlinked.length > 0 && (
+                        <>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '14px 0 6px' }}>
+                            Other unlinked purchases (different category)
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {otherUnlinked.map(p => {
+                              const pDate = new Date(p.purchase_date + 'T12:00:00');
+                              const dateLabel = pDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' });
+                              const amount = p.amount_paid != null ? `$${parseFloat(p.amount_paid).toFixed(0)}` : '—';
+                              const name = p.product_name || p.service_name || p.item_name || 'Purchase';
+                              const isLinking = linkingPurchaseId === p.id;
+                              return (
+                                <button
+                                  key={p.id}
+                                  onClick={() => handleLinkPurchaseToBlock(p.id)}
+                                  disabled={!!linkingPurchaseId}
+                                  style={{
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    padding: '10px 12px',
+                                    background: isLinking ? '#eff6ff' : '#f8fafc',
+                                    border: '1px dashed #cbd5e1', borderRadius: 4,
+                                    textAlign: 'left', cursor: linkingPurchaseId ? 'wait' : 'pointer', fontSize: 13,
+                                    width: '100%',
+                                  }}
+                                >
+                                  <div>
+                                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{name} <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: 11 }}>({p.category})</span></div>
+                                    <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>{dateLabel} · {amount}</div>
+                                  </div>
+                                  <div style={{ color: '#2563eb', fontSize: 12, fontWeight: 600 }}>{isLinking ? 'Linking…' : 'Link →'}</div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+                <div className="modal-footer">
+                  <button onClick={() => setLinkPurchaseModal(null)} className="btn-secondary">Close</button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Edit Protocol Modal — clean version using same fields as service log + protocol detail */}
         {showEditModal && selectedProtocol && (
@@ -15911,13 +16061,23 @@ export default function PatientProfile() {
             </div>
             <div style={{ padding: '20px 24px' }}>
               <div style={{ marginBottom: '12px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Date</label>
-                <input
-                  type="date"
-                  value={vitalsModalData.recorded_at}
-                  onChange={e => setVitalsModalData(d => ({ ...d, recorded_at: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: '14px', boxSizing: 'border-box' }}
-                />
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Date &amp; Time (Pacific)</label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="datetime-local"
+                    value={vitalsModalData.recorded_at}
+                    onChange={e => setVitalsModalData(d => ({ ...d, recorded_at: e.target.value }))}
+                    style={{ flex: 1, padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const pacificNow = new Date().toLocaleString('sv-SE', { timeZone: 'America/Los_Angeles' }).replace(' ', 'T').slice(0, 16);
+                      setVitalsModalData(d => ({ ...d, recorded_at: pacificNow }));
+                    }}
+                    style={{ padding: '8px 12px', border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer', fontSize: '12px', borderRadius: 0, whiteSpace: 'nowrap' }}
+                  >Now</button>
+                </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
@@ -15961,6 +16121,36 @@ export default function PatientProfile() {
                     placeholder="80"
                     style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: '14px', boxSizing: 'border-box' }}
                   />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>BP Arm</label>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    {[
+                      { val: '', label: '—' },
+                      { val: 'left', label: 'Left' },
+                      { val: 'right', label: 'Right' },
+                    ].map(opt => {
+                      const active = (vitalsModalData.bp_arm || '') === opt.val;
+                      return (
+                        <button
+                          key={opt.val || 'none'}
+                          type="button"
+                          onClick={() => setVitalsModalData(d => ({ ...d, bp_arm: opt.val }))}
+                          style={{
+                            flex: 1,
+                            padding: '8px 10px',
+                            border: active ? '1px solid #0a0a0a' : '1px solid #e2e8f0',
+                            background: active ? '#0a0a0a' : '#fff',
+                            color: active ? '#fff' : '#475569',
+                            fontSize: '13px',
+                            fontWeight: active ? 600 : 500,
+                            cursor: 'pointer',
+                            borderRadius: 0,
+                          }}
+                        >{opt.label}</button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Temperature</label>

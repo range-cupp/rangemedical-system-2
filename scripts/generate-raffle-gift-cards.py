@@ -74,7 +74,7 @@ foot_bold_s = st('FootB', fontName='Helvetica-Bold',    fontSize=7,   textColor=
 
 
 def generate_code(prefix: str) -> str:
-    """Short, unambiguous alphanumeric code: e.g. HBOT-RAFFLE-7K3Q."""
+    """Short, unambiguous alphanumeric code: e.g. HYPERBARIC-RAFFLE-7K3Q."""
     alphabet = string.ascii_uppercase + string.digits
     # Drop ambiguous chars (0/O, 1/I) for physical-card readability
     alphabet = alphabet.translate(str.maketrans('', '', '0O1I'))
@@ -201,7 +201,7 @@ def build_card(output_path: str, title_line1: str, title_line2: str,
     info_cell = [
         Paragraph(
             "<b>Present this card</b> at Range Medical to redeem. "
-            "Call or text (949) 997-3988 to schedule. "
+            "Call or text (949) 539-5023 to schedule. "
             "Non-transferable &#8226; No cash value &#8226; Expires 12 months from issue.",
             foot_s,
         ),
@@ -236,20 +236,20 @@ hbot_code = build_card(
     title_line1="Hyperbaric Oxygen",
     title_line2="Chamber Therapy",
     prize_slug="hbot",
-    code_prefix="HBOT",
+    code_prefix="HYPERBARIC",
 )
 rlt_code = build_card(
     output_path=rlt_path,
     title_line1="Red Light",
     title_line2="Therapy",
     prize_slug="red-light",
-    code_prefix="RLT",
+    code_prefix="REDLIGHT",
 )
 
-print(f"HBOT card: {hbot_path}")
+print(f"Hyperbaric Oxygen card: {hbot_path}")
 print(f"  Code: {hbot_code}")
 print(f"  URL:  {BASE_URL}/raffle/hbot?c={hbot_code}")
 print()
-print(f"Red Light card: {rlt_path}")
+print(f"Red Light Therapy card: {rlt_path}")
 print(f"  Code: {rlt_code}")
 print(f"  URL:  {BASE_URL}/raffle/red-light?c={rlt_code}")

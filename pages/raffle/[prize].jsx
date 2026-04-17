@@ -10,7 +10,7 @@ import { useRouter } from 'next/router';
 const PRIZES = {
   hbot: {
     label: 'Hyperbaric Oxygen Therapy',
-    short: 'HBOT',
+    short: 'Hyperbaric Oxygen Therapy',
     tagline: 'Pressurized oxygen. Real recovery.',
     serviceHref: '/hbot',
     benefits: [
@@ -22,7 +22,7 @@ const PRIZES = {
   },
   'red-light': {
     label: 'Red Light Therapy',
-    short: 'RLT',
+    short: 'Red Light Therapy',
     tagline: 'Full-body LED. 20 minutes to reset.',
     serviceHref: '/red-light-therapy',
     benefits: [
@@ -48,7 +48,7 @@ export default function RafflePrize({ prize }) {
             <div style={styles.rule} />
             <p style={styles.lead}>
               This link doesn&apos;t match an active Range Medical raffle prize.
-              If you believe this is an error, call or text (949) 997-3988.
+              If you believe this is an error, call or text (949) 539-5023.
             </p>
             <div style={styles.ctaRow}>
               <Link href="/" style={styles.primaryBtn}>Return Home</Link>
@@ -106,7 +106,7 @@ export default function RafflePrize({ prize }) {
                   <div style={styles.stepNum}>01</div>
                   <h3 style={styles.h3}>Call or text us</h3>
                   <p style={styles.body}>
-                    Reach the clinic at <b>(949) 997-3988</b> to schedule your first session.
+                    Reach the clinic at <b>(949) 539-5023</b> to schedule your first session.
                     Mention your raffle code.
                   </p>
                 </div>
@@ -149,8 +149,8 @@ export default function RafflePrize({ prize }) {
               </div>
 
               <div style={styles.ctaRow}>
-                <a href="tel:+19499973988" style={styles.primaryBtn}>Call (949) 997-3988</a>
-                <a href="sms:+19499973988" style={styles.secondaryBtn}>Text to Schedule</a>
+                <a href="tel:+19495395023" style={styles.primaryBtn}>Call (949) 539-5023</a>
+                <a href="sms:+19495395023" style={styles.secondaryBtn}>Text to Schedule</a>
                 <Link href={prize.serviceHref} style={styles.secondaryBtn}>Learn More</Link>
               </div>
             </div>

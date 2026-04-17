@@ -10,6 +10,8 @@ import Head from 'next/head';
 import Link from 'next/link';
 import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
+import { useVoice } from '../../components/VoiceContext';
+import { CALL_STATE } from '../../hooks/useVoiceCall';
 import EnergyPackBalance from '../../components/EnergyPackBalance';
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
@@ -338,6 +340,34 @@ export default function PatientProfile() {
   const router = useRouter();
   const { id } = router.query || {};
   const { session, employee } = useAuth();
+  const voice = useVoice(); // browser softphone (null if not in AdminLayout)
+
+  // Click-to-call: dial via the browser softphone if the user has it enabled
+  // and the device is registered. Otherwise fall back to tel: (opens whatever
+  // handler is registered for tel: links — desk phone app, cell, etc.).
+  const handleCallPatient = () => {
+    const raw = (patient?.phone || '').replace(/[\s\-().]/g, '');
+    if (!raw) return;
+    const e164 = raw.startsWith('+')
+      ? raw
+      : raw.length === 10
+        ? '+1' + raw
+        : raw.length === 11 && raw.startsWith('1')
+          ? '+' + raw
+          : '+' + raw;
+
+    const canUseBrowser = voice && (
+      voice.callState === CALL_STATE.READY ||
+      voice.callState === CALL_STATE.ENDED
+    );
+
+    if (canUseBrowser) {
+      voice.call({ to: e164, name: getPatientDisplayName() });
+    } else {
+      // Fallback — tel: link
+      window.location.href = `tel:${patient.phone}`;
+    }
+  };
 
   // Staff names & permissions imported from lib/staff-config.js (single source of truth)
   const currentUserEmail = session?.user?.email?.toLowerCase() || '';
@@ -4134,7 +4164,7 @@ export default function PatientProfile() {
           <div className="header-toolbar">
             <div className="toolbar-group">
               {patient.phone && <button onClick={() => setSmsModalOpen(true)} className="toolbar-btn" title="Send text message">💬 <span className="toolbar-label">SMS</span></button>}
-              {patient.phone && <a href={`tel:${patient.phone}`} className="toolbar-btn" title="Call patient">📞 <span className="toolbar-label">Call</span></a>}
+              {patient.phone && <button onClick={handleCallPatient} className="toolbar-btn" title={voice?.callState === CALL_STATE.READY ? 'Call patient (browser phone)' : 'Call patient'} disabled={voice?.isActive}>📞 <span className="toolbar-label">Call</span></button>}
               {patient.email && <button onClick={() => setEmailModalOpen(true)} className="toolbar-btn" title="Send email">✉️ <span className="toolbar-label">Email</span></button>}
             </div>
             <div className="toolbar-divider" />
@@ -4196,7 +4226,7 @@ export default function PatientProfile() {
           <div className="header-toolbar">
             <div className="toolbar-group">
               {patient.phone && <button onClick={() => setSmsModalOpen(true)} className="toolbar-btn" title="Send text message">💬 <span className="toolbar-label">SMS</span></button>}
-              {patient.phone && <a href={`tel:${patient.phone}`} className="toolbar-btn" title="Call patient">📞 <span className="toolbar-label">Call</span></a>}
+              {patient.phone && <button onClick={handleCallPatient} className="toolbar-btn" title={voice?.callState === CALL_STATE.READY ? 'Call patient (browser phone)' : 'Call patient'} disabled={voice?.isActive}>📞 <span className="toolbar-label">Call</span></button>}
               {patient.email && <button onClick={() => setEmailModalOpen(true)} className="toolbar-btn" title="Send email">✉️ <span className="toolbar-label">Email</span></button>}
             </div>
             <div className="toolbar-divider" />

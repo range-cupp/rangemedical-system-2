@@ -183,6 +183,8 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   // IV picker cascade: 'range' | 'specialty'
   const [ivMenuType, setIvMenuType] = useState('');
   const [ivSpecialtyType, setIvSpecialtyType] = useState(''); // e.g. 'NAD+', 'Vitamin C'
+  // HRT membership monthly Range IV perk — when true, selected Range IV is comped
+  const [usingHRTPerk, setUsingHRTPerk] = useState(false);
   // HBOT / RLT pack tier (1, 5, 10) — drives both itemQty and per-session price
   const [sessionPackQty, setSessionPackQty] = useState(null);
 
@@ -255,6 +257,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setWlAddons([]);
     setIvMenuType('');
     setIvSpecialtyType('');
+    setUsingHRTPerk(false);
     setSessionPackQty(null);
     setSelectedProtocol(null);
     setCoverageType(null);
@@ -298,6 +301,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setWlAddons([]);
     setIvMenuType('');
     setIvSpecialtyType('');
+    setUsingHRTPerk(false);
     setSessionPackQty(null);
     setSelectedProtocol(null);
     setCoverageType(null);
@@ -341,6 +345,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       wlAddons: [...wlAddons],
       ivMenuType,
       ivSpecialtyType,
+      usingHRTPerk,
       sessionPackQty,
     };
     if (editingItemId) {
@@ -387,12 +392,41 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setShippingAmount(item.shippingAmount || '');
     setIvMenuType(item.ivMenuType || '');
     setIvSpecialtyType(item.ivSpecialtyType || '');
+    setUsingHRTPerk(!!item.usingHRTPerk);
     setSessionPackQty(item.sessionPackQty || null);
     setStep(3);
   }
 
   function removeFromCart(itemId) {
     setCartItems(prev => prev.filter(i => i.id !== itemId));
+  }
+
+  // HRT Membership monthly Range IV perk — toggle on/off for the current line item.
+  // Price override to $0 is handled in the selectedService useEffect; here we wire
+  // coverageType + protocol link so the service_log is tagged correctly at submit.
+  function applyHRTPerk() {
+    const perk = coverage?.hrt_membership_iv;
+    if (!perk?.available) return;
+    setUsingHRTPerk(true);
+    setIvMenuType('range');
+    setCoverageOverride(false);
+    setCoverageType('subscription');
+    setSelectedProtocol({
+      id: perk.hrt_protocol_id,
+      program_name: perk.hrt_program_name || 'HRT Membership',
+      program_type: 'hrt',
+      medication: 'Range IV',
+    });
+    setPaymentMethod('');
+    setSelectedCardId('');
+  }
+
+  function cancelHRTPerk() {
+    setUsingHRTPerk(false);
+    setSelectedProtocol(null);
+    setSelectedService(null);
+    setMedication('');
+    setCoverageType('paid');
   }
 
   // Called when a new card is saved via the inline form
@@ -448,12 +482,13 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       if (ivMenuType === 'range' && medication) {
         const opt = RANGE_IV_OPTIONS.find(o => o.value === medication);
         if (opt) {
+          const perk = usingHRTPerk;
           setSelectedService({
-            id: `synthetic-iv-range-${opt.value}`,
-            name: `${opt.label} IV`,
+            id: `synthetic-iv-range-${opt.value}${perk ? '-hrt-perk' : ''}`,
+            name: perk ? `${opt.label} IV (HRT Membership Perk)` : `${opt.label} IV`,
             category: 'iv_therapy',
-            price_cents: opt.price_cents,
-            price_display: `$${(opt.price_cents / 100).toFixed(2)}`,
+            price_cents: perk ? 0 : opt.price_cents,
+            price_display: perk ? 'Included' : `$${(opt.price_cents / 100).toFixed(2)}`,
             recurring: false,
             interval: null,
           });
@@ -509,7 +544,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
         });
       }
     }
-  }, [selectedCategory?.id, ivMenuType, ivSpecialtyType, medication, dosage, sessionPackQty]);
+  }, [selectedCategory?.id, ivMenuType, ivSpecialtyType, medication, dosage, sessionPackQty, usingHRTPerk]);
 
   // Fetch coverage when patient + category are selected
   async function fetchCoverage(patientId, category) {
@@ -851,6 +886,10 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
 
         const itemCovType = item.paymentMethod === 'comp' ? 'comp' : item.coverageType;
 
+        // Tag HRT membership Range IV perk consistently — same note string used by
+        // /api/protocols/[id]/redeem-range-iv.js so both flows are discoverable in logs.
+        const HRT_PERK_NOTE = 'HRT Membership Perk — complimentary monthly Range IV';
+
         // Log the dispensing
         const body = {
           patient_id: selectedPatient.id,
@@ -864,16 +903,20 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
           supply_type: item.supplyType || null,
           duration: item.duration ? parseInt(item.duration) : null,
           weight: item.weight || null,
-          notes: item.notes || null,
+          notes: item.usingHRTPerk
+            ? (item.notes ? `${item.notes} | ${HRT_PERK_NOTE}` : HRT_PERK_NOTE)
+            : (item.notes || null),
           protocol_id: item.selectedProtocol?.id || null,
           coverage_type: itemCovType,
-          coverage_source: itemCovType === 'subscription'
-            ? item.coverage?.coverage_source
-            : itemCovType === 'protocol'
-              ? (item.selectedProtocol?.program_name || item.coverage?.coverage_source)
-              : itemCovType === 'comp'
-                ? 'Complimentary'
-                : 'Paid at checkout',
+          coverage_source: item.usingHRTPerk
+            ? 'HRT Membership — Monthly Range IV Perk'
+            : itemCovType === 'subscription'
+              ? item.coverage?.coverage_source
+              : itemCovType === 'protocol'
+                ? (item.selectedProtocol?.program_name || item.coverage?.coverage_source)
+                : itemCovType === 'comp'
+                  ? 'Complimentary'
+                  : 'Paid at checkout',
           administered_by: item.administeredBy || null,
           verified_by: item.verifiedBy || null,
           lot_number: item.lotNumber || null,
@@ -1177,10 +1220,37 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
               ) : coverage && (
                 <div style={{
                   ...styles.coverageCard,
-                  borderColor: (coverage.covered && !coverageOverride) ? '#16a34a' : '#e5e5e5',
-                  background: (coverage.covered && !coverageOverride) ? '#f0fdf4' : '#fff',
+                  borderColor: (usingHRTPerk || (coverage.covered && !coverageOverride)) ? '#16a34a' : '#e5e5e5',
+                  background: (usingHRTPerk || (coverage.covered && !coverageOverride)) ? '#f0fdf4' : '#fff',
                 }}>
-                  {coverage.covered && !coverageOverride ? (
+                  {usingHRTPerk ? (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Check size={16} color="#16a34a" />
+                          <span style={{ fontWeight: 600, color: '#16a34a' }}>HRT Membership — Monthly Range IV Perk</span>
+                        </div>
+                        <button
+                          onClick={cancelHRTPerk}
+                          style={{
+                            background: '#fff',
+                            border: '1px solid #d1d5db',
+                            padding: '4px 12px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            color: '#666',
+                            cursor: 'pointer',
+                          }}
+                          title="Don't use the included IV — charge patient instead"
+                        >
+                          Remove Perk
+                        </button>
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#333', marginTop: '4px' }}>
+                        Complimentary Range IV — $0.00 balance
+                      </div>
+                    </>
+                  ) : coverage.covered && !coverageOverride ? (
                     <>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1580,6 +1650,48 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
               {/* IV Therapy — cascading picker (menu type → variant/dose) */}
               {selectedCategory?.id === 'iv_therapy' && (
                 <>
+                  {/* HRT Membership perk banner — only shown when patient has an unused
+                      monthly Range IV available and they haven't applied it yet */}
+                  {coverage?.hrt_membership_iv?.available && !usingHRTPerk && (
+                    <div style={{
+                      padding: '14px 16px',
+                      marginBottom: '16px',
+                      background: '#f0fdf4',
+                      border: '1px solid #86efac',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                    }}>
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: 600, color: '#14532d', marginBottom: '2px' }}>
+                          HRT Membership — Monthly Range IV Available
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#166534' }}>
+                          {selectedPatient?.name} has 1 complimentary Range IV available this billing cycle.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={applyHRTPerk}
+                        style={{
+                          background: '#16a34a',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '8px 16px',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        Use Membership IV
+                      </button>
+                    </div>
+                  )}
+
                   <div style={styles.fieldGroup}>
                     <label style={styles.label}>IV Menu</label>
                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -1591,6 +1703,10 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                           key={opt.value}
                           type="button"
                           onClick={() => {
+                            // Switching to specialty cancels the HRT perk (perk is Range-only)
+                            if (opt.value !== 'range' && usingHRTPerk) {
+                              cancelHRTPerk();
+                            }
                             setIvMenuType(opt.value);
                             setIvSpecialtyType('');
                             setMedication('');
@@ -2281,7 +2397,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                           )}
                           <div style={{ fontSize: '11px', color: itemIsCovered ? '#16a34a' : '#888' }}>
                             {itemIsCovered
-                              ? (item.coverageType === 'subscription' ? 'Membership' : item.paymentMethod === 'comp' ? 'Comp' : 'Protocol')
+                              ? (item.usingHRTPerk ? 'HRT Membership IV' : item.coverageType === 'subscription' ? 'Membership' : item.paymentMethod === 'comp' ? 'Comp' : 'Protocol')
                               : item.paymentMethod === 'cash' ? 'Cash' : item.paymentMethod === 'saved_card' ? 'Card' : ''
                             }
                           </div>

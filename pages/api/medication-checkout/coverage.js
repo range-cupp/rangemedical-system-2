@@ -302,6 +302,42 @@ export default async function handler(req, res) {
       }
     }
 
+    // HRT Membership monthly Range IV perk — available only for iv_therapy category.
+    // Active HRT protocol entitles the patient to one complimentary Range IV per 30-day billing cycle.
+    // Matches the guard in /api/protocols/[id]/redeem-range-iv.js so we can't double-dip.
+    let hrt_membership_iv = null;
+    if (category === 'iv_therapy') {
+      const hrtProtocol = validProtocols.find(
+        p => (p.program_type || '').toLowerCase() === 'hrt' && p.status === 'active'
+      );
+      if (hrtProtocol) {
+        const cycleStart = hrtProtocol.last_payment_date || hrtProtocol.start_date;
+        if (cycleStart) {
+          const cycleStartDate = new Date(cycleStart + 'T00:00:00');
+          const cycleEndDate = new Date(cycleStartDate);
+          cycleEndDate.setDate(cycleEndDate.getDate() + 30);
+          const cycleEndStr = cycleEndDate.toISOString().split('T')[0];
+
+          const { data: existingIV } = await supabase
+            .from('service_logs')
+            .select('id')
+            .eq('patient_id', patient_id)
+            .in('category', ['iv', 'iv_therapy'])
+            .gte('entry_date', cycleStart)
+            .lte('entry_date', cycleEndStr)
+            .limit(1);
+
+          hrt_membership_iv = {
+            available: !existingIV || existingIV.length === 0,
+            hrt_protocol_id: hrtProtocol.id,
+            hrt_program_name: hrtProtocol.program_name || 'HRT Membership',
+            cycle_start: cycleStart,
+            cycle_end: cycleEndStr,
+          };
+        }
+      }
+    }
+
     // Fetch patient's saved cards for payment — always return so override works
     let saved_cards = [];
     {
@@ -388,6 +424,7 @@ export default async function handler(req, res) {
       saved_cards,
       peptide_cycle,
       patient_gender,
+      hrt_membership_iv,
     });
   } catch (err) {
     console.error('[medication-checkout/coverage] Error:', err);

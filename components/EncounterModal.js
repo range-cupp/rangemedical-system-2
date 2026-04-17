@@ -6,7 +6,7 @@ import { NOTE_TYPES, ENCOUNTER_TEMPLATES, getTemplateForService, NURSE_TEMPLATES
 import { ENCOUNTER_FORMS } from '../lib/encounter-form-config';
 import InteractiveEncounterForm from './InteractiveEncounterForm';
 import { overlayClickProps } from './AdminLayout';
-import { NOTE_AUTHORS, isNoteAuthor } from '../lib/staff-config';
+import { NOTE_AUTHORS, isNoteAuthor, canUserAuthorNotes } from '../lib/staff-config';
 
 // Render note body — supports rich HTML (bold/italic/underline/highlight) or legacy **markdown**
 function renderFormattedText(text) {
@@ -79,7 +79,7 @@ function htmlToMd(html) {
 
 export default function EncounterModal({ appointment, currentUser, onClose, onRefresh }) {
   // Check if current user can author notes
-  const canAuthorNotes = NOTE_AUTHORS.some(email => currentUser?.toLowerCase()?.includes(email));
+  const canAuthorNotes = canUserAuthorNotes(currentUser);
 
   // Notes state
   const [encounterNotes, setEncounterNotes] = useState([]);

@@ -10,7 +10,7 @@ import { useAuth } from '../../components/AuthProvider';
 import { NOTE_TYPES, ENCOUNTER_TEMPLATES, getTemplateForService, getTemplatesForCategory } from '../../lib/encounter-templates';
 import { ENCOUNTER_FORMS } from '../../lib/encounter-form-config';
 import InteractiveEncounterForm from '../../components/InteractiveEncounterForm';
-import { isNoteAuthor } from '../../lib/staff-config';
+import { isNoteAuthor, canUserAuthorNotes } from '../../lib/staff-config';
 
 // ── Markdown helpers (shared with EncounterModal) ─────────────────────────────
 function mdToHtml(text) {
@@ -77,8 +77,7 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
   const [addendumSaving, setAddendumSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
-  const canAuthorNotes = ['burgess@range-medical.com', 'lily@range-medical.com', 'evan@range-medical.com', 'chris@range-medical.com']
-    .some(email => currentUser?.toLowerCase()?.includes(email));
+  const canAuthorNotes = canUserAuthorNotes(currentUser);
 
   const getNoteMarkdown = () => htmlToMd(noteRef.current?.innerHTML || '');
 

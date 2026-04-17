@@ -16,6 +16,7 @@ import {
   WEIGHT_LOSS_DURATIONS,
   INJECTION_MEDICATIONS,
   NAD_INJECTION_DOSAGES,
+  NAD_INJECTION_VIAL,
   HRT_MEDICATIONS,
   HRT_SUPPLY_TYPES,
   HRT_SECONDARY_MEDICATIONS,
@@ -475,6 +476,20 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
           return;
         }
       }
+    }
+
+    // NAD+ Injection — whole vial is a flat $500 (individual doses still use pos_services)
+    if (cat === 'nad_injection' && medication === NAD_INJECTION_VIAL.value) {
+      setSelectedService({
+        id: `synthetic-nad-vial-1g`,
+        name: `NAD+ 1g Vial`,
+        category: 'nad_injection',
+        price_cents: NAD_INJECTION_VIAL.price_cents,
+        price_display: `$${(NAD_INJECTION_VIAL.price_cents / 100).toFixed(2)}`,
+        recurring: false,
+        interval: null,
+      });
+      return;
     }
 
     // HBOT / Red Light — pack tier sets both qty and per-session price
@@ -2543,7 +2558,14 @@ function renderMedicationPicker(categoryId, value, onChange) {
       return (
         <select value={value} onChange={e => onChange(e.target.value)} style={styles.select}>
           <option value="">Select NAD+ dosage...</option>
-          {NAD_INJECTION_DOSAGES.map(d => <option key={d} value={`NAD+ ${d}`}>NAD+ {d}</option>)}
+          <optgroup label="Individual Injection">
+            {NAD_INJECTION_DOSAGES.map(d => <option key={d} value={`NAD+ ${d}`}>NAD+ {d}</option>)}
+          </optgroup>
+          <optgroup label="Whole Vial">
+            <option value={NAD_INJECTION_VIAL.value}>
+              {`NAD+ ${NAD_INJECTION_VIAL.label} — $${(NAD_INJECTION_VIAL.price_cents / 100).toFixed(0)}`}
+            </option>
+          </optgroup>
         </select>
       );
     case 'injection':

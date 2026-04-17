@@ -3,7 +3,7 @@
 // AI Format button cleans up rough/dictated text before sending
 // Range Medical System
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Sparkles, FileText } from 'lucide-react';
 import { sharedStyles, overlayClickProps } from './AdminLayout';
 import TemplateMessages from './TemplateMessages';
@@ -23,6 +23,9 @@ export default function SMSComposeModal({
   const [showSnippets, setShowSnippets] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+  const [history, setHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const historyEndRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -32,8 +35,50 @@ export default function SMSComposeModal({
       setSent(false);
       setError('');
       setShowSnippets(false);
+      setHistory([]);
     }
   }, [isOpen, recipientPhone]);
+
+  useEffect(() => {
+    if (!isOpen || !patientId) return;
+    let cancelled = false;
+    setLoadingHistory(true);
+    const phoneParam = recipientPhone ? `&phone=${encodeURIComponent(recipientPhone)}` : '';
+    fetch(`/api/patients/${patientId}/comms?channel=sms&limit=20${phoneParam}`)
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled) return;
+        const msgs = (data.comms || [])
+          .slice()
+          .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        setHistory(msgs);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoadingHistory(false); });
+    return () => { cancelled = true; };
+  }, [isOpen, patientId, recipientPhone]);
+
+  useEffect(() => {
+    if (history.length > 0 && historyEndRef.current) {
+      historyEndRef.current.scrollTop = historyEndRef.current.scrollHeight;
+    }
+  }, [history]);
+
+  const formatMessageTime = (iso) => {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString('en-US', {
+        timeZone: 'America/Los_Angeles',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return '';
+    }
+  };
 
   const handleSnippetSelect = (templateText) => {
     const fullName = recipientName || patientName || '';
@@ -148,6 +193,45 @@ export default function SMSComposeModal({
                 <div style={modalStyles.error}>{error}</div>
               )}
 
+              {patientId && (
+                <div style={modalStyles.historyWrap}>
+                  <div style={modalStyles.historyLabel}>Recent Conversation</div>
+                  <div ref={historyEndRef} style={modalStyles.historyScroll}>
+                    {loadingHistory ? (
+                      <div style={modalStyles.historyEmpty}>Loading…</div>
+                    ) : history.length === 0 ? (
+                      <div style={modalStyles.historyEmpty}>No previous messages with this patient.</div>
+                    ) : (
+                      history.map(msg => {
+                        const inbound = msg.direction === 'inbound';
+                        return (
+                          <div
+                            key={msg.id}
+                            style={{
+                              ...modalStyles.bubbleRow,
+                              justifyContent: inbound ? 'flex-start' : 'flex-end',
+                            }}
+                          >
+                            <div style={{
+                              ...modalStyles.bubble,
+                              background: inbound ? '#f3f4f6' : '#dbeafe',
+                              color: inbound ? '#111827' : '#1e3a8a',
+                              borderBottomLeftRadius: inbound ? '2px' : '10px',
+                              borderBottomRightRadius: inbound ? '10px' : '2px',
+                            }}>
+                              <div style={modalStyles.bubbleText}>{msg.message || '(no text)'}</div>
+                              <div style={modalStyles.bubbleMeta}>
+                                {inbound ? 'Patient' : 'Sent'} &middot; {formatMessageTime(msg.created_at)}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div style={modalStyles.fields}>
                 <div>
                   <label style={sharedStyles.label}>To</label>
@@ -260,6 +344,57 @@ const modalStyles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '16px',
+  },
+  historyWrap: {
+    marginBottom: '16px',
+    border: '1px solid #e5e7eb',
+    background: '#fafafa',
+  },
+  historyLabel: {
+    fontSize: '11px',
+    fontWeight: 700,
+    color: '#6b7280',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase',
+    padding: '8px 12px',
+    borderBottom: '1px solid #e5e7eb',
+    background: '#f3f4f6',
+  },
+  historyScroll: {
+    maxHeight: '220px',
+    overflowY: 'auto',
+    padding: '10px 12px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  historyEmpty: {
+    fontSize: '12px',
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    padding: '12px 0',
+  },
+  bubbleRow: {
+    display: 'flex',
+    width: '100%',
+  },
+  bubble: {
+    maxWidth: '78%',
+    padding: '8px 12px',
+    borderRadius: '10px',
+    fontSize: '13px',
+    lineHeight: 1.4,
+  },
+  bubbleText: {
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+  },
+  bubbleMeta: {
+    fontSize: '10px',
+    color: '#6b7280',
+    marginTop: '4px',
+    fontWeight: 500,
   },
   textarea: {
     width: '100%',

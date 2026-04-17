@@ -7001,9 +7001,16 @@ export default function PatientProfile() {
                                         });
                                       }
 
-                                      // Check if all injections were dispensed at once (bulk shipment)
-                                      // In-clinic protocols are never "all dispensed" — each injection is logged per visit
-                                      const bulkPickup = !isTakeHome ? null : allWlLogs.find(l => l.quantity && l.quantity >= totalSlots);
+                                      // Check if all injections were dispensed at once (bulk shipment).
+                                      // Only applies when there's EXACTLY ONE pickup in history and it covers every slot.
+                                      // Multi-pickup protocols (titration, refills) render each slot from its own
+                                      // generating pickup via the projected-slot path instead.
+                                      const bulkPickup = (() => {
+                                        if (!isTakeHome) return null;
+                                        if (wlDeliveryLogs.length !== 1) return null;
+                                        const only = wlDeliveryLogs[0];
+                                        return only.quantity && only.quantity >= totalSlots ? only : null;
+                                      })();
                                       const allDispensed = !!bulkPickup;
 
                                       // Build a unified, strictly chronological row list.

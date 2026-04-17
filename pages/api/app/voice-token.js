@@ -21,6 +21,10 @@ let configCache = null;
 let configCacheTime = 0;
 const CONFIG_TTL = 10 * 60 * 1000;
 
+// Defensive — trims whitespace/newlines that can sneak into Vercel env values
+// when pasted, which silently break JWT minting (AccessTokenInvalid 20101).
+const clean = (v) => (v == null ? '' : String(v).trim());
+
 async function getVoiceConfig() {
   // Prefer env vars
   if (
@@ -29,10 +33,10 @@ async function getVoiceConfig() {
     process.env.TWILIO_TWIML_APP_SID
   ) {
     return {
-      accountSid:   process.env.TWILIO_ACCOUNT_SID,
-      apiKeySid:    process.env.TWILIO_API_KEY_SID,
-      apiKeySecret: process.env.TWILIO_API_KEY_SECRET,
-      twimlAppSid:  process.env.TWILIO_TWIML_APP_SID,
+      accountSid:   clean(process.env.TWILIO_ACCOUNT_SID),
+      apiKeySid:    clean(process.env.TWILIO_API_KEY_SID),
+      apiKeySecret: clean(process.env.TWILIO_API_KEY_SECRET),
+      twimlAppSid:  clean(process.env.TWILIO_TWIML_APP_SID),
     };
   }
 
@@ -50,9 +54,9 @@ async function getVoiceConfig() {
     return null;
   }
 
-  const map = Object.fromEntries(rows.map(r => [r.key, r.value]));
+  const map = Object.fromEntries(rows.map(r => [r.key, clean(r.value)]));
   configCache = {
-    accountSid:   process.env.TWILIO_ACCOUNT_SID,
+    accountSid:   clean(process.env.TWILIO_ACCOUNT_SID),
     apiKeySid:    map.twilio_api_key_sid,
     apiKeySecret: map.twilio_api_key_secret,
     twimlAppSid:  map.twilio_twiml_app_sid,

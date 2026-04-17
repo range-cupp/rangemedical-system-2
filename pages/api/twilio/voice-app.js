@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   }
 
   const to   = req.body?.To   || req.body?.to   || '';
-  const from = req.body?.From || req.body?.from || process.env.TWILIO_PHONE_NUMBER;
+  const from = req.body?.From || req.body?.from || (process.env.TWILIO_PHONE_NUMBER || '').trim();
 
   // Validate — must look like a phone number
   if (!to || !/^\+?\d{7,15}$/.test(to.replace(/[\s\-().]/g, ''))) {
@@ -28,7 +28,11 @@ export default async function handler(req, res) {
     dialNumber = dialNumber.length === 10 ? '+1' + dialNumber : '+' + dialNumber;
   }
 
-  const callerIdNumber = process.env.TWILIO_PHONE_NUMBER || '+19499973988';
+  // Always use the clinic's main advertised number as outbound caller ID so
+  // patients see the right number in their call history. This matches the
+  // number patients call (and the one on lib/extensions.js). Both 3988 and
+  // 3986 are owned by the Twilio account; we standardize on 3988.
+  const callerIdNumber = '+19499973988';
 
   // Build absolute URL for call status callback
   const host = req.headers.host || 'rangemedical-system-2.vercel.app';

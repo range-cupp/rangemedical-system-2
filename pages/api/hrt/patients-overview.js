@@ -141,6 +141,59 @@ export default async function handler(req, res) {
       injectionCountMap[log.protocol_id] = (injectionCountMap[log.protocol_id] || 0) + 1;
     });
 
+    // ── Range IV perk: compute "used this cycle" vs "available" from service_logs ──
+    // Source of truth matches /api/protocols/[id]/range-iv-status and the front-desk
+    // checkout perk redemption. Cycle = last_payment_date (or start_date) + 30 days.
+    const rangeIVByPatient = {};
+    {
+      const cycles = dedupedProtocols
+        .filter(p => p.status === 'active')
+        .map(p => {
+          const cycleStart = p.last_payment_date || p.start_date;
+          if (!cycleStart) return null;
+          const cycleStartDate = new Date(cycleStart + 'T00:00:00');
+          const cycleEndDate = new Date(cycleStartDate);
+          cycleEndDate.setDate(cycleEndDate.getDate() + 30);
+          return {
+            patient_id: p.patient_id,
+            protocol_id: p.id,
+            cycleStart,
+            cycleEnd: cycleEndDate.toISOString().split('T')[0],
+          };
+        })
+        .filter(Boolean);
+
+      if (cycles.length > 0) {
+        const cyclePatientIds = [...new Set(cycles.map(c => c.patient_id))];
+        // Pull all IV logs for these patients in the broadest cycle window,
+        // then filter per-patient by that patient's exact cycle below.
+        const broadest = cycles.reduce((acc, c) => {
+          if (!acc.start || c.cycleStart < acc.start) acc.start = c.cycleStart;
+          if (!acc.end || c.cycleEnd > acc.end) acc.end = c.cycleEnd;
+          return acc;
+        }, { start: null, end: null });
+
+        const { data: ivLogs } = await supabase
+          .from('service_logs')
+          .select('patient_id, entry_date, medication')
+          .in('patient_id', cyclePatientIds)
+          .in('category', ['iv', 'iv_therapy'])
+          .gte('entry_date', broadest.start)
+          .lte('entry_date', broadest.end);
+
+        for (const c of cycles) {
+          const usedLog = (ivLogs || []).find(l =>
+            l.patient_id === c.patient_id &&
+            l.entry_date >= c.cycleStart &&
+            l.entry_date <= c.cycleEnd
+          );
+          rangeIVByPatient[c.patient_id] = usedLog
+            ? { status: 'used', service_date: usedLog.entry_date }
+            : { status: 'available', service_date: null };
+        }
+      }
+    }
+
     // ── Batch-fetch labs and blood draw logs per patient ──
     const patientIds = [...new Set(dedupedProtocols.map(p => p.patient_id))];
 
@@ -266,17 +319,10 @@ export default async function handler(req, res) {
       if (supplyType === 'vial') supplyType = 'vial_10ml';
 
       // ── Range IV perk status for this patient ──
-      const patientIVPerks = ivPerksByPatient[protocol.patient_id] || [];
-      const activeIVPerk = patientIVPerks.find(p => p.status === 'active');
-      const hasRangeIV = patientIVPerks.length > 0;
-      let rangeIVStatus = null;
-      if (activeIVPerk) {
-        const sessionsUsed = activeIVPerk.sessions_used || 0;
-        const totalSessions = activeIVPerk.total_sessions || 1;
-        rangeIVStatus = sessionsUsed >= totalSessions ? 'used' : 'available';
-      } else if (hasRangeIV) {
-        rangeIVStatus = 'expired';
-      }
+      // Derived from service_logs in the current HRT billing cycle (single source of truth)
+      const ivPerk = rangeIVByPatient[protocol.patient_id] || null;
+      const rangeIVStatus = protocol.status === 'active' && ivPerk ? ivPerk.status : null;
+      const rangeIVUsedDate = ivPerk?.service_date || null;
 
       results.push({
         protocol_id: protocol.id,
@@ -320,7 +366,8 @@ export default async function handler(req, res) {
         next_draw_target: nextDraw?.targetDate || null,
         lab_status: labStatus,
         schedule,
-        range_iv: hasRangeIV ? rangeIVStatus : null,
+        range_iv: rangeIVStatus,
+        range_iv_used_date: rangeIVUsedDate,
       });
     }
 

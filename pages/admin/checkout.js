@@ -26,6 +26,7 @@ import {
   NAD_INJECTION_DOSAGES,
   PEPTIDE_OPTIONS,
   IV_THERAPY_TYPES,
+  RANGE_IV_OPTIONS,
   getDoseOptions,
   WL_BUILDER_DOSES,
   getWlInjectionPrice,
@@ -271,6 +272,11 @@ function CheckoutInner() {
   const [recentCharges, setRecentCharges] = useState([]);
   const [recentChargesOpen, setRecentChargesOpen] = useState(true);
 
+  // ── HRT membership monthly Range IV perk ──
+  // { available, hrt_protocol_id, hrt_program_name, cycle_start, cycle_end } or null
+  const [hrtPerk, setHrtPerk] = useState(null);
+  const [perkPickerOpen, setPerkPickerOpen] = useState(false);
+
   // ── Medication Dispensing ──
   const [employees, setEmployees] = useState([]);
   const [dispensingProtocolId, setDispensingProtocolId] = useState(null);
@@ -376,6 +382,11 @@ function CheckoutInner() {
       .then(r => r.json())
       .then(data => setRecentCharges(data.charges || []))
       .catch(() => setRecentCharges([]));
+    // Check HRT membership monthly Range IV perk availability for this cycle
+    fetch(`/api/medication-checkout/coverage?patient_id=${patient.id}&category=iv_therapy`)
+      .then(r => r.json())
+      .then(data => setHrtPerk(data?.hrt_membership_iv || null))
+      .catch(() => setHrtPerk(null));
   }, [patient?.id]);
 
   // Clear consent block when cart changes
@@ -526,6 +537,60 @@ function CheckoutInner() {
   function showWarning(msg) {
     setCartWarning(msg);
     setTimeout(() => setCartWarning(''), 3000);
+  }
+
+  // ── HRT Membership monthly Range IV perk ──
+  // Add a complimentary Range IV (signature formula) as a $0 dispense line item.
+  // On checkout, processDispenseItems() writes the service_log that consumes
+  // the perk for the current billing cycle — same tagging as /api/protocols/[id]/redeem-range-iv.
+  function cartHasHRTPerkIV() {
+    return cartItems.some(i => i.dispenseDetails?.hrtPerk === true);
+  }
+
+  function addHRTPerkIVToCart(rangeIvOption) {
+    if (!patient?.id || !hrtPerk?.available || !hrtPerk?.hrt_protocol_id) return;
+    if (cartHasHRTPerkIV()) return;
+
+    const medicationName = rangeIvOption?.value || 'Range IV';
+    const displayName = `${rangeIvOption?.label || 'Range IV'} IV (HRT Perk)`;
+
+    const dispenseItem = {
+      id: `hrt-perk-iv-${Date.now()}`,
+      type: 'dispense',
+      name: displayName,
+      price: 0,
+      quantity: 1,
+      category: 'iv_therapy',
+      itemDiscountType: 'none',
+      itemDiscountValue: '',
+      recurring: false,
+      coverageBadge: 'HRT Membership',
+      dispenseDetails: {
+        hrtPerk: true,
+        protocolId: hrtPerk.hrt_protocol_id,
+        protocolName: hrtPerk.hrt_program_name || 'HRT Membership',
+        category: 'iv_therapy',
+        entryType: 'session',
+        medication: medicationName,
+        dosage: null,
+        supplyType: null,
+        quantity: null,
+        administeredBy: null,
+        verifiedBy: null,
+        fulfillmentMethod: 'in_clinic',
+        trackingNumber: null,
+        notes: 'HRT Membership Perk — complimentary monthly Range IV',
+        entryDate: null,
+        coverageType: 'subscription',
+        coverageSource: 'HRT Membership — Monthly Range IV Perk',
+        selectedService: null,
+        itemQty: 1,
+      },
+    };
+
+    setCartItems(prev => [...prev, dispenseItem]);
+    setCartOpen(true);
+    setPerkPickerOpen(false);
   }
 
   // ── WL Injection Builder helpers ──
@@ -1014,6 +1079,11 @@ function CheckoutInner() {
       fetch(`/api/protocols?patient_id=${patient.id}&status=active`)
         .then(r => r.json())
         .then(d => setActiveProtocols(d.protocols || d || []))
+        .catch(() => {});
+      // Refresh HRT perk status — if the cycle's IV was just consumed, the banner hides
+      fetch(`/api/medication-checkout/coverage?patient_id=${patient.id}&category=iv_therapy`)
+        .then(r => r.json())
+        .then(d => setHrtPerk(d?.hrt_membership_iv || null))
         .catch(() => {});
     }
     return message;
@@ -1590,6 +1660,8 @@ function CheckoutInner() {
     setActiveProtocols([]);
     setRecentCharges([]);
     setRecentChargesOpen(false);
+    setHrtPerk(null);
+    setPerkPickerOpen(false);
     handleNewCheckout();
     setStep('patient');
   }
@@ -2035,6 +2107,87 @@ function CheckoutInner() {
                   <button style={styles.changePatientBtn} onClick={handleNewPatient}>Change</button>
                 </div>
               </div>
+
+              {/* HRT Membership monthly Range IV perk banner */}
+              {hrtPerk?.available && !cartHasHRTPerkIV() && (
+                <div style={{
+                  background: '#f0fdf4',
+                  border: '1px solid #86efac',
+                  borderRadius: '8px',
+                  padding: '14px 16px',
+                  marginBottom: '12px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#14532d', marginBottom: '2px' }}>
+                        HRT Membership — Monthly Range IV Available
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#166534' }}>
+                        {patient?.name?.split(' ')[0] || 'This patient'} has 1 complimentary Range IV available this billing cycle.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPerkPickerOpen(o => !o)}
+                      style={{
+                        background: '#16a34a',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '9px 16px',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {perkPickerOpen ? 'Cancel' : 'Use Membership IV'}
+                    </button>
+                  </div>
+                  {perkPickerOpen && (
+                    <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #bbf7d0' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#166534', letterSpacing: '0.06em', marginBottom: '8px' }}>
+                        CHOOSE A SIGNATURE FORMULA
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {RANGE_IV_OPTIONS.map(opt => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => addHRTPerkIVToCart(opt)}
+                            style={{
+                              background: '#fff',
+                              border: '1px solid #86efac',
+                              padding: '8px 14px',
+                              borderRadius: '6px',
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              color: '#14532d',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {hrtPerk?.available && cartHasHRTPerkIV() && (
+                <div style={{
+                  background: '#ecfdf5',
+                  border: '1px solid #86efac',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  marginBottom: '12px',
+                  fontSize: '13px',
+                  color: '#166534',
+                  fontWeight: 600,
+                }}>
+                  ✓ HRT Membership Range IV added to cart — complimentary this cycle.
+                </div>
+              )}
 
               {/* Active protocols summary — click to dispense */}
               {activeProtocols.length > 0 && !activeSegment && (

@@ -745,6 +745,14 @@ export default function PatientProfile() {
   const [docUploadError, setDocUploadError] = useState(null);
   const [editingDocDate, setEditingDocDate] = useState(null); // doc id being edited
 
+  // Mark intake completed via external/legacy form (Forms tab)
+  const [showExternalIntakeModal, setShowExternalIntakeModal] = useState(false);
+  const [externalIntakeForm, setExternalIntakeForm] = useState({
+    source: 'paper_form', notes: '', markedBy: ''
+  });
+  const [externalIntakeSaving, setExternalIntakeSaving] = useState(false);
+  const [externalIntakeError, setExternalIntakeError] = useState(null);
+
   const [sendingSymptoms, setSendingSymptoms] = useState(false);
   const [symptomsSent, setSymptomsSent] = useState(false);
   const fileInputRef = useRef(null);
@@ -3247,6 +3255,54 @@ export default function PatientProfile() {
       }
     } catch (err) {
       console.error('Consent delete error:', err);
+    }
+  };
+
+  // Mark an intake as completed via an external/legacy form (paper, old EMR, verbal)
+  const handleMarkIntakeExternal = async () => {
+    setExternalIntakeSaving(true);
+    setExternalIntakeError(null);
+    try {
+      const res = await fetch(`/api/patients/${id}/mark-intake-external`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source: externalIntakeForm.source,
+          notes: externalIntakeForm.notes,
+          markedBy: externalIntakeForm.markedBy,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setExternalIntakeError(data.error || 'Failed to mark intake complete');
+        return;
+      }
+      setShowExternalIntakeModal(false);
+      setExternalIntakeForm({ source: 'paper_form', notes: '', markedBy: '' });
+      await fetchPatient();
+    } catch (err) {
+      console.error('Mark intake external error:', err);
+      setExternalIntakeError('Network error — please try again');
+    } finally {
+      setExternalIntakeSaving(false);
+    }
+  };
+
+  const handleUndoExternalIntake = async (intakeId) => {
+    if (!confirm('Remove this external intake marker? The patient will no longer be considered as having a completed intake.')) return;
+    try {
+      const res = await fetch(`/api/patients/${id}/mark-intake-external?intakeId=${intakeId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        await fetchPatient();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Failed to remove external intake');
+      }
+    } catch (err) {
+      console.error('Undo external intake error:', err);
+      alert('Network error — please try again');
     }
   };
 
@@ -8467,33 +8523,92 @@ export default function PatientProfile() {
 
               {/* Intake Forms Section */}
               <section className="card">
-                <div className="card-header">
+                <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3>Intake Forms ({intakes.length})</h3>
+                  <button
+                    className="btn-primary-sm"
+                    onClick={() => { setExternalIntakeError(null); setExternalIntakeForm({ source: 'paper_form', notes: '', markedBy: '' }); setShowExternalIntakeModal(true); }}
+                  >
+                    + Mark Complete (External Form)
+                  </button>
                 </div>
                 {intakes.length === 0 ? (
-                  <div className="empty">No intake forms found</div>
+                  <div className="empty">No intake forms found. If the patient filled out a paper or legacy form, click "Mark Complete (External Form)".</div>
                 ) : (
                   <div className="intake-list full">
-                    {intakes.map(intake => (
-                      <div key={intake.id} className="intake-card" onClick={() => intake.pdf_url && openPdfViewer(intake.pdf_url, `${intake.first_name} ${intake.last_name} — Medical Intake`)}>
-                        <div className="intake-header">
-                          <span className="intake-icon">📋</span>
-                          <div>
-                            <strong>{intake.first_name} {intake.last_name}</strong>
-                            <span>{formatDate(intake.submitted_at)}</span>
+                    {intakes.map(intake => {
+                      const isExternal = !!intake.external_source;
+                      const sourceLabel = {
+                        paper_form: 'Paper Form',
+                        legacy_emr: 'Legacy EMR',
+                        verbally_confirmed: 'Verbally Confirmed',
+                        other: 'Other',
+                      }[intake.external_source] || intake.external_source;
+                      return (
+                        <div
+                          key={intake.id}
+                          className="intake-card"
+                          onClick={() => intake.pdf_url && openPdfViewer(intake.pdf_url, `${intake.first_name} ${intake.last_name} — Medical Intake`)}
+                          style={isExternal ? { background: '#fffbeb', borderColor: '#f59e0b' } : undefined}
+                        >
+                          <div className="intake-header">
+                            <span className="intake-icon">{isExternal ? '📝' : '📋'}</span>
+                            <div style={{ flex: 1 }}>
+                              <strong>
+                                {intake.first_name} {intake.last_name}
+                                {isExternal && (
+                                  <span
+                                    style={{
+                                      marginLeft: 8,
+                                      display: 'inline-block',
+                                      padding: '2px 8px',
+                                      background: '#f59e0b',
+                                      color: '#fff',
+                                      fontSize: 11,
+                                      fontWeight: 600,
+                                      borderRadius: 3,
+                                      letterSpacing: 0.3,
+                                      textTransform: 'uppercase',
+                                    }}
+                                    title={`Marked complete via ${sourceLabel}${intake.marked_external_by ? ` by ${intake.marked_external_by}` : ''}`}
+                                  >
+                                    External
+                                  </span>
+                                )}
+                              </strong>
+                              <span>{formatDate(intake.submitted_at)}{isExternal ? ` · ${sourceLabel}` : ''}</span>
+                            </div>
+                          </div>
+                          {isExternal ? (
+                            <div className="intake-details">
+                              {intake.external_notes
+                                ? <span style={{ color: '#92400e' }}>{intake.external_notes}</span>
+                                : <span style={{ color: '#92400e' }}>Marked as completed via {sourceLabel.toLowerCase()}.</span>}
+                              {intake.marked_external_by && <span>Marked by: {intake.marked_external_by}</span>}
+                            </div>
+                          ) : (
+                            <div className="intake-details">
+                              <span>{intake.email}</span>
+                              <span>{formatPhone(intake.phone)}</span>
+                              {intake.date_of_birth && <span>DOB: {formatDate(intake.date_of_birth)}</span>}
+                            </div>
+                          )}
+                          <div className="intake-actions">
+                            {intake.pdf_url && <button onClick={e => { e.stopPropagation(); openPdfViewer(intake.pdf_url, `${intake.first_name} ${intake.last_name} — Medical Intake`); }} className="btn-secondary-sm">View PDF</button>}
+                            {intake.photo_id_url && <button onClick={e => { e.stopPropagation(); openPdfViewer(intake.photo_id_url, 'Photo ID'); }} className="btn-text">Photo ID</button>}
+                            {isExternal && (
+                              <button
+                                onClick={e => { e.stopPropagation(); handleUndoExternalIntake(intake.id); }}
+                                className="btn-secondary-sm"
+                                style={{ fontSize: 11, padding: '3px 8px', color: '#dc2626' }}
+                              >
+                                Undo
+                              </button>
+                            )}
                           </div>
                         </div>
-                        <div className="intake-details">
-                          <span>{intake.email}</span>
-                          <span>{formatPhone(intake.phone)}</span>
-                          {intake.date_of_birth && <span>DOB: {formatDate(intake.date_of_birth)}</span>}
-                        </div>
-                        <div className="intake-actions">
-                          {intake.pdf_url && <button onClick={e => { e.stopPropagation(); openPdfViewer(intake.pdf_url, `${intake.first_name} ${intake.last_name} — Medical Intake`); }} className="btn-secondary-sm">View PDF</button>}
-                          {intake.photo_id_url && <button onClick={e => { e.stopPropagation(); openPdfViewer(intake.photo_id_url, 'Photo ID'); }} className="btn-text">Photo ID</button>}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </section>
@@ -12698,6 +12813,61 @@ export default function PatientProfile() {
                   <button onClick={handleSendSymptoms} disabled={sendingSymptoms || !patient.phone} className="btn-primary">{sendingSymptoms ? 'Sending...' : 'Send SMS'}</button>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Mark Intake Complete (External Form) Modal */}
+        {showExternalIntakeModal && (
+          <div className="modal-overlay" {...overlayClickProps(() => !externalIntakeSaving && setShowExternalIntakeModal(false))}>
+            <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Mark Intake Complete (External Form)</h3>
+                <button onClick={() => !externalIntakeSaving && setShowExternalIntakeModal(false)} className="close-btn">×</button>
+              </div>
+              <div className="modal-body">
+                {externalIntakeError && <div className="error-box">{externalIntakeError}</div>}
+                <p style={{ fontSize: 13, color: '#666', marginTop: 0 }}>
+                  Use this when the patient has already filled out an intake somewhere else (paper form, legacy EMR, etc.)
+                  so they don't have to fill out the new-system intake.
+                </p>
+                <div className="form-group">
+                  <label>Source *</label>
+                  <select
+                    value={externalIntakeForm.source}
+                    onChange={e => setExternalIntakeForm({ ...externalIntakeForm, source: e.target.value })}
+                  >
+                    <option value="paper_form">Paper Form</option>
+                    <option value="legacy_emr">Legacy EMR (Practice Fusion, etc.)</option>
+                    <option value="verbally_confirmed">Verbally Confirmed</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Notes (optional)</label>
+                  <textarea
+                    rows={3}
+                    value={externalIntakeForm.notes}
+                    onChange={e => setExternalIntakeForm({ ...externalIntakeForm, notes: e.target.value })}
+                    placeholder="Any context worth saving — e.g. 'Paper form in patient folder', 'Imported from Practice Fusion 2024'"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Marked by (optional)</label>
+                  <input
+                    type="text"
+                    value={externalIntakeForm.markedBy}
+                    onChange={e => setExternalIntakeForm({ ...externalIntakeForm, markedBy: e.target.value })}
+                    placeholder="Your name"
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button onClick={() => setShowExternalIntakeModal(false)} className="btn-secondary" disabled={externalIntakeSaving}>Cancel</button>
+                <button onClick={handleMarkIntakeExternal} className="btn-primary" disabled={externalIntakeSaving}>
+                  {externalIntakeSaving ? 'Saving...' : 'Mark Complete'}
+                </button>
+              </div>
             </div>
           </div>
         )}

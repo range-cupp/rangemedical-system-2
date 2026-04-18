@@ -83,7 +83,7 @@ export default async function handler(req, res) {
       }
 
       // ── Step 2: Run ALL independent queries in parallel ──
-      const intakeFields = 'id, first_name, last_name, email, phone, date_of_birth, gender, preferred_name, submitted_at, pdf_url, symptoms, symptom_followups, symptom_duration, photo_id_url, signature_url, patient_id, ghl_contact_id, how_heard, how_heard_other, street_address, city, state, postal_code, country, allergies, allergy_reactions, has_allergies, on_medications, current_medications, medication_notes, medical_conditions, on_hrt, hrt_details, additional_notes, is_minor, guardian_name, guardian_relationship, has_pcp, pcp_name, recent_hospitalization, hospitalization_reason';
+      const intakeFields = 'id, first_name, last_name, email, phone, date_of_birth, gender, preferred_name, submitted_at, pdf_url, symptoms, symptom_followups, symptom_duration, photo_id_url, signature_url, patient_id, ghl_contact_id, how_heard, how_heard_other, street_address, city, state, postal_code, country, allergies, allergy_reactions, has_allergies, on_medications, current_medications, medication_notes, medical_conditions, on_hrt, hrt_details, additional_notes, is_minor, guardian_name, guardian_relationship, has_pcp, pcp_name, recent_hospitalization, hospitalization_reason, external_source, external_notes, marked_external_by';
       const consentFields = 'id, consent_type, first_name, last_name, email, phone, consent_date, consent_given, signature_url, pdf_url, submitted_at, patient_id, ghl_contact_id';
       const purchaseFilter = patient.ghl_contact_id
         ? `patient_id.eq.${id},ghl_contact_id.eq.${patient.ghl_contact_id}`

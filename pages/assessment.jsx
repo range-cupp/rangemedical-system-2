@@ -521,6 +521,25 @@ export default function Assessment() {
     }
   }, []);
 
+  // Pre-fill contact info from /roadmap or /start funnels — no double-entry
+  useEffect(() => {
+    try {
+      const roadmapContact = localStorage.getItem('range_roadmap_contact');
+      const startLead = localStorage.getItem('range_start_lead');
+      const source = roadmapContact || startLead;
+      if (!source) return;
+      const parsed = JSON.parse(source);
+      if (parsed.firstName && !firstName) setFirstName(parsed.firstName);
+      if (parsed.lastName && !lastName) setLastName(parsed.lastName);
+      if (parsed.email && !email) setEmail(parsed.email);
+      if (parsed.phone && !phone) setPhone(parsed.phone);
+    } catch (e) {
+      // localStorage unavailable or malformed — ignore
+    }
+    // Run once on mount — intentionally omit deps so we don't overwrite user edits
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Screen 1: Path Selection ──────────────────────────────────────────────
 
   const handlePathSelect = (path) => {

@@ -2,7 +2,7 @@
 // Protocol CRUD API - Range Medical
 // POST now delegates creation to lib/create-protocol.js
 import { createClient } from '@supabase/supabase-js';
-import { isWeightLossType } from '../../../lib/protocol-config';
+import { isWeightLossType, calculatePeptideDurationDays, calculateProtocolDurationDays } from '../../../lib/protocol-config';
 import { getHRTLabSchedule, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
 import { createProtocol } from '../../../lib/create-protocol';
 import { todayPacific } from '../../../lib/date-utils';
@@ -288,12 +288,25 @@ export default async function handler(req, res) {
       updated_at: new Date().toISOString()
     };
 
-    // Calculate end_date if start_date and duration provided
-    if (b.start_date && (b.duration_days || b.total_sessions)) {
-      const days = parseInt(b.duration_days || b.total_sessions);
-      const endDateObj = new Date(b.start_date);
-      endDateObj.setDate(endDateObj.getDate() + days);
-      updateData.end_date = endDateObj.toISOString().split('T')[0];
+    // Calculate end_date if start_date + enough inputs to derive a duration.
+    // Priority: explicit duration_days > vial math > sessions + frequency.
+    // Never treat total_sessions as literal days — that was a long-standing bug
+    // that produced end dates months in the future.
+    if (b.start_date && (b.duration_days || b.total_sessions || (b.num_vials && b.doses_per_vial))) {
+      let days = null;
+      if (b.duration_days) {
+        days = parseInt(b.duration_days);
+      } else if (b.num_vials && b.doses_per_vial) {
+        const totalDoses = parseInt(b.num_vials) * parseInt(b.doses_per_vial);
+        days = calculateProtocolDurationDays(totalDoses, b.frequency);
+      } else if (b.total_sessions && b.frequency) {
+        days = calculateProtocolDurationDays(b.total_sessions, b.frequency);
+      }
+      if (days) {
+        const endDateObj = new Date(b.start_date);
+        endDateObj.setDate(endDateObj.getDate() + days);
+        updateData.end_date = endDateObj.toISOString().split('T')[0];
+      }
     }
 
     // Remove undefined values

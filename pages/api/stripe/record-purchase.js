@@ -150,6 +150,7 @@ export default async function handler(req, res) {
       tracking_number,
       wl_frequency_days,
       wl_config,
+      injection_frequency,
       item_description,
     } = req.body;
 
@@ -320,6 +321,7 @@ export default async function handler(req, res) {
           trackingNumber: tracking_number || null,
           wlFrequencyDays: wl_frequency_days || null,
           wlConfig: wl_config || null,
+          injectionFrequency: injection_frequency || null,
         });
       } catch (err) {
         console.error(`Auto-protocol FAILED for purchase ${data.id} (${service_category}/${service_name}):`, err);

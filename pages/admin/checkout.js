@@ -238,6 +238,7 @@ function CheckoutInner() {
   const [injMedication, setInjMedication] = useState('');
   const [injNadDose, setInjNadDose] = useState('');
   const [injQuantity, setInjQuantity] = useState(1);
+  const [injFrequency, setInjFrequency] = useState('3x per week'); // default MWF
   const [shippingAmount, setShippingAmount] = useState('');
 
   // ── Split payment ──
@@ -715,6 +716,7 @@ function CheckoutInner() {
         quantity: deliveredQty,
         chargeQuantity: isBonusPack ? BUY_10_GET_12_THRESHOLD : injQuantity,
         isBonusPack,
+        frequency: injFrequency,
         internalName: `${displayName} x${deliveredQty}${packLabel}`,
       },
     };
@@ -727,6 +729,7 @@ function CheckoutInner() {
     setInjMedication('');
     setInjNadDose('');
     setInjQuantity(1);
+    setInjFrequency('3x per week');
   }
 
   function updateItemQuantity(itemId, newQty) {
@@ -998,6 +1001,7 @@ function CheckoutInner() {
           tracking_number: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) && fulfillmentMethod === 'overnight' ? trackingNumber : null,
           wl_frequency_days: item.category === 'weight_loss' ? (isWlBuilder ? item.wlConfig.frequency : wlFrequencyDays) : undefined,
           wl_config: isWlBuilder ? item.wlConfig : undefined,
+          injection_frequency: isInjBuilder ? item.injConfig.frequency : undefined,
           skip_receipt: skipNotification || cartItems.length > 1,
           ...(itemDiscountAmt > 0 && !amount_override ? {
             discount_type: item.itemDiscountType,
@@ -3239,7 +3243,7 @@ function CheckoutInner() {
                             ].map(t => (
                               <button
                                 key={t.key}
-                                onClick={() => { setInjBuilderType(t.key); setInjMedication(''); setInjNadDose(''); setInjQuantity(1); }}
+                                onClick={() => { setInjBuilderType(t.key); setInjMedication(''); setInjNadDose(''); setInjQuantity(1); setInjFrequency('3x per week'); }}
                                 style={{
                                   ...styles.fulfillmentBtn,
                                   flex: 1,
@@ -3300,8 +3304,8 @@ function CheckoutInner() {
                               <>
                                 <div style={{ marginBottom: '20px' }}>
                                   <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}># OF INJECTIONS</label>
-                                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    {[1, 2, 3, 4, 5, 6].map(n => (
+                                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
                                       <button
                                         key={n}
                                         onClick={() => setInjQuantity(n)}
@@ -3326,6 +3330,42 @@ function CheckoutInner() {
                                       }}
                                     >Buy 10, Get 12</button>
                                   </div>
+                                </div>
+
+                                {/* Frequency — drives protocol end_date */}
+                                <div style={{ marginBottom: '20px' }}>
+                                  <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>FREQUENCY</label>
+                                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    {[
+                                      { value: '3x per week', label: '3x / week (MWF)' },
+                                      { value: '2x per week', label: '2x / week' },
+                                      { value: 'Weekly', label: 'Weekly' },
+                                      { value: 'Daily', label: 'Daily' },
+                                    ].map(f => (
+                                      <button
+                                        key={f.value}
+                                        onClick={() => setInjFrequency(f.value)}
+                                        style={{
+                                          ...styles.fulfillmentBtn,
+                                          padding: '10px 16px',
+                                          fontSize: '14px',
+                                          fontWeight: 600,
+                                          ...(injFrequency === f.value ? { border: '2px solid #1a1a1a', background: '#f9fafb', color: '#1a1a1a' } : {}),
+                                        }}
+                                      >{f.label}</button>
+                                    ))}
+                                  </div>
+                                  {(() => {
+                                    const delivered = getInjDeliveredQty();
+                                    const dpw = { 'Daily': 7, '3x per week': 3, '2x per week': 2, 'Weekly': 1 }[injFrequency];
+                                    if (!dpw || !delivered) return null;
+                                    const weeks = Math.ceil(delivered / dpw);
+                                    return (
+                                      <div style={{ fontSize: '12px', color: '#666', marginTop: '6px' }}>
+                                        {delivered} injection{delivered > 1 ? 's' : ''} ÷ {dpw}/week = <strong>{weeks} week{weeks > 1 ? 's' : ''}</strong> of treatment
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
 
                                 {/* Buy 10 Get 12 banner */}

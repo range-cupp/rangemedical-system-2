@@ -5189,11 +5189,12 @@ export default function PatientProfile() {
 
         {/* Tab Content */}
         <div className="tab-content">
+          {/* Pipelines summary — shown on every tab (medical + business) */}
+          <PatientPipelineSummary patientId={id} />
+
           {/* Overview Tab */}
           {activeTab === 'chart' && (
             <>
-              <PatientPipelineSummary patientId={id} />
-
               {/* Upcoming Appointments */}
               {(() => {
                 const now = new Date();

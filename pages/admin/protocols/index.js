@@ -132,7 +132,7 @@ export default function ProtocolsPage() {
           setSummary(json.data.summary || {});
         }
       } else if (tab === 'weight_loss') {
-        const res = await fetch('/api/pipelines/weight-loss');
+        const res = await fetch('/api/protocols/wl-overview');
         const json = await res.json();
         // Add computed status to each protocol
         const protocols = (json.protocols || []).map(p => ({

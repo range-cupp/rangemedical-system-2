@@ -1,6 +1,6 @@
 // /pages/api/hrt/patients-overview.js
 // Comprehensive HRT patient overview for staff dashboard
-// Pulls from the SAME source of truth as /api/pipelines/hrt.js:
+// Pulls from the SAME source of truth as protocols + service_logs:
 //   - protocols table for program data
 //   - service_logs table for actual pickup dates (single source of truth)
 //   - labs + protocol_logs + buildAdaptiveHRTSchedule for lab schedule

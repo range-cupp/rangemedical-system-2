@@ -65,7 +65,7 @@ export default function WeightLossPipelineTab() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/pipelines/weight-loss');
+      const res = await fetch('/api/protocols/wl-overview');
       const json = await res.json();
       if (json.success) setData(json);
     } catch (err) {

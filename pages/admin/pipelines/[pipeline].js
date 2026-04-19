@@ -144,6 +144,10 @@ export default function PipelineBoardPage() {
             setCards(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c));
             setSelected(prev => prev ? { ...prev, ...updated } : null);
           }}
+          onDeleted={(deleted) => {
+            setCards(prev => prev.filter(c => c.id !== deleted.id));
+            setSelected(null);
+          }}
         />
       )}
     </AdminLayout>

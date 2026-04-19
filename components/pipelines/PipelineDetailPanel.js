@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { X, MessageSquare } from 'lucide-react';
+import { X, MessageSquare, Trash2 } from 'lucide-react';
 import { STAFF, getStaff, initials } from '../../lib/staff';
 import { CARD_STATUS } from '../../lib/pipelines-config';
 
@@ -40,6 +40,7 @@ export default function PipelineDetailPanel({
   currentUser = 'chris',
   onClose,
   onSaved,
+  onDeleted,
 }) {
   const [stage, setStage]       = useState(card.stage);
   const [status, setStatus]     = useState(card.status);
@@ -49,6 +50,7 @@ export default function PipelineDetailPanel({
   const [events, setEvents]     = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [smsOpen, setSmsOpen]   = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     setStage(card.stage);
@@ -102,6 +104,32 @@ export default function PipelineDetailPanel({
     setAssigned(prev => prev.includes(id)
       ? prev.filter(x => x !== id)
       : [...prev, id]);
+  }
+
+  async function deleteCard() {
+    if (deleting) return;
+    const ok = typeof window !== 'undefined' && window.confirm(
+      `Delete this ${pipeline.label} card for ${fullName(card)}?\n\n` +
+      `This removes the pipeline card only. The patient record, protocol, ` +
+      `and any purchases are untouched. Use this for duplicates or cards ` +
+      `created by mistake.`
+    );
+    if (!ok) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/pipelines/cards/${card.id}`, { method: 'DELETE' });
+      if (res.ok || res.status === 204) {
+        onDeleted?.(card);
+        onClose?.();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Delete failed: ${err.error || res.statusText}`);
+      }
+    } catch (e) {
+      alert(`Delete failed: ${e.message}`);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function markReviewComplete() {
@@ -292,6 +320,20 @@ export default function PipelineDetailPanel({
         </div>
 
         <div style={styles.footer}>
+          <button
+            type="button"
+            onClick={deleteCard}
+            disabled={deleting}
+            style={{
+              ...styles.deleteBtn,
+              opacity: deleting ? 0.4 : 1,
+              cursor: deleting ? 'not-allowed' : 'pointer',
+            }}
+            title="Delete this pipeline card (e.g. duplicate). Patient + protocol untouched."
+          >
+            <Trash2 size={12} /> {deleting ? 'Deleting…' : 'Delete Card'}
+          </button>
+          <div style={{ flex: 1 }} />
           <button
             type="button"
             onClick={onClose}
@@ -623,8 +665,23 @@ const styles = {
     borderTop: '1px solid #e0e0e0',
     display: 'flex',
     gap: '10px',
-    justifyContent: 'flex-end',
+    alignItems: 'center',
     background: '#fafafa',
+  },
+  deleteBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '10px 14px',
+    background: '#fff',
+    color: '#c0332e',
+    border: '1px solid #e5c4c1',
+    fontSize: '10px',
+    fontWeight: 700,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    fontFamily: 'Inter, sans-serif',
+    borderRadius: 0,
   },
   cancelBtn: {
     padding: '10px 18px',

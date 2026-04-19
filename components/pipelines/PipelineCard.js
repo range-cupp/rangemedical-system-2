@@ -144,7 +144,12 @@ function formatFieldValue(key, card) {
     return t != null ? `${u} / ${t}` : String(u);
   }
   if (key === 'total_sessions')    return null; // rendered via sessions_used
-  if (key === 'injection_type')    return meta.injection_type ? meta.injection_type.toUpperCase() : null;
+  if (key === 'injection_type') {
+    const t = meta.injection_type;
+    if (!t) return null;
+    const labels = { prp: 'PRP', exosomes: 'Exosomes', nad: 'NAD+', range: 'Range', specialty: 'Specialty' };
+    return labels[t] || t.toUpperCase();
+  }
   if (key === 'target')            return meta.target || null;
   if (key === 'lab_type')          return meta.lab_type || null;
   if (key === 'source')            return card.source || null;

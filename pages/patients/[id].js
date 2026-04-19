@@ -5189,8 +5189,8 @@ export default function PatientProfile() {
 
         {/* Tab Content */}
         <div className="tab-content">
-          {/* Pipelines summary — shown on every tab (medical + business) */}
-          <PatientPipelineSummary patientId={id} />
+          {/* Pipelines summary — business view only */}
+          {viewMode === 'business' && <PatientPipelineSummary patientId={id} />}
 
           {/* Overview Tab */}
           {activeTab === 'chart' && (

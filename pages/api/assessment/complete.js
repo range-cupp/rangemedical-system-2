@@ -494,6 +494,34 @@ export default async function handler(req, res) {
       }
     }
 
+    // --- PIPELINE CARDS: create workup cards based on assessment path ---
+    // Energy → Energy Workup. Injury → Injury Workup. Both → both.
+    if (patientId) {
+      try {
+        const { ensureCard } = await import('../../../lib/pipelines-server');
+        const fn = (intakeData?.personalInfo?.firstName || formData?.firstName || '').trim();
+        const ln = (intakeData?.personalInfo?.lastName  || formData?.lastName  || '').trim();
+        const phone = intakeData?.personalInfo?.phone || formData?.phone || null;
+        const common = {
+          patient_id: patientId,
+          lead_id: leadId,
+          first_name: fn || null, last_name: ln || null,
+          email: normalizedEmail, phone,
+          path: assessmentPath,
+          triggered_by: 'automation',
+          automation_reason: 'assessment_completed',
+        };
+        if (assessmentPath === 'energy' || assessmentPath === 'both') {
+          await ensureCard({ ...common, pipeline: 'energy_workup', stage: 'labs_scheduled' });
+        }
+        if (assessmentPath === 'injury' || assessmentPath === 'both') {
+          await ensureCard({ ...common, pipeline: 'injury_workup', stage: 'assessment_done' });
+        }
+      } catch (pipeErr) {
+        console.error('Pipeline card creation error:', pipeErr);
+      }
+    }
+
     return;
 
   } catch (error) {

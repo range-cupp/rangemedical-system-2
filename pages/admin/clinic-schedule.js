@@ -147,7 +147,7 @@ export default function ClinicSchedule() {
             <h1 style={styles.title}>Clinic Schedule</h1>
             <div style={styles.subtitle}>All scheduled appointments</div>
           </div>
-          <Link href="/admin/pipeline" style={styles.backLink}>← Pipeline</Link>
+          <Link href="/admin/pipelines" style={styles.backLink}>← Pipelines</Link>
         </div>
 
         {/* Date Navigation */}

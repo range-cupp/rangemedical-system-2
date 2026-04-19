@@ -215,6 +215,57 @@ export default async function handler(req, res) {
       }
     }
 
+    // Pipeline automation: mark treatment cards completed for protocols that just ended,
+    // and surface any pre-created follow-up cards whose scheduled_for has passed.
+    try {
+      const { data: completedToday } = await supabase
+        .from('protocols')
+        .select('id, patient_id, program_type')
+        .eq('status', 'completed')
+        .gte('updated_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+      const { sb, moveCard, pipelineForProgramType } = await import('../../../lib/pipelines-server');
+      const pipeSb = sb();
+      for (const p of completedToday || []) {
+        const { data: cards } = await pipeSb
+          .from('pipeline_cards')
+          .select('id, stage, status')
+          .eq('protocol_id', p.id)
+          .eq('status', 'active');
+        const pipelineKey = pipelineForProgramType(p.program_type);
+        for (const card of cards || []) {
+          if (pipelineKey && card.stage !== 'completed') {
+            await moveCard({
+              card_id: card.id,
+              to_stage: 'completed',
+              to_status: 'completed',
+              triggered_by: 'automation',
+              automation_reason: 'protocol_end_date_reached',
+            });
+          }
+        }
+      }
+
+      // Surface due follow-up cards: scheduled → active
+      const nowIso = new Date().toISOString();
+      const { data: dueFollowups } = await pipeSb
+        .from('pipeline_cards')
+        .select('id')
+        .eq('pipeline', 'follow_up')
+        .eq('status', 'scheduled')
+        .lte('scheduled_for', nowIso);
+      for (const card of dueFollowups || []) {
+        await moveCard({
+          card_id: card.id,
+          to_status: 'active',
+          triggered_by: 'automation',
+          automation_reason: 'follow_up_due',
+        });
+      }
+    } catch (pipeErr) {
+      console.error('Pipeline completion sweep error:', pipeErr.message);
+    }
+
     return res.status(200).json({
       success: true,
       completed,

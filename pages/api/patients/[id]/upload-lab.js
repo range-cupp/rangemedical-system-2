@@ -165,6 +165,24 @@ export default async function handler(req, res) {
       console.error('HRT blood draw auto-log error (non-fatal):', hrtLogErr);
     }
 
+    // Pipeline automation: advance energy_workup from labs_scheduled/awaiting_results
+    // to under_review when a lab PDF lands.
+    try {
+      const { findActiveCard, moveCard } = await import('../../../../lib/pipelines-server');
+      const card = await findActiveCard({ patient_id: patientId, pipeline: 'energy_workup' });
+      if (card && ['labs_scheduled', 'awaiting_results'].includes(card.stage)) {
+        await moveCard({
+          card_id: card.id,
+          to_stage: 'under_review',
+          assigned_to: ['damien', 'evan'],
+          triggered_by: 'automation',
+          automation_reason: 'lab_pdf_uploaded',
+        });
+      }
+    } catch (pipeErr) {
+      console.error('Lab upload pipeline advance error:', pipeErr.message);
+    }
+
     return res.status(200).json({
       success: true,
       document: docRecord,

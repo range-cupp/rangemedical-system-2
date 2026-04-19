@@ -826,6 +826,38 @@ export default async function handler(req, res) {
     }
   }
 
+  // Handle invoice.payment_failed / charge.failed — move active treatment cards to "at_risk"
+  if (event.type === 'invoice.payment_failed' || event.type === 'charge.failed') {
+    try {
+      const obj = event.data.object;
+      const stripeCustomerId = obj.customer || null;
+      if (stripeCustomerId) {
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('id')
+          .eq('stripe_customer_id', stripeCustomerId)
+          .maybeSingle();
+
+        if (patient?.id) {
+          const { findActiveCard, moveCard } = await import('../../../lib/pipelines-server');
+          for (const pipelineKey of ['hrt', 'weight_loss', 'peptides']) {
+            const card = await findActiveCard({ patient_id: patient.id, pipeline: pipelineKey });
+            if (card && card.stage !== 'at_risk') {
+              await moveCard({
+                card_id: card.id,
+                to_stage: 'at_risk',
+                triggered_by: 'automation',
+                automation_reason: `stripe:${event.type}`,
+              });
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Stripe payment-failed pipeline update error:', err.message);
+    }
+  }
+
   // Always return 200 to acknowledge receipt (prevents Stripe retries)
   return res.status(200).json({ received: true });
 }

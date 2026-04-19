@@ -343,6 +343,30 @@ export default async function handler(req, res) {
         await executeAction(action, patientId, eventTypeSlug, serviceDetails);
       }
 
+      // Pipeline automation: if this patient has an active energy/injury workup card
+      // in a "ready to schedule" or "scheduling attempted" stage, advance to "consult_booked".
+      if (patientId) {
+        try {
+          const { findActiveCard, moveCard } = await import('../../../lib/pipelines-server');
+          for (const pipelineKey of ['energy_workup', 'injury_workup']) {
+            const card = await findActiveCard({ patient_id: patientId, pipeline: pipelineKey });
+            if (!card) continue;
+            const target = pipelineKey === 'injury_workup' ? 'assessment_done' : 'consult_booked';
+            if (['ready_to_schedule', 'scheduling_attempted', 'labs_scheduled', 'awaiting_results', 'under_review', 'assessment_booked'].includes(card.stage)
+                && card.stage !== target) {
+              await moveCard({
+                card_id: card.id,
+                to_stage: target,
+                triggered_by: 'automation',
+                automation_reason: `calcom_booking:${eventTypeSlug || 'unknown'}`,
+              });
+            }
+          }
+        } catch (pipeErr) {
+          console.error('Cal.com pipeline advance error:', pipeErr.message);
+        }
+      }
+
       // Send staff notification email (fire-and-forget)
       sendStaffNotification('created', {
         staffEmail, staffName, patientName: attendee.name,

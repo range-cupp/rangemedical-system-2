@@ -319,7 +319,7 @@ export default function ProtocolDetail() {
       <div style={styles.container}>
         <div style={{ textAlign: 'center', padding: '100px' }}>
           <h2>Protocol not found</h2>
-          <Link href="/admin/pipeline">← Back to Pipeline</Link>
+          <Link href="/admin/pipelines">← Back to Pipelines</Link>
         </div>
       </div>
     );

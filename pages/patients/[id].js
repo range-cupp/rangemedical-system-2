@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
+import PatientPipelineSummary from '../../components/PatientPipelineSummary';
 import { useAuth } from '../../components/AuthProvider';
 import { useVoice } from '../../components/VoiceContext';
 import { CALL_STATE } from '../../hooks/useVoiceCall';
@@ -5191,6 +5192,8 @@ export default function PatientProfile() {
           {/* Overview Tab */}
           {activeTab === 'chart' && (
             <>
+              <PatientPipelineSummary patientId={id} />
+
               {/* Upcoming Appointments */}
               {(() => {
                 const now = new Date();

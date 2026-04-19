@@ -199,7 +199,7 @@ export default function ActivityLog() {
               <option value="365">Last year</option>
             </select>
             <button style={styles.refreshBtn} onClick={fetchLogs}>↻ Refresh</button>
-            <a href="/admin/pipeline" style={styles.backBtn}>← Back to Pipeline</a>
+            <a href="/admin/pipelines" style={styles.backBtn}>← Back to Pipelines</a>
           </div>
         </div>
 

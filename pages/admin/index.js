@@ -876,9 +876,9 @@ export default function Dashboard() {
                   <span style={styles.actionBadge}>{stats.pendingInvoices} pending</span>
                 )}
               </Link>
-              <Link href="/admin/journeys" style={styles.actionCard}>
+              <Link href="/admin/pipelines" style={styles.actionCard}>
                 <span style={styles.actionIcon}>🗺️</span>
-                <span style={styles.actionText}>Journeys</span>
+                <span style={styles.actionText}>Pipelines</span>
               </Link>
               <Link href="/admin/purchases" style={styles.actionCard}>
                 <span style={styles.actionIcon}>📦</span>

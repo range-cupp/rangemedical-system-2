@@ -43,6 +43,11 @@ export default async function handler(req, res) {
         patient_name: r.patient?.name
           || [r.patient?.first_name, r.patient?.last_name].filter(Boolean).join(' ')
           || null,
+        // Fall back to the joined patient record when the card row has no denormalized copy
+        phone: r.phone || r.patient?.phone || null,
+        email: r.email || r.patient?.email || null,
+        first_name: r.first_name || r.patient?.first_name || null,
+        last_name:  r.last_name  || r.patient?.last_name  || null,
         patient: undefined,
         supply_category,
       };

@@ -16,20 +16,32 @@ export default async function handler(req, res) {
       .from('pipeline_cards')
       .select(`
         *,
-        patient:patients(id, first_name, last_name, name, phone, email)
+        patient:patients(id, first_name, last_name, name, phone, email),
+        protocol:protocols(
+          id, supply_type, frequency, injection_frequency, injections_per_week,
+          delivery_method, last_refill_date, next_expected_date, selected_dose,
+          medication, start_date, end_date, total_sessions, sessions_used
+        )
       `)
       .eq('pipeline', pipeline)
       .eq('status', status)
       .order('last_activity_at', { ascending: false });
     if (error) return res.status(500).json({ error: error.message });
 
-    const rows = (data || []).map(r => ({
-      ...r,
-      patient_name: r.patient?.name
-        || [r.patient?.first_name, r.patient?.last_name].filter(Boolean).join(' ')
-        || null,
-      patient: undefined,
-    }));
+    const rows = (data || []).map(r => {
+      const supply = r.protocol?.supply_type || null;
+      const supply_category = supply
+        ? (supply.startsWith('prefilled') ? 'prefilled' : supply.startsWith('vial') ? 'vial' : null)
+        : null;
+      return {
+        ...r,
+        patient_name: r.patient?.name
+          || [r.patient?.first_name, r.patient?.last_name].filter(Boolean).join(' ')
+          || null,
+        patient: undefined,
+        supply_category,
+      };
+    });
     return res.status(200).json(rows);
   }
 

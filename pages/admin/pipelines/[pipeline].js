@@ -40,6 +40,11 @@ export default function PipelineBoardPage() {
     return cards.filter(c => {
       for (const [k, v] of Object.entries(filters)) {
         if (v == null) continue;
+        // supply_type filters match the normalized supply_category on the card
+        if (k === 'supply_type') {
+          if (c.supply_category !== v) return false;
+          continue;
+        }
         if ((c.meta || {})[k] !== v) return false;
       }
       if (search) {

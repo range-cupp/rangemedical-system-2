@@ -19,9 +19,39 @@ const FIELD_LABELS = {
   urgency:             'Urgency',
   progress:            'Progress',
   reason:              'Reason',
+  supply:              'Supply',
+  frequency:           'Freq',
+  last_dispensed:      'Last',
+  next_due:            'Next',
 };
 
 const ADMIN_MODE_LABELS = { take_home: 'Take Home', in_clinic: 'In Clinic' };
+
+const SUPPLY_TYPE_LABELS = {
+  prefilled_4week: 'Prefilled · 4wk',
+  prefilled_2week: 'Prefilled · 2wk',
+  prefilled:       'Prefilled',
+  vial_5ml:        'Vial · 5ml',
+  vial_10ml:       'Vial · 10ml',
+  vial:            'Vial',
+};
+
+function formatShortDate(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(+d)) return null;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+
+function daysUntil(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(+d)) return null;
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return Math.round((target - now) / 86400000);
+}
 
 function daysSince(iso) {
   if (!iso) return 0;
@@ -39,14 +69,39 @@ function fullName(card) {
 
 function formatFieldValue(key, card) {
   const meta = card.meta || {};
+  const proto = card.protocol || {};
   if (key === 'program') {
     if (meta.duration_days) return `${meta.duration_days}-day`;
     if (meta.program_name)  return meta.program_name;
     return null;
   }
-  if (key === 'medication')          return meta.medication || null;
-  if (key === 'dose')                return meta.dose || null;
+  if (key === 'medication')          return meta.medication || proto.medication || null;
+  if (key === 'dose')                return meta.dose || proto.selected_dose || null;
   if (key === 'administration_mode') return ADMIN_MODE_LABELS[meta.administration_mode] || null;
+  if (key === 'supply') {
+    const s = proto.supply_type;
+    if (!s) return null;
+    return SUPPLY_TYPE_LABELS[s] || s.replace(/_/g, ' ');
+  }
+  if (key === 'frequency') {
+    if (proto.frequency) return proto.frequency;
+    const ipw = proto.injections_per_week || proto.injection_frequency;
+    if (ipw === 2) return '2x / wk';
+    if (ipw === 7) return 'Daily';
+    if (ipw) return `${ipw}x / wk`;
+    return null;
+  }
+  if (key === 'last_dispensed') return formatShortDate(proto.last_refill_date);
+  if (key === 'next_due') {
+    const d = formatShortDate(proto.next_expected_date);
+    if (!d) return null;
+    const days = daysUntil(proto.next_expected_date);
+    if (days == null) return d;
+    if (days < 0)  return `${d} · ${Math.abs(days)}d OVERDUE`;
+    if (days === 0) return `${d} · TODAY`;
+    if (days <= 3) return `${d} · in ${days}d`;
+    return d;
+  }
   if (key === 'sessions_used') {
     const u = meta.sessions_used, t = meta.total_sessions;
     if (u == null) return null;

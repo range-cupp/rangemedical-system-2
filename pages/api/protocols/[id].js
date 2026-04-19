@@ -348,15 +348,41 @@ async function updateProtocol(id, updates, res) {
 }
 
 async function deleteProtocol(id, res) {
+  // Unlink rows we want to preserve (keep history, just detach from protocol).
+  // These FKs are NO ACTION in the DB, so we must null them explicitly.
+  const unlinkTables = ['purchases', 'service_logs', 'recovery_enrollments'];
+  for (const table of unlinkTables) {
+    await supabase.from(table).update({ protocol_id: null }).eq('protocol_id', id);
+  }
+
+  // Unlink protocol-to-protocol self-references so other protocols survive.
+  await supabase.from('protocols').update({ exchanged_to: null }).eq('exchanged_to', id);
+  await supabase.from('protocols').update({ exchanged_from: null }).eq('exchanged_from', id);
+
+  // Delete child rows we don't need to keep. injection_logs, protocol_logs,
+  // patient_notes, pipeline_cards, and cellular_energy_checkins are handled
+  // by DB CASCADE/SET NULL rules and don't need explicit cleanup here.
+  const deleteTables = [
+    'journey_events',
+    'lab_journeys',
+    'follow_ups',
+    'protocol_follow_up_labs',
+    'checkin_reminders_log',
+    'protocol_sessions', // legacy table — may not exist, ignored if missing
+  ];
+  for (const table of deleteTables) {
+    await supabase.from(table).delete().eq('protocol_id', id);
+  }
+
   const { error } = await supabase
     .from('protocols')
     .delete()
     .eq('id', id);
-  
+
   if (error) {
     console.error('Error deleting protocol:', error);
     return res.status(500).json({ error: error.message });
   }
-  
+
   return res.status(200).json({ success: true });
 }

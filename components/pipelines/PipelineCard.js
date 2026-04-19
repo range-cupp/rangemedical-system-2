@@ -5,6 +5,7 @@
 import { getStaff, initials } from '../../lib/staff';
 
 const FIELD_LABELS = {
+  program:             'Protocol',
   medication:          'Med',
   dose:                'Dose',
   administration_mode: 'Delivery',
@@ -16,6 +17,7 @@ const FIELD_LABELS = {
   source:              'Source',
   path:                'Path',
   urgency:             'Urgency',
+  progress:            'Progress',
   reason:              'Reason',
 };
 
@@ -37,6 +39,11 @@ function fullName(card) {
 
 function formatFieldValue(key, card) {
   const meta = card.meta || {};
+  if (key === 'program') {
+    if (meta.duration_days) return `${meta.duration_days}-day`;
+    if (meta.program_name)  return meta.program_name;
+    return null;
+  }
   if (key === 'medication')          return meta.medication || null;
   if (key === 'dose')                return meta.dose || null;
   if (key === 'administration_mode') return ADMIN_MODE_LABELS[meta.administration_mode] || null;
@@ -52,6 +59,10 @@ function formatFieldValue(key, card) {
   if (key === 'source')            return card.source || null;
   if (key === 'path')              return card.path || null;
   if (key === 'urgency')           return card.urgency != null ? `${card.urgency}/10` : null;
+  if (key === 'progress') {
+    if (meta.percent_complete != null) return `${Math.round(meta.percent_complete)}%`;
+    return null;
+  }
   if (key === 'reason')            return meta.reason || null;
   return null;
 }

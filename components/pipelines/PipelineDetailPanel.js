@@ -3,10 +3,13 @@
 // V2 editorial: flat, 1px borders, uppercase small-caps headers.
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { X } from 'lucide-react';
+import { X, MessageSquare } from 'lucide-react';
 import { STAFF, getStaff, initials } from '../../lib/staff';
 import { CARD_STATUS } from '../../lib/pipelines-config';
+
+const SMSComposeModal = dynamic(() => import('../SMSComposeModal'), { ssr: false });
 
 const STATUS_OPTIONS = [
   { value: CARD_STATUS.ACTIVE,    label: 'Active' },
@@ -45,6 +48,7 @@ export default function PipelineDetailPanel({
   const [saving, setSaving]     = useState(false);
   const [events, setEvents]     = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
+  const [smsOpen, setSmsOpen]   = useState(false);
 
   useEffect(() => {
     setStage(card.stage);
@@ -159,6 +163,22 @@ export default function PipelineDetailPanel({
               </Link>
             )}
           </div>
+
+          {card.phone && (
+            <div style={styles.quickActions}>
+              <button
+                type="button"
+                onClick={() => setSmsOpen(true)}
+                style={styles.smsBtn}
+                title="Text this patient via Blooio"
+              >
+                <MessageSquare size={14} /> Text Patient
+              </button>
+              <a href={`tel:${card.phone}`} style={styles.callBtn}>
+                📞 Call
+              </a>
+            </div>
+          )}
         </div>
 
         <div style={styles.body}>
@@ -293,6 +313,15 @@ export default function PipelineDetailPanel({
           </button>
         </div>
       </aside>
+
+      <SMSComposeModal
+        isOpen={smsOpen}
+        onClose={() => setSmsOpen(false)}
+        recipientPhone={card.phone}
+        recipientName={card.first_name || fullName(card)}
+        patientId={card.patient_id}
+        patientName={fullName(card)}
+      />
     </>
   );
 }
@@ -391,6 +420,43 @@ const styles = {
     color: '#1a1a1a',
     borderBottom: '1.5px solid #1a1a1a',
     paddingBottom: '1px',
+  },
+  quickActions: {
+    display: 'flex',
+    gap: '8px',
+    marginTop: '14px',
+  },
+  smsBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '10px 14px',
+    background: '#1a1a1a',
+    color: '#fff',
+    border: 'none',
+    fontSize: '11px',
+    fontWeight: 700,
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase',
+    fontFamily: 'Inter, sans-serif',
+    cursor: 'pointer',
+    borderRadius: 0,
+  },
+  callBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '10px 14px',
+    background: '#fff',
+    color: '#1a1a1a',
+    border: '1px solid #e0e0e0',
+    fontSize: '11px',
+    fontWeight: 700,
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase',
+    fontFamily: 'Inter, sans-serif',
+    textDecoration: 'none',
+    borderRadius: 0,
   },
   body: {
     flex: 1,

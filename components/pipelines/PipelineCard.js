@@ -23,6 +23,20 @@ const FIELD_LABELS = {
   frequency:           'Freq',
   last_dispensed:      'Last',
   next_due:            'Next',
+  last_payment:        'Paid',
+  next_payment:        'Bills',
+  payment:             'Billing',
+};
+
+const PAYMENT_STATUS_LABELS = {
+  paid:       'Paid',
+  active:     'Active',
+  past_due:   'PAST DUE',
+  unpaid:     'UNPAID',
+  trialing:   'Trial',
+  canceled:   'Canceled',
+  succeeded:  'Paid',
+  failed:     'Failed',
 };
 
 const ADMIN_MODE_LABELS = { take_home: 'Take Home', in_clinic: 'In Clinic' };
@@ -102,6 +116,28 @@ function formatFieldValue(key, card) {
     if (days <= 3) return `${d} · in ${days}d`;
     return d;
   }
+  if (key === 'last_payment') {
+    const d = formatShortDate(card.last_payment_date);
+    if (!d) return null;
+    if (card.last_payment_cents != null && card.last_payment_cents > 0) {
+      return `$${(card.last_payment_cents / 100).toFixed(0)} · ${d}`;
+    }
+    return d;
+  }
+  if (key === 'next_payment') {
+    const d = formatShortDate(card.next_payment_date);
+    if (!d) return null;
+    const days = daysUntil(card.next_payment_date);
+    if (days == null) return d;
+    if (days < 0)  return `${d} · ${Math.abs(days)}d OVERDUE`;
+    if (days <= 3 && days >= 0) return `${d} · in ${days}d`;
+    return d;
+  }
+  if (key === 'payment') {
+    const s = card.payment_status;
+    if (!s) return null;
+    return PAYMENT_STATUS_LABELS[s] || s.replace(/_/g, ' ').toUpperCase();
+  }
   if (key === 'sessions_used') {
     const u = meta.sessions_used, t = meta.total_sessions;
     if (u == null) return null;
@@ -122,10 +158,31 @@ function formatFieldValue(key, card) {
   return null;
 }
 
+function isUrgentField(key, card) {
+  const proto = card.protocol || {};
+  if (key === 'next_due') {
+    const days = daysUntil(proto.next_expected_date);
+    return days != null && days < 0;
+  }
+  if (key === 'next_payment') {
+    const days = daysUntil(card.next_payment_date);
+    return days != null && days < 0;
+  }
+  if (key === 'payment') {
+    return ['past_due', 'unpaid', 'failed'].includes(card.payment_status);
+  }
+  return false;
+}
+
 export default function PipelineCard({ card, pipeline, onClick }) {
   const days = daysSince(card.entered_stage_at);
   const fields = (pipeline?.cardFields || [])
-    .map(k => ({ key: k, label: FIELD_LABELS[k] || k, value: formatFieldValue(k, card) }))
+    .map(k => ({
+      key: k,
+      label: FIELD_LABELS[k] || k,
+      value: formatFieldValue(k, card),
+      urgent: isUrgentField(k, card),
+    }))
     .filter(f => f.value);
 
   return (
@@ -142,7 +199,7 @@ export default function PipelineCard({ card, pipeline, onClick }) {
           {fields.map(f => (
             <div key={f.key} style={styles.field}>
               <span style={styles.fieldLabel}>{f.label}</span>
-              <span style={styles.fieldValue}>{f.value}</span>
+              <span style={f.urgent ? styles.fieldValueUrgent : styles.fieldValue}>{f.value}</span>
             </div>
           ))}
         </div>
@@ -218,6 +275,12 @@ const styles = {
     color: '#404040',
     fontWeight: 600,
     fontSize: '12px',
+  },
+  fieldValueUrgent: {
+    color: '#c0332e',
+    fontWeight: 700,
+    fontSize: '12px',
+    letterSpacing: '0.02em',
   },
   footer: {
     display: 'flex',

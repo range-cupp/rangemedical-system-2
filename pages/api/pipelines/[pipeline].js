@@ -5,6 +5,11 @@
 import { sb, createCard } from '../../../lib/pipelines-server';
 import { getPipeline, CARD_STATUS } from '../../../lib/pipelines-config';
 
+// pipeline → subscriptions.service_category (only where subscriptions exist)
+const PIPELINE_TO_SUB_CATEGORY = { hrt: 'hrt', weight_loss: 'weight_loss' };
+// pipelines that care about payment history (subs or one-time purchases)
+const PAYMENT_PIPELINES = new Set(['hrt', 'weight_loss', 'peptides', 'hbot', 'rlt', 'injections']);
+
 export default async function handler(req, res) {
   const { pipeline } = req.query;
   const def = getPipeline(pipeline);
@@ -42,6 +47,53 @@ export default async function handler(req, res) {
         supply_category,
       };
     });
+
+    // Enrich with payment data for treatment pipelines
+    if (PAYMENT_PIPELINES.has(pipeline) && rows.length > 0) {
+      const client = sb();
+      const protocolIds = [...new Set(rows.map(r => r.protocol_id).filter(Boolean))];
+      const patientIds  = [...new Set(rows.map(r => r.patient_id).filter(Boolean))];
+
+      const purchasesByProto = {};
+      if (protocolIds.length) {
+        const { data: purchases } = await client
+          .from('purchases')
+          .select('protocol_id, purchase_date, amount_paid, stripe_status, created_at')
+          .in('protocol_id', protocolIds)
+          .order('purchase_date', { ascending: false, nullsFirst: false });
+        for (const p of purchases || []) {
+          if (!purchasesByProto[p.protocol_id]) purchasesByProto[p.protocol_id] = p;
+        }
+      }
+
+      const subsByPatient = {};
+      const subCat = PIPELINE_TO_SUB_CATEGORY[pipeline];
+      if (subCat && patientIds.length) {
+        const { data: subs } = await client
+          .from('subscriptions')
+          .select('patient_id, status, current_period_start, current_period_end, amount_cents, canceled_at')
+          .in('patient_id', patientIds)
+          .eq('service_category', subCat)
+          .in('status', ['active', 'past_due', 'trialing', 'unpaid'])
+          .order('created_at', { ascending: false });
+        for (const s of subs || []) {
+          if (!subsByPatient[s.patient_id]) subsByPatient[s.patient_id] = s;
+        }
+      }
+
+      for (const r of rows) {
+        const purchase = r.protocol_id ? purchasesByProto[r.protocol_id] : null;
+        const sub = subsByPatient[r.patient_id];
+        r.last_payment_date    = purchase?.purchase_date || (sub?.current_period_start ?? null);
+        r.last_payment_cents   = purchase ? Math.round((purchase.amount_paid || 0) * 100) : (sub?.amount_cents ?? null);
+        r.next_payment_date    = sub?.current_period_end || null;
+        r.subscription_status  = sub?.status || null;
+        r.payment_status       = sub?.status
+          || (purchase?.stripe_status === 'succeeded' ? 'paid'
+              : purchase?.stripe_status || (purchase ? 'paid' : null));
+      }
+    }
+
     return res.status(200).json(rows);
   }
 

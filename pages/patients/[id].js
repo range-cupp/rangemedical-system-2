@@ -4958,14 +4958,28 @@ export default function PatientProfile() {
                           )}
                         </span>
                       )}
-                      {lastPickup && (
-                        <span style={{ color: '#1f2937' }}>
-                          <span style={{ color: '#6b7280' }}>Last pickup: </span>
-                          {fmt(lastPickup)}
-                          {lastPickup.quantity && <span style={{ color: '#6b7280', marginLeft: 6 }}>· {lastPickup.quantity} dispensed</span>}
-                          {lastPickup.dosage && <span style={{ color: '#6b7280', marginLeft: 6 }}>· {lastPickup.dosage}</span>}
-                        </span>
-                      )}
+                      {lastPickup && (() => {
+                        const isPrepaid = isInClinic || lastPickup.fulfillment_method === 'in_clinic_injections';
+                        const injectionsDone = (serviceLogs || []).filter(l =>
+                          l.protocol_id === protocol.id &&
+                          l.entry_type === 'injection' &&
+                          l.entry_date >= lastPickup.entry_date
+                        ).length;
+                        const qty = lastPickup.quantity;
+                        return (
+                          <span style={{ color: '#1f2937' }}>
+                            <span style={{ color: '#6b7280' }}>{isPrepaid ? 'Purchased: ' : 'Last pickup: '}</span>
+                            {fmt(lastPickup)}
+                            {qty && isPrepaid && (
+                              <span style={{ color: '#6b7280', marginLeft: 6 }}>· {injectionsDone} of {qty} administered</span>
+                            )}
+                            {qty && !isPrepaid && (
+                              <span style={{ color: '#6b7280', marginLeft: 6 }}>· {qty} dispensed</span>
+                            )}
+                            {lastPickup.dosage && <span style={{ color: '#6b7280', marginLeft: 6 }}>· {lastPickup.dosage}</span>}
+                          </span>
+                        );
+                      })()}
                       {(() => {
                         // Suppress stale projections: only show next_expected_date if it's
                         // in the future AND after the last injection/pickup. If a booked

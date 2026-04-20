@@ -84,6 +84,10 @@
     {
       "path": "/api/cron/generate-follow-ups",
       "schedule": "15 14 * * *"
+    },
+    {
+      "path": "/api/cron/giveaway-scholarships",
+      "schedule": "0 18 25 4 *"
     }
   ]
 }

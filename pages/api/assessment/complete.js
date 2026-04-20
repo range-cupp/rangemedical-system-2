@@ -222,7 +222,7 @@ export default async function handler(req, res) {
       try {
         const { data: patientMatch } = await supabase
           .from('patients')
-          .select('id, date_of_birth, gender, address, city, state, zip_code, preferred_name, tags')
+          .select('id, date_of_birth, gender, address, city, state, zip_code, preferred_name, tags, referral_source')
           .eq('email', normalizedEmail)
           .maybeSingle();
 
@@ -257,6 +257,13 @@ export default async function handler(req, res) {
           if (!patientMatch.state && state) demographicUpdates.state = state;
           if (!patientMatch.zip_code && zip) demographicUpdates.zip_code = zip;
           if (!patientMatch.preferred_name && preferredName) demographicUpdates.preferred_name = preferredName;
+
+          if (!patientMatch.referral_source && intakeData.howHeardAboutUs) {
+            let referralTag = intakeData.howHeardAboutUs;
+            if (referralTag === 'Other' && intakeData.howHeardOther) referralTag = intakeData.howHeardOther;
+            if (referralTag === 'Friend or Family Member' && intakeData.howHeardFriend) referralTag = `Friend/Family: ${intakeData.howHeardFriend}`;
+            demographicUpdates.referral_source = referralTag;
+          }
 
           // Add condition tags
           const conditions = intakeData.conditions || {};
@@ -296,6 +303,10 @@ export default async function handler(req, res) {
             }
           }
 
+          let referralTag = intakeData.howHeardAboutUs || null;
+          if (referralTag === 'Other' && intakeData.howHeardOther) referralTag = intakeData.howHeardOther;
+          if (referralTag === 'Friend or Family Member' && intakeData.howHeardFriend) referralTag = `Friend/Family: ${intakeData.howHeardFriend}`;
+
           const insertData = {
             first_name: capFirst,
             last_name: capLast,
@@ -309,6 +320,7 @@ export default async function handler(req, res) {
             city: (addr.city || pi.city || intakeData.city) || null,
             state: (addr.state || pi.state || intakeData.state) || null,
             zip_code: (addr.postalCode || addr.zip || addr.zipCode || pi.postalCode || intakeData.postalCode) || null,
+            referral_source: referralTag,
             tags: ['assessment-lead', `assessment-${assessmentPath}`],
           };
 

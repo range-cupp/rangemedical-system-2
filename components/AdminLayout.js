@@ -579,6 +579,7 @@ const NAV_ITEMS = [
   { href: '/admin/checkout', label: 'Checkout', icon: 'shopping-bag', group: 'business' },
   { href: '/admin/quotes', label: 'Quotes', icon: 'file-text', group: 'business' },
   { href: '/admin/payments', label: 'Payments', icon: 'credit-card', group: 'business' },
+  { href: '/admin/clinic-sources', label: 'Clinic Sources', icon: 'pie-chart', adminOnly: true, group: 'business' },
   { href: '/admin/communications', label: 'Communications', icon: 'message' },
   { href: '/admin/email-campaigns', label: 'Email Campaigns', icon: 'mail', adminOnly: true, group: 'business' },
   { href: '/admin/google-reviews', label: 'Google Reviews', icon: 'star', adminOnly: true, group: 'business' },
@@ -739,6 +740,11 @@ const icons = {
   bell: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  ),
+  'pie-chart': (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21.21 15.89A10 10 0 1 1 8 2.83" /><path d="M22 12A10 10 0 0 0 12 2v10z" />
     </svg>
   ),
 };

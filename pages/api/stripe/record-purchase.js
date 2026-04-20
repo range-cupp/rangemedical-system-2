@@ -306,7 +306,7 @@ export default async function handler(req, res) {
     }
 
     // Auto-create/extend protocol and link to purchase before responding
-    const protocolCategories = ['weight_loss', 'hrt', 'peptide', 'hbot', 'red_light', 'iv_therapy', 'specialty_iv', 'injection_pack', 'nad_injection', 'regenerative'];
+    const protocolCategories = ['weight_loss', 'hrt', 'peptide', 'hbot', 'red_light', 'iv_therapy', 'specialty_iv', 'injection', 'injections', 'injection_pack', 'injection_standard', 'injection_premium', 'nad_injection', 'regenerative'];
     if (service_category && service_name) {
       try {
         await autoCreateOrExtendProtocol({

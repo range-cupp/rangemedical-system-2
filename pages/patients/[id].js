@@ -7341,22 +7341,29 @@ export default function PatientProfile() {
                                           if (slotGroupHeader) rowElements.unshift(slotGroupHeader);
                                           return rowElements;
                                         }
-                                        // Projected take-home session (from pickup data)
+                                        // Projected session (from pickup data) — label by delivery method
                                         if (slot._projected) {
+                                          const isInClinicProj = protocol.delivery_method === 'in_clinic';
+                                          const projLabel = isInClinicProj
+                                            ? (slot._projectedPast ? 'In-clinic' : 'In-clinic (upcoming)')
+                                            : (slot._projectedPast ? 'Take-home' : 'Take-home (upcoming)');
+                                          const projTitle = isInClinicProj
+                                            ? 'In-clinic injection — click to log weight'
+                                            : 'Take-home injection — click to log weight';
                                           const projRow = (
                                             <tr key={'proj-' + slot.num} style={{ background: slot._projectedPast ? '#f8fafc' : '#fafafa' }}
                                               onClick={() => openQuickWeightModal(protocol, slot.expStr)}
-                                              title="Take-home injection — click to log weight"
+                                              title={projTitle}
                                               className="wl-editable-row">
                                               <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
                                               <td style={{ color: slot._projectedPast ? '#6b7280' : '#9ca3af' }}>
                                                 {formatShortDate(slot.expStr)}
-                                                <span style={{ marginLeft: 4, fontSize: 11 }}>🏠</span>
+                                                {!isInClinicProj && <span style={{ marginLeft: 4, fontSize: 11 }}>🏠</span>}
                                               </td>
                                               <td style={{ color: '#9ca3af' }}>{slot._projectedDose || currentDose || '\u2014'}</td>
                                               <td><span style={{ color: '#9ca3af' }}>{'\u2014'}</span></td>
                                               <td style={{ color: '#94a3b8', fontSize: 11, fontStyle: 'italic' }}>
-                                                {slot._projectedPast ? 'Take-home' : 'Take-home (upcoming)'}
+                                                {projLabel}
                                               </td>
                                               <td></td>
                                               <td style={{ textAlign: 'center', color: '#9ca3af', fontWeight: 700, fontSize: 14 }}>+</td>

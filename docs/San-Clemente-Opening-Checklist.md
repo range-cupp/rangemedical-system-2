@@ -8,7 +8,6 @@
 Blockers for opening — tackle first.
 
 - [ ] Hire Physical Therapist (PT)
-- [ ] Confirm suite numbers with building owner — required for medication storage
 - [ ] Hire PTAs
 
 ## Facility
@@ -27,7 +26,8 @@ Blockers for opening — tackle first.
 - [x] Staff intro meetings held
 - [ ] Hire Physical Therapist
 - [ ] Hire PTAs
-- [ ] Finalize compensation structure
+- [x] Lola — compensation finalized
+- [ ] Finalize compensation structure (remaining staff)
 
 ## Equipment — Treatment
 

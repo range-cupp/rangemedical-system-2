@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 
 const STORAGE_KEY = 'san-clemente-checklist-v1';
+const CUSTOM_KEY = 'san-clemente-checklist-custom-v1';
 
 const SECTIONS = [
   {
@@ -9,7 +10,6 @@ const SECTIONS = [
     note: 'Blockers for opening — tackle first.',
     items: [
       { id: 'cp-pt', label: 'Hire Physical Therapist (PT)' },
-      { id: 'cp-suite', label: 'Confirm suite numbers with building owner (required for medication storage)' },
       { id: 'cp-ptas', label: 'Hire PTAs' },
     ],
   },
@@ -30,7 +30,8 @@ const SECTIONS = [
       { id: 'p-staff-meetings', label: 'Staff intro meetings held', defaultChecked: true },
       { id: 'p-hire-pt', label: 'Hire Physical Therapist' },
       { id: 'p-hire-ptas', label: 'Hire PTAs' },
-      { id: 'p-comp', label: 'Finalize compensation structure' },
+      { id: 'p-comp-lola', label: 'Lola — compensation finalized', defaultChecked: true },
+      { id: 'p-comp', label: 'Finalize compensation structure (remaining staff)' },
     ],
   },
   {
@@ -77,7 +78,10 @@ const SECTIONS = [
 
 export default function SanClementeOpening() {
   const [checked, setChecked] = useState({});
+  const [customItems, setCustomItems] = useState({});
   const [loaded, setLoaded] = useState(false);
+  const [addingSection, setAddingSection] = useState(null);
+  const [newLabel, setNewLabel] = useState('');
 
   useEffect(() => {
     try {
@@ -91,6 +95,8 @@ export default function SanClementeOpening() {
         }));
         setChecked(defaults);
       }
+      const storedCustom = localStorage.getItem(CUSTOM_KEY);
+      if (storedCustom) setCustomItems(JSON.parse(storedCustom));
     } catch (err) {
       // ignore malformed storage
     }
@@ -98,20 +104,49 @@ export default function SanClementeOpening() {
   }, []);
 
   useEffect(() => {
-    if (loaded) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(checked));
-    }
+    if (loaded) localStorage.setItem(STORAGE_KEY, JSON.stringify(checked));
   }, [checked, loaded]);
+
+  useEffect(() => {
+    if (loaded) localStorage.setItem(CUSTOM_KEY, JSON.stringify(customItems));
+  }, [customItems, loaded]);
 
   const toggle = (id) => {
     setChecked(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const totalItems = SECTIONS.reduce((sum, s) => sum + s.items.length, 0);
-  const doneCount = SECTIONS.reduce(
-    (sum, s) => sum + s.items.filter(i => checked[i.id]).length,
-    0
-  );
+  const addItem = (sectionTitle) => {
+    const label = newLabel.trim();
+    if (!label) return;
+    const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setCustomItems(prev => ({
+      ...prev,
+      [sectionTitle]: [...(prev[sectionTitle] || []), { id, label }],
+    }));
+    setNewLabel('');
+    setAddingSection(null);
+  };
+
+  const removeItem = (sectionTitle, id) => {
+    setCustomItems(prev => ({
+      ...prev,
+      [sectionTitle]: (prev[sectionTitle] || []).filter(i => i.id !== id),
+    }));
+    setChecked(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
+
+  const getSectionItems = (section) => [
+    ...section.items,
+    ...((customItems[section.title] || []).map(i => ({ ...i, custom: true }))),
+  ];
+
+  const allItems = SECTIONS.flatMap(getSectionItems);
+  const totalItems = allItems.length;
+  const doneCount = allItems.filter(i => checked[i.id]).length;
   const pct = totalItems === 0 ? 0 : Math.round((doneCount / totalItems) * 100);
 
   return (
@@ -136,38 +171,85 @@ export default function SanClementeOpening() {
             </div>
           </div>
 
-          {SECTIONS.map(section => (
-            <div key={section.title} style={styles.section}>
-              <div style={styles.sectionTitle}>{section.title}</div>
-              {section.note && <div style={styles.sectionNote}>{section.note}</div>}
-              <ul style={styles.list}>
-                {section.items.map(item => {
-                  const isChecked = !!checked[item.id];
-                  return (
-                    <li key={item.id} style={styles.listItem}>
-                      <label style={styles.label}>
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => toggle(item.id)}
-                          style={styles.checkbox}
-                        />
-                        <span style={{
-                          ...styles.itemText,
-                          textDecoration: isChecked ? 'line-through' : 'none',
-                          color: isChecked ? '#888' : '#111',
-                        }}>
-                          {item.label}
-                        </span>
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
+          {SECTIONS.map(section => {
+            const items = getSectionItems(section);
+            const isAdding = addingSection === section.title;
+            return (
+              <div key={section.title} style={styles.section}>
+                <div style={styles.sectionTitle}>{section.title}</div>
+                {section.note && <div style={styles.sectionNote}>{section.note}</div>}
+                <ul style={styles.list}>
+                  {items.map(item => {
+                    const isChecked = !!checked[item.id];
+                    return (
+                      <li key={item.id} style={styles.listItem}>
+                        <label style={styles.label}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggle(item.id)}
+                            style={styles.checkbox}
+                          />
+                          <span style={{
+                            ...styles.itemText,
+                            textDecoration: isChecked ? 'line-through' : 'none',
+                            color: isChecked ? '#888' : '#111',
+                            flex: 1,
+                          }}>
+                            {item.label}
+                          </span>
+                          {item.custom && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.preventDefault(); removeItem(section.title, item.id); }}
+                              style={styles.removeBtn}
+                              aria-label="Remove item"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {isAdding ? (
+                  <div style={styles.addRow}>
+                    <input
+                      type="text"
+                      value={newLabel}
+                      onChange={(e) => setNewLabel(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); addItem(section.title); }
+                        if (e.key === 'Escape') { setAddingSection(null); setNewLabel(''); }
+                      }}
+                      placeholder="New task"
+                      autoFocus
+                      style={styles.addInput}
+                    />
+                    <button type="button" onClick={() => addItem(section.title)} style={styles.addBtn}>Add</button>
+                    <button
+                      type="button"
+                      onClick={() => { setAddingSection(null); setNewLabel(''); }}
+                      style={styles.cancelBtn}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { setAddingSection(section.title); setNewLabel(''); }}
+                    style={styles.addLink}
+                  >
+                    + Add item
+                  </button>
+                )}
+              </div>
+            );
+          })}
 
-          <div style={styles.footer}>Checkbox state saves to this browser only.</div>
+          <div style={styles.footer}>Checkbox state and added items save to this browser only.</div>
         </div>
       </div>
     </>
@@ -233,6 +315,60 @@ const styles = {
     cursor: 'pointer',
   },
   itemText: { fontSize: '15px', lineHeight: '1.5' },
+  removeBtn: {
+    background: 'transparent',
+    border: 'none',
+    color: '#bbb',
+    fontSize: '18px',
+    lineHeight: '1',
+    cursor: 'pointer',
+    padding: '0 4px',
+    alignSelf: 'center',
+  },
+  addLink: {
+    background: 'transparent',
+    border: 'none',
+    color: '#2E6B35',
+    fontSize: '13px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    padding: '8px 0 0 26px',
+    textAlign: 'left',
+  },
+  addRow: {
+    display: 'flex',
+    gap: '8px',
+    marginTop: '8px',
+    paddingLeft: '26px',
+    alignItems: 'center',
+  },
+  addInput: {
+    flex: 1,
+    padding: '8px 10px',
+    fontSize: '14px',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+    fontFamily: 'inherit',
+  },
+  addBtn: {
+    padding: '8px 14px',
+    background: '#2E6B35',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '4px',
+    fontSize: '13px',
+    fontWeight: 500,
+    cursor: 'pointer',
+  },
+  cancelBtn: {
+    padding: '8px 10px',
+    background: 'transparent',
+    color: '#666',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+    fontSize: '13px',
+    cursor: 'pointer',
+  },
   footer: {
     marginTop: '32px',
     paddingTop: '16px',

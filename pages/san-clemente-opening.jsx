@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 
-const STORAGE_KEY = 'san-clemente-checklist-v1';
-const CUSTOM_KEY = 'san-clemente-checklist-custom-v1';
+const SLUG = 'san-clemente-opening';
+const POLL_MS = 5000;
 
 const SECTIONS = [
   {
@@ -16,8 +16,8 @@ const SECTIONS = [
   {
     title: 'Facility',
     items: [
-      { id: 'fac-gym', label: 'Gym space', defaultChecked: true },
-      { id: 'fac-wd', label: 'Washer and dryer sourced', defaultChecked: true },
+      { id: 'fac-gym', label: 'Gym space' },
+      { id: 'fac-wd', label: 'Washer and dryer sourced' },
       { id: 'fac-cabinets', label: 'Cabinets' },
       { id: 'fac-suite', label: 'Meet with building owner — suite numbers for Adi and Range medication suite' },
     ],
@@ -25,12 +25,12 @@ const SECTIONS = [
   {
     title: 'Personnel',
     items: [
-      { id: 'p-reed', label: 'Reed — operating manager conversation', defaultChecked: true },
-      { id: 'p-pt-meetings', label: 'PT candidate meetings scheduled', defaultChecked: true },
-      { id: 'p-staff-meetings', label: 'Staff intro meetings held', defaultChecked: true },
+      { id: 'p-reed', label: 'Reed — operating manager conversation' },
+      { id: 'p-pt-meetings', label: 'PT candidate meetings scheduled' },
+      { id: 'p-staff-meetings', label: 'Staff intro meetings held' },
       { id: 'p-hire-pt', label: 'Hire Physical Therapist' },
       { id: 'p-hire-ptas', label: 'Hire PTAs' },
-      { id: 'p-comp-lola', label: 'Lola — compensation finalized', defaultChecked: true },
+      { id: 'p-comp-lola', label: 'Lola — compensation finalized' },
       { id: 'p-comp', label: 'Finalize compensation structure (remaining staff)' },
     ],
   },
@@ -48,8 +48,8 @@ const SECTIONS = [
     title: 'Equipment — Office & Operations',
     items: [
       { id: 'o-cc', label: 'Credit card machine' },
-      { id: 'o-washer', label: 'Washer', defaultChecked: true },
-      { id: 'o-dryer', label: 'Dryer', defaultChecked: true },
+      { id: 'o-washer', label: 'Washer' },
+      { id: 'o-dryer', label: 'Dryer' },
       { id: 'o-computer', label: 'Office computer' },
       { id: 'o-printer', label: 'Printer' },
       { id: 'o-supplies', label: 'Office supplies' },
@@ -80,51 +80,77 @@ export default function SanClementeOpening() {
   const [checked, setChecked] = useState({});
   const [customItems, setCustomItems] = useState({});
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(null);
   const [addingSection, setAddingSection] = useState(null);
   const [newLabel, setNewLabel] = useState('');
+  const pendingRef = useRef(0);
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setChecked(JSON.parse(stored));
-      } else {
-        const defaults = {};
-        SECTIONS.forEach(s => s.items.forEach(i => {
-          if (i.defaultChecked) defaults[i.id] = true;
-        }));
-        setChecked(defaults);
-      }
-      const storedCustom = localStorage.getItem(CUSTOM_KEY);
-      if (storedCustom) setCustomItems(JSON.parse(storedCustom));
-    } catch (err) {
-      // ignore malformed storage
+  const applyState = useCallback((data) => {
+    if (data && typeof data === 'object') {
+      setChecked(data.checked || {});
+      setCustomItems(data.customItems || {});
     }
-    setLoaded(true);
   }, []);
 
-  useEffect(() => {
-    if (loaded) localStorage.setItem(STORAGE_KEY, JSON.stringify(checked));
-  }, [checked, loaded]);
+  const fetchState = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/public-checklist/${SLUG}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`GET ${res.status}`);
+      const data = await res.json();
+      if (pendingRef.current === 0) applyState(data);
+      setError(null);
+    } catch (err) {
+      setError('Offline — changes may not be saved.');
+    }
+  }, [applyState]);
+
+  const mutate = useCallback(async (body) => {
+    pendingRef.current += 1;
+    try {
+      const res = await fetch(`/api/public-checklist/${SLUG}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`POST ${res.status}`);
+      const data = await res.json();
+      applyState(data);
+      setError(null);
+    } catch (err) {
+      setError('Save failed — refreshing.');
+      fetchState();
+    } finally {
+      pendingRef.current = Math.max(0, pendingRef.current - 1);
+    }
+  }, [applyState, fetchState]);
 
   useEffect(() => {
-    if (loaded) localStorage.setItem(CUSTOM_KEY, JSON.stringify(customItems));
-  }, [customItems, loaded]);
+    let cancelled = false;
+    (async () => {
+      await fetchState();
+      if (!cancelled) setLoaded(true);
+    })();
+    const interval = setInterval(fetchState, POLL_MS);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [fetchState]);
 
   const toggle = (id) => {
     setChecked(prev => ({ ...prev, [id]: !prev[id] }));
+    mutate({ action: 'toggle', itemId: id });
   };
 
   const addItem = (sectionTitle) => {
     const label = newLabel.trim();
     if (!label) return;
     const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const newItem = { id, label };
     setCustomItems(prev => ({
       ...prev,
-      [sectionTitle]: [...(prev[sectionTitle] || []), { id, label }],
+      [sectionTitle]: [...(prev[sectionTitle] || []), newItem],
     }));
     setNewLabel('');
     setAddingSection(null);
+    mutate({ action: 'add', sectionTitle, item: newItem });
   };
 
   const removeItem = (sectionTitle, id) => {
@@ -137,6 +163,7 @@ export default function SanClementeOpening() {
       delete next[id];
       return next;
     });
+    mutate({ action: 'remove', sectionTitle, itemId: id });
   };
 
   const getSectionItems = (section) => [
@@ -162,9 +189,11 @@ export default function SanClementeOpening() {
             <div style={styles.subtitle}>Target open: May 1, 2026 &middot; Operating Manager: Reed</div>
           </div>
 
+          {error && <div style={styles.errorBanner}>{error}</div>}
+
           <div style={styles.progress}>
             <div style={styles.progressLabel}>
-              {doneCount} of {totalItems} complete ({pct}%)
+              {loaded ? `${doneCount} of ${totalItems} complete (${pct}%)` : 'Loading…'}
             </div>
             <div style={styles.progressBar}>
               <div style={{ ...styles.progressFill, width: `${pct}%` }} />
@@ -249,7 +278,7 @@ export default function SanClementeOpening() {
             );
           })}
 
-          <div style={styles.footer}>Checkbox state and added items save to this browser only.</div>
+          <div style={styles.footer}>Shared across everyone viewing this page.</div>
         </div>
       </div>
     </>
@@ -274,6 +303,15 @@ const styles = {
   header: { marginBottom: '24px' },
   title: { fontSize: '28px', fontWeight: 700, color: '#111', marginBottom: '4px' },
   subtitle: { fontSize: '14px', color: '#666' },
+  errorBanner: {
+    padding: '10px 14px',
+    background: '#fff4e5',
+    border: '1px solid #f0c070',
+    color: '#8a5a00',
+    borderRadius: '6px',
+    fontSize: '13px',
+    marginBottom: '16px',
+  },
   progress: {
     padding: '16px',
     background: '#f4f4f2',

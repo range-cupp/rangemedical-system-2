@@ -9244,13 +9244,6 @@ export default function PatientProfile() {
                               style={{ background: '#f3f4f6', border: '1px solid #d1d5db', color: '#374151', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
                               title="Edit note"
                             >Edit</button>
-                            {canSignNote(note) && (
-                              <button
-                                onClick={() => handleSignNote(note.id)}
-                                style={{ background: '#065f46', border: '1px solid #065f46', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
-                                title="Sign and lock note"
-                              >✍ Sign & Lock</button>
-                            )}
                             <button
                               onClick={() => handleTogglePin(note.id, note.pinned)}
                               style={{

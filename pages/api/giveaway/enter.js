@@ -17,6 +17,7 @@ const supabase = supabaseUrl && supabaseKey
   : null;
 
 const CAMPAIGN_KEY = 'cellular_reset_2026_04';
+const STAFF_ALERT_PHONE = '+19496900339'; // Chris — every new giveaway entry
 
 function computeLeadScore({ importance90d, budgetAnswer }) {
   // 0-100 scale. Importance contributes up to 70, budget up to 30.
@@ -271,6 +272,28 @@ export default async function handler(req, res) {
       });
     } catch (emailErr) {
       console.error('Staff notification email error:', emailErr);
+    }
+
+    // 6. Staff alert SMS to Chris on every entry
+    try {
+      const struggleLabel = STRUGGLE_LABELS[struggleMain] || struggleMain;
+      const alertMsg = `New giveaway entry: ${name} (${phone.trim()}). ${struggleLabel} · ${importance90d}/10 · ${leadTier.toUpperCase()}. range-medical.com/admin/giveaway`;
+
+      const alertResult = await sendSMS({ to: STAFF_ALERT_PHONE, message: alertMsg });
+
+      await logComm({
+        channel: 'sms',
+        messageType: 'giveaway_staff_alert',
+        message: alertMsg,
+        source: 'giveaway-enter',
+        recipient: STAFF_ALERT_PHONE,
+        status: alertResult.success ? 'sent' : 'error',
+        errorMessage: alertResult.error || null,
+        twilioMessageSid: alertResult.messageSid || null,
+        provider: alertResult.provider || null,
+      });
+    } catch (alertErr) {
+      console.error('Giveaway staff alert SMS error:', alertErr);
     }
 
     return res.status(200).json({

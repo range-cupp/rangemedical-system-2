@@ -265,6 +265,94 @@ export default async function handler(req, res) {
       }
     }
 
+    // ================================================================
+    // AUTO-REPLY: Giveaway Scholarship Offer
+    // If sender replies YES to a recent scholarship SMS, flip their status
+    // to 'scholarship_interested', send details, and create a staff task.
+    // Matched by phone (last 10 digits) — patient record not required.
+    // ================================================================
+    if (From && Body) {
+      const normalizedBody = (Body || '').trim().toLowerCase();
+
+      if (POSITIVE_REPLIES.includes(normalizedBody)) {
+        const lastTen = From.replace(/\D/g, '').slice(-10);
+
+        if (lastTen.length === 10) {
+          const nowIso = new Date().toISOString();
+
+          // Find a non-expired scholarship offer for this phone
+          const { data: candidates } = await supabase
+            .from('giveaway_entries')
+            .select('*')
+            .eq('status', 'scholarship_offered')
+            .gt('scholarship_expires_at', nowIso)
+            .limit(50);
+
+          const match = (candidates || []).find((e) => {
+            const digits = (e.phone || '').replace(/\D/g, '').slice(-10);
+            return digits === lastTen;
+          });
+
+          if (match) {
+            const firstName = (match.name || '').trim().split(/\s+/)[0] || 'there';
+            console.log(`Giveaway scholarship YES reply from ${match.name} (${From})`);
+
+            await supabase
+              .from('giveaway_entries')
+              .update({ status: 'scholarship_interested' })
+              .eq('id', match.id)
+              .catch((err) => { console.error('giveaway_entries update error:', err.message); });
+
+            const replyMessage = `Awesome ${firstName}! Your $1,000 scholarship on the 6-Week Cellular Energy Reset is locked in — $2,999 → $1,999. Someone from Range Medical will reach out shortly to get you scheduled. Do weekdays or Saturdays work better to start?\n\n- Range Medical`;
+
+            const replyResult = await sendSMS({ to: From, message: replyMessage }).catch((err) => {
+              console.error('Giveaway scholarship reply SMS error:', err);
+              return { success: false, error: err.message };
+            });
+
+            await logComm({
+              channel: 'sms',
+              messageType: 'giveaway_scholarship_reply',
+              message: replyMessage,
+              source: 'twilio/webhook',
+              patientId: match.patient_id || null,
+              patientName: firstName,
+              recipient: From,
+              status: replyResult.success ? 'sent' : 'error',
+              errorMessage: replyResult.error || null,
+              twilioMessageSid: replyResult.messageSid || null,
+              provider: replyResult.provider || null,
+              direction: 'outbound',
+            }).catch((err) => { console.error('comms_log error:', err.message); });
+
+            // Create a follow-up task for Damon
+            try {
+              const { data: damon } = await supabase
+                .from('employees')
+                .select('id')
+                .eq('email', 'damon@range-medical.com')
+                .maybeSingle();
+
+              if (damon) {
+                await supabase.from('tasks').insert({
+                  title: `Giveaway scholarship: ${match.name} replied YES`,
+                  description: `${match.name} said YES to the $1,000 scholarship on the 6-Week Cellular Energy Reset.\n\nPhone: ${match.phone}\nEmail: ${match.email}\nTier: ${match.lead_tier} (score ${match.lead_score})\nBad day: ${match.bad_day_description}\nWhat would change: ${match.desired_change}\n\nScholarship expires: ${match.scholarship_expires_at}. Call to book the kickoff.`,
+                  assigned_to: damon.id,
+                  assigned_by: damon.id,
+                  patient_id: match.patient_id || null,
+                  patient_name: match.name,
+                  priority: 'high',
+                  status: 'pending',
+                });
+              }
+            } catch (taskErr) {
+              console.error('Giveaway scholarship task creation error:', taskErr);
+            }
+          }
+        }
+      }
+    }
+
     // Return TwiML (empty = no auto-reply via TwiML, replies sent via API above)
     res.setHeader('Content-Type', 'text/xml');
     return res.status(200).send('<Response></Response>');

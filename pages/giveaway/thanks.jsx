@@ -100,7 +100,10 @@ export default function GiveawayThanksPage() {
           <div className="gv-thx-steps">
             <h3>What happens next</h3>
             <ol>
-              <li>We&apos;ll pick the winner at random and text them directly.</li>
+              <li>
+                <strong>Saturday, April 25 at 10 AM PT:</strong> we pick the winner
+                at random and text them directly.
+              </li>
               <li>
                 Everyone else who qualifies will get a <strong>$1,000 scholarship</strong> text — $2,999
                 dropped to $1,999 on the same program, good for 7 days.

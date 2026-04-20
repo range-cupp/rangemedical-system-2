@@ -427,14 +427,15 @@ export default function GiveawayPage() {
           </p>
           <p>
             Everyone else who qualifies gets a <strong>$1,000 scholarship</strong> on the
-            same program — $2,999 down to $1,999 — good for 7 days after the winner is picked.
+            same program — $2,999 down to $1,999 — good for 7 days after the drawing.
           </p>
 
           <div className="gv-highlight-box">
-            <strong>How to enter</strong>
+            <strong>Drawing: Saturday, April 25 · 10 AM PT</strong>
             <p>
-              Fill out the short application below. We&apos;ll pick one winner at random and
-              text everyone else their scholarship offer. It takes about 3 minutes.
+              Fill out the short application below. We&apos;ll pick one winner at random
+              on Saturday morning and text everyone else their scholarship offer.
+              Takes about 3 minutes.
             </p>
           </div>
         </section>

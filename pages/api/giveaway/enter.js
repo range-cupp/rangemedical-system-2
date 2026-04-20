@@ -196,7 +196,7 @@ export default async function handler(req, res) {
       const normalized = normalizePhone(phone);
       if (normalized) {
         const firstName = first_name || 'there';
-        const message = `Hey ${firstName}, you're entered to win the 6-Week Cellular Energy Reset at Range Medical. We'll pick the winner soon and text everyone else their scholarship offer. Watch for a text from this number so your carrier doesn't filter us.\n\n- Range Medical`;
+        const message = `Hey ${firstName}, you're entered to win the 6-Week Cellular Energy Reset at Range Medical. Drawing is Saturday, April 25 at 10 AM PT. If you don't win, we'll text you a $1,000 scholarship offer. Watch for a text from this number so your carrier doesn't filter us.\n\n- Range Medical`;
 
         const smsResult = await sendSMS({ to: normalized, message });
 

@@ -691,6 +691,8 @@ function CheckoutInner() {
   function getPeptideCatalogGroups() {
     const groups = {};
     for (const p of PEPTIDE_PRODUCT_CATALOG) {
+      // NAD+ lives in the Injection Builder — hide from peptide picker to avoid confusion
+      if (/^nad/i.test(p.medication)) continue;
       const cat = p.category || 'peptide';
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(p);
@@ -3320,42 +3322,67 @@ function CheckoutInner() {
                               </div>
                             )}
 
-                            {/* In-clinic count (only if product supports in-clinic AND we have a total) */}
-                            {pepProduct?.deliveryOptions?.includes('in_clinic') && totalInjForCurrent > 0 && (
-                              <div style={{ marginBottom: '20px' }}>
-                                <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>FIRST INJECTIONS IN CLINIC</label>
-                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max={totalInjForCurrent}
-                                    value={peptideInClinicCount}
-                                    onChange={e => {
-                                      const n = parseInt(e.target.value) || 0;
-                                      setPeptideInClinicCount(Math.max(0, Math.min(n, totalInjForCurrent)));
-                                    }}
-                                    style={{ width: '72px', padding: '10px', border: '1px solid #ddd', fontSize: '15px', fontWeight: 600, textAlign: 'center' }}
-                                  />
-                                  <div style={{ display: 'flex', gap: '4px' }}>
-                                    {[0, 1, 3].filter(n => n <= totalInjForCurrent).map(n => (
-                                      <button
-                                        key={n}
-                                        onClick={() => setPeptideInClinicCount(n)}
-                                        style={{
-                                          padding: '8px 12px', fontSize: '12px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
-                                          ...(peptideInClinicCount === n ? { border: '2px solid #7c3aed', background: '#f5f3ff', color: '#7c3aed', fontWeight: 600 } : {}),
-                                        }}
-                                      >{n === 0 ? 'None' : n}</button>
-                                    ))}
+                            {/* Fulfillment (only if product supports in-clinic AND we have a total) */}
+                            {pepProduct?.deliveryOptions?.includes('in_clinic') && totalInjForCurrent > 0 && (() => {
+                              const mode = peptideInClinicCount === 0
+                                ? 'take_home'
+                                : peptideInClinicCount >= totalInjForCurrent
+                                ? 'in_clinic'
+                                : 'split';
+                              const modeBtn = (active, color, bg) => ({
+                                padding: '10px 16px', fontSize: '14px', fontWeight: 600,
+                                border: '1px solid #ddd', background: '#fff', cursor: 'pointer', flex: 1,
+                                ...(active ? { border: `2px solid ${color}`, background: bg, color } : {}),
+                              });
+                              return (
+                                <div style={{ marginBottom: '20px' }}>
+                                  <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>FULFILLMENT</label>
+                                  <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                                    <button onClick={() => setPeptideInClinicCount(0)} style={modeBtn(mode === 'take_home', '#2E75B6', '#EBF3FB')}>All Take-Home</button>
+                                    <button onClick={() => setPeptideInClinicCount(Math.max(1, Math.min(peptideInClinicCount || 1, totalInjForCurrent - 1)))} style={modeBtn(mode === 'split', '#7c3aed', '#f5f3ff')} disabled={totalInjForCurrent < 2}>First Few In Clinic</button>
+                                    <button onClick={() => setPeptideInClinicCount(totalInjForCurrent)} style={modeBtn(mode === 'in_clinic', '#e67e22', '#FFF5EB')}>All In Clinic</button>
                                   </div>
-                                  <span style={{ fontSize: '13px', color: '#666' }}>
-                                    {peptideInClinicCount > 0
-                                      ? <>First <strong>{peptideInClinicCount}</strong> in clinic · <strong>{totalInjForCurrent - peptideInClinicCount}</strong> take-home</>
-                                      : <>All <strong>{totalInjForCurrent}</strong> take-home</>}
-                                  </span>
+                                  {mode === 'split' && (
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '12px', background: '#f9fafb', border: '1px solid #e5e5e5' }}>
+                                      <label style={{ fontSize: '12px', color: '#666' }}># done in clinic:</label>
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        max={totalInjForCurrent - 1}
+                                        value={peptideInClinicCount}
+                                        onChange={e => {
+                                          const n = parseInt(e.target.value) || 1;
+                                          setPeptideInClinicCount(Math.max(1, Math.min(n, totalInjForCurrent - 1)));
+                                        }}
+                                        style={{ width: '72px', padding: '8px', border: '1px solid #ddd', fontSize: '15px', fontWeight: 600, textAlign: 'center' }}
+                                      />
+                                      <div style={{ display: 'flex', gap: '4px' }}>
+                                        {[1, 3, 5].filter(n => n < totalInjForCurrent).map(n => (
+                                          <button
+                                            key={n}
+                                            onClick={() => setPeptideInClinicCount(n)}
+                                            style={{
+                                              padding: '7px 11px', fontSize: '12px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
+                                              ...(peptideInClinicCount === n ? { border: '2px solid #7c3aed', background: '#f5f3ff', color: '#7c3aed', fontWeight: 600 } : {}),
+                                            }}
+                                          >{n}</button>
+                                        ))}
+                                      </div>
+                                      <span style={{ fontSize: '13px', color: '#666' }}>
+                                        First <strong>{peptideInClinicCount}</strong> in clinic · <strong>{totalInjForCurrent - peptideInClinicCount}</strong> take-home
+                                      </span>
+                                    </div>
+                                  )}
+                                  {mode !== 'split' && (
+                                    <div style={{ fontSize: '13px', color: '#666' }}>
+                                      {mode === 'in_clinic'
+                                        ? <>All <strong>{totalInjForCurrent}</strong> injections done in clinic</>
+                                        : <>All <strong>{totalInjForCurrent}</strong> injections take-home</>}
+                                    </div>
+                                  )}
                                 </div>
-                              </div>
-                            )}
+                              );
+                            })()}
 
                             {/* Summary + Add to Cart */}
                             {peptideBuilderReady() && (

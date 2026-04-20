@@ -45,39 +45,48 @@ export default function GiveawayPage() {
   const [importance, setImportance] = useState(7);
   const [budget, setBudget] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
+  const [topError, setTopError] = useState('');
 
   const source = router.query.src || router.query.source || 'direct';
 
+  const clearFieldError = (field) => {
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
 
-    if (!contact.name.trim() || !contact.phone.trim() || !contact.email.trim()) {
-      setError('Please fill in your name, phone, and email.');
-      return;
-    }
-    if (!contact.consent) {
-      setError('Please check the consent box to enter.');
-      return;
-    }
-    if (!story.struggle_main) {
-      setError('Please tell us what you\'re struggling with most.');
-      return;
-    }
+    const next = {};
+    if (!contact.name.trim())  next.name  = 'Please enter your name.';
+    if (!contact.phone.trim()) next.phone = 'Please enter your mobile phone.';
+    if (!contact.email.trim()) next.email = 'Please enter your email.';
+    if (!contact.consent)      next.consent = 'You\'ll need to check this box to enter.';
+    if (!story.struggle_main)  next.struggle_main = 'Please pick one.';
     if (story.struggle_main === 'other' && !story.struggle_other.trim()) {
-      setError('Please describe what you\'re struggling with.');
-      return;
+      next.struggle_other = 'Tell us a bit more.';
     }
-    if (!story.bad_day_description.trim() || !story.desired_change.trim()) {
-      setError('Please answer all the story questions.');
-      return;
-    }
-    if (!budget) {
-      setError('Please answer the budget question.');
+    if (!story.bad_day_description.trim()) next.bad_day_description = 'Please answer this one.';
+    if (!story.desired_change.trim())      next.desired_change      = 'Please answer this one.';
+    if (!budget) next.budget = 'Please pick one.';
+
+    if (Object.keys(next).length > 0) {
+      setErrors(next);
+      setTopError(`Please answer the ${Object.keys(next).length} highlighted question${Object.keys(next).length === 1 ? '' : 's'} below.`);
+      setTimeout(() => {
+        const first = document.querySelector('.gv-has-error, [data-field-error="true"]');
+        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
       return;
     }
 
+    setErrors({});
+    setTopError('');
     setSubmitting(true);
     try {
       const res = await fetch('/api/giveaway/enter', {
@@ -111,7 +120,7 @@ export default function GiveawayPage() {
       router.push('/giveaway/thanks');
     } catch (err) {
       console.error('Giveaway submit error:', err);
-      setError(err.message || 'Something went wrong. Please try again.');
+      setTopError(err.message || 'Something went wrong. Please try again.');
       setSubmitting(false);
     }
   };
@@ -350,6 +359,52 @@ export default function GiveawayPage() {
             margin-bottom: 16px;
             border-left: 3px solid #DC2626;
           }
+
+          /* Field-level error styling */
+          .gv-field input.gv-has-error,
+          .gv-field textarea.gv-has-error {
+            border-color: #DC2626;
+            background: #FEF2F2;
+          }
+          .gv-field input.gv-has-error:focus,
+          .gv-field textarea.gv-has-error:focus {
+            border-color: #DC2626;
+          }
+          .gv-options-error {
+            border-left: 3px solid #DC2626;
+            background: #FEF2F2;
+            padding: 10px 10px 2px;
+            margin: 0 0 4px;
+          }
+          .gv-consent.gv-has-error {
+            border-left: 3px solid #DC2626;
+            background: #FEF2F2;
+            padding: 10px 12px;
+            margin: 20px 0 4px;
+          }
+          .gv-field-errmsg {
+            color: #DC2626;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .gv-field-errmsg::before {
+            content: "!";
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            background: #DC2626;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: 700;
+            flex-shrink: 0;
+          }
           .gv-fineprint {
             font-size: 12px;
             color: #737373;
@@ -397,10 +452,11 @@ export default function GiveawayPage() {
                   id="gv-name"
                   type="text"
                   autoComplete="name"
+                  className={errors.name ? 'gv-has-error' : ''}
                   value={contact.name}
-                  onChange={(e) => setContact({ ...contact, name: e.target.value })}
-                  required
+                  onChange={(e) => { setContact({ ...contact, name: e.target.value }); clearFieldError('name'); }}
                 />
+                {errors.name && <div className="gv-field-errmsg">{errors.name}</div>}
               </div>
 
               <div className="gv-field">
@@ -410,10 +466,11 @@ export default function GiveawayPage() {
                   type="tel"
                   autoComplete="tel"
                   placeholder="(949) 555-0123"
+                  className={errors.phone ? 'gv-has-error' : ''}
                   value={contact.phone}
-                  onChange={(e) => setContact({ ...contact, phone: e.target.value })}
-                  required
+                  onChange={(e) => { setContact({ ...contact, phone: e.target.value }); clearFieldError('phone'); }}
                 />
+                {errors.phone && <div className="gv-field-errmsg">{errors.phone}</div>}
               </div>
 
               <div className="gv-field">
@@ -422,10 +479,11 @@ export default function GiveawayPage() {
                   id="gv-email"
                   type="email"
                   autoComplete="email"
+                  className={errors.email ? 'gv-has-error' : ''}
                   value={contact.email}
-                  onChange={(e) => setContact({ ...contact, email: e.target.value })}
-                  required
+                  onChange={(e) => { setContact({ ...contact, email: e.target.value }); clearFieldError('email'); }}
                 />
+                {errors.email && <div className="gv-field-errmsg">{errors.email}</div>}
               </div>
 
               <div className="gv-field">
@@ -439,12 +497,12 @@ export default function GiveawayPage() {
                 />
               </div>
 
-              <div className="gv-consent">
+              <div className={`gv-consent${errors.consent ? ' gv-has-error' : ''}`} data-field-error={errors.consent ? 'true' : 'false'}>
                 <input
                   id="gv-consent"
                   type="checkbox"
                   checked={contact.consent}
-                  onChange={(e) => setContact({ ...contact, consent: e.target.checked })}
+                  onChange={(e) => { setContact({ ...contact, consent: e.target.checked }); clearFieldError('consent'); }}
                 />
                 <label htmlFor="gv-consent">
                   I agree to receive text and email about this giveaway and related
@@ -452,6 +510,7 @@ export default function GiveawayPage() {
                   Reply STOP to opt out.
                 </label>
               </div>
+              {errors.consent && <div className="gv-field-errmsg">{errors.consent}</div>}
             </div>
 
             {/* Step 2 — story */}
@@ -459,17 +518,20 @@ export default function GiveawayPage() {
               <p className="gv-step-label">Step 2 of 4</p>
               <h2>What are you struggling with most right now?</h2>
 
-              <div className="gv-field">
-                {STRUGGLE_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    className={`gv-option${story.struggle_main === opt.value ? ' selected' : ''}`}
-                    onClick={() => setStory({ ...story, struggle_main: opt.value })}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+              <div className="gv-field" data-field-error={errors.struggle_main ? 'true' : 'false'}>
+                <div className={errors.struggle_main ? 'gv-options-error' : ''}>
+                  {STRUGGLE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={`gv-option${story.struggle_main === opt.value ? ' selected' : ''}`}
+                      onClick={() => { setStory({ ...story, struggle_main: opt.value }); clearFieldError('struggle_main'); }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {errors.struggle_main && <div className="gv-field-errmsg">{errors.struggle_main}</div>}
               </div>
 
               {story.struggle_main === 'other' && (
@@ -478,9 +540,11 @@ export default function GiveawayPage() {
                   <input
                     id="gv-other"
                     type="text"
+                    className={errors.struggle_other ? 'gv-has-error' : ''}
                     value={story.struggle_other}
-                    onChange={(e) => setStory({ ...story, struggle_other: e.target.value })}
+                    onChange={(e) => { setStory({ ...story, struggle_other: e.target.value }); clearFieldError('struggle_other'); }}
                   />
+                  {errors.struggle_other && <div className="gv-field-errmsg">{errors.struggle_other}</div>}
                 </div>
               )}
 
@@ -490,10 +554,12 @@ export default function GiveawayPage() {
                 </label>
                 <textarea
                   id="gv-badday"
+                  className={errors.bad_day_description ? 'gv-has-error' : ''}
                   value={story.bad_day_description}
-                  onChange={(e) => setStory({ ...story, bad_day_description: e.target.value })}
+                  onChange={(e) => { setStory({ ...story, bad_day_description: e.target.value }); clearFieldError('bad_day_description'); }}
                   placeholder="The more specific, the better. This helps us know if we can actually help."
                 />
+                {errors.bad_day_description && <div className="gv-field-errmsg">{errors.bad_day_description}</div>}
               </div>
 
               <div className="gv-field">
@@ -503,10 +569,12 @@ export default function GiveawayPage() {
                 </label>
                 <textarea
                   id="gv-change"
+                  className={errors.desired_change ? 'gv-has-error' : ''}
                   value={story.desired_change}
-                  onChange={(e) => setStory({ ...story, desired_change: e.target.value })}
+                  onChange={(e) => { setStory({ ...story, desired_change: e.target.value }); clearFieldError('desired_change'); }}
                   placeholder="Work, family, training, travel — whatever you'd get back."
                 />
+                {errors.desired_change && <div className="gv-field-errmsg">{errors.desired_change}</div>}
               </div>
             </div>
 
@@ -541,20 +609,23 @@ export default function GiveawayPage() {
                 could you invest around $2,000 in your health over those 6 weeks?
               </h2>
 
-              <div className="gv-field">
-                {BUDGET_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    className={`gv-option${budget === opt.value ? ' selected' : ''}`}
-                    onClick={() => setBudget(opt.value)}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+              <div className="gv-field" data-field-error={errors.budget ? 'true' : 'false'}>
+                <div className={errors.budget ? 'gv-options-error' : ''}>
+                  {BUDGET_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={`gv-option${budget === opt.value ? ' selected' : ''}`}
+                      onClick={() => { setBudget(opt.value); clearFieldError('budget'); }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {errors.budget && <div className="gv-field-errmsg">{errors.budget}</div>}
               </div>
 
-              {error && <div className="gv-error">{error}</div>}
+              {topError && <div className="gv-error">{topError}</div>}
 
               <button type="submit" className="gv-btn" disabled={submitting}>
                 {submitting ? 'Submitting…' : 'Enter the Giveaway'}

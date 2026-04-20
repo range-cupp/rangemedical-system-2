@@ -25,6 +25,7 @@ import {
   INJECTION_MEDICATIONS,
   NAD_INJECTION_DOSAGES,
   PEPTIDE_OPTIONS,
+  PEPTIDE_PRODUCT_CATALOG,
   IV_THERAPY_TYPES,
   RANGE_IV_OPTIONS,
   getDoseOptions,
@@ -232,6 +233,13 @@ function CheckoutInner() {
   // ── WL Injection Builder ──
   const [wlMedication, setWlMedication] = useState('');
   const [wlGroups, setWlGroups] = useState([{ dose: '', quantity: 1, fulfillment: 'take_home' }]);
+
+  // ── Peptide Builder ──
+  const [peptideCategory, setPeptideCategory] = useState(''); // 'recovery' | 'gh_blend' | 'longevity' | 'skin' | 'peptide'
+  const [peptideMedication, setPeptideMedication] = useState(''); // catalog medication string
+  const [peptideDurationDays, setPeptideDurationDays] = useState(0);
+  const [peptidePhase, setPeptidePhase] = useState(0); // 0 = not applicable
+  const [peptideInClinicCount, setPeptideInClinicCount] = useState(0);
 
   // ── Injection Builder (NAD+, Standard, Premium) ──
   const [injBuilderType, setInjBuilderType] = useState(''); // 'nad', 'standard', 'premium'
@@ -670,6 +678,137 @@ function CheckoutInner() {
     setWlGroups([{ dose: '', quantity: 1, fulfillment: 'take_home' }]);
   }
 
+  // ── Peptide Builder helpers ──
+  // Display labels + display order for the catalog's `category` field.
+  const PEPTIDE_CATEGORY_META = {
+    recovery:  { label: 'Recovery',        order: 1 },
+    gh_blend:  { label: 'Growth Hormone',  order: 2 },
+    longevity: { label: 'Longevity',       order: 3 },
+    skin:      { label: 'Skin & Hair',     order: 4 },
+    peptide:   { label: 'Other',           order: 5 },
+  };
+
+  function getPeptideCatalogGroups() {
+    const groups = {};
+    for (const p of PEPTIDE_PRODUCT_CATALOG) {
+      const cat = p.category || 'peptide';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(p);
+    }
+    const keys = Object.keys(groups).sort((a, b) => (PEPTIDE_CATEGORY_META[a]?.order || 99) - (PEPTIDE_CATEGORY_META[b]?.order || 99));
+    return { groups, keys };
+  }
+
+  function getPeptideProduct(med) {
+    return PEPTIDE_PRODUCT_CATALOG.find(p => p.medication === med) || null;
+  }
+
+  function getPeptideDurationPriceCents(product, days, phase) {
+    if (!product || !days) return 0;
+    // Phase-keyed pricing (BDNF, MOTS-C, 2X/3X/4X blends)
+    if (product.phases?.length && phase) {
+      const ph = product.phases.find(p => p.phase === phase);
+      if (ph?.price) return ph.price * 100;
+    }
+    const d = product.durations?.find(d => d.days === days);
+    return (d?.price || 0) * 100;
+  }
+
+  function getPeptideTotalInjections(product, days, phase) {
+    if (!product) return 0;
+    // Phase-specific injection count, keyed by duration (MOTS-C)
+    if (product.phases?.length && phase) {
+      const ph = product.phases.find(p => p.phase === phase);
+      if (ph?.injections && typeof ph.injections === 'object') {
+        const n = ph.injections[days];
+        if (n) return n;
+      }
+    }
+    if (product.totalInjections) return product.totalInjections;
+    // Fallback: daily protocol → injections === days
+    return days || 0;
+  }
+
+  function getPeptideBuilderPriceCents() {
+    const product = getPeptideProduct(peptideMedication);
+    return getPeptideDurationPriceCents(product, peptideDurationDays, peptidePhase);
+  }
+
+  function peptideBuilderReady() {
+    const product = getPeptideProduct(peptideMedication);
+    if (!product || !peptideDurationDays) return false;
+    if (product.phases?.length && !peptidePhase) return false;
+    return getPeptideBuilderPriceCents() > 0;
+  }
+
+  function addPeptideBuilderToCart() {
+    const product = getPeptideProduct(peptideMedication);
+    if (!product || !peptideDurationDays) return;
+    if (product.phases?.length && !peptidePhase) return;
+
+    const totalCents = getPeptideBuilderPriceCents();
+    const totalInj = getPeptideTotalInjections(product, peptideDurationDays, peptidePhase);
+    const inClinicCount = Math.max(0, Math.min(peptideInClinicCount || 0, totalInj));
+    const takeHomeCount = totalInj - inClinicCount;
+    const hasInClinic = inClinicCount > 0;
+    const hasTakeHome = takeHomeCount > 0;
+
+    const durationLabel = product.durations.find(d => d.days === peptideDurationDays)?.label || `${peptideDurationDays} Day`;
+    const phaseSuffix = product.phases?.length && peptidePhase ? ` — Phase ${peptidePhase}` : '';
+
+    // Service name — must match findPeptideProduct() regex patterns in protocol-config.js
+    const serviceName = `${product.medication} — ${durationLabel}${phaseSuffix}`;
+
+    const subCategory = PEPTIDE_CATEGORY_META[product.category]?.label || 'Peptide';
+
+    const cartItem = {
+      id: 'peptide-builder-' + Date.now(),
+      name: serviceName,
+      category: 'peptide',
+      sub_category: subCategory,
+      price: totalCents,
+      quantity: 1,
+      peptide_identifier: product.medication,
+      delivery_method: hasTakeHome ? 'take_home' : 'in_clinic',
+      duration_days: peptideDurationDays,
+      itemDiscountType: 'none',
+      itemDiscountValue: '',
+      peptideConfig: {
+        medication: product.medication,
+        category: product.category,
+        durationDays: peptideDurationDays,
+        durationLabel,
+        phase: peptidePhase || null,
+        totalInjections: totalInj,
+        inClinicCount,
+        takeHomeCount,
+        hasInClinic,
+        hasTakeHome,
+        internalName: serviceName,
+        vialId: product.vialId || null,
+        guideSlug: product.guideSlug || null,
+      },
+    };
+
+    // Fulfillment (mirrors WL builder pattern)
+    if (hasInClinic && !hasTakeHome) {
+      setFulfillmentMethod('in_clinic_injections');
+    } else if (hasTakeHome && !hasInClinic) {
+      setFulfillmentMethod('in_clinic');
+    }
+    // Mixed: leave as-is — peptideConfig carries the split
+
+    setCartItems(prev => [...prev, cartItem]);
+    setCartOpen(true);
+
+    // Reset builder
+    setPeptideCategory('');
+    setPeptideMedication('');
+    setPeptideDurationDays(0);
+    setPeptidePhase(0);
+    setPeptideInClinicCount(0);
+  }
+
   // ── Injection Builder helpers ──
   function getInjPricePerUnit() {
     if (injBuilderType === 'nad') return INJECTION_PRICING.nad.doses[injNadDose] || 0;
@@ -959,10 +1098,13 @@ function CheckoutInner() {
       // For builder items, use internal name for protocol creation, display name for receipt
       const isWlBuilder = !!item.wlConfig;
       const isInjBuilder = !!item.injConfig;
+      const isPeptideBuilder = !!item.peptideConfig;
       const serviceName = isWlBuilder
         ? item.wlConfig.internalName
         : isInjBuilder
         ? item.injConfig.internalName
+        : isPeptideBuilder
+        ? item.peptideConfig.internalName
         : item.peptide_identifier ? `${item.name} — ${item.peptide_identifier}` : item.name;
 
       let recordAmount = itemFinal;
@@ -981,6 +1123,12 @@ function CheckoutInner() {
         else if (item.wlConfig.hasTakeHome && !item.wlConfig.hasInClinic) wlFulfillment = 'in_clinic';
         // Mixed: pass 'mixed' — backend handles per-group
       }
+      // For Peptide builder: same pattern — in-clinic count drives fulfillment
+      if (isPeptideBuilder) {
+        if (item.peptideConfig.hasInClinic && !item.peptideConfig.hasTakeHome) wlFulfillment = 'in_clinic_injections';
+        else if (item.peptideConfig.hasTakeHome && !item.peptideConfig.hasInClinic) wlFulfillment = 'in_clinic';
+        // Mixed: peptideConfig carries the split — first N in clinic, rest take-home
+      }
 
       const res = await fetch('/api/stripe/record-purchase', {
         method: 'POST',
@@ -993,14 +1141,15 @@ function CheckoutInner() {
           payment_method: 'stripe',
           service_category: item.category,
           service_name: serviceName,
-          quantity: isWlBuilder ? item.wlConfig.totalInjections : isInjBuilder ? item.injConfig.quantity : qty,
+          quantity: isWlBuilder ? item.wlConfig.totalInjections : isInjBuilder ? item.injConfig.quantity : isPeptideBuilder ? item.peptideConfig.totalInjections : qty,
           delivery_method: item.delivery_method || null,
-          duration_days: item.duration_days || null,
+          duration_days: isPeptideBuilder ? item.peptideConfig.durationDays : (item.duration_days || null),
           shipping: amount_override ? 0 : itemShipping,
           fulfillment_method: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) ? wlFulfillment : null,
           tracking_number: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) && fulfillmentMethod === 'overnight' ? trackingNumber : null,
           wl_frequency_days: item.category === 'weight_loss' ? (isWlBuilder ? item.wlConfig.frequency : wlFrequencyDays) : undefined,
           wl_config: isWlBuilder ? item.wlConfig : undefined,
+          peptide_config: isPeptideBuilder ? item.peptideConfig : undefined,
           injection_frequency: isInjBuilder ? item.injConfig.frequency : undefined,
           skip_receipt: skipNotification || cartItems.length > 1,
           ...(itemDiscountAmt > 0 && !amount_override ? {
@@ -3026,48 +3175,213 @@ function CheckoutInner() {
                       </div>
                     </div>
                   ) : activeSubCategory === 'peptide' ? (
-                    /* Peptide accordion */
+                    /* ── Peptide Builder ── */
                     (() => {
-                      const { groups, sortedKeys } = getGroupedPeptides();
+                      const { groups: pepGroups, keys: pepKeys } = getPeptideCatalogGroups();
+                      const pepProduct = getPeptideProduct(peptideMedication);
+                      const totalInjForCurrent = pepProduct ? getPeptideTotalInjections(pepProduct, peptideDurationDays, peptidePhase) : 0;
+                      const builderTotal = getPeptideBuilderPriceCents();
                       return (
                         <div style={{ marginTop: '16px' }}>
-                          {sortedKeys.map(groupName => {
-                            const isExpanded = expandedPeptideGroups[groupName];
-                            const groupHasCartItem = groups[groupName].some(item => cartItems.some(ci => ci.id === item.id));
-                            return (
-                              <div key={groupName} style={styles.peptideGroup}>
-                                <button
-                                  style={{
-                                    ...styles.peptideGroupHeader,
-                                    ...(groupHasCartItem ? { borderColor: '#10b981', background: '#f0fdf4' } : {}),
-                                  }}
-                                  onClick={() => setExpandedPeptideGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }))}
-                                >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <span style={{ fontSize: '16px', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
-                                    <span style={{ fontWeight: 600, fontSize: '15px' }}>{groupName}</span>
-                                    <span style={{ fontSize: '13px', color: '#888' }}>({groups[groupName].length})</span>
-                                  </div>
-                                  {groupHasCartItem && (
-                                    <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 600 }}>✓ In Cart</span>
-                                  )}
-                                </button>
-                                {isExpanded && (
-                                  <div style={styles.serviceGrid}>
-                                    {groups[groupName].map(item => (
-                                      <ServiceCard
-                                        key={item.id}
-                                        item={item}
-                                        inCart={cartItems.some(i => i.id === item.id)}
-                                        onClick={() => toggleCartItem(item)}
-                                        showPeptideId
-                                      />
+                          <div style={{ background: '#fff', border: '1px solid #e0e0e0', padding: '24px' }}>
+                            {/* Category */}
+                            <div style={{ marginBottom: '20px' }}>
+                              <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>CATEGORY</label>
+                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                {pepKeys.map(catKey => (
+                                  <button
+                                    key={catKey}
+                                    onClick={() => {
+                                      setPeptideCategory(catKey);
+                                      setPeptideMedication('');
+                                      setPeptideDurationDays(0);
+                                      setPeptidePhase(0);
+                                      setPeptideInClinicCount(0);
+                                    }}
+                                    style={{
+                                      ...styles.fulfillmentBtn,
+                                      padding: '10px 16px',
+                                      fontSize: '14px',
+                                      fontWeight: 600,
+                                      ...(peptideCategory === catKey ? { border: '2px solid #1a1a1a', background: '#f9fafb', color: '#1a1a1a' } : {}),
+                                    }}
+                                  >{PEPTIDE_CATEGORY_META[catKey]?.label || catKey}</button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Peptide */}
+                            {peptideCategory && (
+                              <div style={{ marginBottom: '20px' }}>
+                                <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>PEPTIDE</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '8px' }}>
+                                  {(pepGroups[peptideCategory] || []).map(p => {
+                                    const selected = peptideMedication === p.medication;
+                                    const minPrice = Math.min(
+                                      ...(p.phases?.length ? p.phases.map(ph => ph.price || 0) : (p.durations || []).map(d => d.price || 0)).filter(v => v > 0)
+                                    );
+                                    return (
+                                      <button
+                                        key={p.medication}
+                                        onClick={() => {
+                                          setPeptideMedication(p.medication);
+                                          setPeptideDurationDays(p.durations?.length === 1 ? p.durations[0].days : 0);
+                                          setPeptidePhase(0);
+                                          setPeptideInClinicCount(0);
+                                        }}
+                                        style={{
+                                          padding: '12px 14px',
+                                          fontSize: '13px',
+                                          textAlign: 'left',
+                                          border: '1px solid #ddd',
+                                          background: '#fff',
+                                          cursor: 'pointer',
+                                          ...(selected ? { border: '2px solid #10b981', background: '#f0fdf4' } : {}),
+                                        }}
+                                      >
+                                        <div style={{ fontWeight: 600, color: '#1a1a1a', marginBottom: '2px' }}>{p.medication}</div>
+                                        <div style={{ fontSize: '11px', color: '#888' }}>
+                                          {p.phases?.length ? `${p.phases.length} phase${p.phases.length > 1 ? 's' : ''}` : `${p.durations?.length || 0} duration${(p.durations?.length || 0) > 1 ? 's' : ''}`}
+                                          {isFinite(minPrice) && minPrice > 0 ? ` · from ${formatPrice(minPrice * 100)}` : ''}
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Duration */}
+                            {pepProduct && (pepProduct.durations?.length > 0) && (
+                              <div style={{ marginBottom: '20px' }}>
+                                <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>DURATION</label>
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                  {pepProduct.durations.map(d => {
+                                    const selected = peptideDurationDays === d.days;
+                                    const durPrice = getPeptideDurationPriceCents(pepProduct, d.days, peptidePhase || (pepProduct.phases?.[0]?.phase));
+                                    return (
+                                      <button
+                                        key={d.days}
+                                        onClick={() => { setPeptideDurationDays(d.days); setPeptideInClinicCount(0); }}
+                                        style={{
+                                          padding: '12px 18px',
+                                          fontSize: '14px',
+                                          fontWeight: 600,
+                                          border: '1px solid #ddd',
+                                          background: '#fff',
+                                          cursor: 'pointer',
+                                          textAlign: 'left',
+                                          minWidth: '140px',
+                                          ...(selected ? { border: '2px solid #2E75B6', background: '#EBF3FB', color: '#2E75B6' } : {}),
+                                        }}
+                                      >
+                                        <div>{d.label}</div>
+                                        {durPrice > 0 && (
+                                          <div style={{ fontSize: '12px', fontWeight: 500, color: selected ? '#2E75B6' : '#666', marginTop: '2px' }}>{formatPrice(durPrice)}</div>
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Phase (conditional) */}
+                            {pepProduct?.phases?.length > 0 && peptideDurationDays > 0 && (
+                              <div style={{ marginBottom: '20px' }}>
+                                <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>PHASE</label>
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                  {pepProduct.phases.map(ph => {
+                                    const selected = peptidePhase === ph.phase;
+                                    const phDose = typeof ph.doses === 'object' ? ph.doses[peptideDurationDays] : ph.dose;
+                                    return (
+                                      <button
+                                        key={ph.phase}
+                                        onClick={() => setPeptidePhase(ph.phase)}
+                                        style={{
+                                          padding: '12px 16px',
+                                          fontSize: '13px',
+                                          textAlign: 'left',
+                                          border: '1px solid #ddd',
+                                          background: '#fff',
+                                          cursor: 'pointer',
+                                          minWidth: '180px',
+                                          ...(selected ? { border: '2px solid #7c3aed', background: '#f5f3ff', color: '#7c3aed' } : {}),
+                                        }}
+                                      >
+                                        <div style={{ fontWeight: 600 }}>{ph.label || `Phase ${ph.phase}`}</div>
+                                        <div style={{ fontSize: '11px', color: selected ? '#7c3aed' : '#888', marginTop: '3px' }}>
+                                          {phDose ? `${phDose}` : ''}{ph.price ? ` · ${formatPrice(ph.price * 100)}` : ''}
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* In-clinic count (only if product supports in-clinic AND we have a total) */}
+                            {pepProduct?.deliveryOptions?.includes('in_clinic') && totalInjForCurrent > 0 && (
+                              <div style={{ marginBottom: '20px' }}>
+                                <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>FIRST INJECTIONS IN CLINIC</label>
+                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={totalInjForCurrent}
+                                    value={peptideInClinicCount}
+                                    onChange={e => {
+                                      const n = parseInt(e.target.value) || 0;
+                                      setPeptideInClinicCount(Math.max(0, Math.min(n, totalInjForCurrent)));
+                                    }}
+                                    style={{ width: '72px', padding: '10px', border: '1px solid #ddd', fontSize: '15px', fontWeight: 600, textAlign: 'center' }}
+                                  />
+                                  <div style={{ display: 'flex', gap: '4px' }}>
+                                    {[0, 1, 3].filter(n => n <= totalInjForCurrent).map(n => (
+                                      <button
+                                        key={n}
+                                        onClick={() => setPeptideInClinicCount(n)}
+                                        style={{
+                                          padding: '8px 12px', fontSize: '12px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
+                                          ...(peptideInClinicCount === n ? { border: '2px solid #7c3aed', background: '#f5f3ff', color: '#7c3aed', fontWeight: 600 } : {}),
+                                        }}
+                                      >{n === 0 ? 'None' : n}</button>
                                     ))}
                                   </div>
-                                )}
+                                  <span style={{ fontSize: '13px', color: '#666' }}>
+                                    {peptideInClinicCount > 0
+                                      ? <>First <strong>{peptideInClinicCount}</strong> in clinic · <strong>{totalInjForCurrent - peptideInClinicCount}</strong> take-home</>
+                                      : <>All <strong>{totalInjForCurrent}</strong> take-home</>}
+                                  </span>
+                                </div>
                               </div>
-                            );
-                          })}
+                            )}
+
+                            {/* Summary + Add to Cart */}
+                            {peptideBuilderReady() && (
+                              <div style={{ borderTop: '2px solid #1a1a1a', paddingTop: '16px', marginTop: '16px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                  <div style={{ fontSize: '14px', color: '#666' }}>
+                                    {totalInjForCurrent} injection{totalInjForCurrent !== 1 ? 's' : ''} · {peptideDurationDays} day supply
+                                    {peptideInClinicCount > 0 ? ` · ${peptideInClinicCount} in clinic` : ''}
+                                  </div>
+                                  <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1a1a' }}>{formatPrice(builderTotal)}</div>
+                                </div>
+                                <button
+                                  onClick={addPeptideBuilderToCart}
+                                  style={{
+                                    ...styles.primaryBtn,
+                                    width: '100%',
+                                    padding: '14px',
+                                    fontSize: '15px',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em',
+                                  }}
+                                >Add to Cart — {pepProduct?.medication} ({formatPrice(builderTotal)})</button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       );
                     })()

@@ -7089,35 +7089,38 @@ export default function PatientProfile() {
                                           const dateLabel = pDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
                                           const amount = purchase.amount_paid != null ? `$${parseFloat(purchase.amount_paid).toFixed(0)}` : 'No amount';
                                           const blockPickup = boundary.pickup;
-                                          const overnightedQty = blockPickup ? (blockPickup.quantity || 0) : 0;
-                                          const inClinicAllocated = Math.max(0, BLOCK_SIZE - overnightedQty);
+                                          const pickupQty = blockPickup ? (blockPickup.quantity || 0) : 0;
+                                          const isOvernight = blockPickup?.fulfillment_method === 'overnight';
+                                          const overnightedQty = isOvernight ? pickupQty : 0;
+                                          const takeHomeQty = !isOvernight ? pickupQty : 0;
+                                          const inClinicAllocated = Math.max(0, BLOCK_SIZE - pickupQty);
+                                          const chips = [
+                                            inClinicAllocated > 0 && { color: '#2E75B6', label: `🏥 ${inClinicAllocated} in-clinic` },
+                                            takeHomeQty > 0 && { color: '#475569', label: `🏠 ${takeHomeQty} take-home` },
+                                            overnightedQty > 0 && { color: '#e67e22', label: `📦 ${overnightedQty} overnighted` },
+                                          ].filter(Boolean);
                                           return (
                                             <tr key={'group-' + blockIdx + '-' + purchase.id} style={{ background: '#f1f5f9', borderTop: blockIdx > 0 ? '2px solid #cbd5e1' : 'none' }}>
                                               <td colSpan={7} style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: '#334155' }}>
                                                 <span style={{ marginRight: 6 }}>💳</span>
                                                 Block {blockNum} · {injRange} — Paid {dateLabel}
                                                 <span style={{ fontWeight: 500, color: '#64748b', marginLeft: 6 }}>({amount})</span>
-                                                {(overnightedQty > 0 || inClinicAllocated > 0) && (
+                                                {chips.length > 0 && (
                                                   <>
                                                     <span style={{ color: '#cbd5e1', margin: '0 8px' }}>·</span>
-                                                    {inClinicAllocated > 0 && (
-                                                      <span style={{ color: '#2E75B6', fontWeight: 600 }}>
-                                                        🏥 {inClinicAllocated} in-clinic
+                                                    {chips.map((c, i) => (
+                                                      <span key={i}>
+                                                        {i > 0 && <span style={{ color: '#94a3b8', margin: '0 6px' }}>+</span>}
+                                                        <span style={{ color: c.color, fontWeight: 600 }}>{c.label}</span>
                                                       </span>
-                                                    )}
-                                                    {inClinicAllocated > 0 && overnightedQty > 0 && <span style={{ color: '#94a3b8', margin: '0 6px' }}>+</span>}
-                                                    {overnightedQty > 0 && (
-                                                      <span style={{ color: '#e67e22', fontWeight: 600 }}>
-                                                        📦 {overnightedQty} overnighted
-                                                      </span>
-                                                    )}
+                                                    ))}
                                                   </>
                                                 )}
                                                 {blockPickup && (
                                                   <button
                                                     onClick={(e) => { e.stopPropagation(); openEditInjection(blockPickup, { blockNum, totalInBlock: BLOCK_SIZE, purchase }); }}
                                                     style={{ marginLeft: 10, padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#fff', color: '#334155', border: '1px solid #cbd5e1', borderRadius: 4, cursor: 'pointer' }}
-                                                    title="Rebalance in-clinic vs overnighted for this block"
+                                                    title="Rebalance in-clinic vs dispensed for this block"
                                                   >
                                                     Edit Dispense
                                                   </button>
@@ -10962,8 +10965,11 @@ export default function PatientProfile() {
                 {dispenseContext && (() => {
                   const qty = parseInt(editInjectionForm.quantity) || 0;
                   const total = dispenseContext.totalInBlock || 4;
-                  const overnighted = Math.max(0, Math.min(qty, total));
-                  const inClinic = Math.max(0, total - overnighted);
+                  const pickedUp = Math.max(0, Math.min(qty, total));
+                  const inClinic = Math.max(0, total - pickedUp);
+                  const isOvernight = editInjectionForm.fulfillment_method === 'overnight';
+                  const pickupLabel = isOvernight ? `📦 ${pickedUp} overnighted` : `🏠 ${pickedUp} take-home`;
+                  const pickupColor = isOvernight ? '#e67e22' : '#475569';
                   const pAmt = dispenseContext.purchase?.amount_paid;
                   const pDateStr = dispenseContext.purchase?.purchase_date;
                   const pDateLabel = pDateStr ? new Date(pDateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' }) : null;
@@ -10976,11 +10982,11 @@ export default function PatientProfile() {
                       <div>
                         <span style={{ color: '#2E75B6', fontWeight: 600 }}>🏥 {inClinic} in-clinic</span>
                         <span style={{ color: '#94a3b8', margin: '0 6px' }}>+</span>
-                        <span style={{ color: '#e67e22', fontWeight: 600 }}>📦 {overnighted} overnighted</span>
+                        <span style={{ color: pickupColor, fontWeight: 600 }}>{pickupLabel}</span>
                         {qty > total && <span style={{ color: '#dc2626', fontWeight: 600, marginLeft: 8 }}>⚠️ exceeds block total</span>}
                       </div>
                       <div style={{ marginTop: 6, color: '#64748b', fontStyle: 'italic', fontSize: 11 }}>
-                        Change the overnighted quantity below. In-clinic count adjusts automatically.
+                        Change the dispensed quantity below. In-clinic count adjusts automatically.
                       </div>
                     </div>
                   );
@@ -10991,7 +10997,7 @@ export default function PatientProfile() {
                 </div>
                 {editInjectionModal?.entry_type === 'pickup' && (
                   <div className="form-group">
-                    <label>{dispenseContext ? 'Overnighted Quantity' : 'Quantity'}</label>
+                    <label>{dispenseContext ? (editInjectionForm.fulfillment_method === 'overnight' ? 'Overnighted Quantity' : 'Take-Home Quantity') : 'Quantity'}</label>
                     <input type="number" min="0" value={editInjectionForm.quantity} onChange={e => setEditInjectionForm({ ...editInjectionForm, quantity: e.target.value })} />
                   </div>
                 )}

@@ -46,7 +46,7 @@ import {
   isWeightLossType
 } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, buildAdaptiveHRTSchedule, isHRTProtocol, getLabStatusSummary } from '../../lib/hrt-lab-schedule';
-import { isRecoveryPeptide, isGHPeptide, findPeptideProduct } from '../../lib/protocol-config';
+import { isRecoveryPeptide, isGHPeptide, findPeptideProduct, calculatePeptideDurationDays, getDosesPerWeek } from '../../lib/protocol-config';
 import { VIAL_CATALOG } from '../../lib/vial-catalog';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -411,7 +411,7 @@ export default function PatientProfile() {
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [creatingTask, setCreatingTask] = useState(false);
   const [taskEmployees, setTaskEmployees] = useState([]);
-  const [taskForm, setTaskForm] = useState({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '', task_category: 'business' });
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', assigned_to: [], priority: 'medium', due_date: '', task_category: 'business' });
   const [taskListening, setTaskListening] = useState(false);
   const [taskDictationTarget, setTaskDictationTarget] = useState('title');
   const [taskFormatting, setTaskFormatting] = useState(false);
@@ -612,6 +612,7 @@ export default function PatientProfile() {
   const [editInjectionModal, setEditInjectionModal] = useState(null);
   const [editInjectionForm, setEditInjectionForm] = useState({ entry_date: '', dosage: '', weight: '', notes: '', fulfillment_method: 'in_clinic', tracking_number: '' });
   const [editInjectionSaving, setEditInjectionSaving] = useState(false);
+  const [dispenseContext, setDispenseContext] = useState(null);
   const [confirmDeleteInjection, setConfirmDeleteInjection] = useState(false);
 
   // Log Entry modal state
@@ -668,6 +669,12 @@ export default function PatientProfile() {
   const [extendWLNotes, setExtendWLNotes] = useState('');
   const [extendingWL, setExtendingWL] = useState(false);
   const [extendWLError, setExtendWLError] = useState('');
+
+  // Reschedule WL block modal state (set first injection date for a take-home pickup block)
+  const [rescheduleWLModal, setRescheduleWLModal] = useState(null); // { pickupId, blockNum, quantity, intervalDays }
+  const [rescheduleWLDate, setRescheduleWLDate] = useState('');
+  const [rescheduleWLSaving, setRescheduleWLSaving] = useState(false);
+  const [rescheduleWLError, setRescheduleWLError] = useState('');
 
   // Payments sub-tab state
   const [paymentsSubTab, setPaymentsSubTab] = useState('subscriptions');
@@ -1774,7 +1781,7 @@ export default function PatientProfile() {
 
   const handleCreateTask = async (e) => {
     e.preventDefault();
-    if (!taskForm.title.trim() || !taskForm.assigned_to) return;
+    if (!taskForm.title.trim() || !taskForm.assigned_to.length) return;
     setCreatingTask(true);
     try {
       const res = await fetch('/api/admin/tasks', {
@@ -1794,7 +1801,7 @@ export default function PatientProfile() {
       const data = await res.json();
       if (data.success) {
         setShowCreateTask(false);
-        setTaskForm({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '', task_category: 'business' });
+        setTaskForm({ title: '', description: '', assigned_to: [], priority: 'medium', due_date: '', task_category: 'business' });
         fetchPatient();
       }
     } catch {}
@@ -2440,7 +2447,7 @@ export default function PatientProfile() {
     }
   };
 
-  const openEditInjection = (log) => {
+  const openEditInjection = (log, ctx = null) => {
     setEditInjectionModal(log);
     setEditInjectionForm({
       entry_date: log.entry_date || '',
@@ -2451,6 +2458,7 @@ export default function PatientProfile() {
       fulfillment_method: log.fulfillment_method || 'in_clinic',
       tracking_number: log.tracking_number || '',
     });
+    setDispenseContext(ctx);
     setConfirmDeleteInjection(false);
   };
 
@@ -2481,6 +2489,48 @@ export default function PatientProfile() {
       console.error('Error updating injection:', err);
     } finally {
       setEditInjectionSaving(false);
+    }
+  };
+
+  const handleRescheduleWL = async () => {
+    if (!rescheduleWLModal?.pickup || !rescheduleWLDate) {
+      setRescheduleWLError('Pick a date');
+      return;
+    }
+    setRescheduleWLSaving(true);
+    setRescheduleWLError('');
+    try {
+      const p = rescheduleWLModal.pickup;
+      // Pass all existing fields through — the PUT handler nulls any field we omit.
+      const res = await fetch(`/api/service-log?id=${p.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entry_type: p.entry_type || 'pickup',
+          entry_date: rescheduleWLDate,
+          medication: p.medication,
+          dosage: p.dosage,
+          weight: p.weight,
+          quantity: p.quantity,
+          supply_type: p.supply_type,
+          duration: p.duration,
+          notes: p.notes,
+          fulfillment_method: p.fulfillment_method,
+          tracking_number: p.tracking_number,
+        }),
+      });
+      if (res.ok) {
+        setRescheduleWLModal(null);
+        setRescheduleWLDate('');
+        fetchPatient();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setRescheduleWLError(data.error || 'Failed to save');
+      }
+    } catch (err) {
+      setRescheduleWLError(err.message || 'Failed to save');
+    } finally {
+      setRescheduleWLSaving(false);
     }
   };
 
@@ -2798,39 +2848,21 @@ export default function PatientProfile() {
         if (editForm.numVials && editForm.dosesPerVial) {
           derivedTotalSessions = parseInt(editForm.numVials) * parseInt(editForm.dosesPerVial);
         }
-        // Determine doses per week from frequency or scheduled days
+        // Doses per week: scheduled days for injection, otherwise parse frequency
         let dpw = null;
         if (cat === 'injection' && (editForm.scheduledDays || []).length > 0) {
-          dpw = editForm.scheduledDays.length; // M/W/F = 3
+          dpw = editForm.scheduledDays.length;
         } else {
-          const freq = (derivedFrequency || '').toLowerCase();
-          if (freq.includes('5 on')) dpw = 5;
-          else if (freq === 'daily' || freq.includes('1x daily')) dpw = 7;
-          else if (freq === '2x daily') dpw = 14;
-          else if (freq === 'every other day') dpw = 3.5;
-          else if (freq === 'every 5 days') dpw = 1.4;
-          else if (freq === '2x per week') dpw = 2;
-          else if (freq === '3x per week') dpw = 3;
-          else if (freq === 'weekly') dpw = 1;
+          dpw = getDosesPerWeek(derivedFrequency);
         }
-        // Pre-filled peptide: duration drives the math
         const isPrefilled = cat === 'peptide' && (editForm.supplyType || '').startsWith('prefilled_');
         if (editForm.startDate) {
           let durationDays = null;
           if (isPrefilled) {
             durationDays = parseInt((editForm.supplyType || '').replace('prefilled_', '').replace('d', ''));
             if (!derivedTotalSessions && dpw) derivedTotalSessions = Math.round(durationDays * dpw / 7);
-          } else if (editForm.numVials) {
-            // Check catalog for explicit daysPerVial (e.g., GH blends = 30 days/vial)
-            const vid = getVialIdForMedication(editForm.medication, selectedProtocol.program_name);
-            const catEntry = vid ? VIAL_CATALOG.find(v => v.id === vid) : null;
-            if (catEntry && catEntry.daysPerVial) {
-              durationDays = parseInt(editForm.numVials) * catEntry.daysPerVial;
-            } else if (derivedTotalSessions && dpw) {
-              durationDays = Math.round((derivedTotalSessions / dpw) * 7);
-            }
           } else if (derivedTotalSessions && dpw) {
-            durationDays = Math.round((derivedTotalSessions / dpw) * 7);
+            durationDays = Math.ceil((derivedTotalSessions / dpw) * 7);
           }
           if (durationDays) {
             const d = new Date(editForm.startDate + 'T12:00:00');
@@ -4901,7 +4933,7 @@ export default function PatientProfile() {
                   const isInClinic = protocol.delivery_method === 'in_clinic';
                   const nowDate = new Date();
                   const nextApt = (appointments || [])
-                    .filter(a => new Date(a.start_time) >= nowDate && !['cancelled', 'no_show'].includes((a.status || '').toLowerCase()))
+                    .filter(a => new Date(a.start_time) >= nowDate && !['cancelled', 'no_show', 'rescheduled'].includes((a.status || '').toLowerCase()))
                     .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))[0];
                   // Count consecutive most-recent injections at the current dose (titration tracker)
                   const allInjections = (serviceLogs || [])
@@ -5213,7 +5245,7 @@ export default function PatientProfile() {
               {(() => {
                 const now = new Date();
                 const allUpcoming = appointments
-                  .filter(a => new Date(a.start_time) >= now && !['cancelled', 'no_show'].includes((a.status || '').toLowerCase()))
+                  .filter(a => new Date(a.start_time) >= now && !['cancelled', 'no_show', 'rescheduled'].includes((a.status || '').toLowerCase()))
                   .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
                 if (allUpcoming.length === 0) return null;
                 const upcoming = showAllUpcoming ? allUpcoming : allUpcoming.slice(0, 5);
@@ -7029,6 +7061,15 @@ export default function PatientProfile() {
                                         }
                                       });
 
+                                      // Assign take-home pickups to blocks sequentially (same rule as purchases).
+                                      // One pickup log per block is the common case — multi-pickup blocks are rare.
+                                      const sortedPickupsForBlocks = [...wlDeliveryLogs].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
+                                      sortedPickupsForBlocks.forEach((pk, idx) => {
+                                        if (idx < purchaseBoundaries.length) {
+                                          purchaseBoundaries[idx].pickup = pk;
+                                        }
+                                      });
+
                                       // Helper: find which block injection #N belongs to (0-indexed)
                                       const getPurchaseGroupForIdx = (injectionIdx) => {
                                         if (injectionIdx < 0) return null;
@@ -7047,12 +7088,59 @@ export default function PatientProfile() {
                                           const pDate = new Date(purchase.purchase_date + 'T12:00:00');
                                           const dateLabel = pDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
                                           const amount = purchase.amount_paid != null ? `$${parseFloat(purchase.amount_paid).toFixed(0)}` : 'No amount';
+                                          const blockPickup = boundary.pickup;
+                                          const overnightedQty = blockPickup ? (blockPickup.quantity || 0) : 0;
+                                          const inClinicAllocated = Math.max(0, BLOCK_SIZE - overnightedQty);
                                           return (
                                             <tr key={'group-' + blockIdx + '-' + purchase.id} style={{ background: '#f1f5f9', borderTop: blockIdx > 0 ? '2px solid #cbd5e1' : 'none' }}>
                                               <td colSpan={7} style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: '#334155' }}>
                                                 <span style={{ marginRight: 6 }}>💳</span>
                                                 Block {blockNum} · {injRange} — Paid {dateLabel}
                                                 <span style={{ fontWeight: 500, color: '#64748b', marginLeft: 6 }}>({amount})</span>
+                                                {(overnightedQty > 0 || inClinicAllocated > 0) && (
+                                                  <>
+                                                    <span style={{ color: '#cbd5e1', margin: '0 8px' }}>·</span>
+                                                    {inClinicAllocated > 0 && (
+                                                      <span style={{ color: '#2E75B6', fontWeight: 600 }}>
+                                                        🏥 {inClinicAllocated} in-clinic
+                                                      </span>
+                                                    )}
+                                                    {inClinicAllocated > 0 && overnightedQty > 0 && <span style={{ color: '#94a3b8', margin: '0 6px' }}>+</span>}
+                                                    {overnightedQty > 0 && (
+                                                      <span style={{ color: '#e67e22', fontWeight: 600 }}>
+                                                        📦 {overnightedQty} overnighted
+                                                      </span>
+                                                    )}
+                                                  </>
+                                                )}
+                                                {blockPickup && (
+                                                  <button
+                                                    onClick={(e) => { e.stopPropagation(); openEditInjection(blockPickup, { blockNum, totalInBlock: BLOCK_SIZE, purchase }); }}
+                                                    style={{ marginLeft: 10, padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#fff', color: '#334155', border: '1px solid #cbd5e1', borderRadius: 4, cursor: 'pointer' }}
+                                                    title="Rebalance in-clinic vs overnighted for this block"
+                                                  >
+                                                    Edit Dispense
+                                                  </button>
+                                                )}
+                                                {blockPickup && (blockPickup.quantity || 0) > 0 && (
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setRescheduleWLModal({
+                                                        pickup: blockPickup,
+                                                        blockNum,
+                                                        quantity: blockPickup.quantity || 0,
+                                                        intervalDays: (protocol.frequency || '').toLowerCase().includes('bi') ? 14 : 7,
+                                                      });
+                                                      setRescheduleWLDate(blockPickup.entry_date || '');
+                                                      setRescheduleWLError('');
+                                                    }}
+                                                    style={{ marginLeft: 6, padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#fff', color: '#334155', border: '1px solid #cbd5e1', borderRadius: 4, cursor: 'pointer' }}
+                                                    title="Set the first injection date for this block; subsequent injections fall every interval thereafter"
+                                                  >
+                                                    📅 Reschedule
+                                                  </button>
+                                                )}
                                               </td>
                                             </tr>
                                           );
@@ -7168,8 +7256,8 @@ export default function PatientProfile() {
 
                                       // Inject projected take-home sessions from pickup data
                                       // When a patient picks up N injections, generate N weekly projected dates
-                                      // starting from the week after the pickup date. Skip dates that already
-                                      // have a logged session within ±3 days.
+                                      // anchored to the pickup date (pickup day = first injection). Skip dates
+                                      // that already have a logged session within ±3 days.
                                       const logsWithProjected = [...sortedLogs];
                                       if (wlDeliveryLogs.length > 0) {
                                         for (const pickup of wlDeliveryLogs) {
@@ -7178,7 +7266,7 @@ export default function PatientProfile() {
                                           const pickupDate = new Date(pickup.entry_date + 'T12:00:00');
                                           const pickupDose = parseDose(pickup.dosage) || protocol.selected_dose || null;
 
-                                          for (let w = 1; w <= pickupQty; w++) {
+                                          for (let w = 0; w < pickupQty; w++) {
                                             const projDate = new Date(pickupDate);
                                             projDate.setDate(projDate.getDate() + w * intervalDays);
                                             const projStr = projDate.toISOString().split('T')[0];
@@ -7341,15 +7429,10 @@ export default function PatientProfile() {
                                           if (slotGroupHeader) rowElements.unshift(slotGroupHeader);
                                           return rowElements;
                                         }
-                                        // Projected session (from pickup data) — label by delivery method
+                                        // Projected rows are always generated from pickup logs — the patient took the vials home — so label take-home regardless of protocol.delivery_method.
                                         if (slot._projected) {
-                                          const isInClinicProj = protocol.delivery_method === 'in_clinic';
-                                          const projLabel = isInClinicProj
-                                            ? (slot._projectedPast ? 'In-clinic' : 'In-clinic (upcoming)')
-                                            : (slot._projectedPast ? 'Take-home' : 'Take-home (upcoming)');
-                                          const projTitle = isInClinicProj
-                                            ? 'In-clinic injection — click to log weight'
-                                            : 'Take-home injection — click to log weight';
+                                          const projLabel = slot._projectedPast ? 'Take-home' : 'Take-home (upcoming)';
+                                          const projTitle = 'Take-home injection — click to log weight';
                                           const projRow = (
                                             <tr key={'proj-' + slot.num} style={{ background: slot._projectedPast ? '#f8fafc' : '#fafafa' }}
                                               onClick={() => openQuickWeightModal(protocol, slot.expStr)}
@@ -7358,7 +7441,7 @@ export default function PatientProfile() {
                                               <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
                                               <td style={{ color: slot._projectedPast ? '#6b7280' : '#9ca3af' }}>
                                                 {formatShortDate(slot.expStr)}
-                                                {!isInClinicProj && <span style={{ marginLeft: 4, fontSize: 11 }}>🏠</span>}
+                                                <span style={{ marginLeft: 4, fontSize: 11 }}>🏠</span>
                                               </td>
                                               <td style={{ color: '#9ca3af' }}>{slot._projectedDose || currentDose || '\u2014'}</td>
                                               <td><span style={{ color: '#9ca3af' }}>{'\u2014'}</span></td>
@@ -7690,9 +7773,12 @@ export default function PatientProfile() {
                                       const isVP = (p.num_vials && p.num_vials > 0) || (p.supply_type || '').toLowerCase() === 'vial';
                                       const del = isVP ? 'vial' : 'prefilled';
                                       let days = p.total_sessions || 0;
-                                      if (isVP) {
+                                      if (isVP && p.num_vials) {
                                         const cat = VIAL_CATALOG.find(v => v.id === vid);
-                                        if (cat && (cat.daysPerVial || cat.injectionsPerVial)) days = p.num_vials * (cat.daysPerVial || cat.injectionsPerVial);
+                                        const totalDoses = p.doses_per_vial ? p.num_vials * p.doses_per_vial : (cat && cat.injectionsPerVial ? p.num_vials * cat.injectionsPerVial : null);
+                                        const freqCalc = calculatePeptideDurationDays(totalDoses, p.frequency || (cat && cat.frequency));
+                                        if (freqCalc) days = freqCalc;
+                                        else if (cat && cat.injectionsPerVial) days = p.num_vials * cat.injectionsPerVial;
                                       }
                                       entries.push(`${vid}.${days}.${del}`);
                                       if (p.selected_dose) doseParams.push(`d_${vid}=${encodeURIComponent(p.selected_dose)}`);
@@ -7825,11 +7911,12 @@ export default function PatientProfile() {
                                               deliveryStr.includes('vial');
                                             const delivery = isVial ? 'vial' : 'prefilled';
                                             let days = p.total_sessions || 0;
-                                            if (isVial) {
+                                            if (isVial && p.num_vials) {
                                               const catalogEntry = VIAL_CATALOG.find(v => v.id === vialId);
-                                              if (catalogEntry && (catalogEntry.daysPerVial || catalogEntry.injectionsPerVial)) {
-                                                days = p.num_vials * (catalogEntry.daysPerVial || catalogEntry.injectionsPerVial);
-                                              }
+                                              const totalDoses = p.doses_per_vial ? p.num_vials * p.doses_per_vial : (catalogEntry && catalogEntry.injectionsPerVial ? p.num_vials * catalogEntry.injectionsPerVial : null);
+                                              const freqCalc = calculatePeptideDurationDays(totalDoses, p.frequency || (catalogEntry && catalogEntry.frequency));
+                                              if (freqCalc) days = freqCalc;
+                                              else if (catalogEntry && catalogEntry.injectionsPerVial) days = p.num_vials * catalogEntry.injectionsPerVial;
                                             }
                                             entries.push(`${vialId}.${days}.${delivery}`);
                                             const dose = (p.id === protocol.id && overrideDose) ? overrideDose : p.selected_dose;
@@ -9590,25 +9677,43 @@ export default function PatientProfile() {
                         {/* Assign to */}
                         <div>
                           <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px', display: 'block' }}>Assign to</label>
-                          <select
-                            value={taskForm.assigned_to}
-                            onChange={e => setTaskForm(prev => ({ ...prev, assigned_to: e.target.value }))}
-                            style={{
-                              width: '100%', padding: '10px 12px', fontSize: '14px',
-                              border: '1px solid #d1d5db', borderRadius: 0, outline: 'none',
-                              boxSizing: 'border-box', background: '#fff',
-                            }}
-                            required
-                          >
-                            <option value="">Select team member...</option>
-                            {taskEmployees
-                              .filter(e => e.is_active !== false)
-                              .map(e => (
-                                <option key={e.id} value={e.id}>
+                          <div style={{
+                            border: '1px solid #d1d5db', borderRadius: 0, padding: '8px 10px',
+                            display: 'flex', flexWrap: 'wrap', gap: '6px',
+                          }}>
+                            {taskEmployees.filter(e => e.is_active !== false).map(e => {
+                              const selected = taskForm.assigned_to.includes(e.id);
+                              return (
+                                <label
+                                  key={e.id}
+                                  style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '5px',
+                                    padding: '5px 10px', fontSize: '13px', fontWeight: 500,
+                                    background: selected ? '#000' : '#f3f4f6',
+                                    color: selected ? '#fff' : '#374151',
+                                    borderRadius: 0, cursor: 'pointer',
+                                    border: '1px solid', borderColor: selected ? '#000' : '#d1d5db',
+                                    userSelect: 'none',
+                                  }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={selected}
+                                    onChange={() => {
+                                      setTaskForm(prev => ({
+                                        ...prev,
+                                        assigned_to: selected
+                                          ? prev.assigned_to.filter(id => id !== e.id)
+                                          : [...prev.assigned_to, e.id],
+                                      }));
+                                    }}
+                                    style={{ display: 'none' }}
+                                  />
                                   {e.name}{e.id === employee?.id ? ' (Me)' : ''}
-                                </option>
-                              ))}
-                          </select>
+                                </label>
+                              );
+                            })}
+                          </div>
                         </div>
 
                         {/* Category + Priority + Due Date row */}
@@ -10850,18 +10955,44 @@ export default function PatientProfile() {
           <div className="modal-overlay" {...overlayClickProps(() => setEditInjectionModal(null))}>
             <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
               <div className="modal-header">
-                <h3>{editInjectionModal?.entry_type === 'pickup' ? 'Edit Delivery' : 'Edit Injection'}</h3>
+                <h3>{dispenseContext ? `Edit Dispense — Block ${dispenseContext.blockNum}` : editInjectionModal?.entry_type === 'pickup' ? 'Edit Delivery' : 'Edit Injection'}</h3>
                 <button onClick={() => setEditInjectionModal(null)} className="close-btn">&times;</button>
               </div>
               <div className="modal-body">
+                {dispenseContext && (() => {
+                  const qty = parseInt(editInjectionForm.quantity) || 0;
+                  const total = dispenseContext.totalInBlock || 4;
+                  const overnighted = Math.max(0, Math.min(qty, total));
+                  const inClinic = Math.max(0, total - overnighted);
+                  const pAmt = dispenseContext.purchase?.amount_paid;
+                  const pDateStr = dispenseContext.purchase?.purchase_date;
+                  const pDateLabel = pDateStr ? new Date(pDateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' }) : null;
+                  return (
+                    <div style={{ padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4, fontSize: 12, marginBottom: 12, color: '#334155' }}>
+                      <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                        {total} injections purchased
+                        {pAmt != null && <span style={{ fontWeight: 500, color: '#64748b' }}> · ${parseFloat(pAmt).toFixed(0)}{pDateLabel ? ` on ${pDateLabel}` : ''}</span>}
+                      </div>
+                      <div>
+                        <span style={{ color: '#2E75B6', fontWeight: 600 }}>🏥 {inClinic} in-clinic</span>
+                        <span style={{ color: '#94a3b8', margin: '0 6px' }}>+</span>
+                        <span style={{ color: '#e67e22', fontWeight: 600 }}>📦 {overnighted} overnighted</span>
+                        {qty > total && <span style={{ color: '#dc2626', fontWeight: 600, marginLeft: 8 }}>⚠️ exceeds block total</span>}
+                      </div>
+                      <div style={{ marginTop: 6, color: '#64748b', fontStyle: 'italic', fontSize: 11 }}>
+                        Change the overnighted quantity below. In-clinic count adjusts automatically.
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div className="form-group">
                   <label>Date</label>
                   <input type="date" value={editInjectionForm.entry_date} onChange={e => setEditInjectionForm({ ...editInjectionForm, entry_date: e.target.value })} />
                 </div>
                 {editInjectionModal?.entry_type === 'pickup' && (
                   <div className="form-group">
-                    <label>Quantity</label>
-                    <input type="number" min="1" value={editInjectionForm.quantity} onChange={e => setEditInjectionForm({ ...editInjectionForm, quantity: e.target.value })} />
+                    <label>{dispenseContext ? 'Overnighted Quantity' : 'Quantity'}</label>
+                    <input type="number" min="0" value={editInjectionForm.quantity} onChange={e => setEditInjectionForm({ ...editInjectionForm, quantity: e.target.value })} />
                   </div>
                 )}
                 <div className="form-group">
@@ -12148,21 +12279,6 @@ export default function PatientProfile() {
 
                 {/* ── Peptide: Supply format drives everything ── */}
                 {selectedProtocol.category === 'peptide' && (() => {
-                  // Auto-calc helper: frequency → doses per week
-                  const getDosesPerWeek = (freq) => {
-                    if (!freq) return null;
-                    const f = freq.toLowerCase();
-                    if (f.includes('5 on')) return 5;
-                    if (f === 'daily' || f.includes('1x daily')) return 7;
-                    if (f === '2x daily') return 14;
-                    if (f === '3x daily') return 21;
-                    if (f === 'every other day') return 3.5;
-                    if (f === 'every 5 days') return 1.4;
-                    if (f === '2x per week') return 2;
-                    if (f === '3x per week') return 3;
-                    if (f === 'weekly' || f === '1x per week') return 1;
-                    return null;
-                  };
                   const isVial = editForm.supplyType === 'vial';
                   const isPrefilled = (editForm.supplyType || '').startsWith('prefilled_');
                   const prefillDays = isPrefilled ? parseInt((editForm.supplyType || '').replace('prefilled_', '').replace('d', '')) : null;
@@ -12172,15 +12288,8 @@ export default function PatientProfile() {
                     ? parseInt(editForm.numVials) * parseInt(editForm.dosesPerVial) : null;
                   const calcDurationDays = (() => {
                     if (isPrefilled && prefillDays) return prefillDays;
-                    // Check catalog for explicit daysPerVial (e.g., GH blends = 30 days/vial)
-                    if (isVial && editForm.numVials) {
-                      const vid = getVialIdForMedication(editForm.medication, selectedProtocol.program_name);
-                      const cat = vid ? VIAL_CATALOG.find(v => v.id === vid) : null;
-                      if (cat && cat.daysPerVial) return parseInt(editForm.numVials) * cat.daysPerVial;
-                    }
                     const total = vialTotal || editForm.totalSessions;
-                    if (total && dpw) return Math.round((total / dpw) * 7);
-                    return null;
+                    return calculatePeptideDurationDays(total, editForm.frequency);
                   })();
                   const calcEndDate = (() => {
                     if (!editForm.startDate || !calcDurationDays) return null;
@@ -13265,6 +13374,74 @@ export default function PatientProfile() {
         )}
 
         {/* ==================== EXTEND WL PROTOCOL MODAL ==================== */}
+        {rescheduleWLModal && (() => {
+          const qty = rescheduleWLModal.quantity;
+          const interval = rescheduleWLModal.intervalDays;
+          const previewDates = [];
+          if (rescheduleWLDate) {
+            const anchor = new Date(rescheduleWLDate + 'T12:00:00');
+            for (let i = 0; i < qty; i++) {
+              const d = new Date(anchor);
+              d.setDate(d.getDate() + i * interval);
+              previewDates.push(d);
+            }
+          }
+          const fmt = (d) => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' });
+          return (
+            <div className="modal-overlay" {...overlayClickProps(() => { if (!rescheduleWLSaving) { setRescheduleWLModal(null); } })}>
+              <div className="modal" style={{ maxWidth: 440 }} onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h3>Reschedule Block {rescheduleWLModal.blockNum}</h3>
+                  <button onClick={() => setRescheduleWLModal(null)} className="close-btn" disabled={rescheduleWLSaving}>&times;</button>
+                </div>
+                <div style={{ padding: '20px' }}>
+                  <div style={{ fontSize: 13, color: '#64748b', marginBottom: 14 }}>
+                    Pick the date of the first injection. The remaining {qty > 1 ? `${qty - 1} injection${qty - 1 === 1 ? '' : 's'}` : 'injections'} will fall every {interval} days after that.
+                  </div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                    First Injection Date
+                  </label>
+                  <input
+                    type="date"
+                    value={rescheduleWLDate}
+                    onChange={e => setRescheduleWLDate(e.target.value)}
+                    disabled={rescheduleWLSaving}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
+                  />
+                  {previewDates.length > 0 && (
+                    <div style={{ marginTop: 14, padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: 13, color: '#334155' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 6 }}>Schedule Preview</div>
+                      {previewDates.map((d, i) => (
+                        <div key={i} style={{ padding: '2px 0' }}>
+                          <span style={{ color: '#9ca3af', fontSize: 12, marginRight: 8 }}>#{i + 1}</span>
+                          {fmt(d)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {rescheduleWLError && (
+                    <div style={{ marginTop: 12, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13 }}>
+                      {rescheduleWLError}
+                    </div>
+                  )}
+                  <div style={{ marginTop: 18, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={() => setRescheduleWLModal(null)}
+                      disabled={rescheduleWLSaving}
+                      style={{ padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', cursor: 'pointer', fontSize: 14 }}
+                    >Cancel</button>
+                    <button
+                      onClick={handleRescheduleWL}
+                      disabled={rescheduleWLSaving || !rescheduleWLDate}
+                      style={{ padding: '8px 20px', background: rescheduleWLSaving ? '#9ca3af' : '#2563eb', color: '#fff', border: 'none', borderRadius: 0, cursor: rescheduleWLSaving ? 'not-allowed' : 'pointer', fontSize: 14, fontWeight: 600 }}
+                    >{rescheduleWLSaving ? 'Saving...' : 'Save Schedule'}</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {showExtendWLModal && extendWLProtocol && (
           <div className="modal-overlay" {...overlayClickProps(() => { if (!extendingWL) { setShowExtendWLModal(false); } })}>
             <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>

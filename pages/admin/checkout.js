@@ -63,8 +63,8 @@ const SERVICE_SEGMENTS = [
     id: 'optimization',
     label: 'Optimization',
     icon: '⚡',
-    description: 'HRT, weight loss, and peptide protocols',
-    categories: ['hrt', 'weight_loss', 'peptide'],
+    description: 'HRT, weight loss, peptide protocols, and vials',
+    categories: ['hrt', 'weight_loss', 'peptide', 'vials'],
   },
   {
     id: 'labs',
@@ -154,6 +154,14 @@ const SUBGROUP_RULES = {
     { label: "Men's Panels", match: i => i.name.toLowerCase().includes("men's") || i.name.toLowerCase().includes('male') },
     { label: "Women's Panels", match: i => i.name.toLowerCase().includes("women's") || i.name.toLowerCase().includes('female') },
     { label: 'General', match: () => true },
+  ],
+  vials: [
+    { label: 'Recovery', match: i => /bpc|tb[- ]?4|tb[- ]?500|klow|glow|recovery.*blend/i.test(i.name) },
+    { label: 'Growth Hormone', match: i => /2x blend|3x blend|4x blend|tesamorelin|ipamorelin|cjc|ghrp|igf/i.test(i.name) },
+    { label: 'Longevity & Specialty', match: i => /nad\+?|mots|ghk|ss-?31|aod|epithal|follistatin|hgh/i.test(i.name) },
+    { label: 'Neuro & Sleep', match: i => /semax|selank|dsip/i.test(i.name) },
+    { label: 'Immune', match: i => /thymosin alpha|ta-?1|ara-?290/i.test(i.name) },
+    { label: 'Sexual Health', match: i => /hcg|pt-?141/i.test(i.name) },
   ],
 };
 

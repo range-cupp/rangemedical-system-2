@@ -241,6 +241,7 @@ function CheckoutInner() {
   const [peptideDurationDays, setPeptideDurationDays] = useState(0);
   const [peptidePhase, setPeptidePhase] = useState(0); // 0 = not applicable
   const [peptideInClinicCount, setPeptideInClinicCount] = useState(0);
+  const [peptideInjectionCount, setPeptideInjectionCount] = useState(0); // Custom count for phase-based peptides (0 = use full phase package)
 
   // ── Injection Builder (NAD+, Standard, Premium) ──
   const [injBuilderType, setInjBuilderType] = useState(''); // 'nad', 'standard', 'premium'
@@ -745,9 +746,27 @@ function CheckoutInner() {
     return days || 0;
   }
 
+  // Effective injection count honoring custom-count for phase-based peptides.
+  function getPeptideEffectiveInjections(product, days, phase) {
+    const pkg = getPeptideTotalInjections(product, days, phase);
+    if (product?.phases?.length && product?.allowCustomCount && peptideInjectionCount > 0) {
+      return Math.min(peptideInjectionCount, pkg);
+    }
+    return pkg;
+  }
+
   function getPeptideBuilderPriceCents() {
     const product = getPeptideProduct(peptideMedication);
-    return getPeptideDurationPriceCents(product, peptideDurationDays, peptidePhase);
+    if (!product) return 0;
+    const pkgPrice = getPeptideDurationPriceCents(product, peptideDurationDays, peptidePhase);
+    // Phase-based custom count: price scales linearly from the phase package.
+    if (product.phases?.length && product.allowCustomCount && peptideInjectionCount > 0) {
+      const pkgCount = getPeptideTotalInjections(product, peptideDurationDays, peptidePhase);
+      if (pkgCount > 0 && peptideInjectionCount < pkgCount) {
+        return Math.round((pkgPrice / pkgCount) * peptideInjectionCount);
+      }
+    }
+    return pkgPrice;
   }
 
   function peptideBuilderReady() {
@@ -763,14 +782,18 @@ function CheckoutInner() {
     if (product.phases?.length && !peptidePhase) return;
 
     const totalCents = getPeptideBuilderPriceCents();
-    const totalInj = getPeptideTotalInjections(product, peptideDurationDays, peptidePhase);
+    const totalInj = getPeptideEffectiveInjections(product, peptideDurationDays, peptidePhase);
     const inClinicCount = Math.max(0, Math.min(peptideInClinicCount || 0, totalInj));
     const takeHomeCount = totalInj - inClinicCount;
     const hasInClinic = inClinicCount > 0;
     const hasTakeHome = takeHomeCount > 0;
 
+    const pkgInj = getPeptideTotalInjections(product, peptideDurationDays, peptidePhase);
+    const isPhasedCustom = product.phases?.length && product.allowCustomCount && peptideInjectionCount > 0 && peptideInjectionCount < pkgInj;
     const tierMatch = product.durations.find(d => d.days === peptideDurationDays);
-    const durationLabel = tierMatch?.label || `${totalInj} injection${totalInj !== 1 ? 's' : ''}`;
+    const durationLabel = isPhasedCustom
+      ? `${totalInj} injection${totalInj !== 1 ? 's' : ''}`
+      : (tierMatch?.label || `${totalInj} injection${totalInj !== 1 ? 's' : ''}`);
     const phaseSuffix = product.phases?.length && peptidePhase ? ` — Phase ${peptidePhase}` : '';
 
     // Internal service name — must match findPeptideProduct() regex patterns in protocol-config.js.
@@ -829,6 +852,7 @@ function CheckoutInner() {
     setPeptideDurationDays(0);
     setPeptidePhase(0);
     setPeptideInClinicCount(0);
+    setPeptideInjectionCount(0);
   }
 
   // ── Injection Builder helpers ──
@@ -3201,7 +3225,8 @@ function CheckoutInner() {
                     (() => {
                       const { groups: pepGroups, keys: pepKeys } = getPeptideCatalogGroups();
                       const pepProduct = getPeptideProduct(peptideMedication);
-                      const totalInjForCurrent = pepProduct ? getPeptideTotalInjections(pepProduct, peptideDurationDays, peptidePhase) : 0;
+                      const pkgInjForCurrent = pepProduct ? getPeptideTotalInjections(pepProduct, peptideDurationDays, peptidePhase) : 0;
+                      const totalInjForCurrent = pepProduct ? getPeptideEffectiveInjections(pepProduct, peptideDurationDays, peptidePhase) : 0;
                       const builderTotal = getPeptideBuilderPriceCents();
                       return (
                         <div style={{ marginTop: '16px' }}>
@@ -3219,6 +3244,7 @@ function CheckoutInner() {
                                       setPeptideDurationDays(0);
                                       setPeptidePhase(0);
                                       setPeptideInClinicCount(0);
+                                      setPeptideInjectionCount(0);
                                     }}
                                     style={{
                                       ...styles.fulfillmentBtn,
@@ -3250,6 +3276,7 @@ function CheckoutInner() {
                                           setPeptideDurationDays(p.durations?.length === 1 ? p.durations[0].days : 0);
                                           setPeptidePhase(0);
                                           setPeptideInClinicCount(0);
+                                          setPeptideInjectionCount(0);
                                         }}
                                         style={{
                                           padding: '12px 14px',
@@ -3284,7 +3311,7 @@ function CheckoutInner() {
                                     return (
                                       <button
                                         key={d.days}
-                                        onClick={() => { setPeptideDurationDays(d.days); setPeptideInClinicCount(0); }}
+                                        onClick={() => { setPeptideDurationDays(d.days); setPeptideInClinicCount(0); setPeptideInjectionCount(0); }}
                                         style={{
                                           padding: '12px 18px',
                                           fontSize: '14px',
@@ -3324,7 +3351,7 @@ function CheckoutInner() {
                                       return (
                                         <button
                                           key={n}
-                                          onClick={() => { setPeptideDurationDays(n); setPeptideInClinicCount(0); }}
+                                          onClick={() => { setPeptideDurationDays(n); setPeptideInClinicCount(0); setPeptideInjectionCount(0); }}
                                           title={isTier ? `${tierLabel(n)} package — ${formatPrice(btnPrice)}` : `${n} injection${n !== 1 ? 's' : ''} — ${formatPrice(btnPrice)}`}
                                           style={{
                                             padding: isTier ? '10px 6px' : '12px 6px',
@@ -3361,7 +3388,7 @@ function CheckoutInner() {
                                     return (
                                       <button
                                         key={ph.phase}
-                                        onClick={() => setPeptidePhase(ph.phase)}
+                                        onClick={() => { setPeptidePhase(ph.phase); setPeptideInClinicCount(0); setPeptideInjectionCount(0); }}
                                         style={{
                                           padding: '12px 16px',
                                           fontSize: '13px',
@@ -3383,6 +3410,49 @@ function CheckoutInner() {
                                 </div>
                               </div>
                             )}
+
+                            {/* Injection count — phase-based peptides flagged allowCustomCount (e.g. MOTS-C) */}
+                            {pepProduct?.phases?.length > 0 && pepProduct.allowCustomCount && peptideDurationDays > 0 && peptidePhase > 0 && pkgInjForCurrent > 0 && (() => {
+                              const phaseData = pepProduct.phases.find(p => p.phase === peptidePhase);
+                              const perInjDose = typeof phaseData?.doses === 'object' ? phaseData.doses[peptideDurationDays] : phaseData?.dose;
+                              const pkgPriceCents = getPeptideDurationPriceCents(pepProduct, peptideDurationDays, peptidePhase);
+                              const perInjCents = pkgInjForCurrent > 0 ? Math.round(pkgPriceCents / pkgInjForCurrent) : 0;
+                              const effectiveCount = peptideInjectionCount > 0 ? peptideInjectionCount : pkgInjForCurrent;
+                              return (
+                                <div style={{ marginBottom: '20px' }}>
+                                  <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>INJECTIONS</label>
+                                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>
+                                    {perInjDose ? `${perInjDose} per injection · ` : ''}{formatPrice(perInjCents)} each · full phase = {formatPrice(pkgPriceCents)}
+                                  </div>
+                                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(pkgInjForCurrent, 10)}, minmax(0, 1fr))`, gap: '6px' }}>
+                                    {Array.from({ length: pkgInjForCurrent }, (_, i) => i + 1).map(n => {
+                                      const selected = effectiveCount === n;
+                                      const isFull = n === pkgInjForCurrent;
+                                      return (
+                                        <button
+                                          key={n}
+                                          onClick={() => setPeptideInjectionCount(isFull ? 0 : n)}
+                                          title={isFull ? `Full phase — ${pkgInjForCurrent} inj · ${formatPrice(pkgPriceCents)}` : `${n} injection${n !== 1 ? 's' : ''} · ${formatPrice(perInjCents * n)}`}
+                                          style={{
+                                            padding: isFull ? '10px 6px' : '12px 6px',
+                                            fontSize: isFull ? '11px' : '14px',
+                                            fontWeight: isFull ? 700 : 500,
+                                            lineHeight: 1.1,
+                                            border: '1px solid #ddd',
+                                            background: isFull ? '#fafafa' : '#fff',
+                                            cursor: 'pointer',
+                                            textAlign: 'center',
+                                            ...(selected ? { border: '2px solid #7c3aed', background: '#f5f3ff', color: '#7c3aed' } : {}),
+                                          }}
+                                        >
+                                          {isFull ? `Full (${n})` : n}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })()}
 
                             {/* Fulfillment (only if product supports in-clinic AND we have a total) */}
                             {pepProduct?.deliveryOptions?.includes('in_clinic') && totalInjForCurrent > 0 && (() => {
@@ -3451,7 +3521,12 @@ function CheckoutInner() {
                               <div style={{ borderTop: '2px solid #1a1a1a', paddingTop: '16px', marginTop: '16px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                                   <div style={{ fontSize: '14px', color: '#666' }}>
-                                    {totalInjForCurrent} injection{totalInjForCurrent !== 1 ? 's' : ''} · {peptideDurationDays} day supply
+                                    {totalInjForCurrent} injection{totalInjForCurrent !== 1 ? 's' : ''}
+                                    {(() => {
+                                      const isPhasedCustom = pepProduct?.phases?.length && pepProduct.allowCustomCount && peptideInjectionCount > 0 && peptideInjectionCount < pkgInjForCurrent;
+                                      // Only label "day supply" for simple (non-phased) peptides and full phase packages.
+                                      return !isPhasedCustom ? ` · ${peptideDurationDays} day supply` : ` · Phase ${peptidePhase} (${pkgInjForCurrent} inj full)`;
+                                    })()}
                                     {peptideInClinicCount > 0 ? ` · ${peptideInClinicCount} in clinic` : ''}
                                   </div>
                                   <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1a1a' }}>{formatPrice(builderTotal)}</div>

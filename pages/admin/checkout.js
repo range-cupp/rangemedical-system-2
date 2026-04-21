@@ -4711,22 +4711,20 @@ function CheckoutInner() {
                           <strong>1.</strong> Charge <strong>{formatPrice(chargeAmount)}</strong> in the Stripe iPhone app (Tap to Pay on iPhone).<br />
                           <strong>2.</strong> Copy the Payment Intent ID (starts with <code>pi_</code>) from the Stripe app or dashboard and paste it below.
                         </div>
-                        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                          <input
-                            type="text"
-                            value={terminalPiInput}
-                            onChange={e => setTerminalPiInput(e.target.value)}
-                            placeholder="pi_3Qxxx..."
-                            style={{ ...styles.fieldInput, flex: 1, fontFamily: 'monospace', fontSize: '13px' }}
-                          />
-                          <button
-                            onClick={handleTerminalLookup}
-                            disabled={!terminalPiInput.trim() || lookingUpTerminal}
-                            style={{ ...styles.primaryBtn, padding: '8px 16px', opacity: (!terminalPiInput.trim() || lookingUpTerminal) ? 0.4 : 1 }}
-                          >
-                            {lookingUpTerminal ? '...' : 'Look Up'}
-                          </button>
-                        </div>
+                        <input
+                          type="text"
+                          value={terminalPiInput}
+                          onChange={e => setTerminalPiInput(e.target.value)}
+                          placeholder="pi_3Qxxx..."
+                          style={{ ...styles.fieldInput, fontFamily: 'monospace', fontSize: '13px', marginBottom: '8px' }}
+                        />
+                        <button
+                          onClick={handleTerminalLookup}
+                          disabled={!terminalPiInput.trim() || lookingUpTerminal}
+                          style={{ ...styles.primaryBtn, width: '100%', padding: '10px 16px', marginBottom: '8px', opacity: (!terminalPiInput.trim() || lookingUpTerminal) ? 0.4 : 1, cursor: (!terminalPiInput.trim() || lookingUpTerminal) ? 'not-allowed' : 'pointer' }}
+                        >
+                          {lookingUpTerminal ? 'Looking up…' : 'Look Up Payment'}
+                        </button>
                         {terminalLookup?.error && (
                           <div style={{ padding: '8px', background: '#fee2e2', fontSize: '13px', color: '#dc2626' }}>{terminalLookup.error}</div>
                         )}

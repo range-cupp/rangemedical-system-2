@@ -74,11 +74,18 @@ const SERVICE_SEGMENTS = [
     categories: ['labs', 'assessment'],
   },
   {
+    id: 'supplements',
+    label: 'Supplements',
+    icon: '🌿',
+    description: 'Vitamins, antioxidants, and wellness support',
+    categories: ['supplements'],
+  },
+  {
     id: 'other',
     label: 'More',
     icon: '✦',
-    description: 'Packages, PRP, supplements, gift cards, custom',
-    categories: ['programs', 'packages', 'prp', 'longevity', 'vials', 'supplements', 'gift_card', 'custom', 'other'],
+    description: 'Packages, PRP, gift cards, custom',
+    categories: ['programs', 'packages', 'prp', 'longevity', 'vials', 'gift_card', 'custom', 'other'],
   },
 ];
 

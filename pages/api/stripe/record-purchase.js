@@ -41,9 +41,18 @@ async function sendReceiptEmail(purchase) {
     if (purchase.stripe_payment_intent_id) {
       try {
         const pi = await stripe.paymentIntents.retrieve(purchase.stripe_payment_intent_id, {
-          expand: ['payment_method'],
+          expand: ['payment_method', 'latest_charge'],
         });
-        if (pi.payment_method?.card) {
+        // Online charges: payment_method.card
+        // Tap to Pay / Terminal: latest_charge.payment_method_details.card_present
+        const chargeDetails = pi.latest_charge?.payment_method_details;
+        if (chargeDetails?.card_present) {
+          cardBrand = chargeDetails.card_present.brand;
+          cardLast4 = chargeDetails.card_present.last4;
+        } else if (chargeDetails?.card) {
+          cardBrand = chargeDetails.card.brand;
+          cardLast4 = chargeDetails.card.last4;
+        } else if (pi.payment_method?.card) {
           cardBrand = pi.payment_method.card.brand;
           cardLast4 = pi.payment_method.card.last4;
         }

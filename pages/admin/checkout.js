@@ -260,6 +260,11 @@ function CheckoutInner() {
   const [giftCardLookup, setGiftCardLookup] = useState(null);
   const [lookingUpGiftCard, setLookingUpGiftCard] = useState(false);
 
+  // ── Tap to Pay (Stripe Terminal via Stripe iPhone app) ──
+  const [terminalPiInput, setTerminalPiInput] = useState('');
+  const [terminalLookup, setTerminalLookup] = useState(null);
+  const [lookingUpTerminal, setLookingUpTerminal] = useState(false);
+
   // ── Account credit ──
   const [creditBalanceCents, setCreditBalanceCents] = useState(0);
   const [creditRemainderMethod, setCreditRemainderMethod] = useState(null); // 'cash' or 'card'
@@ -1406,6 +1411,49 @@ function CheckoutInner() {
     // Energy & Recovery Pack — partial (balance < charge, remainder to selected payment method)
     // Handled inline below: if energyPackApply is on, we deduct what we can and charge the rest
 
+    // Tap to Pay (Stripe Terminal via Stripe iPhone app) — PI was already charged externally
+    if (selectedCard === 'terminal') {
+      if (!terminalLookup || terminalLookup.error || terminalLookup.already_recorded || !terminalLookup.ok) {
+        setResultStatus('error');
+        setResultMessage(terminalLookup?.error || 'Look up the PaymentIntent ID first');
+        setStep('result');
+        return;
+      }
+      setStep('processing');
+      try {
+        const purchaseData = await recordPurchasesWithReturn({
+          payment_method: 'stripe',
+          stripe_payment_intent_id: terminalLookup.pi.id,
+        });
+        const wallet = terminalLookup.pi.wallet;
+        const walletLabel = wallet === 'apple_pay' ? 'Apple Pay' : wallet === 'google_pay' ? 'Google Pay' : (terminalLookup.pi.card_brand || 'Card').toString().toUpperCase();
+        const last4 = terminalLookup.pi.card_last4 ? ` •••• ${terminalLookup.pi.card_last4}` : '';
+        let message;
+        if (isGiftCardPurchase() && purchaseData?.purchase?.id) {
+          const code = await createGiftCardAfterPurchase(purchaseData.purchase.id, amount);
+          message = code
+            ? `Tap to Pay: ${formatPrice(amount)} (${walletLabel}${last4})\nGift Card Created: ${code}`
+            : `Tap to Pay: ${description} — ${formatPrice(amount)} (${walletLabel}${last4})`;
+        } else if (isEnergyPackPurchase() && purchaseData?.purchase?.id) {
+          const pack = await createEnergyPackAfterPurchase(purchaseData.purchase.id);
+          message = pack
+            ? `Tap to Pay: ${formatPrice(amount)} (${walletLabel}${last4})\nEnergy & Recovery Pack activated — $750 balance`
+            : `Tap to Pay: ${description} — ${formatPrice(amount)} (${walletLabel}${last4})`;
+        } else {
+          message = `Tap to Pay recorded: ${description} — ${formatPrice(amount)} (${walletLabel}${last4})`;
+        }
+        message = await processDispenseAndAppend(message);
+        setResultStatus('success');
+        setResultMessage(message);
+        setStep('result');
+      } catch (error) {
+        setResultStatus('error');
+        setResultMessage(error.message || 'Failed to record tap-to-pay purchase');
+        setStep('result');
+      }
+      return;
+    }
+
     // Cash
     if (selectedCard === 'cash') {
       setStep('processing');
@@ -1847,6 +1895,29 @@ function CheckoutInner() {
     setLookingUpGiftCard(false);
   }
 
+  async function handleTerminalLookup() {
+    const raw = terminalPiInput.trim();
+    if (!raw) return;
+    setLookingUpTerminal(true);
+    setTerminalLookup(null);
+    try {
+      const res = await fetch('/api/stripe/lookup-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          payment_intent_id: raw,
+          expected_amount_cents: getChargeAmount(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) setTerminalLookup({ error: data.error || 'Lookup failed' });
+      else setTerminalLookup(data);
+    } catch (err) {
+      setTerminalLookup({ error: 'Failed to look up payment' });
+    }
+    setLookingUpTerminal(false);
+  }
+
   // ── Reset / new checkout ──
   function handleNewCheckout() {
     setCartItems([]);
@@ -1872,6 +1943,8 @@ function CheckoutInner() {
     setSplitCardSelection(null);
     setGiftCardCode('');
     setGiftCardLookup(null);
+    setTerminalPiInput('');
+    setTerminalLookup(null);
     setCreditBalanceCents(0);
     setSkipNotification(false);
     setConsentOverride(false);
@@ -4629,6 +4702,63 @@ function CheckoutInner() {
                     </label>
 
                     <label style={styles.paymentOption}>
+                      <input type="radio" name="pay_method" checked={selectedCard === 'terminal'} onChange={() => { setSelectedCard('terminal'); setTerminalLookup(null); setTerminalPiInput(''); }} />
+                      <span>Tap to Pay (Stripe iPhone app)</span>
+                    </label>
+                    {selectedCard === 'terminal' && (
+                      <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0' }}>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '10px', lineHeight: '1.5' }}>
+                          <strong>1.</strong> Charge <strong>{formatPrice(chargeAmount)}</strong> in the Stripe iPhone app (Tap to Pay on iPhone).<br />
+                          <strong>2.</strong> Copy the Payment Intent ID (starts with <code>pi_</code>) from the Stripe app or dashboard and paste it below.
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                          <input
+                            type="text"
+                            value={terminalPiInput}
+                            onChange={e => setTerminalPiInput(e.target.value)}
+                            placeholder="pi_3Qxxx..."
+                            style={{ ...styles.fieldInput, flex: 1, fontFamily: 'monospace', fontSize: '13px' }}
+                          />
+                          <button
+                            onClick={handleTerminalLookup}
+                            disabled={!terminalPiInput.trim() || lookingUpTerminal}
+                            style={{ ...styles.primaryBtn, padding: '8px 16px', opacity: (!terminalPiInput.trim() || lookingUpTerminal) ? 0.4 : 1 }}
+                          >
+                            {lookingUpTerminal ? '...' : 'Look Up'}
+                          </button>
+                        </div>
+                        {terminalLookup?.error && (
+                          <div style={{ padding: '8px', background: '#fee2e2', fontSize: '13px', color: '#dc2626' }}>{terminalLookup.error}</div>
+                        )}
+                        {terminalLookup?.ok && (
+                          <div style={{
+                            padding: '10px',
+                            background: terminalLookup.already_recorded ? '#fee2e2' : terminalLookup.amount_matches ? '#f0fdf4' : '#fef3c7',
+                            border: terminalLookup.already_recorded ? '1px solid #fca5a5' : terminalLookup.amount_matches ? '1px solid #bbf7d0' : '1px solid #fde68a',
+                          }}>
+                            <div style={{ fontWeight: 600, color: terminalLookup.already_recorded ? '#991b1b' : '#166534', marginBottom: '4px' }}>
+                              {terminalLookup.pi.wallet === 'apple_pay' ? 'Apple Pay' : terminalLookup.pi.wallet === 'google_pay' ? 'Google Pay' : (terminalLookup.pi.card_brand ? terminalLookup.pi.card_brand.toUpperCase() : 'Card')}
+                              {terminalLookup.pi.card_last4 ? ` •••• ${terminalLookup.pi.card_last4}` : ''}
+                            </div>
+                            <div style={{ fontSize: '13px' }}>
+                              Charged in Stripe: <strong>{formatPrice(terminalLookup.pi.amount_cents)}</strong>
+                            </div>
+                            {!terminalLookup.amount_matches && (
+                              <div style={{ fontSize: '12px', color: '#92400e', marginTop: '4px' }}>
+                                ⚠ Doesn't match cart total of {formatPrice(chargeAmount)}
+                              </div>
+                            )}
+                            {terminalLookup.already_recorded && (
+                              <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>
+                                ⚠ Already recorded — cannot re-use this PaymentIntent
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <label style={styles.paymentOption}>
                       <input type="radio" name="pay_method" checked={selectedCard === 'split'} onChange={() => { setSelectedCard('split'); if (!splitCardSelection) setSplitCardSelection(savedCards.length > 0 ? savedCards[0].id : 'new'); }} />
                       <span>Split Payment (Cash + Card)</span>
                     </label>
@@ -4824,6 +4954,7 @@ function CheckoutInner() {
                         return cashCents <= 0 || cardCents <= 0 || cashCents >= chargeAmount;
                       }
                       if (selectedCard === 'gift_card') return !giftCardLookup || giftCardLookup.error || giftCardLookup.remaining_amount < chargeAmount;
+                      if (selectedCard === 'terminal') return !terminalLookup || !terminalLookup.ok || terminalLookup.error || terminalLookup.already_recorded;
                       if (selectedCard === 'account_credit') {
                         if (creditBalanceCents >= chargeAmount) return false;
                         if (!creditRemainderMethod) return true;
@@ -4841,6 +4972,7 @@ function CheckoutInner() {
                       return cashCents <= 0 || cardCents <= 0 || cashCents >= chargeAmount;
                     }
                     if (selectedCard === 'gift_card') return !giftCardLookup || giftCardLookup.error || giftCardLookup.remaining_amount < chargeAmount;
+                    if (selectedCard === 'terminal') return !terminalLookup || !terminalLookup.ok || terminalLookup.error || terminalLookup.already_recorded;
                     if (selectedCard === 'account_credit') {
                       if (creditBalanceCents >= chargeAmount) return false;
                       if (!creditRemainderMethod) return true;
@@ -4852,6 +4984,8 @@ function CheckoutInner() {
                 >
                   {selectedCard === 'cash'
                     ? `Record Cash — ${formatPrice(chargeAmount)}`
+                    : selectedCard === 'terminal'
+                    ? `Record Tap to Pay — ${formatPrice(chargeAmount)}`
                     : selectedCard === 'split'
                     ? `Split Payment — ${formatPrice(chargeAmount)}`
                     : selectedCard === 'gift_card'

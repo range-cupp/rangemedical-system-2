@@ -606,13 +606,32 @@ function CheckoutInner() {
 
   // ── WL Injection Builder helpers ──
   function updateWlGroup(index, field, value) {
-    setWlGroups(prev => prev.map((g, i) => i === index ? { ...g, [field]: value } : g));
+    setWlGroups(prev => prev.map((g, i) => {
+      if (i !== index) return g;
+      const next = { ...g, [field]: value };
+      // When in custom mode, keep dose string in sync with typed mg value
+      if (field === 'customMg' && next.customMode) {
+        const trimmed = String(value).trim();
+        next.dose = trimmed ? `${trimmed}mg` : '';
+      }
+      return next;
+    }));
+  }
+
+  function setWlGroupCustomMode(index, on) {
+    setWlGroups(prev => prev.map((g, i) => {
+      if (i !== index) return g;
+      return { ...g, customMode: !!on, dose: '', customMg: '', customPriceCents: 0 };
+    }));
   }
 
   function addWlGroup() {
-    // Default new group to same dose as last group
-    const lastDose = wlGroups[wlGroups.length - 1]?.dose || '';
-    setWlGroups(prev => [...prev, { dose: lastDose, quantity: 1, fulfillment: 'take_home' }]);
+    // Default new group to same dose as last group — only if it's a standard priced dose
+    const lastGroup = wlGroups[wlGroups.length - 1];
+    const lastDose = lastGroup?.customMode ? '' : (lastGroup?.dose || '');
+    const standardDoses = WL_BUILDER_DOSES[wlMedication] || [];
+    const newDose = standardDoses.includes(lastDose) ? lastDose : '';
+    setWlGroups(prev => [...prev, { dose: newDose, quantity: 1, fulfillment: 'take_home' }]);
   }
 
   function removeWlGroup(index) {
@@ -620,11 +639,19 @@ function CheckoutInner() {
     setWlGroups(prev => prev.filter((_, i) => i !== index));
   }
 
+  function getWlGroupUnitPrice(group) {
+    if (group.customMode) return group.customPriceCents || 0;
+    return getWlInjectionPrice(wlMedication, group.dose) || 0;
+  }
+
+  function isWlGroupValid(group) {
+    if (!group.dose || !group.quantity) return false;
+    if (group.customMode && !(group.customPriceCents > 0)) return false;
+    return true;
+  }
+
   function getWlBuilderTotal() {
-    return wlGroups.reduce((sum, g) => {
-      const price = getWlInjectionPrice(wlMedication, g.dose);
-      return sum + (price || 0) * (g.quantity || 0);
-    }, 0);
+    return wlGroups.reduce((sum, g) => sum + getWlGroupUnitPrice(g) * (g.quantity || 0), 0);
   }
 
   function getWlBuilderTotalInjections() {
@@ -632,16 +659,17 @@ function CheckoutInner() {
   }
 
   function addWlBuilderToCart() {
-    if (!wlMedication || wlGroups.every(g => !g.dose || !g.quantity)) return;
+    if (!wlMedication || !wlGroups.some(isWlGroupValid)) return;
 
-    const totalCents = getWlBuilderTotal();
-    const totalInj = getWlBuilderTotalInjections();
-    const hasInClinic = wlGroups.some(g => g.fulfillment === 'in_clinic');
-    const hasTakeHome = wlGroups.some(g => g.fulfillment !== 'in_clinic');
+    const validGroups = wlGroups.filter(isWlGroupValid);
+    const totalCents = validGroups.reduce((sum, g) => sum + getWlGroupUnitPrice(g) * (g.quantity || 0), 0);
+    const totalInj = validGroups.reduce((sum, g) => sum + (g.quantity || 0), 0);
+    const hasInClinic = validGroups.some(g => g.fulfillment === 'in_clinic');
+    const hasTakeHome = validGroups.some(g => g.fulfillment !== 'in_clinic');
 
     // Build service name for internal tracking (protocol creation)
     // e.g. "Tirzepatide — 2x 4mg + 2x 5mg"
-    const groupDescs = wlGroups.filter(g => g.dose && g.quantity).map(g => `${g.quantity}x ${g.dose}`);
+    const groupDescs = validGroups.map(g => `${g.quantity}x ${g.dose}`);
     const internalName = `${wlMedication} — ${groupDescs.join(' + ')}`;
 
     const cartItem = {
@@ -656,7 +684,12 @@ function CheckoutInner() {
       wlConfig: {
         medication: wlMedication,
         frequency: wlFrequencyDays,
-        groups: wlGroups.filter(g => g.dose && g.quantity).map(g => ({ ...g })),
+        groups: validGroups.map(g => ({
+          dose: g.dose,
+          quantity: g.quantity,
+          fulfillment: g.fulfillment,
+          ...(g.customMode ? { customDose: true, unitPriceCents: g.customPriceCents } : {}),
+        })),
         internalName,
         totalInjections: totalInj,
         hasInClinic,
@@ -3601,8 +3634,8 @@ function CheckoutInner() {
                             <div style={{ marginBottom: '20px' }}>
                               <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>INJECTIONS</label>
                               {wlGroups.map((group, idx) => {
-                                const groupPrice = getWlInjectionPrice(wlMedication, group.dose);
-                                const groupTotal = (groupPrice || 0) * (group.quantity || 0);
+                                const groupPrice = getWlGroupUnitPrice(group);
+                                const groupTotal = groupPrice * (group.quantity || 0);
                                 return (
                                   <div key={idx} style={{
                                     display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px',
@@ -3620,17 +3653,59 @@ function CheckoutInner() {
                                     {/* Dose */}
                                     <div style={{ flex: 1 }}>
                                       <label style={{ fontSize: '10px', color: '#888', display: 'block', marginBottom: '4px' }}>Dosage</label>
-                                      <select
-                                        value={group.dose}
-                                        onChange={e => updateWlGroup(idx, 'dose', e.target.value)}
-                                        style={{ width: '100%', padding: '8px', border: '1px solid #ddd', fontSize: '14px' }}
-                                      >
-                                        <option value="">Select dose...</option>
-                                        {(WL_BUILDER_DOSES[wlMedication] || []).map(d => {
-                                          const p = getWlInjectionPrice(wlMedication, d);
-                                          return <option key={d} value={d}>{d} — {formatPrice(p)}/ea</option>;
-                                        })}
-                                      </select>
+                                      {group.customMode ? (
+                                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                                            <input
+                                              type="number" step="0.05" min="0"
+                                              value={group.customMg || ''}
+                                              onChange={e => updateWlGroup(idx, 'customMg', e.target.value)}
+                                              placeholder="2.25"
+                                              style={{ width: '100%', padding: '8px', border: '1px solid #ddd', fontSize: '14px' }}
+                                            />
+                                            <span style={{ fontSize: '12px', color: '#666' }}>mg</span>
+                                          </div>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                                            <span style={{ fontSize: '12px', color: '#666' }}>$</span>
+                                            <input
+                                              type="number" step="0.01" min="0"
+                                              value={group.customPriceCents ? (group.customPriceCents / 100).toFixed(2) : ''}
+                                              onChange={e => {
+                                                const v = parseFloat(e.target.value);
+                                                updateWlGroup(idx, 'customPriceCents', Number.isFinite(v) ? Math.round(v * 100) : 0);
+                                              }}
+                                              placeholder="0.00"
+                                              style={{ width: '100%', padding: '8px', border: '1px solid #ddd', fontSize: '14px' }}
+                                            />
+                                            <span style={{ fontSize: '12px', color: '#666' }}>/ea</span>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => setWlGroupCustomMode(idx, false)}
+                                            title="Back to standard doses"
+                                            style={{ padding: '8px 10px', fontSize: '12px', border: '1px solid #ddd', background: '#fff', color: '#666', cursor: 'pointer' }}
+                                          >Standard</button>
+                                        </div>
+                                      ) : (
+                                        <select
+                                          value={group.dose}
+                                          onChange={e => {
+                                            if (e.target.value === '__custom__') {
+                                              setWlGroupCustomMode(idx, true);
+                                            } else {
+                                              updateWlGroup(idx, 'dose', e.target.value);
+                                            }
+                                          }}
+                                          style={{ width: '100%', padding: '8px', border: '1px solid #ddd', fontSize: '14px' }}
+                                        >
+                                          <option value="">Select dose...</option>
+                                          {(WL_BUILDER_DOSES[wlMedication] || []).map(d => {
+                                            const p = getWlInjectionPrice(wlMedication, d);
+                                            return <option key={d} value={d}>{d} — {formatPrice(p)}/ea</option>;
+                                          })}
+                                          <option value="__custom__">Custom dose…</option>
+                                        </select>
+                                      )}
                                     </div>
                                     {/* Fulfillment */}
                                     <div>

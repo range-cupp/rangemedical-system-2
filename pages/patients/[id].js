@@ -6684,8 +6684,8 @@ export default function PatientProfile() {
                                   >{sendingWlLink === protocol.id ? 'Sending...' : 'Send WL Link'}</button>
                                 </>
                               )}
-                              {/* Merge button — only show when there are other protocols of the same category */}
-                              {protocol.status === 'active' && (() => {
+                              {/* Merge button — shown on active + queued cards when there are other protocols in the same category */}
+                              {(protocol.status === 'active' || protocol.status === 'queued') && (() => {
                                 const allProtos = [...activeProtocols, ...completedProtocols, ...historicProtocols];
                                 const mergeTargets = allProtos.filter(p =>
                                   p.id !== protocol.id &&
@@ -6694,11 +6694,13 @@ export default function PatientProfile() {
                                   p.status !== 'cancelled'
                                 );
                                 if (mergeTargets.length === 0) return null;
+                                // Prefer the active protocol as the default target so the live one survives
+                                const defaultTarget = mergeTargets.find(p => p.status === 'active') || mergeTargets[0];
                                 return (
                                   <button
                                     onClick={() => {
                                       setMergeSource(protocol);
-                                      setMergeTarget(mergeTargets[0]);
+                                      setMergeTarget(defaultTarget);
                                       setMergeError('');
                                       setShowMergeModal(true);
                                     }}

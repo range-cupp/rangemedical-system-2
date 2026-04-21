@@ -26,6 +26,7 @@ import {
   NAD_INJECTION_DOSAGES,
   PEPTIDE_OPTIONS,
   PEPTIDE_PRODUCT_CATALOG,
+  getPeptideProgramName,
   IV_THERAPY_TYPES,
   RANGE_IV_OPTIONS,
   getDoseOptions,
@@ -713,7 +714,20 @@ function CheckoutInner() {
       if (ph?.price) return ph.price * 100;
     }
     const d = product.durations?.find(d => d.days === days);
-    return (d?.price || 0) * 100;
+    if (d?.price) return d.price * 100;
+    // Custom injection count (non-tier). Use per-injection rate from the
+    // largest tier whose days <= count; fall back to smallest tier if count
+    // is below every tier.
+    if (!product.durations?.length) return 0;
+    const sorted = [...product.durations].filter(x => x.price && x.days).sort((a, b) => a.days - b.days);
+    if (!sorted.length) return 0;
+    let basis = sorted[0];
+    for (const t of sorted) {
+      if (t.days <= days) basis = t;
+      else break;
+    }
+    const perInjCents = (basis.price * 100) / basis.days;
+    return Math.round(perInjCents * days);
   }
 
   function getPeptideTotalInjections(product, days, phase) {
@@ -755,17 +769,23 @@ function CheckoutInner() {
     const hasInClinic = inClinicCount > 0;
     const hasTakeHome = takeHomeCount > 0;
 
-    const durationLabel = product.durations.find(d => d.days === peptideDurationDays)?.label || `${peptideDurationDays} Day`;
+    const tierMatch = product.durations.find(d => d.days === peptideDurationDays);
+    const durationLabel = tierMatch?.label || `${totalInj} injection${totalInj !== 1 ? 's' : ''}`;
     const phaseSuffix = product.phases?.length && peptidePhase ? ` — Phase ${peptidePhase}` : '';
 
-    // Service name — must match findPeptideProduct() regex patterns in protocol-config.js
+    // Internal service name — must match findPeptideProduct() regex patterns in protocol-config.js.
+    // Used downstream for protocol resolution, vial pulls, and service log entries.
     const serviceName = `${product.medication} — ${durationLabel}${phaseSuffix}`;
+
+    // Patient-facing display name — hides the specific peptide.
+    const programName = getPeptideProgramName(product.category);
+    const displayName = `${programName} — ${durationLabel}${phaseSuffix}`;
 
     const subCategory = PEPTIDE_CATEGORY_META[product.category]?.label || 'Peptide';
 
     const cartItem = {
       id: 'peptide-builder-' + Date.now(),
-      name: serviceName,
+      name: displayName,
       category: 'peptide',
       sub_category: subCategory,
       price: totalCents,
@@ -3253,8 +3273,8 @@ function CheckoutInner() {
                               </div>
                             )}
 
-                            {/* Duration */}
-                            {pepProduct && (pepProduct.durations?.length > 0) && (
+                            {/* Duration — phase-based peptides keep the tier buttons; simple peptides get a custom-count grid */}
+                            {pepProduct && (pepProduct.durations?.length > 0) && pepProduct.phases?.length > 0 && (
                               <div style={{ marginBottom: '20px' }}>
                                 <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>DURATION</label>
                                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -3287,6 +3307,48 @@ function CheckoutInner() {
                                 </div>
                               </div>
                             )}
+
+                            {/* Injection count — simple (non-phase) peptides get a 1..maxTier grid with tier days as packages */}
+                            {pepProduct && (pepProduct.durations?.length > 0) && !pepProduct.phases?.length && (() => {
+                              const tierDaysSet = new Set(pepProduct.durations.map(d => d.days));
+                              const maxTier = Math.max(...pepProduct.durations.map(d => d.days));
+                              const tierLabel = (n) => pepProduct.durations.find(d => d.days === n)?.label || `${n} Day`;
+                              return (
+                                <div style={{ marginBottom: '20px' }}>
+                                  <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>INJECTIONS</label>
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, minmax(0, 1fr))', gap: '6px' }}>
+                                    {Array.from({ length: maxTier }, (_, i) => i + 1).map(n => {
+                                      const selected = peptideDurationDays === n;
+                                      const isTier = tierDaysSet.has(n);
+                                      const btnPrice = getPeptideDurationPriceCents(pepProduct, n, 0);
+                                      return (
+                                        <button
+                                          key={n}
+                                          onClick={() => { setPeptideDurationDays(n); setPeptideInClinicCount(0); }}
+                                          title={isTier ? `${tierLabel(n)} package — ${formatPrice(btnPrice)}` : `${n} injection${n !== 1 ? 's' : ''} — ${formatPrice(btnPrice)}`}
+                                          style={{
+                                            padding: isTier ? '10px 6px' : '12px 6px',
+                                            fontSize: isTier ? '12px' : '14px',
+                                            fontWeight: isTier ? 700 : 500,
+                                            lineHeight: 1.1,
+                                            border: '1px solid #ddd',
+                                            background: isTier ? '#fafafa' : '#fff',
+                                            cursor: 'pointer',
+                                            textAlign: 'center',
+                                            ...(selected ? { border: '2px solid #2E75B6', background: '#EBF3FB', color: '#2E75B6' } : {}),
+                                          }}
+                                        >
+                                          {isTier ? tierLabel(n) : n}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                  <div style={{ fontSize: '11px', color: '#888', marginTop: '8px' }}>
+                                    Tier buttons (bold) use package pricing. Individual counts use the next-lower tier's per-injection rate.
+                                  </div>
+                                </div>
+                              );
+                            })()}
 
                             {/* Phase (conditional) */}
                             {pepProduct?.phases?.length > 0 && peptideDurationDays > 0 && (

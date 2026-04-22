@@ -48,24 +48,26 @@ const STRUGGLE_LABELS = {
 };
 
 const BUDGET_LABELS = {
-  yes: 'Yes, I\u2019m ready to invest',
-  yes_with_payments: 'Yes, with a payment plan',
-  no: 'Just exploring for now',
+  single:     'Single sessions \u2014 one at a time',
+  pack:       'A pack (5 or 10 sessions)',
+  membership: 'Monthly membership',
+  exploring:  'Just exploring for now',
 };
 
 function computeLeadScore({ importance90d, budgetAnswer }) {
   const importancePoints = Math.max(0, Math.min(10, Number(importance90d) || 0)) * 7;
   let budgetPoints = 0;
-  if (budgetAnswer === 'yes') budgetPoints = 30;
-  else if (budgetAnswer === 'yes_with_payments') budgetPoints = 20;
+  if (budgetAnswer === 'membership') budgetPoints = 30;
+  else if (budgetAnswer === 'pack') budgetPoints = 22;
+  else if (budgetAnswer === 'single') budgetPoints = 12;
   return importancePoints + budgetPoints;
 }
 
 function computeTier({ importance90d, budgetAnswer }) {
   const imp = Number(importance90d) || 0;
-  const budgetYes = budgetAnswer === 'yes' || budgetAnswer === 'yes_with_payments';
-  if (imp >= 8 && budgetYes) return 'green';
-  if (budgetAnswer === 'no' || imp <= 4) return 'red';
+  const highCommit = budgetAnswer === 'pack' || budgetAnswer === 'membership';
+  if (imp >= 8 && highCommit) return 'green';
+  if (budgetAnswer === 'exploring' || imp <= 4) return 'red';
   return 'yellow';
 }
 

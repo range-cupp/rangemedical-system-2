@@ -25,9 +25,17 @@ const STRUGGLE_OPTIONS = [
 ];
 
 const BUDGET_OPTIONS = [
-  { value: 'yes',               label: 'Yes, I’m ready to invest' },
-  { value: 'yes_with_payments', label: 'Yes, if there was a payment plan' },
-  { value: 'no',                label: 'Just exploring for now' },
+  { value: 'single',     label: 'Single sessions — one at a time' },
+  { value: 'pack',       label: 'A pack (5 or 10 sessions)' },
+  { value: 'membership', label: 'Monthly membership' },
+  { value: 'exploring',  label: 'Just exploring for now' },
+];
+
+const RLT_PLANS = [
+  { name: 'Single Session',     price: '$85' },
+  { name: '5-Pack',             price: '$375', per: '$75/session' },
+  { name: '10-Pack',            price: '$600', per: '$60/session' },
+  { name: 'Monthly Membership', price: '$399/mo', per: 'unlimited frequency' },
 ];
 
 export default function RLTTrial() {
@@ -654,14 +662,27 @@ export default function RLTTrial() {
                 {/* Step 4 — budget */}
                 <div className="fs-step">
                   <p className="fs-step-label">Step 4 of 4</p>
-                  <h2>
-                    If red light turns out to be a fit, could you invest in an ongoing
-                    plan (roughly $100–$300/month)?
-                  </h2>
+                  <h2>If red light turns out to be a fit, what feels most realistic?</h2>
                   <p style={{ fontSize: 14, color: '#737373', margin: '0 0 16px', lineHeight: 1.5 }}>
-                    No right answer here — we just want to know where you’re at so
-                    we don’t pitch you something that doesn’t fit.
+                    Here are our red light plans so you can see the range. No right
+                    answer — we just want to know where you’re at so we don’t pitch
+                    you something that doesn’t fit.
                   </p>
+
+                  <div style={{ background: '#fafafa', border: '1px solid #e5e5e5', padding: '16px 20px', marginBottom: 20 }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#737373', margin: '0 0 10px' }}>
+                      Our Red Light plans
+                    </p>
+                    {RLT_PLANS.map((plan) => (
+                      <div key={plan.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '8px 0', borderBottom: '1px solid #ececec', fontSize: 14, gap: 12 }}>
+                        <span style={{ color: '#404040' }}>{plan.name}</span>
+                        <span style={{ fontWeight: 600, color: '#171717', whiteSpace: 'nowrap' }}>
+                          {plan.price}
+                          {plan.per && <span style={{ color: '#737373', fontWeight: 400, marginLeft: 8 }}>{plan.per}</span>}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
 
                   <div className="fs-field" data-field-error={errors.budget ? 'true' : 'false'}>
                     <div className={errors.budget ? 'fs-options-error' : ''}>

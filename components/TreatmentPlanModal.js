@@ -11,11 +11,18 @@ function extractSummarySection(noteBody) {
   // Strip common HTML tags if the note body is HTML
   let rest = String(noteBody).slice(match.index + match[0].length);
   rest = rest.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n').replace(/<[^>]+>/g, '');
-  return rest
+  rest = rest
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
+    .trim();
+
+  // Normalize inline bullets so each recommendation sits on its own line.
+  return rest
+    .replace(/\r/g, '')
+    .replace(/([.!?;:])\s*[-•*\u2013\u2014]\s+/g, '$1\n- ')
+    .replace(/\s{2,}[-•*\u2013\u2014]\s+/g, '\n- ')
     .trim();
 }
 

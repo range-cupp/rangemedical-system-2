@@ -274,6 +274,8 @@ export default function CommunicationsPage() {
   // Status helpers for Activity Log
   const getCommStatusStyle = (status) => {
     switch (status) {
+      case 'read':
+        return { background: '#dbeafe', color: '#1e40af' };
       case 'delivered':
       case 'completed':
       case 'sent':
@@ -295,6 +297,7 @@ export default function CommunicationsPage() {
 
   const getCommStatusLabel = (status) => {
     switch (status) {
+      case 'read': return '✓✓ Read';
       case 'delivered': return '✓✓ Delivered';
       case 'sent': return '✓ Sent';
       case 'received': return '✓ Received';

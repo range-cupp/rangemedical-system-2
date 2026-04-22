@@ -244,12 +244,31 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       // Sort oldest first for conversation view
       const sorted = localLogs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
-      // On poll: only update + scroll if there are new messages
+      // On poll: only update + scroll if there are new messages. Crucially,
+      // preserve any optimistic messages (temp- ids) the user just sent — they
+      // may not have been written to comms_log yet. Without this, the 5s poll
+      // wipes the bubble mid-send and it reappears seconds later.
       if (silent) {
         setMessages(prev => {
-          if (sorted.length !== prev.length || (sorted.length > 0 && prev.length > 0 && sorted[sorted.length - 1].id !== prev[prev.length - 1].id)) {
+          const tempMessages = prev.filter(m => typeof m.id === 'string' && m.id.startsWith('temp-'));
+          const stillPendingTemps = tempMessages.filter(t => {
+            // Consider a temp "landed" once the server has a matching outbound
+            // message with the same text logged within the last minute
+            return !sorted.some(s =>
+              s.direction === 'outbound' &&
+              (s.message || '') === (t.message || '') &&
+              Math.abs(new Date(s.created_at) - new Date(t.created_at)) < 60000
+            );
+          });
+          const merged = stillPendingTemps.length > 0
+            ? [...sorted, ...stillPendingTemps].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+            : sorted;
+
+          const changed = merged.length !== prev.length ||
+            (merged.length > 0 && prev.length > 0 && merged[merged.length - 1].id !== prev[prev.length - 1].id);
+          if (changed) {
             shouldScrollRef.current = true;
-            return sorted;
+            return merged;
           }
           return prev;
         });
@@ -1727,8 +1746,10 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                         ...(item.status === 'undelivered' ? { color: '#fbbf24', opacity: 1 } : {}),
                         ...(item.status === 'error' ? { color: '#f87171', opacity: 1 } : {}),
                         ...(item.status === 'delivered' ? { opacity: 1 } : {}),
+                        ...(item.status === 'read' ? { color: '#3b82f6', opacity: 1, fontWeight: 600 } : {}),
                       }}>
-                        {item.status === 'delivered' ? ' ✓✓' :
+                        {item.status === 'read' ? ' ✓✓ Read' :
+                         item.status === 'delivered' ? ' ✓✓' :
                          item.status === 'sent' ? ' ✓' :
                          item.status === 'queued' || item.status === 'sending' ? ' ○' :
                          item.status === 'undelivered' ? ' ⚠' :
@@ -1786,11 +1807,13 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                 <span style={styles.modalMetaLabel}>Status:</span>
                 <span style={{
                   ...(selectedMessage.status === 'delivered' || selectedMessage.status === 'completed' ? { color: '#16a34a' } : {}),
+                  ...(selectedMessage.status === 'read' ? { color: '#3b82f6', fontWeight: 600 } : {}),
                   ...(selectedMessage.status === 'undelivered' ? { color: '#d97706' } : {}),
                   ...(selectedMessage.status === 'error' ? { color: '#dc2626' } : {}),
                   ...(selectedMessage.status === 'missed' ? { color: '#dc2626' } : {}),
                 }}>
-                  {selectedMessage.status === 'delivered' ? '✓✓ Delivered' :
+                  {selectedMessage.status === 'read' ? '✓✓ Read' :
+                   selectedMessage.status === 'delivered' ? '✓✓ Delivered' :
                    selectedMessage.status === 'sent' ? '✓ Sent' :
                    selectedMessage.status === 'queued' ? '○ Queued' :
                    selectedMessage.status === 'sending' ? '○ Sending' :

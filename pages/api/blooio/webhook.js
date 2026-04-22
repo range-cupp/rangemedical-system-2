@@ -537,13 +537,15 @@ async function handleStatusUpdate(body) {
 
   console.log(`Blooio status update: ${messageId} → ${messageStatus}`);
 
-  // Map Blooio statuses to comms_log statuses
+  // Map Blooio statuses to comms_log statuses. iMessage read receipts are
+  // preserved as their own 'read' status so the UI can show blue "Read" —
+  // matching the iMessage experience staff are used to.
   const statusMap = {
     queued: 'queued',
     sending: 'sending',
     sent: 'sent',
     delivered: 'delivered',
-    read: 'delivered', // iMessage read receipt — map to delivered
+    read: 'read',
     failed: 'error',
     undelivered: 'undelivered',
   };

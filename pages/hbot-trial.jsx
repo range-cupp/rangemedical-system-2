@@ -32,12 +32,12 @@ const BUDGET_OPTIONS = [
 ];
 
 const HBOT_PLANS = [
-  { name: 'Single Session',           price: '$185' },
-  { name: '5-Pack',                   price: '$850',   per: '$170/session' },
-  { name: '10-Pack',                  price: '$1,600', per: '$160/session' },
-  { name: 'Membership — 1x/week',     price: '$549/mo' },
-  { name: 'Membership — 2x/week',     price: '$999/mo' },
-  { name: 'Membership — 3x/week',     price: '$1,399/mo' },
+  { name: 'Single Session',              price: '$185' },
+  { name: '5-Pack',                      price: '$850',     per: '$170/session' },
+  { name: '10-Pack',                     price: '$1,600',   per: '$160/session' },
+  { name: 'Membership — 4 sessions/mo',  price: '$549/mo',  per: '$137/session' },
+  { name: 'Membership — 8 sessions/mo',  price: '$999/mo',  per: '$125/session' },
+  { name: 'Membership — 12 sessions/mo', price: '$1,399/mo', per: '$117/session' },
 ];
 
 export default function HBOTTrial() {
@@ -676,7 +676,7 @@ export default function HBOTTrial() {
                   <h2>If HBOT turns out to be a fit, what feels most realistic?</h2>
                   <p style={{ fontSize: 14, color: '#737373', margin: '0 0 16px', lineHeight: 1.5 }}>
                     Here are our HBOT plans so you can see the range. No right answer —
-                    we just want to know where you’re at so we don’t pitch you something
+                    we just want to know where you’re at so we don’t offer you something
                     that doesn’t fit.
                   </p>
 

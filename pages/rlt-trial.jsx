@@ -32,10 +32,12 @@ const BUDGET_OPTIONS = [
 ];
 
 const RLT_PLANS = [
-  { name: 'Single Session',     price: '$85' },
-  { name: '5-Pack',             price: '$375', per: '$75/session' },
-  { name: '10-Pack',            price: '$600', per: '$60/session' },
-  { name: 'Monthly Membership', price: '$399/mo', per: 'unlimited frequency' },
+  { name: 'Single Session',              price: '$85' },
+  { name: '5-Pack',                      price: '$375',    per: '$75/session' },
+  { name: '10-Pack',                     price: '$600',    per: '$60/session' },
+  { name: 'Membership — 4 sessions/mo',  price: '$399/mo', per: '$100/session' },
+  { name: 'Membership — 8 sessions/mo',  price: '$399/mo', per: '$50/session' },
+  { name: 'Membership — 12 sessions/mo', price: '$399/mo', per: '$33/session' },
 ];
 
 export default function RLTTrial() {
@@ -674,7 +676,7 @@ export default function RLTTrial() {
                   <h2>If red light turns out to be a fit, what feels most realistic?</h2>
                   <p style={{ fontSize: 14, color: '#737373', margin: '0 0 16px', lineHeight: 1.5 }}>
                     Here are our red light plans so you can see the range. No right
-                    answer — we just want to know where you’re at so we don’t pitch
+                    answer — we just want to know where you’re at so we don’t offer
                     you something that doesn’t fit.
                   </p>
 

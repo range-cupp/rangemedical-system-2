@@ -5,6 +5,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { generateTreatmentPlanPdf, parseBullets } from '../../../lib/treatment-plan-pdf';
+import { getStaffDisplayName } from '../../../lib/staff-config';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '5mb' } },
@@ -95,12 +96,15 @@ export default async function handler(req, res) {
     const patientName = `${patient.first_name || ''} ${patient.last_name || ''}`.trim();
     const planDate = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 
+    // Map provider identifiers (email or alias) to a patient-friendly display name.
+    const providerDisplay = getStaffDisplayName(provider) || provider || null;
+
     // Generate PDF
     const pdfBytes = await generateTreatmentPlanPdf({
       patientName,
       bullets,
       nextSteps,
-      provider,
+      provider: providerDisplay,
       planDate,
     });
 
@@ -155,7 +159,7 @@ export default async function handler(req, res) {
         file_path: filePath,
         file_size: buffer.length,
         notes: note_id ? `Generated from encounter note ${note_id}` : null,
-        uploaded_by: provider || 'Range Medical',
+        uploaded_by: providerDisplay || 'Range Medical',
       });
 
       // Send email with PDF attachment

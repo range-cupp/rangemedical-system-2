@@ -2425,6 +2425,36 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                   📦 Checkout
                 </button>
               )}
+              {appt.patient_id && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(`/api/patients/${appt.patient_id}`);
+                      const data = await res.json();
+                      const p = data.patient;
+                      setSelectedPatient({
+                        id: appt.patient_id,
+                        name: p ? `${p.first_name || ''} ${p.last_name || ''}`.trim() || appt.patient_name : (appt.patient_name || appt.attendee_name),
+                        phone: p?.phone || '',
+                        email: p?.email || '',
+                      });
+                    } catch {
+                      setSelectedPatient({
+                        id: appt.patient_id,
+                        name: appt.patient_name || appt.attendee_name || '',
+                        phone: '', email: '',
+                      });
+                    }
+                    setWizardStep(1);
+                    setWizardCollapsed(false);
+                    setSelectedAppt(null);
+                    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  style={{ ...styles.actionBtn, width: '100%', marginTop: '6px', background: '#eef2ff', color: '#3730a3', border: '1px solid #c7d2fe', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                >
+                  📅 Book Another Appointment
+                </button>
+              )}
             </div>
 
             {/* Inline Prep Checklist */}
@@ -4800,27 +4830,6 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                           </div>
                         ))
                       )}
-                      <button
-                        onClick={() => {
-                          setSelectedPatient({
-                            id: pt.id,
-                            name: `${pt.first_name || ''} ${pt.last_name || ''}`.trim(),
-                            phone: pt.phone || '',
-                            email: pt.email || '',
-                          });
-                          setWizardStep(1);
-                          setWizardCollapsed(false);
-                          closeDrawer();
-                          if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        style={{
-                          marginTop: '12px', width: '100%', padding: '10px 12px',
-                          background: '#111', color: '#fff', border: 'none', borderRadius: '0',
-                          fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-                        }}
-                      >
-                        + Book Another Appointment
-                      </button>
                     </div>
 
                     {/* Documents & Consents */}

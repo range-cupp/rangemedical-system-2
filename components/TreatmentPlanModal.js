@@ -4,12 +4,19 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-function extractSummarySection(noteBody) {
+// Grab everything from the PLAN section to the end of the note. Falls back
+// to SUMMARY/RECOMMENDATIONS if PLAN isn't present. Section headers match
+// the `| HEADER` style James uses, as well as plain `HEADER` or `HEADER:`.
+function extractPlanSection(noteBody) {
   if (!noteBody) return '';
-  const match = String(noteBody).match(/summary[\s\/&]+recommendations?\s*:?/i);
+  const text = String(noteBody);
+  const planRe = /(?:^|\n)\s*\|?\s*plan\s*[:\n]/i;
+  const summaryRe = /(?:^|\n)\s*\|?\s*summary[\s\/&]+recommendations?\s*[:\n]/i;
+  const match = text.match(planRe) || text.match(summaryRe);
   if (!match) return '';
-  // Strip common HTML tags if the note body is HTML
-  let rest = String(noteBody).slice(match.index + match[0].length);
+
+  let rest = text.slice(match.index + match[0].length);
+  // Strip HTML if the note body is rich text
   rest = rest.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n').replace(/<[^>]+>/g, '');
   rest = rest
     .replace(/&nbsp;/g, ' ')
@@ -18,11 +25,24 @@ function extractSummarySection(noteBody) {
     .replace(/&gt;/g, '>')
     .trim();
 
-  // Normalize inline bullets so each recommendation sits on its own line.
-  return rest
+  // Normalize inline bullets so each item sits on its own line.
+  const normalized = rest
     .replace(/\r/g, '')
     .replace(/([.!?;:])\s*[-•*\u2013\u2014]\s+/g, '$1\n- ')
-    .replace(/\s{2,}[-•*\u2013\u2014]\s+/g, '\n- ')
+    .replace(/\s{2,}[-•*\u2013\u2014]\s+/g, '\n- ');
+
+  // Drop standalone section-header lines (e.g. "| SUMMARY/RECOMMENDATIONS",
+  // "PLAN:", "ASSESSMENT") so they don't show up as stray bullets.
+  const isSectionHeader = (line) => {
+    const t = line.trim().replace(/^\|\s*/, '').replace(/:$/, '').trim();
+    return t.length > 0 && t.length <= 60 && /^[A-Z][A-Z0-9\s\/&\-]+$/.test(t);
+  };
+
+  return normalized
+    .split('\n')
+    .filter(line => !isSectionHeader(line))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
 
@@ -35,7 +55,7 @@ export default function TreatmentPlanModal({
   provider,
   onClose,
 }) {
-  const initialText = useMemo(() => extractSummarySection(noteBody || ''), [noteBody]);
+  const initialText = useMemo(() => extractPlanSection(noteBody || ''), [noteBody]);
   const [summaryText, setSummaryText] = useState(initialText);
   const [nextStepsText, setNextStepsText] = useState('');
   const [step, setStep] = useState('edit'); // 'edit' | 'preview'
@@ -178,8 +198,8 @@ export default function TreatmentPlanModal({
                 </label>
                 <div style={{ fontSize: 12, color: '#6b7280' }}>
                   {initialText
-                    ? 'Pre-filled from the SUMMARY/RECOMMENDATIONS section of this note. Edit freely before previewing.'
-                    : 'Paste the SUMMARY/RECOMMENDATIONS bullets from the encounter note. One bullet per line.'}
+                    ? 'Pre-filled from the PLAN section of this note through the end. Edit freely before previewing.'
+                    : 'Paste the PLAN section from the encounter note. One bullet per line.'}
                 </div>
                 <textarea
                   value={summaryText}

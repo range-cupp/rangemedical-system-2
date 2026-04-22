@@ -503,6 +503,15 @@ export default function HBOTTrial() {
               </p>
 
               <div className="fs-highlight-box">
+                <strong>Bonus: 25% off your first plan</strong>
+                <p>
+                  If HBOT turns out to be a fit, we’ll take 25% off any plan you
+                  purchase within 7 days of completing your free session. No
+                  pressure — the offer’s there if it’s right for you.
+                </p>
+              </div>
+
+              <div className="fs-highlight-box">
                 <strong>How this works</strong>
                 <p>
                   Fill out the short form below (about 2 minutes). We’ll text you
@@ -672,8 +681,11 @@ export default function HBOTTrial() {
                   </p>
 
                   <div style={{ background: '#fafafa', border: '1px solid #e5e5e5', padding: '16px 20px', marginBottom: 20 }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#737373', margin: '0 0 10px' }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#737373', margin: '0 0 6px' }}>
                       Our HBOT plans
+                    </p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: ACCENT, margin: '0 0 12px' }}>
+                      25% off your first plan if purchased within 7 days of completing your session.
                     </p>
                     {HBOT_PLANS.map((plan) => (
                       <div key={plan.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '8px 0', borderBottom: '1px solid #ececec', fontSize: 14, gap: 12 }}>
@@ -738,6 +750,7 @@ export default function HBOTTrial() {
                 <li>We text you to schedule your 60-minute session.</li>
                 <li>You come in, we get you set up, and you relax in the chamber.</li>
                 <li>Afterward, we check in on how you feel and talk about what a real plan might look like — only if it’s a fit.</li>
+                <li><strong>Bonus:</strong> 25% off any plan you purchase within 7 days of completing your session.</li>
               </ol>
             </div>
 

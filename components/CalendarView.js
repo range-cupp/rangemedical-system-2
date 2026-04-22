@@ -4631,7 +4631,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                         upcomingAppts.slice(0, 4).map((apt, i) => (
                           <div key={apt.id || i} style={{ padding: '8px 0', borderBottom: i < Math.min(upcomingAppts.length, 4) - 1 ? '1px solid #e5e7eb' : 'none' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ fontSize: '13px', fontWeight: '500', color: '#111' }}>{apt.service_name || apt.title || 'Appointment'}</span>
+                              <span style={{ fontSize: '13px', fontWeight: '500', color: '#111' }}>{apt.calendar_name || apt.service_name || apt.title || 'Appointment'}</span>
                               <span style={{ fontSize: '12px', padding: '1px 6px', borderRadius: '0', background: STATUS_LABELS[apt.status]?.bg || '#f3f4f6', color: STATUS_LABELS[apt.status]?.text || '#333' }}>
                                 {STATUS_LABELS[apt.status]?.label || apt.status}
                               </span>
@@ -4714,7 +4714,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                         pastAppts.slice(0, 6).map((apt, i) => (
                           <div key={apt.id || i} style={{ padding: '6px 0', borderBottom: i < Math.min(pastAppts.length, 6) - 1 ? '1px solid #e5e7eb' : 'none', display: 'flex', justifyContent: 'space-between' }}>
                             <div>
-                              <span style={{ fontSize: '13px', color: '#555' }}>{apt.service_name || apt.title || 'Appointment'}</span>
+                              <span style={{ fontSize: '13px', color: '#555' }}>{apt.calendar_name || apt.service_name || apt.title || 'Appointment'}</span>
                               {apt.provider && <span style={{ fontSize: '11px', color: '#aaa' }}> · {apt.provider}</span>}
                             </div>
                             <span style={{ fontSize: '12px', color: '#888' }}>
@@ -4723,6 +4723,27 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                           </div>
                         ))
                       )}
+                      <button
+                        onClick={() => {
+                          setSelectedPatient({
+                            id: pt.id,
+                            name: `${pt.first_name || ''} ${pt.last_name || ''}`.trim(),
+                            phone: pt.phone || '',
+                            email: pt.email || '',
+                          });
+                          setWizardStep(1);
+                          setWizardCollapsed(false);
+                          closeDrawer();
+                          if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        style={{
+                          marginTop: '12px', width: '100%', padding: '10px 12px',
+                          background: '#111', color: '#fff', border: 'none', borderRadius: '0',
+                          fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+                        }}
+                      >
+                        + Book Another Appointment
+                      </button>
                     </div>
 
                     {/* Documents & Consents */}

@@ -37,6 +37,7 @@ export default function TreatmentPlanModal({
 }) {
   const initialText = useMemo(() => extractSummarySection(noteBody || ''), [noteBody]);
   const [summaryText, setSummaryText] = useState(initialText);
+  const [nextStepsText, setNextStepsText] = useState('');
   const [step, setStep] = useState('edit'); // 'edit' | 'preview'
   const [pdfUrl, setPdfUrl] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -61,6 +62,7 @@ export default function TreatmentPlanModal({
         body: JSON.stringify({
           patient_id: patientId,
           summary_text: summaryText,
+          next_steps_text: nextStepsText,
           note_id: noteId || null,
           provider: provider || null,
           mode: 'preview',
@@ -94,6 +96,7 @@ export default function TreatmentPlanModal({
         body: JSON.stringify({
           patient_id: patientId,
           summary_text: summaryText,
+          next_steps_text: nextStepsText,
           note_id: noteId || null,
           provider: provider || null,
           mode: 'send',
@@ -168,32 +171,38 @@ export default function TreatmentPlanModal({
         {/* Body */}
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {step === 'edit' ? (
-            <div style={{ flex: 1, padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
-                Recommendations (one per line)
-              </label>
-              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 2 }}>
-                {initialText
-                  ? 'Pre-filled from the SUMMARY/RECOMMENDATIONS section of this note. Edit freely before previewing.'
-                  : 'Paste the SUMMARY/RECOMMENDATIONS bullets from the encounter note. One bullet per line.'}
+            <div style={{ flex: 1, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 55%', minHeight: 180 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
+                  Recommendations (one per line)
+                </label>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>
+                  {initialText
+                    ? 'Pre-filled from the SUMMARY/RECOMMENDATIONS section of this note. Edit freely before previewing.'
+                    : 'Paste the SUMMARY/RECOMMENDATIONS bullets from the encounter note. One bullet per line.'}
+                </div>
+                <textarea
+                  value={summaryText}
+                  onChange={(e) => setSummaryText(e.target.value)}
+                  placeholder={'- Lower testosterone dose to reduce side effects\n- Start 200 mg DIM daily\n- ...'}
+                  style={textareaStyle}
+                />
               </div>
-              <textarea
-                value={summaryText}
-                onChange={(e) => setSummaryText(e.target.value)}
-                placeholder={'- Lower testosterone dose to reduce side effects\n- Start 200 mg DIM daily\n- ...'}
-                style={{
-                  flex: 1,
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                  padding: 12,
-                  border: '1.5px solid #e5e7eb',
-                  resize: 'none',
-                  color: '#111',
-                  background: '#fafafa',
-                  boxSizing: 'border-box',
-                }}
-              />
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 35%', minHeight: 140 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
+                  Next Steps <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span>
+                </label>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>
+                  Patient-specific action items — supplements to pick up, blood draws to schedule, follow-ups to book. One per line. Leave blank for the default "call us with questions" line.
+                </div>
+                <textarea
+                  value={nextStepsText}
+                  onChange={(e) => setNextStepsText(e.target.value)}
+                  placeholder={'- We can provide DIM, Nattokinase, and DHEA in clinic — team will reach out on pricing\n- Schedule next blood draw in 8 weeks'}
+                  style={textareaStyle}
+                />
+              </div>
             </div>
           ) : (
             <div style={{ flex: 1, background: '#525252' }}>
@@ -271,6 +280,21 @@ export default function TreatmentPlanModal({
     </>
   );
 }
+
+const textareaStyle = {
+  flex: 1,
+  width: '100%',
+  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+  fontSize: 13,
+  lineHeight: 1.6,
+  padding: 12,
+  border: '1.5px solid #e5e7eb',
+  resize: 'none',
+  color: '#111',
+  background: '#fafafa',
+  boxSizing: 'border-box',
+  minHeight: 100,
+};
 
 const btnBase = {
   padding: '8px 16px',

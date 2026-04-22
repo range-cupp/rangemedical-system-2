@@ -63,7 +63,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { patient_id, summary_text, bullets: bulletsIn, mode = 'preview', note_id, provider } = req.body || {};
+    const {
+      patient_id, summary_text, bullets: bulletsIn,
+      next_steps_text, next_steps: nextStepsIn,
+      mode = 'preview', note_id, provider,
+    } = req.body || {};
 
     if (!patient_id) {
       return res.status(400).json({ error: 'patient_id is required' });
@@ -72,6 +76,10 @@ export default async function handler(req, res) {
     const bullets = Array.isArray(bulletsIn) && bulletsIn.length > 0
       ? bulletsIn
       : parseBullets(summary_text || '');
+
+    const nextSteps = Array.isArray(nextStepsIn) && nextStepsIn.length > 0
+      ? nextStepsIn
+      : parseBullets(next_steps_text || '');
 
     // Fetch patient
     const { data: patient, error: patientErr } = await supabase
@@ -91,6 +99,7 @@ export default async function handler(req, res) {
     const pdfBytes = await generateTreatmentPlanPdf({
       patientName,
       bullets,
+      nextSteps,
       provider,
       planDate,
     });

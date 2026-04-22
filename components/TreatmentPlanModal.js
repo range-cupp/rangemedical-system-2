@@ -4,26 +4,32 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+// Convert HTML note body (the encounter editor stores rich text with
+// <div>/<br>/<p> tags) to plain text with real newlines.
+function htmlToPlainText(html) {
+  return String(html || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(div|p|h\d|li)>/gi, '\n')
+    .replace(/<li\b[^>]*>/gi, '- ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+}
+
 // Grab everything from the PLAN section to the end of the note. Falls back
 // to SUMMARY/RECOMMENDATIONS if PLAN isn't present. Section headers match
 // the `| HEADER` style James uses, as well as plain `HEADER` or `HEADER:`.
 function extractPlanSection(noteBody) {
   if (!noteBody) return '';
-  const text = String(noteBody);
+  const text = htmlToPlainText(noteBody);
   const planRe = /(?:^|\n)\s*\|?\s*plan\s*[:\n]/i;
   const summaryRe = /(?:^|\n)\s*\|?\s*summary[\s\/&]+recommendations?\s*[:\n]/i;
   const match = text.match(planRe) || text.match(summaryRe);
   if (!match) return '';
 
-  let rest = text.slice(match.index + match[0].length);
-  // Strip HTML if the note body is rich text
-  rest = rest.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n').replace(/<[^>]+>/g, '');
-  rest = rest
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .trim();
+  const rest = text.slice(match.index + match[0].length).trim();
 
   // Normalize inline bullets so each item sits on its own line.
   const normalized = rest

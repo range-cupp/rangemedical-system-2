@@ -129,6 +129,14 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [multiServiceSlots, setMultiServiceSlots] = useState({}); // { svcName: string[] | null }
   const [loadingMultiSlots, setLoadingMultiSlots] = useState(false);
 
+  // Backdated appointments (past-dated) must never trigger patient comms —
+  // the appointment already happened, so confirmation + prep instructions are moot.
+  const pacificTodayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  const isBackdated = !!apptDate && apptDate < pacificTodayStr;
+  useEffect(() => {
+    if (isBackdated) setSendNotification(false);
+  }, [isBackdated]);
+
   // Reschedule state
   const [rescheduleAppt, setRescheduleAppt] = useState(null);
   const [rescheduleDate, setRescheduleDate] = useState('');
@@ -777,7 +785,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
       let res;
 
-      if (allServices.length > 1 && selectedPatient?.id && !useCustomTime) {
+      if (allServices.length > 1 && selectedPatient?.id && !useCustomTime && !isBackdated) {
         // ── Multi-service: book each service in Cal.com at its staggered start time ──
         // Each provider's calendar gets blocked separately; one DB record ties them together.
         const detailedServices = [];
@@ -863,7 +871,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         const calcomSlug = selectedService?.calcomSlug || null;
         const eventType = calcomSlug ? resolveEventType(calcomSlug) : null;
 
-        if (eventType && selectedPatient?.id && !useCustomTime) {
+        if (eventType && selectedPatient?.id && !useCustomTime && !isBackdated) {
           const hostInfo = eventType.hosts?.find(h => h.username === selectedProvider?.calcomUsername);
           const serviceDetails = {};
           if (panelType) serviceDetails.panelType = panelType;
@@ -948,7 +956,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
           });
         }
       } else {
-        // Walk-in or no services edge case — manual fallback
+        // Walk-in, multi-service backdated, or no services edge case — manual fallback
         res = await fetch('/api/appointments/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -969,6 +977,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             visit_reason: visitReason.trim(),
             modality,
             send_notification: sendNotification,
+            services: servicesPayload,
           }),
         });
       }
@@ -1943,31 +1952,58 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 ) : null}
               </div>
             )}
-            <div style={styles.popoverRow}>
-              <span style={styles.popoverLabel}>Service{appt.services?.length > 1 ? 's' : ''}</span>
-              <span style={{ ...styles.popoverValue, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {appt.services?.length > 1 ? (
-                  <span style={{ flex: 1 }}>
-                    {appt.services.map((s, i) => (
-                      <span key={s.name} style={{ display: 'block', fontSize: i === 0 ? '13px' : '12px', color: i === 0 ? '#111' : '#555' }}>
-                        {s.name}
-                        <span style={{ fontSize: '11px', color: '#9ca3af' }}>
-                          {' '}({s.duration} min{s.provider ? ` · ${s.provider}` : ''})
-                        </span>
+            {(() => {
+              // Visit-group siblings: other appointments in the same multi-service visit.
+              // Fall back to legacy appt.services[] for rows created before visit_group_id.
+              const siblings = appt.visit_group_id
+                ? appointments
+                    .filter(a => a.visit_group_id === appt.visit_group_id)
+                    .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
+                : [];
+              const legacyMulti = !appt.visit_group_id && appt.services?.length > 1;
+              const isMulti = siblings.length > 1 || legacyMulti;
+              return (
+                <div style={styles.popoverRow}>
+                  <span style={styles.popoverLabel}>Service{isMulti ? 's' : ''}</span>
+                  <span style={{ ...styles.popoverValue, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {siblings.length > 1 ? (
+                      <span style={{ flex: 1 }}>
+                        {siblings.map((s, i) => {
+                          const isCurrent = s.id === appt.id;
+                          return (
+                            <span key={s.id} style={{ display: 'block', fontSize: isCurrent ? '13px' : '12px', color: isCurrent ? '#111' : '#555', fontWeight: isCurrent ? '600' : '400' }}>
+                              {isCurrent ? '▸ ' : '  '}{s.service_name}
+                              <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                                {' '}({s.duration_minutes} min{s.provider ? ` · ${s.provider}` : ''})
+                              </span>
+                            </span>
+                          );
+                        })}
                       </span>
-                    ))}
+                    ) : legacyMulti ? (
+                      <span style={{ flex: 1 }}>
+                        {appt.services.map((s, i) => (
+                          <span key={s.name} style={{ display: 'block', fontSize: i === 0 ? '13px' : '12px', color: i === 0 ? '#111' : '#555' }}>
+                            {s.name}
+                            <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                              {' '}({s.duration} min{s.provider ? ` · ${s.provider}` : ''})
+                            </span>
+                          </span>
+                        ))}
+                      </span>
+                    ) : <span style={{ flex: 1 }}>{appt.service_name}</span>}
+                    {appt.status !== 'cancelled' && (
+                      <button
+                        onClick={() => setChangingServiceAppt(changingServiceAppt === appt.id ? null : appt.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#6b7280', flexShrink: 0, padding: '0 2px', textDecoration: 'underline' }}
+                      >
+                        {changingServiceAppt === appt.id ? 'Cancel' : 'Change'}
+                      </button>
+                    )}
                   </span>
-                ) : <span style={{ flex: 1 }}>{appt.service_name}</span>}
-                {appt.status !== 'cancelled' && (
-                  <button
-                    onClick={() => setChangingServiceAppt(changingServiceAppt === appt.id ? null : appt.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#6b7280', flexShrink: 0, padding: '0 2px', textDecoration: 'underline' }}
-                  >
-                    {changingServiceAppt === appt.id ? 'Cancel' : 'Change'}
-                  </button>
-                )}
-              </span>
-            </div>
+                </div>
+              );
+            })()}
             {changingServiceAppt === appt.id && (
               <div style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
                 <select
@@ -2340,6 +2376,30 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                   <button onClick={() => updateStatus(appt.id, 'no_show')} style={{ ...styles.actionBtn, background: '#fee2e2', color: '#dc2626' }}>No Show</button>
                 )}
                 <button onClick={() => { const reason = prompt('Cancellation reason (optional):'); updateStatus(appt.id, 'cancelled', reason); }} style={{ ...styles.actionBtn, background: '#fee2e2', color: '#dc2626' }}>Cancel</button>
+                {appt.visit_group_id && appointments.filter(a => a.visit_group_id === appt.visit_group_id).length > 1 && (
+                  <button
+                    onClick={async () => {
+                      const siblingIds = appointments
+                        .filter(a => a.visit_group_id === appt.visit_group_id && !['cancelled', 'rescheduled', 'completed', 'no_show'].includes(a.status))
+                        .map(a => a.id);
+                      if (!siblingIds.length) return;
+                      const reason = prompt(`Cancel all ${siblingIds.length} services in this visit? (reason optional):`);
+                      if (reason === null) return;
+                      await Promise.all(siblingIds.map(id =>
+                        fetch(`/api/appointments/${id}/status`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ status: 'cancelled', cancellation_reason: reason || null }),
+                        })
+                      ));
+                      setSelectedAppt(null);
+                      fetchAppointments();
+                    }}
+                    style={{ ...styles.actionBtn, background: '#fecaca', color: '#991b1b', fontWeight: '600' }}
+                  >
+                    Cancel Entire Visit
+                  </button>
+                )}
               </div>
             )}
 
@@ -4044,15 +4104,21 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
           </div>
 
           {/* Notification toggle */}
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px', cursor: 'pointer', fontSize: '13px', color: '#555' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px', cursor: isBackdated ? 'not-allowed' : 'pointer', fontSize: '13px', color: isBackdated ? '#999' : '#555' }}>
             <input
               type="checkbox"
-              checked={sendNotification}
+              checked={isBackdated ? false : sendNotification}
+              disabled={isBackdated}
               onChange={e => setSendNotification(e.target.checked)}
-              style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#000' }}
+              style={{ width: '16px', height: '16px', cursor: isBackdated ? 'not-allowed' : 'pointer', accentColor: '#000' }}
             />
-            Send confirmation to patient (email & text)
+            Send patient notifications (confirmation + prep instructions)
           </label>
+          {isBackdated && (
+            <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FFF7ED', border: '1px solid #FDBA74', borderRadius: '6px', fontSize: '12.5px', color: '#9A3412', lineHeight: '1.5' }}>
+              <strong>Backdated appointment</strong> — no patient messages will be sent (confirmation, prep instructions, forms, or prereq alerts all suppressed).
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
             <button
@@ -4457,8 +4523,11 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     <div style={card}>
                       <h4 style={sectionHead}>Active Protocols ({activeProtos.length})</h4>
                       {activeProtos.length > 0 ? activeProtos.map((proto, i) => {
-                        const total = proto.total_sessions || proto.duration_days || 0;
-                        const used = proto.sessions_used || 0;
+                        const isWL = proto.category === 'weight_loss' || proto.program_type === 'weight_loss' || ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => (proto.medication || '').toLowerCase().includes(m));
+                        // For WL, mirror patient profile counting (source of truth): count service_logs that aren't missed/pickup
+                        const wlActualCount = isWL ? wlLogs.filter(l => l.entry_type !== 'missed' && l.entry_type !== 'pickup').length : 0;
+                        const total = proto.total_sessions || proto.sessions_total || proto.duration_days || 0;
+                        const used = isWL ? (wlActualCount || proto.sessions_used || 0) : (proto.sessions_used || 0);
                         const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
                         const renewal = getRenewalStatus({ ...proto, status: 'active' });
                         return (
@@ -4500,7 +4569,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       const wlProtos = activeProtos.filter(p => p.category === 'weight_loss' || p.program_type === 'weight_loss' || ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => (p.medication || '').toLowerCase().includes(m)));
                       if (wlProtos.length === 0) return null;
 
-                      // Get injection logs sorted by date
+                      // Session count mirrors patient profile (single source of truth): everything that isn't a miss or pickup
+                      const wlActualCount = wlLogs.filter(l => l.entry_type !== 'missed' && l.entry_type !== 'pickup').length;
+                      // Injection logs (sorted) — used only for the dose titration timeline visualization below
                       const injections = wlLogs.filter(l => l.entry_type === 'injection').sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date));
                       const weightEntries = wlLogs.filter(l => l.weight).sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date));
                       const startWeight = weightEntries.length > 0 ? weightEntries[0].weight : null;
@@ -4537,12 +4608,18 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                                 {injections.length > 0 ? injections[injections.length - 1].dosage || '—' : proto.selected_dose || proto.dosage || '—'}
                               </div>
                             </div>
-                            <div style={{ flex: 1, background: '#fff', padding: '10px 12px', border: '1px solid #e5e7eb' }}>
-                              <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#888', letterSpacing: '0.04em', marginBottom: '2px' }}>Injections</div>
-                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#111' }}>
-                                {injections.length}{proto.total_sessions ? ` / ${proto.total_sessions}` : ''}
-                              </div>
-                            </div>
+                            {(() => {
+                              const sessionsCompleted = wlActualCount || proto.sessions_used || 0;
+                              const sessionsTotal = proto.total_sessions || proto.sessions_total;
+                              return (
+                                <div style={{ flex: 1, background: '#fff', padding: '10px 12px', border: '1px solid #e5e7eb' }}>
+                                  <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#888', letterSpacing: '0.04em', marginBottom: '2px' }}>Injections</div>
+                                  <div style={{ fontSize: '16px', fontWeight: '700', color: '#111' }}>
+                                    {sessionsCompleted}{sessionsTotal ? ` / ${sessionsTotal}` : ''}
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
 
                           {/* Weight progress */}

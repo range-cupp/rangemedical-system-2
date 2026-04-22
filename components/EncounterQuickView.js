@@ -6,11 +6,13 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { getCategoryStyle } from '../lib/protocol-config';
 import { overlayClickProps } from './AdminLayout';
+import TreatmentPlanModal from './TreatmentPlanModal';
 
 export default function EncounterQuickView({ appointments, notes, protocols, patientName, onClose, onOpenEncounter }) {
   const [activeTab, setActiveTab] = useState('encounters');
   const [selectedAptId, setSelectedAptId] = useState(null);
   const [selectedProtocolId, setSelectedProtocolId] = useState(null);
+  const [treatmentPlanNote, setTreatmentPlanNote] = useState(null);
 
   // Filter to past appointments that have encounter notes, sorted most recent first
   const pastEncounters = useMemo(() => {
@@ -378,6 +380,15 @@ export default function EncounterQuickView({ appointments, notes, protocols, pat
                               </span>
                             </div>
                             <div className="eqv-note-body">{note.body}</div>
+                            <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                              <button
+                                onClick={() => setTreatmentPlanNote(note)}
+                                className="eqv-btn eqv-btn-secondary"
+                                style={{ fontSize: 12, padding: '6px 12px' }}
+                              >
+                                📋 Treatment Plan
+                              </button>
+                            </div>
                           </div>
                         ))
                       )}
@@ -597,6 +608,17 @@ export default function EncounterQuickView({ appointments, notes, protocols, pat
           </div>
         </div>
       </div>
+
+      {treatmentPlanNote && (
+        <TreatmentPlanModal
+          patientId={treatmentPlanNote.patient_id}
+          patientName={patientName}
+          noteBody={treatmentPlanNote.body}
+          noteId={treatmentPlanNote.id}
+          provider={treatmentPlanNote.created_by}
+          onClose={() => setTreatmentPlanNote(null)}
+        />
+      )}
     </>
   );
 }

@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { NOTE_TYPES, ENCOUNTER_TEMPLATES, getTemplateForService, NURSE_TEMPLATES, getTemplatesForCategory } from '../lib/encounter-templates';
 import { ENCOUNTER_FORMS } from '../lib/encounter-form-config';
 import InteractiveEncounterForm from './InteractiveEncounterForm';
+import TreatmentPlanModal from './TreatmentPlanModal';
 import { overlayClickProps } from './AdminLayout';
 import { NOTE_AUTHORS, isNoteAuthor, canUserAuthorNotes } from '../lib/staff-config';
 
@@ -271,6 +272,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
 
   // Addendum state
   const [addendumParentId, setAddendumParentId] = useState(null);
+  const [treatmentPlanNote, setTreatmentPlanNote] = useState(null);
   const [addendumInput, setAddendumInput] = useState('');
   const [addendumSaving, setAddendumSaving] = useState(false);
 
@@ -1566,6 +1568,9 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                                 </button>
                               </>
                             )}
+                            <button onClick={() => setTreatmentPlanNote(note)} className="enc-btn enc-btn-secondary enc-btn-sm">
+                              📋 Treatment Plan
+                            </button>
                           </div>
                         )}
 
@@ -2187,6 +2192,17 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
           </div>
         </div>
       </div>
+
+      {treatmentPlanNote && (
+        <TreatmentPlanModal
+          patientId={appointment?.patient_id}
+          patientName={appointment?.patient_name}
+          noteBody={treatmentPlanNote.body}
+          noteId={treatmentPlanNote.id}
+          provider={treatmentPlanNote.created_by || currentUser}
+          onClose={() => setTreatmentPlanNote(null)}
+        />
+      )}
     </>
   );
 }

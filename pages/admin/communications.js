@@ -4,11 +4,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/router';
 import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
 
 const ConversationView = dynamic(() => import('../../components/ConversationView'), { ssr: false });
 
 export default function CommunicationsPage() {
+  const router = useRouter();
   const [tab, setTab] = useState('conversations');
   const [patients, setPatients] = useState([]);
   const [patientSearch, setPatientSearch] = useState('');
@@ -38,6 +40,57 @@ export default function CommunicationsPage() {
     fetchRecentPatients();
     fetchComms();
   }, []);
+
+  // Auto-refresh the conversation list every 15s so new messages / replies
+  // appear without a page reload. Pauses when the tab is backgrounded to
+  // keep Supabase connection usage sane.
+  useEffect(() => {
+    let interval = null;
+    const start = () => {
+      if (interval) clearInterval(interval);
+      interval = setInterval(() => {
+        if (document.visibilityState === 'visible') fetchRecentPatients();
+      }, 15000);
+    };
+    const handleVis = () => {
+      if (document.visibilityState === 'visible') {
+        fetchRecentPatients();
+        start();
+      } else if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+    start();
+    document.addEventListener('visibilitychange', handleVis);
+    return () => {
+      if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVis);
+    };
+  }, []);
+
+  // Deep-link support: /admin/communications?patient=<id> opens that
+  // conversation. Used by the new-SMS toast so clicking it jumps straight
+  // to the right patient instead of just landing on the inbox.
+  const handledPatientQueryRef = useRef(null);
+  useEffect(() => {
+    if (!router.isReady) return;
+    const wantedId = typeof router.query.patient === 'string' ? router.query.patient : null;
+    if (!wantedId) return;
+    // Only process each distinct ?patient= value once per mount; don't
+    // keep re-selecting when the patients list refetches.
+    if (handledPatientQueryRef.current === wantedId) return;
+    handledPatientQueryRef.current = wantedId;
+
+    const existing = patients.find(p => p.id === wantedId);
+    if (existing) {
+      selectPatient(existing);
+    } else {
+      selectPatient({ id: wantedId });
+    }
+    // Strip the query param so a hard refresh later doesn't reopen this patient
+    router.replace('/admin/communications', undefined, { shallow: true });
+  }, [router.isReady, router.query.patient]);
 
   // Fetch calls when Calls tab is first selected
   useEffect(() => {

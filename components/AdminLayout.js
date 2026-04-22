@@ -1194,7 +1194,14 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
           style={toastStyles.container}
           onClick={() => {
             dismissToast();
-            router.push('/admin/communications');
+            // Deep-link to the specific patient's conversation when we have
+            // their id; falling back to the generic inbox otherwise. Without
+            // the patientId query, clicking the toast while already on the
+            // comms page is a no-op (same URL) — which is how it used to be.
+            const target = toast.patientId
+              ? `/admin/communications?patient=${toast.patientId}`
+              : '/admin/communications';
+            router.push(target);
           }}
         >
           <div style={toastStyles.iconCol}>

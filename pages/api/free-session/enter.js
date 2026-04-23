@@ -192,7 +192,7 @@ export default async function handler(req, res) {
       .single();
 
     // 4. Create trial_passes row
-    const { data: trial } = await supabase
+    const { data: trial, error: trialErr } = await supabase
       .from('trial_passes')
       .insert({
         patient_id: patientId,
@@ -212,7 +212,12 @@ export default async function handler(req, res) {
       .select('id')
       .single();
 
-    const trialPassId = trial?.id || null;
+    if (trialErr || !trial?.id) {
+      console.error('trial_passes insert error:', trialErr);
+      return res.status(500).json({ error: 'Could not save your free session. Please try again or text (949) 997-3988.' });
+    }
+
+    const trialPassId = trial.id;
 
     // 5. Resolve Cal.com event type ID for self-booking
     let eventTypeId = null;
@@ -255,7 +260,7 @@ export default async function handler(req, res) {
 
       const setupIntent = await stripe.setupIntents.create({
         customer: stripeCustomerId,
-        payment_method_types: ['card'],
+        automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
         usage: 'off_session',
         metadata: {
           purpose: 'free_session_no_show_hold',

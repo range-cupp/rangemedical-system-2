@@ -284,7 +284,7 @@ export default async function handler(req, res) {
     // 8. Confirmation SMS to patient
     if (normalizedPhone) {
       try {
-        const message = `Hey ${firstName}, thanks for signing up for a free ${config.label} session at Range Medical. One ${config.sessionDuration} session won\u2019t be life-changing on its own \u2014 real change takes consistency \u2014 but it\u2019ll give you a real feel for it. If you didn\u2019t finish picking a time on the page, reply here and we\u2019ll get you scheduled.\n\nBonus: 25% off any plan you purchase within 7 days of completing your session.\n\n\u2014 Range Medical`;
+        const message = `Hey ${firstName}, thanks for signing up for a free ${config.label} session at Range Medical. One ${config.sessionDuration} session won\u2019t be life-changing on its own \u2014 real change takes consistency \u2014 but it\u2019ll give you a real feel for it. If you didn\u2019t finish picking a time on the page, reply here and we\u2019ll get you scheduled.\n\n\u2014 Range Medical`;
         const smsResult = await sendSMS({ to: normalizedPhone, message });
         await logComm({
           channel: 'sms',

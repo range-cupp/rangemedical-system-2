@@ -33,12 +33,12 @@ const BUDGET_OPTIONS = [
 ];
 
 const RLT_PLANS = [
-  { name: 'Single Session',              price: '$85',     discounted: '$63.75' },
-  { name: '5-Pack',                      price: '$375',    discounted: '$281.25',   per: '$75/session' },
-  { name: '10-Pack',                     price: '$600',    discounted: '$450',      per: '$60/session' },
-  { name: 'Membership — 4 sessions/mo',  price: '$399/mo', discounted: '$299.25/mo', per: '$100/session', note: '3-month commitment' },
-  { name: 'Membership — 8 sessions/mo',  price: '$399/mo', discounted: '$299.25/mo', per: '$50/session',  note: '3-month commitment' },
-  { name: 'Membership — 12 sessions/mo', price: '$399/mo', discounted: '$299.25/mo', per: '$33/session',  note: '3-month commitment' },
+  { name: 'Single Session',              price: '$85' },
+  { name: '5-Pack',                      price: '$375',    per: '$75/session' },
+  { name: '10-Pack',                     price: '$600',    per: '$60/session' },
+  { name: 'Membership — 4 sessions/mo',  price: '$399/mo', per: '$100/session', note: '3-month commitment' },
+  { name: 'Membership — 8 sessions/mo',  price: '$399/mo', per: '$50/session',  note: '3-month commitment' },
+  { name: 'Membership — 12 sessions/mo', price: '$399/mo', per: '$33/session',  note: '3-month commitment' },
 ];
 
 export default function RLTTrial() {
@@ -525,15 +525,6 @@ export default function RLTTrial() {
               </p>
 
               <div className="fs-highlight-box">
-                <strong>Bonus: 25% off your first plan</strong>
-                <p>
-                  If red light turns out to be a fit, we’ll take 25% off any plan
-                  you purchase within 7 days of completing your free session. No
-                  pressure — the offer’s there if it’s right for you.
-                </p>
-              </div>
-
-              <div className="fs-highlight-box">
                 <strong>How this works</strong>
                 <p>
                   Fill out the short form below (about 2 minutes). We’ll text you
@@ -719,15 +710,8 @@ export default function RLTTrial() {
                     <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#737373', margin: '0 0 12px' }}>
                       Our Red Light plans
                     </p>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 14, paddingBottom: 8, borderBottom: '1px solid #e0e0e0', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#a3a3a3' }}>
-                      <span>Plan</span>
-                      <span style={{ textAlign: 'right' }}>Regular</span>
-                      <span style={{ textAlign: 'right', color: ACCENT }}>25% off*</span>
-                    </div>
-
                     {RLT_PLANS.map((plan, i) => (
-                      <div key={plan.name} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 14, padding: '10px 0', borderBottom: i < RLT_PLANS.length - 1 ? '1px solid #ececec' : 'none', fontSize: 14, alignItems: 'baseline' }}>
+                      <div key={plan.name} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 14, padding: '10px 0', borderBottom: i < RLT_PLANS.length - 1 ? '1px solid #ececec' : 'none', fontSize: 14, alignItems: 'baseline' }}>
                         <span style={{ color: '#404040' }}>
                           {plan.name}
                           {plan.per && <span style={{ display: 'block', fontSize: 12, color: '#a3a3a3', fontWeight: 400, marginTop: 2 }}>{plan.per}</span>}
@@ -736,14 +720,11 @@ export default function RLTTrial() {
                         <span style={{ fontWeight: 600, color: '#171717', whiteSpace: 'nowrap', textAlign: 'right' }}>
                           {plan.price}
                         </span>
-                        <span style={{ fontWeight: 700, color: ACCENT, whiteSpace: 'nowrap', textAlign: 'right' }}>
-                          {plan.discounted}
-                        </span>
                       </div>
                     ))}
                   </div>
                   <p style={{ fontSize: 12, color: '#737373', margin: '0 0 20px', lineHeight: 1.5 }}>
-                    *25% off applies to any plan purchased within 7 days of completing your free session. Memberships require a 3-month commitment.
+                    Memberships require a 3-month commitment.
                   </p>
 
                   <div className="fs-field" data-field-error={errors.budget ? 'true' : 'false'}>

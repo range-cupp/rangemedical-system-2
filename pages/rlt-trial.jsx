@@ -8,6 +8,7 @@ import Head from 'next/head';
 import Script from 'next/script';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/router';
+import FreeSessionScheduler from '../components/FreeSessionScheduler';
 
 const META_PIXEL_ID = '4295373617400545';
 
@@ -76,6 +77,10 @@ export default function RLTTrial() {
   const [topError, setTopError] = useState('');
   const [done, setDone] = useState(false);
   const [leadTier, setLeadTier] = useState(null);
+  const [trialId, setTrialId] = useState(null);
+  const [eventTypeId, setEventTypeId] = useState(null);
+  const [setupClientSecret, setSetupClientSecret] = useState(null);
+  const [sessionDurationMinutes, setSessionDurationMinutes] = useState(20);
 
   const source = router.query.src || router.query.source || 'direct';
 
@@ -147,6 +152,10 @@ export default function RLTTrial() {
         fbq('track', 'Lead', { content_name: 'rlt-free-session' });
       }
       setLeadTier(data.leadTier || null);
+      setTrialId(data.trialId || null);
+      setEventTypeId(data.eventTypeId || null);
+      setSetupClientSecret(data.setupClientSecret || null);
+      if (data.sessionDurationMinutes) setSessionDurationMinutes(data.sessionDurationMinutes);
       setDone(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
@@ -767,39 +776,16 @@ export default function RLTTrial() {
             </section>
           </>
         ) : (
-          <section className="fs-done">
-            <div className="fs-done-check">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </div>
-            <h1>You’re in, {contact.firstName}!</h1>
-            <p>
-              Your free red light therapy session is reserved. We’ll text you within
-              a business day to pick a time that works.
-            </p>
-            <p style={{ fontSize: 14, color: '#737373' }}>
-              Watch for a text from <strong>(949) 997-3988</strong> so your carrier
-              doesn’t filter us.
-            </p>
-
-            <div className="fs-next">
-              <h3>What happens next</h3>
-              <ol>
-                <li>We text you to schedule your 20-minute session.</li>
-                <li>You come in, we get you set up in the light bed, and you relax.</li>
-                <li>Afterward, we check in on how you feel and talk about what a real plan might look like — only if it’s a fit.</li>
-                <li><strong>Bonus:</strong> 25% off any plan you purchase within 7 days of completing your session.</li>
-              </ol>
-            </div>
-
-            <p style={{ marginTop: 24, fontSize: 14, color: '#737373' }}>
-              Questions? Call/text{' '}
-              <a href="tel:9499973988" style={{ color: '#171717', fontWeight: 600, textDecoration: 'none' }}>
-                (949) 997-3988
-              </a>
-            </p>
-          </section>
+          <FreeSessionScheduler
+            trialId={trialId}
+            eventTypeId={eventTypeId}
+            setupClientSecret={setupClientSecret}
+            sessionDurationMinutes={sessionDurationMinutes}
+            trialLabel="Red Light"
+            accentColor={ACCENT}
+            accentBg={ACCENT_BG}
+            firstName={contact.firstName}
+          />
         )}
       </div>
     </Layout>

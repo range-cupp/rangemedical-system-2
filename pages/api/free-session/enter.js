@@ -6,6 +6,8 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
+import stripe from '../../../lib/stripe';
+import { getEventTypes } from '../../../lib/calcom';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const supabase = createClient(
@@ -23,6 +25,7 @@ const TRIAL_CONFIG = {
     leadType: 'hbot_trial_free',
     source: 'hbot_free_session',
     accentColor: '#0891b2',
+    calcomSlug: 'hbot',
   },
   rlt: {
     label: 'Red Light',
@@ -31,6 +34,7 @@ const TRIAL_CONFIG = {
     leadType: 'rlt_trial_free',
     source: 'rlt_free_session',
     accentColor: '#dc2626',
+    calcomSlug: 'red-light-therapy',
   },
 };
 
@@ -210,10 +214,77 @@ export default async function handler(req, res) {
 
     const trialPassId = trial?.id || null;
 
-    // 5. Confirmation SMS to patient
+    // 5. Resolve Cal.com event type ID for self-booking
+    let eventTypeId = null;
+    try {
+      const eventTypes = await getEventTypes();
+      const match = (eventTypes || []).find((et) => et.slug === config.calcomSlug);
+      if (match?.id) eventTypeId = match.id;
+    } catch (calErr) {
+      console.error('Cal.com event type lookup error:', calErr);
+    }
+
+    // 6. Stripe: find or create customer + SetupIntent for no-show card
+    let stripeCustomerId = null;
+    let setupClientSecret = null;
+    let setupIntentId = null;
+    try {
+      const existingCustomers = await stripe.customers.list({ email: normalizedEmail, limit: 1 });
+      if (existingCustomers.data.length > 0) {
+        stripeCustomerId = existingCustomers.data[0].id;
+      } else {
+        const customer = await stripe.customers.create({
+          email: normalizedEmail,
+          name: customerName,
+          phone: phone.trim(),
+          metadata: {
+            patient_id: patientId || '',
+            trial_id: trialPassId || '',
+            free_session_type: trialType,
+          },
+        });
+        stripeCustomerId = customer.id;
+      }
+
+      if (patientId && stripeCustomerId) {
+        await supabase
+          .from('patients')
+          .update({ stripe_customer_id: stripeCustomerId })
+          .eq('id', patientId);
+      }
+
+      const setupIntent = await stripe.setupIntents.create({
+        customer: stripeCustomerId,
+        payment_method_types: ['card'],
+        usage: 'off_session',
+        metadata: {
+          purpose: 'free_session_no_show_hold',
+          trial_id: trialPassId || '',
+          free_session_type: trialType,
+        },
+      });
+      setupClientSecret = setupIntent.client_secret;
+      setupIntentId = setupIntent.id;
+    } catch (stripeErr) {
+      console.error('Stripe SetupIntent error:', stripeErr);
+    }
+
+    // 7. Update trial_passes with Stripe + Cal.com info
+    if (trialPassId && (stripeCustomerId || setupIntentId)) {
+      await supabase
+        .from('trial_passes')
+        .update({
+          stripe_customer_id: stripeCustomerId,
+          stripe_setup_intent_id: setupIntentId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', trialPassId);
+    }
+
+    // 8. Confirmation SMS to patient
     if (normalizedPhone) {
       try {
-        const message = `Hey ${firstName}, you\u2019re signed up for a free ${config.label} session at Range Medical. One ${config.sessionDuration} session won\u2019t be life-changing on its own \u2014 real change takes consistency \u2014 but it\u2019ll give you a real feel for it. We\u2019ll text you shortly to pick a time.\n\nBonus: 25% off any plan you purchase within 7 days of completing your session.\n\n\u2014 Range Medical`;
+        const message = `Hey ${firstName}, thanks for signing up for a free ${config.label} session at Range Medical. One ${config.sessionDuration} session won\u2019t be life-changing on its own \u2014 real change takes consistency \u2014 but it\u2019ll give you a real feel for it. If you didn\u2019t finish picking a time on the page, reply here and we\u2019ll get you scheduled.\n\nBonus: 25% off any plan you purchase within 7 days of completing your session.\n\n\u2014 Range Medical`;
         const smsResult = await sendSMS({ to: normalizedPhone, message });
         await logComm({
           channel: 'sms',
@@ -233,7 +304,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // 6. Staff alert SMS
+    // 9. Staff alert SMS
     try {
       const alertMsg = `New FREE ${config.shortLabel} session: ${customerName} (${phone.trim()}). ${struggleLabel} \u00b7 ${importance90d}/10 \u00b7 ${leadTier.toUpperCase()}. Text them to schedule.`;
       const alertResult = await sendSMS({ to: OWNER_PHONE, message: alertMsg });
@@ -252,7 +323,7 @@ export default async function handler(req, res) {
       console.error('Free session staff alert error:', alertErr);
     }
 
-    // 7. Staff email
+    // 10. Staff email
     try {
       const tierColor = leadTier === 'green' ? '#16A34A' : leadTier === 'yellow' ? '#D97706' : '#DC2626';
       const now = new Date().toLocaleString('en-US', {
@@ -296,6 +367,10 @@ export default async function handler(req, res) {
       trialId: trialPassId,
       leadTier,
       leadScore,
+      eventTypeId,
+      stripeCustomerId,
+      setupClientSecret,
+      sessionDurationMinutes: trialType === 'hbot' ? 60 : 20,
     });
   } catch (err) {
     console.error('Free session enter error:', err);

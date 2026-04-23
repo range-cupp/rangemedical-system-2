@@ -147,6 +147,11 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [apptNotesValue, setApptNotesValue] = useState('');
   const [savingApptNotes, setSavingApptNotes] = useState(false);
 
+  // Appointment visit reason editing
+  const [editingApptReason, setEditingApptReason] = useState(null);
+  const [apptReasonValue, setApptReasonValue] = useState('');
+  const [savingApptReason, setSavingApptReason] = useState(false);
+
   // Change service type
   const [changingServiceAppt, setChangingServiceAppt] = useState(null);
   const [savingServiceChange, setSavingServiceChange] = useState(false);
@@ -1090,6 +1095,25 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       console.error('Save appointment notes error:', err);
     } finally {
       setSavingApptNotes(false);
+    }
+  };
+
+  const saveApptReason = async (apptId) => {
+    setSavingApptReason(true);
+    try {
+      const res = await fetch('/api/appointments/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: apptId, table: 'appointments', visit_reason: apptReasonValue }),
+      });
+      if (res.ok) {
+        setEditingApptReason(null);
+        fetchAppointments();
+      }
+    } catch (err) {
+      console.error('Save appointment reason error:', err);
+    } finally {
+      setSavingApptReason(false);
     }
   };
 
@@ -2292,6 +2316,46 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 </div>
               );
             })()}
+
+            {/* Visit Reason — editable */}
+            <div style={styles.popoverRow}>
+              <span style={styles.popoverLabel}>Visit Reason</span>
+              {editingApptReason === appt.id ? (
+                <div style={{ flex: 1 }}>
+                  <textarea
+                    value={apptReasonValue}
+                    onChange={e => setApptReasonValue(e.target.value)}
+                    rows={2}
+                    style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '0', fontSize: '13px', resize: 'vertical', boxSizing: 'border-box' }}
+                    autoFocus
+                  />
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                    <button
+                      onClick={() => saveApptReason(appt.id)}
+                      disabled={savingApptReason}
+                      style={{ ...styles.actionBtn, background: '#000', color: '#fff', fontSize: '12px', padding: '4px 12px' }}
+                    >
+                      {savingApptReason ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => setEditingApptReason(null)}
+                      style={{ ...styles.actionBtn, fontSize: '12px', padding: '4px 12px' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                  <span style={{ ...styles.popoverValue, flex: 1 }}>{appt.visit_reason || <span style={{ color: '#aaa', fontStyle: 'italic' }}>No visit reason</span>}</span>
+                  <button
+                    onClick={() => { setEditingApptReason(appt.id); setApptReasonValue(appt.visit_reason || ''); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', padding: '0 2px', color: '#999', flexShrink: 0 }}
+                    title="Edit visit reason"
+                  >✏️</button>
+                </div>
+              )}
+            </div>
 
             {/* Appointment Notes — editable */}
             <div style={styles.popoverRow}>
@@ -4125,12 +4189,12 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               <span style={styles.confirmLabel}>Modality</span>
               <span>{{ in_clinic: 'In-Clinic', telemedicine: 'Telemedicine', phone: 'Phone' }[modality] || modality}</span>
             </div>
-            {apptNotes && (
-              <div style={styles.confirmRow}>
-                <span style={styles.confirmLabel}>Notes</span>
-                <span>{apptNotes}</span>
-              </div>
-            )}
+            <div style={styles.confirmRow}>
+              <span style={styles.confirmLabel}>Notes</span>
+              <span style={apptNotes ? {} : { color: '#aaa', fontStyle: 'italic' }}>
+                {apptNotes || '(none — go back to add)'}
+              </span>
+            </div>
           </div>
 
           {/* Notification toggle */}

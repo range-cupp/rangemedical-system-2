@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { id, table, status, notes, category, updated_by } = req.body;
+  const { id, table, status, notes, visit_reason, category, updated_by } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'Missing appointment id' });
@@ -40,6 +40,7 @@ export default async function handler(req, res) {
 
     if (status) updates.status = status;
     if (notes !== undefined) updates.notes = notes;
+    if (visit_reason !== undefined && table === 'appointments') updates.visit_reason = visit_reason;
 
     // Category field differs between tables
     if (category !== undefined) {

@@ -56,11 +56,18 @@ export default async function handler(req, res) {
 
       // Parse Cal.com error for user-friendly message
       let errorMsg = 'Failed to create booking in Cal.com';
+      let schedulingWindowError = false;
+      const rawErrStr = typeof calResult.error === 'string'
+        ? calResult.error
+        : JSON.stringify(calResult.error || '');
       try {
         const parsed = typeof calResult.error === 'string' ? JSON.parse(calResult.error) : calResult.error;
         const detail = parsed?.error?.message || parsed?.message || '';
         if (detail.includes('already has booking') || detail.includes('not available')) {
           errorMsg = 'This time slot is no longer available — all providers are booked. Please select a different time.';
+        } else if (detail.includes("can't be booked at the") || detail.includes('minimum booking notice') || detail.includes('scheduling window')) {
+          errorMsg = 'Cal.com won\u2019t accept this time (too close to now or outside the event\u2019s booking window). Falling back to a manual appointment.';
+          schedulingWindowError = true;
         } else if (detail.includes('not found')) {
           errorMsg = 'This appointment type is no longer available. Please refresh and try again.';
         } else if (detail) {
@@ -68,15 +75,18 @@ export default async function handler(req, res) {
         }
       } catch {
         // If error is a plain string, check it directly
-        const errStr = String(calResult.error);
-        if (errStr.includes('already has booking') || errStr.includes('not available')) {
+        if (rawErrStr.includes('already has booking') || rawErrStr.includes('not available')) {
           errorMsg = 'This time slot is no longer available — all providers are booked. Please select a different time.';
+        } else if (rawErrStr.includes("can't be booked at the") || rawErrStr.includes('minimum booking notice') || rawErrStr.includes('scheduling window')) {
+          errorMsg = 'Cal.com won\u2019t accept this time. Falling back to a manual appointment.';
+          schedulingWindowError = true;
         }
       }
 
       return res.status(calResult.status === 400 ? 400 : 500).json({
         error: errorMsg,
         slotUnavailable: errorMsg.includes('no longer available'),
+        schedulingWindowError,
         details: calResult.error,
       });
     }

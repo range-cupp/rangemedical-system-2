@@ -903,12 +903,29 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             body: JSON.stringify(body),
           });
 
+          // If Cal.com rejected the time (minimum booking notice / scheduling
+          // window), don't block the staff — fall through and create a manual
+          // appointment (no cal_com_booking_id). The schedule still shows it;
+          // the Cal.com provider calendar just won't be linked.
+          let schedulingWindowError = false;
+          let calBookingData = null;
           if (calBookingRes.ok) {
-            const data = await calBookingRes.json();
+            calBookingData = await calBookingRes.json();
+          } else {
+            try {
+              const errPayload = await calBookingRes.json();
+              schedulingWindowError = !!errPayload?.schedulingWindowError;
+            } catch {}
+          }
+
+          if (calBookingRes.ok || schedulingWindowError) {
             // Write the native appointments row. This — not /api/bookings/create —
             // is what /admin/schedule reads from. Capture the response as `res`
             // so the downstream round-trip notes check sees the ACTUAL saved row,
             // and any insert failure is surfaced to staff rather than swallowed.
+            const calBookingId = calBookingData
+              ? String(calBookingData.calcom?.id || calBookingData.booking?.calcom_booking_id || '')
+              : '';
             res = await fetch('/api/appointments/create', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -928,12 +945,15 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 visit_reason: visitReason.trim(),
                 modality,
                 send_notification: sendNotification,
-                cal_com_booking_id: String(data.calcom?.id || data.booking?.calcom_booking_id || ''),
-                source: 'cal_com',
+                cal_com_booking_id: calBookingId || null,
+                source: schedulingWindowError ? 'manual' : 'cal_com',
                 service_details: Object.keys(serviceDetails).length > 0 ? serviceDetails : null,
                 services: servicesPayload,
               }),
             });
+            if (schedulingWindowError) {
+              console.warn('[booking] Cal.com rejected scheduling window; booked as manual appointment');
+            }
           } else {
             res = calBookingRes;
           }

@@ -692,6 +692,9 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
         setShowNoteForm(false);
         stopDictation();
         if (onRefresh) onRefresh();
+        if (data.dose_change_blocked) {
+          alert(`Note saved — but the dose on this patient's protocol was NOT updated.\n\n${data.dose_change_blocked_reason || 'Weight-loss and HRT dose changes require Dr. Burgess approval.'}\n\nOpen the patient's profile and use the Dose Change button to send an approval request.`);
+        }
         // If there are more services in queue, advance
         if (multiServiceQueue.length > 0) {
           setTimeout(() => advanceToNextService(), 300);
@@ -1794,6 +1797,9 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                           setNoteMode('choose');
                           setInteractiveFormType(null);
                           if (onRefresh) onRefresh();
+                          if (data.dose_change_blocked) {
+                            alert(`Note saved — but the dose on this patient's protocol was NOT updated.\n\n${data.dose_change_blocked_reason || 'Weight-loss and HRT dose changes require Dr. Burgess approval.'}\n\nOpen the patient's profile and use the Dose Change button to send an approval request.`);
+                          }
                           // If there are more services in queue, advance
                           if (multiServiceQueue.length > 0) {
                             setTimeout(() => advanceToNextService(), 300);

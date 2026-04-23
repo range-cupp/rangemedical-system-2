@@ -307,6 +307,8 @@ export default async function handler(req, res) {
       service_log: finalLog,
       protocol_update: protocolUpdate,
       receipt_sent: send_receipt && !!patient.email,
+      dose_change_blocked: protocolUpdate?.dose_change_blocked || false,
+      dose_change_blocked_reason: protocolUpdate?.dose_change_blocked_reason || null,
     });
   } catch (err) {
     console.error('[medication-checkout] Error:', err);
@@ -333,6 +335,9 @@ async function updateProtocol(protocolId, opts) {
       updated_at: new Date().toISOString(),
     };
 
+    let doseChangeBlocked = false;
+    let doseChangeBlockedReason = null;
+
     const protocolCategory = protocol.program_type || category;
     const categoryMatchesProtocol = category === protocolCategory || isWeightLossType(category) === isWeightLossType(protocolCategory);
 
@@ -358,6 +363,8 @@ async function updateProtocol(protocolId, opts) {
             { mode: 'strip' }
           );
           if (guard.blocked && guard.blocked.length > 0) {
+            doseChangeBlocked = true;
+            doseChangeBlockedReason = guard.reason;
             console.warn(`[dose-guard] medication-checkout in-clinic: stripped dose write on protocol ${protocolId} (${protocol.selected_dose} → ${dosage})`);
           } else {
             updates.selected_dose = dosage;
@@ -376,7 +383,7 @@ async function updateProtocol(protocolId, opts) {
         .eq('id', protocolId);
 
       if (updateError) throw updateError;
-      return { updated: true, protocol_id: protocolId, updates, mode: 'in_clinic_purchase' };
+      return { updated: true, protocol_id: protocolId, updates, mode: 'in_clinic_purchase', dose_change_blocked: doseChangeBlocked, dose_change_blocked_reason: doseChangeBlockedReason };
     }
 
     // ── TAKE-HOME / SINGLE INJECTION PATH (existing behavior) ──
@@ -521,6 +528,8 @@ async function updateProtocol(protocolId, opts) {
               { mode: 'strip' }
             );
             if (guard.blocked && guard.blocked.length > 0) {
+              doseChangeBlocked = true;
+              doseChangeBlockedReason = guard.reason;
               console.warn(`[dose-guard] medication-checkout pickup: stripped dose write on protocol ${protocolId} (${protocol.selected_dose} → ${dosage})`);
             } else {
               updates.selected_dose = dosage;
@@ -546,7 +555,7 @@ async function updateProtocol(protocolId, opts) {
 
     if (updateError) throw updateError;
 
-    return { updated: true, protocol_id: protocolId, updates };
+    return { updated: true, protocol_id: protocolId, updates, dose_change_blocked: doseChangeBlocked, dose_change_blocked_reason: doseChangeBlockedReason };
   } catch (err) {
     console.error('[medication-checkout] Protocol update error:', err);
     return { updated: false, error: err.message };

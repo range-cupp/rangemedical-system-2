@@ -1328,6 +1328,10 @@ function CheckoutInner() {
       if (dispensedNames) message += `\n\nDispensed: ${dispensedNames}`;
       const failures = dispResults.filter(r => !r.success);
       if (failures.length > 0) message += `\n\nDispense errors: ${failures.map(f => `${f.name}: ${f.error}`).join(', ')}`;
+      const blockedDose = dispResults.find(r => r.success && r.data?.dose_change_blocked);
+      if (blockedDose) {
+        alert(`Dispense complete — but the dose on ${patient.name}'s protocol was NOT updated.\n\n${blockedDose.data.dose_change_blocked_reason || 'Weight-loss and HRT dose changes require Dr. Burgess approval.'}\n\nOpen the patient's profile and use the Dose Change button to send an approval request.`);
+      }
       fetch(`/api/protocols?patient_id=${patient.id}&status=active`)
         .then(r => r.json())
         .then(d => setActiveProtocols(d.protocols || d || []))
@@ -2303,9 +2307,14 @@ function CheckoutInner() {
     try {
       const results = await processDispenseItems({ sendReceipt: !skipNotification });
       const failures = results.filter(r => !r.success);
+      const blockedDose = results.find(r => r.success && r.data?.dose_change_blocked);
       if (failures.length > 0) {
         setResultStatus('error');
         setResultMessage(`Some items failed:\n${failures.map(f => `${f.name}: ${f.error}`).join('\n')}`);
+      } else if (blockedDose) {
+        setResultStatus('success');
+        const dispensedNames = results.map(r => r.name).join(', ');
+        setResultMessage(`Dispensed for ${patient.name}:\n${dispensedNames}\n\n⚠️ Dose on protocol NOT updated. ${blockedDose.data.dose_change_blocked_reason || 'Weight-loss and HRT dose changes require Dr. Burgess approval.'} Use the Dose Change button on the patient's profile.`);
       } else {
         setResultStatus('success');
         const dispensedNames = results.map(r => r.name).join(', ');
@@ -3982,6 +3991,7 @@ function CheckoutInner() {
                                       { value: '2x per week', label: '2x / week' },
                                       { value: 'Weekly', label: 'Weekly' },
                                       { value: 'Daily', label: 'Daily' },
+                                      { value: 'Once', label: 'Once' },
                                     ].map(f => (
                                       <button
                                         key={f.value}
@@ -3998,6 +4008,13 @@ function CheckoutInner() {
                                   </div>
                                   {(() => {
                                     const delivered = getInjDeliveredQty();
+                                    if (injFrequency === 'Once') {
+                                      return (
+                                        <div style={{ fontSize: '12px', color: '#666', marginTop: '6px' }}>
+                                          {delivered} injection{delivered > 1 ? 's' : ''} administered in a <strong>single visit</strong> — no protocol created
+                                        </div>
+                                      );
+                                    }
                                     const dpw = { 'Daily': 7, '3x per week': 3, '2x per week': 2, 'Weekly': 1 }[injFrequency];
                                     if (!dpw || !delivered) return null;
                                     const weeks = Math.ceil(delivered / dpw);

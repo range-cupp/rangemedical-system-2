@@ -985,6 +985,11 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       setResults(allResults);
       setResult({ success: true, totalPaid, itemCount: allResults.length, receipt_sent: sendReceipt });
       setStep(5);
+      // If any item tried to change dose on a WL/HRT protocol, the guard stripped it.
+      const blockedDoseResult = allResults.find(r => r.dose_change_blocked);
+      if (blockedDoseResult) {
+        alert(`Checkout complete — but the dose on this patient's protocol was NOT updated.\n\n${blockedDoseResult.dose_change_blocked_reason || 'Weight-loss and HRT dose changes require Dr. Burgess approval.'}\n\nOpen the patient's profile and use the Dose Change button to send an approval request.`);
+      }
       if (onCheckoutComplete) onCheckoutComplete(allResults);
     } catch (err) {
       setError(err.message);

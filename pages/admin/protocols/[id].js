@@ -937,7 +937,13 @@ export default function ProtocolDetail() {
         })
       });
 
-      if (!res.ok) throw new Error('Failed to save');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (data.requires_approval) {
+          throw new Error(`${data.error}\n\nOpen the patient's profile and use the Dose Change button to send an approval request.`);
+        }
+        throw new Error(data.error || 'Failed to save');
+      }
       setSuccess('Protocol updated');
       setIsEditing(false);
       fetchProtocol();

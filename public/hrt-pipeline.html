@@ -1318,11 +1318,13 @@
         });
         
         const result = await res.json();
-        
+
         if (result.success) {
           showToast('Refill processed!', 'success');
           closeRefillModal();
           loadProtocols();
+        } else if (result.requires_approval) {
+          alert(`${result.error}\n\nOpen the patient's profile and use the Dose Change button to send an approval request.`);
         } else {
           showToast(result.error || 'Failed to process refill', 'error');
         }

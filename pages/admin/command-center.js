@@ -1738,8 +1738,12 @@ export default function CommandCenter() {
         fetchPatientDetails(selectedPatient.id);
         fetchData();
       } else {
-        const error = await res.json();
-        alert(error.error || 'Failed to assign protocol');
+        const error = await res.json().catch(() => ({}));
+        if (error.requires_approval) {
+          alert(`${error.error}\n\nOpen the patient's profile and use the Dose Change button to send an approval request.`);
+        } else {
+          alert(error.error || 'Failed to assign protocol');
+        }
       }
     } catch (error) {
       console.error('Error assigning protocol:', error);
@@ -1817,8 +1821,12 @@ export default function CommandCenter() {
         fetchData();
         alert('Protocol updated successfully!');
       } else {
-        const error = await res.json();
-        alert(error.error || 'Failed to update protocol');
+        const error = await res.json().catch(() => ({}));
+        if (error.requires_approval) {
+          alert(`${error.error}\n\nOpen the patient's profile and use the Dose Change button to send an approval request.`);
+        } else {
+          alert(error.error || 'Failed to update protocol');
+        }
       }
     } catch (error) {
       console.error('Error updating protocol:', error);

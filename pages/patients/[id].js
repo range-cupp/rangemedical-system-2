@@ -13611,7 +13611,12 @@ export default function PatientProfile() {
                           body: JSON.stringify(body),
                         });
                         const data = await res.json();
-                        if (!res.ok) throw new Error(data.error || 'Failed to extend protocol');
+                        if (!res.ok) {
+                          if (data.requires_approval) {
+                            throw new Error(`${data.error}\n\nUse the Dose Change button on this patient's profile to send an approval request first.`);
+                          }
+                          throw new Error(data.error || 'Failed to extend protocol');
+                        }
                         setShowExtendWLModal(false);
                         fetchPatient();
                       } catch (err) {

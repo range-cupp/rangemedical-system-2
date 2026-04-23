@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { capitalizeName } from '../admin/capitalize-names';
 import { insertIntoPipeline } from '../../../lib/pipeline-insert';
+import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -78,48 +79,51 @@ export default async function handler(req, res) {
       }
     }
 
-    // 1. Save to Supabase
-    let savedLead = null;
-    if (supabase) {
-      const assessmentData = {
-        first_name: firstName,
-        last_name: lastName,
-        email: email.toLowerCase().trim(),
-        phone,
-        assessment_path: assessmentPath,
-        injury_type: injuryType || null,
-        injury_location: injuryLocation || null,
-        injury_duration: injuryDuration || null,
-        in_physical_therapy: inPhysicalTherapy || null,
-        recovery_goal: recoveryGoal || null,
-        primary_symptom: symptoms && symptoms.length > 0 ? symptoms.join(', ') : null,
-        symptom_duration: symptomDuration || null,
-        has_recent_labs: lastLabWork || null,
-        tried_hormone_therapy: triedHormoneTherapy || null,
-        energy_goal: goals && goals.length > 0 ? goals.join(', ') : null,
-        additional_info: additionalInfo || null,
-        tags,
-        utm_source: utm_source || null,
-        utm_medium: utm_medium || null,
-        utm_campaign: utm_campaign || null,
-        utm_content: utm_content || null,
-        utm_term: utm_term || null
-      };
+    // 1. Save to Supabase — this is the critical step. Without a leadId, payment cannot be created.
+    if (!supabase) {
+      console.error('Supabase not configured — cannot save assessment lead');
+      return res.status(500).json({
+        error: 'Service temporarily unavailable. Please call (949) 997-3988.',
+      });
+    }
 
-      const { data, error: dbError } = await supabase
-        .from('assessment_leads')
-        .insert([assessmentData])
-        .select()
-        .single();
+    const assessmentData = {
+      first_name: firstName,
+      last_name: lastName,
+      email: email.toLowerCase().trim(),
+      phone,
+      assessment_path: assessmentPath,
+      injury_type: injuryType || null,
+      injury_location: injuryLocation || null,
+      injury_duration: injuryDuration || null,
+      in_physical_therapy: inPhysicalTherapy || null,
+      recovery_goal: recoveryGoal || null,
+      primary_symptom: symptoms && symptoms.length > 0 ? symptoms.join(', ') : null,
+      symptom_duration: symptomDuration || null,
+      has_recent_labs: lastLabWork || null,
+      tried_hormone_therapy: triedHormoneTherapy || null,
+      energy_goal: goals && goals.length > 0 ? goals.join(', ') : null,
+      additional_info: additionalInfo || null,
+      tags,
+      utm_source: utm_source || null,
+      utm_medium: utm_medium || null,
+      utm_campaign: utm_campaign || null,
+      utm_content: utm_content || null,
+      utm_term: utm_term || null
+    };
 
-      if (dbError) {
-        console.error('Supabase error:', dbError);
-        // Continue anyway - we don't want to block the user
-      } else {
-        savedLead = data;
-      }
-    } else {
-      console.warn('Supabase not configured, skipping database save');
+    const { data: savedLead, error: dbError } = await supabase
+      .from('assessment_leads')
+      .insert([assessmentData])
+      .select()
+      .single();
+
+    if (dbError || !savedLead?.id) {
+      console.error('Supabase assessment_leads insert error:', dbError, 'payload:', assessmentData);
+      return res.status(500).json({
+        error: 'Could not save your information. Please try again or call (949) 997-3988.',
+        details: dbError?.message || 'No row returned',
+      });
     }
 
     // 1b. Create or find patient record
@@ -255,8 +259,9 @@ export default async function handler(req, res) {
           .single();
 
         if (damon) {
+          const taskTitle = `New Assessment: ${firstName} ${lastName} (${pathLabel})`;
           await supabase.from('tasks').insert({
-            title: `New Assessment: ${firstName} ${lastName} (${pathLabel})`,
+            title: taskTitle,
             description: `${firstName} ${lastName} completed a ${pathLabel} assessment.\nEmail: ${email}\nPhone: ${phone}`,
             assigned_to: damon.id,
             assigned_by: damon.id,
@@ -266,6 +271,11 @@ export default async function handler(req, res) {
             status: 'pending',
           });
           console.log(`Assessment follow-up task created for Damon: ${firstName} ${lastName}`);
+          notifyTaskAssignee(damon.id, {
+            assignerName: 'Range Medical',
+            taskTitle,
+            priority: 'high',
+          }).catch(err => console.error('Assessment task SMS error:', err));
         }
       } catch (taskErr) {
         console.error('Auto-task creation error:', taskErr);

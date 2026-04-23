@@ -32,12 +32,12 @@ const BUDGET_OPTIONS = [
 ];
 
 const HBOT_PLANS = [
-  { name: 'Single Session',              price: '$185' },
-  { name: '5-Pack',                      price: '$850',     per: '$170/session' },
-  { name: '10-Pack',                     price: '$1,600',   per: '$160/session' },
-  { name: 'Membership — 4 sessions/mo',  price: '$549/mo',  per: '$137/session' },
-  { name: 'Membership — 8 sessions/mo',  price: '$999/mo',  per: '$125/session' },
-  { name: 'Membership — 12 sessions/mo', price: '$1,399/mo', per: '$117/session' },
+  { name: 'Single Session',              price: '$185',      discounted: '$138.75' },
+  { name: '5-Pack',                      price: '$850',      discounted: '$637.50',    per: '$170/session' },
+  { name: '10-Pack',                     price: '$1,600',    discounted: '$1,200',     per: '$160/session' },
+  { name: 'Membership — 4 sessions/mo',  price: '$549/mo',   discounted: '$411.75/mo', per: '$137/session', note: '3-month commitment' },
+  { name: 'Membership — 8 sessions/mo',  price: '$999/mo',   discounted: '$749.25/mo', per: '$125/session', note: '3-month commitment' },
+  { name: 'Membership — 12 sessions/mo', price: '$1,399/mo', discounted: '$1,049.25/mo', per: '$117/session', note: '3-month commitment' },
 ];
 
 export default function HBOTTrial() {
@@ -680,23 +680,36 @@ export default function HBOTTrial() {
                     that doesn’t fit.
                   </p>
 
-                  <div style={{ background: '#fafafa', border: '1px solid #e5e5e5', padding: '16px 20px', marginBottom: 20 }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#737373', margin: '0 0 6px' }}>
+                  <div style={{ background: '#fafafa', border: '1px solid #e5e5e5', padding: '16px 20px', marginBottom: 8 }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#737373', margin: '0 0 12px' }}>
                       Our HBOT plans
                     </p>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: ACCENT, margin: '0 0 12px' }}>
-                      25% off your first plan if purchased within 7 days of completing your session.
-                    </p>
-                    {HBOT_PLANS.map((plan) => (
-                      <div key={plan.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '8px 0', borderBottom: '1px solid #ececec', fontSize: 14, gap: 12 }}>
-                        <span style={{ color: '#404040' }}>{plan.name}</span>
-                        <span style={{ fontWeight: 600, color: '#171717', whiteSpace: 'nowrap' }}>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 14, paddingBottom: 8, borderBottom: '1px solid #e0e0e0', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#a3a3a3' }}>
+                      <span>Plan</span>
+                      <span style={{ textAlign: 'right' }}>Regular</span>
+                      <span style={{ textAlign: 'right', color: ACCENT }}>25% off*</span>
+                    </div>
+
+                    {HBOT_PLANS.map((plan, i) => (
+                      <div key={plan.name} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 14, padding: '10px 0', borderBottom: i < HBOT_PLANS.length - 1 ? '1px solid #ececec' : 'none', fontSize: 14, alignItems: 'baseline' }}>
+                        <span style={{ color: '#404040' }}>
+                          {plan.name}
+                          {plan.per && <span style={{ display: 'block', fontSize: 12, color: '#a3a3a3', fontWeight: 400, marginTop: 2 }}>{plan.per}</span>}
+                          {plan.note && <span style={{ display: 'block', fontSize: 11, color: '#a3a3a3', fontWeight: 400, fontStyle: 'italic', marginTop: 2 }}>{plan.note}</span>}
+                        </span>
+                        <span style={{ fontWeight: 600, color: '#171717', whiteSpace: 'nowrap', textAlign: 'right' }}>
                           {plan.price}
-                          {plan.per && <span style={{ color: '#737373', fontWeight: 400, marginLeft: 8 }}>{plan.per}</span>}
+                        </span>
+                        <span style={{ fontWeight: 700, color: ACCENT, whiteSpace: 'nowrap', textAlign: 'right' }}>
+                          {plan.discounted}
                         </span>
                       </div>
                     ))}
                   </div>
+                  <p style={{ fontSize: 12, color: '#737373', margin: '0 0 20px', lineHeight: 1.5 }}>
+                    *25% off applies to any plan purchased within 7 days of completing your free session. Memberships require a 3-month commitment.
+                  </p>
 
                   <div className="fs-field" data-field-error={errors.budget ? 'true' : 'false'}>
                     <div className={errors.budget ? 'fs-options-error' : ''}>

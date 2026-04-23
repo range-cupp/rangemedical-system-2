@@ -11,6 +11,7 @@ const PROVIDER_USERS = [
   { userId: 2197567, username: 'lily' },
   { userId: 2197566, username: 'evan' },
   { userId: 2197565, username: 'damon' },
+  { userId: 2383086, username: 'brendyn' },
 ];
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

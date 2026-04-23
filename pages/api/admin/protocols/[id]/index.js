@@ -3,6 +3,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { guardDoseChange } from '../../../../../lib/dose-change-guard';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -129,6 +130,37 @@ export default async function handler(req, res) {
       if (b.goal_weight !== undefined) updateData.goal_weight = b.goal_weight;
 
       updateData.updated_at = new Date().toISOString();
+
+      // Gate WL/HRT dose changes — must go through Dose Change modal → Burgess SMS approval.
+      const wantsDoseWrite =
+        updateData.selected_dose !== undefined ||
+        updateData.dose_per_injection !== undefined ||
+        updateData.injections_per_week !== undefined;
+      if (wantsDoseWrite) {
+        const { data: current } = await supabase
+          .from('protocols')
+          .select('id, program_type, selected_dose, dose, dose_per_injection, injections_per_week')
+          .eq('id', id)
+          .single();
+        if (current) {
+          const guard = await guardDoseChange(
+            supabase,
+            current,
+            updateData,
+            {
+              mode: 'reject',
+              approvedRequestId: b.approved_dose_change_request_id,
+            }
+          );
+          if (!guard.allowed) {
+            return res.status(400).json({
+              error: guard.reason,
+              requires_approval: true,
+              category: guard.category,
+            });
+          }
+        }
+      }
 
       // Try old table first
       const { data: oldUpdate, error: oldError } = await supabase

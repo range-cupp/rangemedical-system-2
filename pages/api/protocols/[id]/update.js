@@ -2,6 +2,7 @@
 // Update a protocol
 
 import { createClient } from '@supabase/supabase-js';
+import { guardDoseChange } from '../../../../lib/dose-change-guard';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -86,6 +87,37 @@ export default async function handler(req, res) {
     // Peptide vial fields
     if (num_vials !== undefined) updateData.num_vials = num_vials ? parseInt(num_vials) : null;
     if (doses_per_vial !== undefined) updateData.doses_per_vial = doses_per_vial ? parseInt(doses_per_vial) : null;
+
+    // Gate WL/HRT dose changes — must go through the Dose Change modal → Burgess SMS approval.
+    const wantsDoseWrite =
+      updateData.selected_dose !== undefined ||
+      updateData.dose_per_injection !== undefined ||
+      updateData.injections_per_week !== undefined;
+    if (wantsDoseWrite) {
+      const { data: current } = await supabase
+        .from('protocols')
+        .select('id, program_type, selected_dose, dose, dose_per_injection, injections_per_week')
+        .eq('id', id)
+        .single();
+      if (current) {
+        const guard = await guardDoseChange(
+          supabase,
+          current,
+          updateData,
+          {
+            mode: 'reject',
+            approvedRequestId: req.body.approved_dose_change_request_id,
+          }
+        );
+        if (!guard.allowed) {
+          return res.status(400).json({
+            error: guard.reason,
+            requires_approval: true,
+            category: guard.category,
+          });
+        }
+      }
+    }
 
     // Add updated timestamp
     updateData.updated_at = new Date().toISOString();

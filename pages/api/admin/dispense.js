@@ -4,6 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { todayPacific } from '../../../lib/date-utils';
+import { guardDoseChange } from '../../../lib/dose-change-guard';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -182,13 +183,41 @@ export default async function handler(req, res) {
       ...(isWeightLoss ? {} : { sessions_used: (protocol.sessions_used || 0) + (quantity || 1) }),
     };
 
-    // If dosage was changed at dispense time, update the protocol's selected_dose
+    // If dosage was changed at dispense time, update the protocol's selected_dose.
+    // Gated for WL (all changes) and HRT (increases) — dose changes must go through
+    // the Dose Change modal → Burgess SMS approval.
     if (dosage_override) {
+      const guard = await guardDoseChange(
+        supabase,
+        protocol,
+        { selected_dose: dosage_override },
+        { mode: 'reject' }
+      );
+      if (!guard.allowed) {
+        return res.status(400).json({
+          error: guard.reason,
+          requires_approval: true,
+          category: guard.category,
+        });
+      }
       updateData.selected_dose = dosage_override;
     }
 
     // If dosing notes provided (split dosing), store on protocol for reference
     if (dosing_notes) {
+      const guard = await guardDoseChange(
+        supabase,
+        protocol,
+        { selected_dose: dosing_notes },
+        { mode: 'reject' }
+      );
+      if (!guard.allowed) {
+        return res.status(400).json({
+          error: guard.reason,
+          requires_approval: true,
+          category: guard.category,
+        });
+      }
       updateData.selected_dose = dosing_notes;
     }
 

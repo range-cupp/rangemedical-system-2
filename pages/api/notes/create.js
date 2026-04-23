@@ -8,6 +8,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { isWeightLossType } from '../../../lib/protocol-config';
 import { todayPacific, nowPacificISO } from '../../../lib/date-utils';
 import { buildAdaptiveHRTSchedule, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
+import { guardDoseChange } from '../../../lib/dose-change-guard';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -209,6 +210,11 @@ export default async function handler(req, res) {
       esLower === 'weight_loss' ||
       structured_data?.form_type === 'weight_loss';
 
+    // Surfaces back to the UI if we stripped a dose write; the client should
+    // prompt staff to use the Dose Change modal to get Burgess approval.
+    let doseGuardBlocked = false;
+    let doseGuardReason = null;
+
     if (isWLEncounter && structured_data) {
       try {
         const rawWeight = structured_data?.weight_vitals?.current_weight;
@@ -281,31 +287,55 @@ export default async function handler(req, res) {
           };
 
           // Update dose on protocol if provided + track escalation
+          let doseChangeBlocked = false;
           if (dose) {
             const previousDose = activeProtocol.selected_dose || activeProtocol.dose || null;
-            protocolUpdates.selected_dose = dose;
-            protocolUpdates.dose = dose;
-            protocolUpdates.current_dose = dose;
 
-            // Log dose change if different from previous dose
+            // WL/HRT increases can't change dose from an encounter note — those
+            // must go through the Dose Change modal → Burgess SMS approval.
+            // We still write an audit log below so staff intent is captured.
+            const guard = await guardDoseChange(
+              supabase,
+              activeProtocol,
+              { selected_dose: dose, dose, current_dose: dose },
+              { mode: 'strip', approvedRequestId: req.body.approved_dose_change_request_id }
+            );
+
+            if (!guard.blocked || guard.blocked.length === 0) {
+              // Either non-gated category, or an approved request was provided.
+              protocolUpdates.selected_dose = dose;
+              protocolUpdates.dose = dose;
+              protocolUpdates.current_dose = dose;
+            } else {
+              // Dose write stripped — stamp a warning for the UI to surface.
+              doseChangeBlocked = true;
+              doseGuardBlocked = true;
+              doseGuardReason = guard.reason;
+              console.warn(
+                `[dose-guard] Stripped dose write on protocol ${activeProtocol.id} from note by ${created_by || 'Staff'}: ${previousDose} → ${dose}`
+              );
+            }
+
+            // Log dose change if different from previous dose — record intent
+            // regardless of whether the dose was actually applied.
             if (previousDose && previousDose !== dose) {
               const plan = structured_data?.assessment?.plan || '';
               const isIncrease = plan.toLowerCase().includes('increase');
               const isDecrease = plan.toLowerCase().includes('decrease');
               const direction = isIncrease ? 'increased' : (isDecrease ? 'decreased' : 'changed');
+              const blockedTag = doseChangeBlocked ? ' [BLOCKED — requires Dr. Burgess approval via Dose Change modal]' : '';
 
               await supabase.from('protocol_logs').insert({
                 protocol_id: activeProtocol.id,
                 patient_id,
-                log_type: 'dose_change',
+                log_type: doseChangeBlocked ? 'dose_change_blocked' : 'dose_change',
                 log_date: logDate,
                 dose: dose,
                 weight: weight || null,
-                notes: `Dose ${direction}: ${previousDose} → ${dose}. ${plan}${structured_data?.additional?.notes ? ' — ' + structured_data.additional.notes : ''}`,
+                notes: `Dose ${direction}: ${previousDose} → ${dose}.${blockedTag} ${plan}${structured_data?.additional?.notes ? ' — ' + structured_data.additional.notes : ''}`,
                 logged_by: created_by || 'Staff',
               }).then(({ error: doseLogErr }) => {
                 if (doseLogErr) console.error('Dose change log error:', doseLogErr);
-                else console.log(`Dose escalation logged: ${previousDose} → ${dose} for protocol ${activeProtocol.id}`);
               });
             }
           }
@@ -540,7 +570,11 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.status(201).json({ note: data });
+    return res.status(201).json({
+      note: data,
+      dose_change_blocked: doseGuardBlocked,
+      dose_change_blocked_reason: doseGuardReason,
+    });
   } catch (error) {
     console.error('Note create error:', error);
     return res.status(500).json({ error: error.message || 'Failed to create note' });

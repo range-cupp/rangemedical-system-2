@@ -4,6 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { isWeightLossType } from '../../../lib/protocol-config';
+import { guardDoseChange } from '../../../lib/dose-change-guard';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -22,7 +23,7 @@ export default async function handler(req, res) {
       case 'GET':
         return await getProtocol(id, res);
       case 'PATCH':
-        return await updateProtocol(id, req.body, res);
+        return await updateProtocol(id, req.body, res, req);
       case 'DELETE':
         return await deleteProtocol(id, res);
       default:
@@ -178,7 +179,7 @@ async function getProtocol(id, res) {
   });
 }
 
-async function updateProtocol(id, updates, res) {
+async function updateProtocol(id, updates, res, req) {
   // Allowed fields to update
   const allowedFields = [
     'status',
@@ -263,6 +264,39 @@ async function updateProtocol(id, updates, res) {
     }
     updateData.selected_dose = dose;
     updateData.dose = dose; // Keep in sync
+  }
+
+  // Gate WL/HRT dose changes — protocol PATCH is not the right path for clinical
+  // dose changes. Those must go through the Dose Change modal → Burgess SMS approval.
+  const wantsDoseWrite =
+    updateData.selected_dose !== undefined ||
+    updateData.dose !== undefined ||
+    updateData.dose_per_injection !== undefined ||
+    updateData.injections_per_week !== undefined;
+  if (wantsDoseWrite) {
+    const { data: current } = await supabase
+      .from('protocols')
+      .select('id, program_type, selected_dose, dose, dose_per_injection, injections_per_week')
+      .eq('id', id)
+      .single();
+    if (current) {
+      const guard = await guardDoseChange(
+        supabase,
+        current,
+        updateData,
+        {
+          mode: 'reject',
+          approvedRequestId: req?.body?.approved_dose_change_request_id,
+        }
+      );
+      if (!guard.allowed) {
+        return res.status(400).json({
+          error: guard.reason,
+          requires_approval: true,
+          category: guard.category,
+        });
+      }
+    }
   }
 
   // Normalize delivery_method (at_home → take_home for consistency)

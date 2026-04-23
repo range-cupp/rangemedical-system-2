@@ -20,6 +20,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { createProtocol, closeProtocol } from '../../../../lib/create-protocol';
 import { DOSE_APPROVAL_STAFF } from '../../../../lib/staff-config';
+import { isWeightLossType, isHRTType } from '../../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -58,7 +59,8 @@ export default async function handler(req, res) {
     injections_per_week,
     dose_per_injection,
     reason,
-    approved_by_email,  // email of approving provider (required for dose increases on HRT/WL)
+    approved_by_email,  // legacy — retained for back-compat, but ignored unless paired with approval_request_id
+    approved_dose_change_request_id,  // id of an approved dose_change_requests row
   } = req.body || {};
 
   if (!selected_dose || !injections_per_week) {
@@ -86,31 +88,54 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Protocol not found' });
     }
 
-    // ── Dose increase approval check (HRT / weight loss) ──
-    // If this is a dose INCREASE, it must be approved by an authorized provider (Dr. Burgess)
-    const isHRT = (current.program_type || '').toLowerCase().includes('hrt');
-    const isWL = (current.program_type || '').toLowerCase().includes('weight_loss');
+    // ── Dose change approval check (HRT / weight loss) ──
+    // Policy:
+    //   - WL: ALL dose changes require a valid approved_dose_change_request_id.
+    //   - HRT: INCREASES require approval; decreases are allowed.
+    // An approved dose_change_requests row is the only valid authorization;
+    // the legacy approved_by_email string is ignored (it wasn't verifiable).
+    const isHRT = isHRTType(current.program_type);
+    const isWL = isWeightLossType(current.program_type);
     if (isHRT || isWL) {
       const oldMl = parseMlFromDose(current.selected_dose);
       const newMl = parseMlFromDose(selected_dose);
       const oldIpw = current.injections_per_week || 2;
 
-      // Dose increase = higher ml per injection OR more injections per week
       const isDoseIncrease =
         (newMl && oldMl && newMl > oldMl) ||
         (newIpw > oldIpw) ||
         (newMl && oldMl && newMl === oldMl && newIpw > oldIpw);
 
-      if (isDoseIncrease) {
-        if (!approved_by_email) {
+      const needsApproval = isWL || (isHRT && isDoseIncrease);
+
+      if (needsApproval) {
+        if (!approved_dose_change_request_id) {
           return res.status(400).json({
-            error: 'Dose increases on HRT/weight loss require provider approval. Please select the approving provider.',
+            error: isWL
+              ? 'Weight-loss dose changes require Dr. Burgess approval. Use the Dose Change modal on the patient profile to send an approval request.'
+              : 'HRT dose increases require Dr. Burgess approval. Use the Dose Change modal on the patient profile to send an approval request.',
             requires_approval: true,
           });
         }
-        if (!DOSE_APPROVAL_STAFF.includes(approved_by_email.toLowerCase())) {
+
+        const { data: approval } = await supabase
+          .from('dose_change_requests')
+          .select('id, protocol_id, proposed_dose, proposed_injections_per_week, status')
+          .eq('id', approved_dose_change_request_id)
+          .single();
+
+        const normalize = (s) => (s == null ? null : String(s).trim().toLowerCase().replace(/\s+/g, ''));
+        const ok =
+          approval &&
+          approval.protocol_id === id &&
+          ['approved', 'applied'].includes(approval.status) &&
+          normalize(approval.proposed_dose) === normalize(selected_dose) &&
+          (approval.proposed_injections_per_week == null ||
+            approval.proposed_injections_per_week === newIpw);
+
+        if (!ok) {
           return res.status(403).json({
-            error: 'Only Dr. Damien Burgess can approve dose increases for HRT and weight loss protocols.',
+            error: 'Provided dose change approval is invalid, expired, or does not match this protocol/dose.',
             requires_approval: true,
           });
         }

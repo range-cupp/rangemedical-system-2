@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { todayPacific } from '../../../../lib/date-utils';
+import { guardDoseChange } from '../../../../lib/dose-change-guard';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -142,16 +143,38 @@ export default async function handler(req, res) {
     // Normalize supply_type for storage
     const normalizedSupplyType = supply_type === 'vial' ? 'vial_10ml' : supply_type;
 
+    // Gate HRT dose increases — must go through the Dose Change modal → Burgess SMS approval.
+    // Refills should come in at the current dose; if different, that's a clinical dose change.
+    const refillUpdate = {
+      supply_type: normalizedSupplyType,
+      selected_dose: dose,
+      last_refill_date: refillDateStr,
+      status: 'active',
+      notes: updatedNotes,
+      updated_at: new Date().toISOString(),
+    };
+    if (dose && dose !== protocol.selected_dose) {
+      const guard = await guardDoseChange(
+        supabase,
+        protocol,
+        { selected_dose: dose },
+        {
+          mode: 'reject',
+          approvedRequestId: req.body.approved_dose_change_request_id,
+        }
+      );
+      if (!guard.allowed) {
+        return res.status(400).json({
+          error: guard.reason,
+          requires_approval: true,
+          category: guard.category,
+        });
+      }
+    }
+
     const { error: updateError } = await supabase
       .from('protocols')
-      .update({
-        supply_type: normalizedSupplyType,
-        selected_dose: dose,
-        last_refill_date: refillDateStr,  // THIS WAS MISSING!
-        status: 'active',
-        notes: updatedNotes,
-        updated_at: new Date().toISOString()
-      })
+      .update(refillUpdate)
       .eq('id', id);
 
     if (updateError) {

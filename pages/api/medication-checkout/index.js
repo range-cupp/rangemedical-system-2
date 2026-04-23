@@ -8,6 +8,7 @@ import { Resend } from 'resend';
 import { generateReceiptHtml } from '../../../lib/receipt-email';
 import { todayPacific } from '../../../lib/date-utils';
 import { isWeightLossType } from '../../../lib/protocol-config';
+import { guardDoseChange } from '../../../lib/dose-change-guard';
 // Controlled substance staff config — used for logging, not blocking
 // Dose approval is enforced via dose-change-requests SMS flow
 
@@ -349,7 +350,19 @@ async function updateProtocol(protocolId, opts) {
       // Update medication details if provided
       if (categoryMatchesProtocol || category === 'peptide') {
         if (medication) updates.medication = medication;
-        if (dosage) updates.selected_dose = dosage;
+        if (dosage) {
+          const guard = await guardDoseChange(
+            supabase,
+            protocol,
+            { selected_dose: dosage },
+            { mode: 'strip' }
+          );
+          if (guard.blocked && guard.blocked.length > 0) {
+            console.warn(`[dose-guard] medication-checkout in-clinic: stripped dose write on protocol ${protocolId} (${protocol.selected_dose} → ${dosage})`);
+          } else {
+            updates.selected_dose = dosage;
+          }
+        }
       }
       if (injection_method) updates.injection_method = injection_method;
       if (injection_frequency) updates.injection_frequency = parseInt(injection_frequency);
@@ -500,7 +513,19 @@ async function updateProtocol(protocolId, opts) {
         } catch {}
         if (!isSecondaryMed) {
           if (medication) updates.medication = medication;
-          if (dosage) updates.selected_dose = dosage;
+          if (dosage) {
+            const guard = await guardDoseChange(
+              supabase,
+              protocol,
+              { selected_dose: dosage },
+              { mode: 'strip' }
+            );
+            if (guard.blocked && guard.blocked.length > 0) {
+              console.warn(`[dose-guard] medication-checkout pickup: stripped dose write on protocol ${protocolId} (${protocol.selected_dose} → ${dosage})`);
+            } else {
+              updates.selected_dose = dosage;
+            }
+          }
         }
       }
 

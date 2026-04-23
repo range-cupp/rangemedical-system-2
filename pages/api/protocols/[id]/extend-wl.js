@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import { addGHLNote } from '../../../../lib/ghl-sync';
 import { calculateNextExpectedDate } from '../../../../lib/auto-protocol';
 import { todayPacific } from '../../../../lib/date-utils';
+import { guardDoseChange } from '../../../../lib/dose-change-guard';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -95,6 +96,28 @@ export default async function handler(req, res) {
     const oldDose = protocol.selected_dose;
     let doseChanged = false;
     if (newDose && newDose !== oldDose) {
+      // Gate WL dose changes — must go through Dose Change modal → Burgess SMS approval.
+      // Exception: setting a dose for the first time (starting_dose is null/TBD) is NOT
+      // a dose change — it's onboarding.
+      const isOnboarding = !protocol.starting_dose || protocol.starting_dose === 'TBD' || oldDose === 'TBD' || !oldDose;
+      if (!isOnboarding) {
+        const guard = await guardDoseChange(
+          supabase,
+          protocol,
+          { selected_dose: newDose },
+          {
+            mode: 'reject',
+            approvedRequestId: req.body.approved_dose_change_request_id,
+          }
+        );
+        if (!guard.allowed) {
+          return res.status(400).json({
+            error: guard.reason,
+            requires_approval: true,
+            category: guard.category,
+          });
+        }
+      }
       // If no starting_dose set OR it's "TBD", use the new dose as starting
       if (!protocol.starting_dose || protocol.starting_dose === 'TBD') {
         updateData.starting_dose = newDose;

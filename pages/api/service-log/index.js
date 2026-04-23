@@ -13,11 +13,28 @@ import { createClient } from '@supabase/supabase-js';
 import { isWeightLossType } from '../../../lib/protocol-config';
 import { createProtocol } from '../../../lib/create-protocol';
 import { todayPacific } from '../../../lib/date-utils';
+import { guardDoseChange } from '../../../lib/dose-change-guard';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Map protocol program_type → service_log categories that should count toward sessions_used.
+// Prevents add-on items (e.g. B12 vitamin injections bundled with weight loss) from inflating session counts.
+function getProtocolMatchingCategories(programType) {
+  const map = {
+    weight_loss: ['weight_loss'],
+    hrt: ['testosterone', 'hrt'],
+    peptide: ['peptide'],
+    hbot: ['hbot'],
+    rlt: ['red_light'],
+    iv: ['iv_therapy', 'specialty_iv'],
+    nad_injection: ['nad_injection'],
+    injection: ['injection_pack', 'injection_standard', 'injection_premium'],
+  };
+  return map[programType] || [programType];
+}
 
 // Sync weight to patient_vitals when logged via service_log
 async function syncWeightToVitals(patient_id, weight, entry_date, recorded_by) {
@@ -1212,7 +1229,7 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
     // Find active protocol
     const { data: protocols, error: findError } = await supabase
       .from('protocols')
-      .select('id, last_refill_date, supply_type, end_date, dose_per_injection, injections_per_week')
+      .select('id, last_refill_date, supply_type, end_date, dose_per_injection, injections_per_week, program_type, selected_dose, dose')
       .eq('patient_id', patient_id)
       .eq('program_type', programType)
       .eq('status', 'active')
@@ -1248,8 +1265,21 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
       updateData.medication = medication;
       // Don't overwrite program_name — it's standardized to "HRT Protocol" etc.
     }
-    if (dosage && !isWeightLossType(category)) {
-      updateData.selected_dose = dosage;
+    // Gate dose writes — WL is always blocked, HRT increases require approval.
+    // Pickups should pick up the current dose; changing dose requires the
+    // Dose Change modal (→ Burgess SMS approval).
+    if (dosage) {
+      const guard = await guardDoseChange(
+        supabase,
+        protocol,
+        { selected_dose: dosage },
+        { mode: 'strip' }
+      );
+      if (guard.blocked && guard.blocked.length > 0) {
+        console.warn(`[dose-guard] service-log pickup: stripped dose write on protocol ${protocol.id} (${protocol.selected_dose || protocol.dose} → ${dosage})`);
+      } else if (!isWeightLossType(category)) {
+        updateData.selected_dose = dosage;
+      }
     }
 
     // Only update date-scheduling fields if this is the chronologically latest pickup.
@@ -1363,7 +1393,7 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
       // explicitly linked to this protocol, honor it even if completed)
       const result = await supabase
         .from('protocols')
-        .select('id, sessions_used, total_sessions, frequency, injection_day, delivery_method, end_date, program_type, status')
+        .select('id, sessions_used, total_sessions, frequency, injection_day, delivery_method, end_date, program_type, status, selected_dose, dose, injections_per_week')
         .eq('id', protocol_id)
         .limit(1);
       protocols = result.data;
@@ -1372,7 +1402,7 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
       // Find active protocol by program_type (original behavior)
       const result = await supabase
         .from('protocols')
-        .select('id, sessions_used, total_sessions, frequency, injection_day, delivery_method, end_date, program_type, status')
+        .select('id, sessions_used, total_sessions, frequency, injection_day, delivery_method, end_date, program_type, status, selected_dose, dose, injections_per_week')
         .eq('patient_id', patient_id)
         .eq('program_type', programType)
         .eq('status', 'active')
@@ -1470,7 +1500,17 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
       // Don't overwrite program_name — it's standardized to "Weight Loss Protocol", "HRT Protocol", etc.
     }
     if (dosage && !protocol_id) {
-      updateData.selected_dose = dosage;
+      const guard = await guardDoseChange(
+        supabase,
+        protocol,
+        { selected_dose: dosage },
+        { mode: 'strip' }
+      );
+      if (guard.blocked && guard.blocked.length > 0) {
+        console.warn(`[dose-guard] service-log session: stripped dose write on protocol ${protocol.id} (${protocol.selected_dose || protocol.dose} → ${dosage})`);
+      } else {
+        updateData.selected_dose = dosage;
+      }
     }
 
     console.log('[incrementOrCreateProtocol] Updating protocol:', { protocol_id: protocol.id, updateData, alreadyIncremented, currentSessions, newCount });

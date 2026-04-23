@@ -149,9 +149,14 @@ export default async function handler(req, res) {
       })
       .eq('id', trialId);
 
-    // Mirror to calcom_bookings so it appears on the admin schedule
-    try {
-      await supabase
+    // Mirror to calcom_bookings (source-of-truth for Cal.com sync) + appointments
+    // (what the admin schedule view actually reads). Done in parallel.
+    const serviceSlug = trial.trial_type === 'hbot' ? 'hbot' : 'red-light-therapy';
+    const serviceCategory = trial.trial_type === 'hbot' ? 'hbot' : 'rlt';
+    const serviceName = `Free ${typeCfg.label} Trial`;
+
+    await Promise.allSettled([
+      supabase
         .from('calcom_bookings')
         .insert({
           calcom_booking_id: calBookingId,
@@ -160,8 +165,8 @@ export default async function handler(req, res) {
           patient_name: customerName,
           patient_email: trial.email,
           patient_phone: trial.phone,
-          service_name: `Free ${typeCfg.label} Trial`,
-          service_slug: trial.trial_type === 'hbot' ? 'hbot' : 'red-light-therapy',
+          service_name: serviceName,
+          service_slug: serviceSlug,
           calcom_event_type_id: parseInt(eventTypeId, 10),
           start_time: startDate.toISOString(),
           end_time: endDate.toISOString(),
@@ -170,10 +175,36 @@ export default async function handler(req, res) {
           status: 'scheduled',
           notes: bookingNotes,
           booked_by: 'self',
-        });
-    } catch (dbErr) {
-      console.error('calcom_bookings mirror insert error:', dbErr);
-    }
+        })
+        .then(({ error }) => { if (error) console.error('calcom_bookings insert error:', error); }),
+      (async () => {
+        // Existence check since there's no unique constraint on cal_com_booking_id
+        // and the Cal.com webhook may also try to insert this row.
+        const { data: existing } = await supabase
+          .from('appointments')
+          .select('id')
+          .eq('cal_com_booking_id', String(calBookingId))
+          .maybeSingle();
+        if (existing?.id) return;
+        const { error } = await supabase
+          .from('appointments')
+          .insert({
+            patient_id: trial.patient_id,
+            patient_name: customerName || 'Unknown',
+            patient_phone: trial.phone || null,
+            service_name: serviceName,
+            service_category: serviceCategory,
+            start_time: startDate.toISOString(),
+            end_time: endDate.toISOString(),
+            duration_minutes: typeCfg.duration,
+            status: 'scheduled',
+            source: 'free_session_self_book',
+            cal_com_booking_id: String(calBookingId),
+            visit_reason: `Free ${typeCfg.label} trial session (self-booked)`,
+          });
+        if (error) console.error('appointments insert error:', error);
+      })(),
+    ]);
 
     // SMS confirmation to lead
     const prettyWhen = formatPacific(startDate.toISOString());

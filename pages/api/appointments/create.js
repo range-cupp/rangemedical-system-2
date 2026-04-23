@@ -117,10 +117,119 @@ export default async function handler(req, res) {
           visit_group_id: null,
         }];
 
-    const { data: inserted, error } = await supabase
-      .from('appointments')
-      .insert(rowsToInsert)
-      .select();
+    // When a cal_com_booking_id is present, the Cal.com BOOKING_CREATED
+    // webhook usually lands a placeholder row 100-300ms before this request
+    // arrives (placeholder visit_reason, null notes). Update that row in
+    // place with the real caller data instead of inserting a duplicate.
+    // For multi-service visits the webhook only ever creates the first row,
+    // so the primary (earliest) row gets updated and the rest are inserted.
+    let inserted = [];
+    let error = null;
+
+    if (!isMulti && rowsToInsert[0].cal_com_booking_id) {
+      const row = rowsToInsert[0];
+      const { data: existing } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('cal_com_booking_id', row.cal_com_booking_id)
+        .maybeSingle();
+
+      if (existing?.id) {
+        const { data: updated, error: updateErr } = await supabase
+          .from('appointments')
+          .update({
+            patient_id: row.patient_id,
+            patient_name: row.patient_name,
+            patient_phone: row.patient_phone,
+            service_name: row.service_name,
+            service_category: row.service_category,
+            provider: row.provider,
+            location: row.location,
+            start_time: row.start_time,
+            end_time: row.end_time,
+            duration_minutes: row.duration_minutes,
+            status: row.status,
+            notes: row.notes,
+            source: row.source,
+            created_by: row.created_by,
+            visit_reason: row.visit_reason,
+            modality: row.modality,
+            send_notification: row.send_notification,
+          })
+          .eq('id', existing.id)
+          .select();
+        inserted = updated || [];
+        error = updateErr;
+      } else {
+        const { data, error: insertErr } = await supabase
+          .from('appointments')
+          .insert(rowsToInsert)
+          .select();
+        inserted = data || [];
+        error = insertErr;
+      }
+    } else if (isMulti && rowsToInsert[0].cal_com_booking_id) {
+      // Multi-service: check if the primary row exists (webhook-created),
+      // update it, then insert the remaining sibling rows.
+      const primary = rowsToInsert[0];
+      const { data: existingPrimary } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('cal_com_booking_id', primary.cal_com_booking_id)
+        .maybeSingle();
+
+      if (existingPrimary?.id) {
+        const { data: updated, error: updateErr } = await supabase
+          .from('appointments')
+          .update({
+            patient_id: primary.patient_id,
+            patient_name: primary.patient_name,
+            patient_phone: primary.patient_phone,
+            service_name: primary.service_name,
+            service_category: primary.service_category,
+            provider: primary.provider,
+            location: primary.location,
+            start_time: primary.start_time,
+            end_time: primary.end_time,
+            duration_minutes: primary.duration_minutes,
+            status: primary.status,
+            notes: primary.notes,
+            source: primary.source,
+            created_by: primary.created_by,
+            visit_reason: primary.visit_reason,
+            modality: primary.modality,
+            send_notification: primary.send_notification,
+            visit_group_id: primary.visit_group_id,
+          })
+          .eq('id', existingPrimary.id)
+          .select();
+        if (updateErr) error = updateErr;
+        inserted = [...(updated || [])];
+
+        if (!error && rowsToInsert.length > 1) {
+          const { data: siblings, error: siblingErr } = await supabase
+            .from('appointments')
+            .insert(rowsToInsert.slice(1))
+            .select();
+          if (siblingErr) error = siblingErr;
+          inserted = [...inserted, ...(siblings || [])];
+        }
+      } else {
+        const { data, error: insertErr } = await supabase
+          .from('appointments')
+          .insert(rowsToInsert)
+          .select();
+        inserted = data || [];
+        error = insertErr;
+      }
+    } else {
+      const { data, error: insertErr } = await supabase
+        .from('appointments')
+        .insert(rowsToInsert)
+        .select();
+      inserted = data || [];
+      error = insertErr;
+    }
 
     if (error) {
       console.error('Create appointment error:', error);

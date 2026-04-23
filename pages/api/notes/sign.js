@@ -9,6 +9,67 @@ const supabase = createClient(
 );
 
 import { isNoteAuthor } from '../../../lib/staff-config';
+import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
+
+const BURGESS_EMAIL = 'burgess@range-medical.com';
+const EVAN_EMAIL = 'evan@range-medical.com';
+const LAB_REVIEW_OR_CONSULT = /lab review|consult/i;
+
+// Auto-task: when Dr. Burgess signs a lab review or consult note, create a
+// task for Evan to review the new note. Best-effort — never fail the sign.
+async function maybeCreateReviewTask(note) {
+  if ((note.created_by || '').toLowerCase() !== BURGESS_EMAIL) return;
+  if (!LAB_REVIEW_OR_CONSULT.test(note.encounter_service || '')) return;
+
+  const { data: employees } = await supabase
+    .from('employees')
+    .select('id, name, email')
+    .in('email', [EVAN_EMAIL, BURGESS_EMAIL]);
+  const evan = employees?.find(e => e.email === EVAN_EMAIL);
+  const burgess = employees?.find(e => e.email === BURGESS_EMAIL);
+  if (!evan || !burgess) return;
+
+  let patientName = null;
+  if (note.patient_id) {
+    const { data: patient } = await supabase
+      .from('patients')
+      .select('first_name, last_name')
+      .eq('id', note.patient_id)
+      .single();
+    if (patient) patientName = `${patient.first_name || ''} ${patient.last_name || ''}`.trim();
+  }
+
+  const serviceLabel = (note.encounter_service || 'Encounter').replace(/_/g, ' ');
+  const title = `Review encounter note — ${patientName || 'new patient'}`;
+  const description = `${serviceLabel} signed by Dr. Burgess. Review the encounter note and follow up with the patient as needed.`;
+
+  const { data: task, error } = await supabase
+    .from('tasks')
+    .insert({
+      title,
+      description,
+      assigned_to: evan.id,
+      assigned_by: burgess.id,
+      patient_id: note.patient_id || null,
+      patient_name: patientName,
+      priority: 'medium',
+      status: 'pending',
+      task_category: 'clinical',
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Auto-task insert error:', error);
+    return;
+  }
+
+  notifyTaskAssignee(evan.id, {
+    assignerName: burgess.name || 'Dr. Burgess',
+    taskTitle: title,
+    priority: 'medium',
+  }).catch(err => console.error('Auto-task SMS error:', err));
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -56,6 +117,13 @@ export default async function handler(req, res) {
       .single();
 
     if (updateError) throw updateError;
+
+    // Fire auto-task for Evan on Burgess lab reviews / consults (best-effort)
+    try {
+      await maybeCreateReviewTask(updated);
+    } catch (taskErr) {
+      console.error('maybeCreateReviewTask failed:', taskErr);
+    }
 
     return res.status(200).json({ success: true, note: updated });
   } catch (error) {

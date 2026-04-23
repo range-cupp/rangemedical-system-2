@@ -60,6 +60,7 @@ const ConversationView = dynamic(() => import('../../components/ConversationView
 const EncounterModal = dynamic(() => import('../../components/EncounterModal'), { ssr: false });
 const StandaloneEncounterModal = dynamic(() => import('../../components/StandaloneEncounterModal'), { ssr: false });
 const EncounterQuickView = dynamic(() => import('../../components/EncounterQuickView'), { ssr: false });
+const TreatmentPlanModal = dynamic(() => import('../../components/TreatmentPlanModal'), { ssr: false });
 const ServiceLogContent = dynamic(() => import('../../components/ServiceLogContent'), { ssr: false });
 const EmailComposeModal = dynamic(() => import('../../components/EmailComposeModal'), { ssr: false });
 const SMSComposeModal = dynamic(() => import('../../components/SMSComposeModal'), { ssr: false });
@@ -774,6 +775,7 @@ export default function PatientProfile() {
   const [noteSaving, setNoteSaving] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
+  const [treatmentPlanNote, setTreatmentPlanNote] = useState(null);
   const [editNoteBody, setEditNoteBody] = useState('');
   const [editNoteSaving, setEditNoteSaving] = useState(false);
   const editNoteRef = useRef(null);
@@ -8949,6 +8951,11 @@ export default function PatientProfile() {
                                     title="Sign and lock note"
                                   >✍ Sign & Lock</button>
                                 )}
+                                <button
+                                  onClick={() => setTreatmentPlanNote(note)}
+                                  style={{ background: '#f3f4f6', border: '1px solid #d1d5db', color: '#374151', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
+                                  title="Create a patient-facing treatment plan from this note"
+                                >📋 Treatment Plan</button>
                                 {(note.status !== 'signed' ? canDeleteNote(note) : isAdminUser) && (
                                   <button
                                     onClick={() => handleDeleteNote(note.id)}
@@ -13829,6 +13836,19 @@ export default function PatientProfile() {
             currentUser={session?.user?.user_metadata?.full_name || session?.user?.email || 'Staff'}
             onClose={() => setShowStandaloneEncounterModal(false)}
             onRefresh={fetchPatient}
+          />
+        )}
+
+        {/* Treatment Plan Modal — build patient-facing PDF from encounter note */}
+        {treatmentPlanNote && patient && (
+          <TreatmentPlanModal
+            patientId={patient.id}
+            patientName={`${patient.first_name || ''} ${patient.last_name || ''}`.trim()}
+            patientEmail={patient.email}
+            noteBody={treatmentPlanNote.body}
+            noteId={treatmentPlanNote.id}
+            provider={treatmentPlanNote.created_by || session?.user?.email}
+            onClose={() => setTreatmentPlanNote(null)}
           />
         )}
 

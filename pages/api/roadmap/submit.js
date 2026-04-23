@@ -7,6 +7,7 @@ import { Resend } from 'resend';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import { insertIntoPipeline } from '../../../lib/pipeline-insert';
+import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -319,8 +320,10 @@ export default async function handler(req, res) {
             ? missingOut.join(', ')
             : 'None selected';
 
+          const taskTitle = `Roadmap Lead (${scoreTier === 'assessment' ? 'READY' : 'Nurture'}): ${capFirst} ${capLast} — ${urgencyVal}/10`;
+          const taskPriority = scoreTier === 'assessment' ? 'high' : 'medium';
           await supabase.from('tasks').insert({
-            title: `Roadmap Lead (${scoreTier === 'assessment' ? 'READY' : 'Nurture'}): ${capFirst} ${capLast} — ${urgencyVal}/10`,
+            title: taskTitle,
             description: `${capFirst} ${capLast} completed the roadmap funnel.
 Path: ${PATH_LABELS[path]}
 Phone: ${phone}
@@ -336,9 +339,14 @@ Cost of waiting: ${costOfWaiting || 'Not provided'}`,
             assigned_by: damon.id,
             patient_id: patientId || null,
             patient_name: `${capFirst} ${capLast}`,
-            priority: scoreTier === 'assessment' ? 'high' : 'medium',
+            priority: taskPriority,
             status: 'pending',
           });
+          notifyTaskAssignee(damon.id, {
+            assignerName: 'Range Medical',
+            taskTitle,
+            priority: taskPriority,
+          }).catch(err => console.error('Roadmap task SMS error:', err));
         }
       } catch (taskErr) {
         console.error('Task creation error:', taskErr);

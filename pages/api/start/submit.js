@@ -7,6 +7,7 @@ import { Resend } from 'resend';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import { insertIntoPipeline } from '../../../lib/pipeline-insert';
+import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -271,16 +272,23 @@ export default async function handler(req, res) {
           .single();
 
         if (damon) {
+          const taskTitle = `New Start Lead: ${capFirst} ${capLast} (${PATH_LABELS[path]})`;
+          const taskPriority = urgency >= 8 ? 'high' : 'medium';
           await supabase.from('tasks').insert({
-            title: `New Start Lead: ${capFirst} ${capLast} (${PATH_LABELS[path]})`,
+            title: taskTitle,
             description: `${capFirst} ${capLast} submitted the Start Here form.\nPath: ${PATH_LABELS[path]}\nPhone: ${phone}\nEmail: ${normalizedEmail}\nConcern: ${mainConcern || 'Not provided'}\nUrgency: ${urgency}/10${referredBy ? `\nReferred by: ${referredBy}` : ''}`,
             assigned_to: damon.id,
             assigned_by: damon.id,
             patient_id: patientId || null,
             patient_name: `${capFirst} ${capLast}`,
-            priority: urgency >= 8 ? 'high' : 'medium',
+            priority: taskPriority,
             status: 'pending',
           });
+          notifyTaskAssignee(damon.id, {
+            assignerName: 'Range Medical',
+            taskTitle,
+            priority: taskPriority,
+          }).catch(err => console.error('Start task SMS error:', err));
         }
       } catch (taskErr) {
         console.error('Task creation error:', taskErr);

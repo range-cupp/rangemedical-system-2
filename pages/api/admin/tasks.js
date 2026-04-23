@@ -8,7 +8,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth, logAction } from '../../../lib/auth';
-import { sendSMS, normalizePhone } from '../../../lib/send-sms';
+import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -139,79 +139,15 @@ async function handlePost(req, res, employee) {
 
     // Send SMS notification to assigned employee (if not self-assigned and they have a phone)
     if (task.assigned_to !== employee.id) {
-      notifyAssignee(task.assigned_to, employee.name, title, priority).catch(err =>
-        console.error('Task SMS notification error:', err)
-      );
+      notifyTaskAssignee(task.assigned_to, {
+        assignerName: employee.name,
+        taskTitle: title,
+        priority,
+      }).catch(err => console.error('Task SMS notification error:', err));
     }
   }
 
   return res.status(201).json({ success: true, task: data[0], tasks: data });
-}
-
-// Send SMS to employee when assigned a task — respects quiet hours (8am-6pm PST)
-async function notifyAssignee(employeeId, assignerName, taskTitle, priority) {
-  // Look up employee phone
-  const { data: emp } = await supabase
-    .from('employees')
-    .select('phone, name')
-    .eq('id', employeeId)
-    .single();
-
-  if (!emp?.phone) return; // No phone on file — skip
-
-  // Check quiet hours: before 7am or after 8pm PST
-  const now = new Date();
-  const pst = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-  const hour = pst.getHours();
-  const isQuietHours = hour < 7 || hour >= 20;
-
-  if (isQuietHours) {
-    // Queue for later — store in notification_queue table
-    try {
-      await supabase.from('notification_queue').insert({
-        type: 'task_assignment_sms',
-        recipient_phone: normalizePhone(emp.phone),
-        recipient_name: emp.name,
-        message: buildTaskSmsMessage(assignerName, taskTitle, priority),
-        status: 'pending',
-        scheduled_for: getNextBusinessHourStart(),
-        metadata: { employee_id: employeeId, task_title: taskTitle },
-      });
-    } catch (e) {
-      console.error('Failed to queue task notification:', e);
-    }
-    return;
-  }
-
-  // Send immediately
-  const message = buildTaskSmsMessage(assignerName, taskTitle, priority);
-  await sendSMS({
-    to: normalizePhone(emp.phone),
-    message,
-    log: {
-      messageType: 'task_assignment',
-      source: 'admin-tasks',
-    },
-  });
-}
-
-function buildTaskSmsMessage(assignerName, taskTitle, priority) {
-  const priorityLabel = priority === 'urgent' ? '🔴 URGENT: ' : priority === 'high' ? '🟠 ' : '';
-  const truncatedTitle = taskTitle.length > 120 ? taskTitle.slice(0, 120) + '...' : taskTitle;
-  return `${priorityLabel}New task from ${assignerName}: ${truncatedTitle}\n\nView in Range Medical CRM → Tasks`;
-}
-
-function getNextBusinessHourStart() {
-  const now = new Date();
-  // Get current PST time
-  const pstStr = now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
-  const pst = new Date(pstStr);
-  // Set to 8:00 AM next day
-  pst.setDate(pst.getDate() + 1);
-  pst.setHours(8, 0, 0, 0);
-  // Convert back to UTC for storage
-  const utcOffset = now.getTime() - new Date(pstStr).getTime();
-  return new Date(pst.getTime() + utcOffset).toISOString();
 }
 
 async function handlePatch(req, res, employee) {
@@ -271,9 +207,11 @@ async function handlePatch(req, res, employee) {
 
   // Send SMS if task was reassigned to a different person
   if (assigned_to && assigned_to !== previousAssignee && assigned_to !== employee.id) {
-    notifyAssignee(assigned_to, employee.name, data.title, data.priority).catch(err =>
-      console.error('Task reassignment SMS notification error:', err)
-    );
+    notifyTaskAssignee(assigned_to, {
+      assignerName: employee.name,
+      taskTitle: data.title,
+      priority: data.priority,
+    }).catch(err => console.error('Task reassignment SMS notification error:', err));
   }
 
   return res.status(200).json({ success: true, task: data });

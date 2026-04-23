@@ -9,6 +9,7 @@ import { Resend } from 'resend';
 import { createBooking } from '../../../lib/calcom';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
+import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
 import stripe from '../../../lib/stripe';
 
 const supabase = createClient(
@@ -206,8 +207,9 @@ export default async function handler(req, res) {
         .eq('email', 'damon@range-medical.com')
         .single();
       if (damon?.id) {
+        const taskTitle = `Free ${typeCfg.shortLabel} booked: ${customerName}`;
         await supabase.from('tasks').insert({
-          title: `Free ${typeCfg.shortLabel} booked: ${customerName}`,
+          title: taskTitle,
           description: `${customerName} self-booked a free ${typeCfg.label} session for ${prettyWhen}.\nPhone: ${trial.phone || 'n/a'}\nEmail: ${trial.email || 'n/a'}\n$25 no-show card is on file (trial_pass ${trialId}).`,
           assigned_to: damon.id,
           assigned_by: damon.id,
@@ -216,6 +218,11 @@ export default async function handler(req, res) {
           priority: 'medium',
           status: 'pending',
         });
+        notifyTaskAssignee(damon.id, {
+          assignerName: 'Range Medical',
+          taskTitle,
+          priority: 'medium',
+        }).catch(err => console.error('Damon task SMS error:', err));
       }
     } catch (taskErr) {
       console.error('Damon task insert error:', taskErr);

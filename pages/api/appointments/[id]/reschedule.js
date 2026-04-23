@@ -45,6 +45,21 @@ export default async function handler(req, res) {
       .update({ status: 'rescheduled' })
       .eq('id', id);
 
+    // Cancel the linked calcom_bookings row so the reminder cron (which queries
+    // calcom_bookings) doesn't keep texting the patient about the old time.
+    if (oldAppt.cal_com_booking_id) {
+      const calcomBookingIdInt = parseInt(oldAppt.cal_com_booking_id, 10);
+      if (!Number.isNaN(calcomBookingIdInt)) {
+        await supabase
+          .from('calcom_bookings')
+          .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
+          .eq('calcom_booking_id', calcomBookingIdInt)
+          .then(({ error: cbErr }) => {
+            if (cbErr) console.error('calcom_bookings reschedule update error:', cbErr);
+          });
+      }
+    }
+
     // Log event on old appointment
     await supabase.from('appointment_events').insert({
       appointment_id: id,
@@ -54,7 +69,8 @@ export default async function handler(req, res) {
       metadata: { rescheduled_to_time: new_start_time },
     });
 
-    // Create new appointment
+    // Create new appointment — preserve visit_group_id so the rescheduled service stays
+    // linked to its multi-service visit siblings in the popover/history.
     const { data: newAppt, error: createError } = await supabase
       .from('appointments')
       .insert({
@@ -73,6 +89,7 @@ export default async function handler(req, res) {
         rescheduled_from: id,
         source: oldAppt.source,
         created_by: oldAppt.created_by,
+        visit_group_id: oldAppt.visit_group_id || null,
       })
       .select()
       .single();

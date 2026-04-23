@@ -50,6 +50,21 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: updateError.message });
     }
 
+    // Cancel the linked calcom_bookings row so reminder cron (which queries
+    // calcom_bookings by booking_date + status='scheduled') stops texting the patient.
+    if (appointment.cal_com_booking_id) {
+      const calcomBookingIdInt = parseInt(appointment.cal_com_booking_id, 10);
+      if (!Number.isNaN(calcomBookingIdInt)) {
+        await supabase
+          .from('calcom_bookings')
+          .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
+          .eq('calcom_booking_id', calcomBookingIdInt)
+          .then(({ error: cbErr }) => {
+            if (cbErr) console.error('calcom_bookings cancel update error:', cbErr);
+          });
+      }
+    }
+
     // Log event
     await supabase.from('appointment_events').insert({
       appointment_id: id,

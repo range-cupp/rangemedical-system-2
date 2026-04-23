@@ -35,8 +35,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Use placeholder email if patient has none
-    const email = patientEmail || `${patientId}@booking.rangemedical.com`;
+    // Use placeholder email if patient has none or has an invalid value (e.g. "na", "none").
+    // Cal.com rejects malformed emails with email_validation_error.
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const rawEmail = typeof patientEmail === 'string' ? patientEmail.trim() : '';
+    const email = emailRe.test(rawEmail) ? rawEmail : `${patientId}@range-medical.com`;
 
     // Create booking in Cal.com (round-robin auto-assigns host)
     const calResult = await createBooking({
@@ -100,7 +103,10 @@ export default async function handler(req, res) {
     const endDate = new Date(startDate.getTime() + duration * 60000);
     const bookingDate = start.split('T')[0];
 
-    // Store in Supabase
+    // Store in Supabase (calcom_bookings only — the admin schedule reads from
+    // the native `appointments` table, which is written by the caller's
+    // secondary POST /api/appointments/create and, as a fallback, by the
+    // Cal.com BOOKING_CREATED webhook).
     const { data: booking, error: dbError } = await supabase
       .from('calcom_bookings')
       .insert({
@@ -121,7 +127,6 @@ export default async function handler(req, res) {
         notes,
         booked_by: 'staff',
         service_details: serviceDetails || null,
-        provider_name: hostName || null
       })
       .select()
       .single();

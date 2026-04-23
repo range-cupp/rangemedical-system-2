@@ -292,22 +292,34 @@ export default async function handler(req, res) {
       const serviceLabelForReason = eventTitle || eventTypeSlug || 'Cal.com Booking';
       const placeholderVisitReason = `${serviceLabelForReason} \u2014 reason to be confirmed by staff`;
 
-      await supabase.from('appointments').upsert({
-        patient_id: patientId,
-        patient_name: attendee.name || 'Unknown',
-        patient_phone: attendee.phone || null,
-        service_name: serviceLabelForReason,
-        service_category: slugToCategory[eventTypeSlug] || 'other',
-        start_time: startTime,
-        end_time: endTime,
-        duration_minutes: durationMinutes,
-        status: 'scheduled',
-        source: 'cal_com',
-        cal_com_booking_id: String(calcomBookingId),
-        visit_reason: placeholderVisitReason,
-      }, { onConflict: 'cal_com_booking_id' }).then(({ error: apptErr }) => {
-        if (apptErr) console.error('Appointments upsert error:', apptErr);
-      });
+      // Existence check + insert (cal_com_booking_id has no unique index, so
+      // upsert with onConflict silently errors). Skip if the caller's
+      // /api/appointments/create already landed the row with the real
+      // visit_reason + notes — we don't want to clobber it with a placeholder.
+      {
+        const { data: existingAppt } = await supabase
+          .from('appointments')
+          .select('id')
+          .eq('cal_com_booking_id', String(calcomBookingId))
+          .maybeSingle();
+        if (!existingAppt?.id) {
+          const { error: apptErr } = await supabase.from('appointments').insert({
+            patient_id: patientId,
+            patient_name: attendee.name || 'Unknown',
+            patient_phone: attendee.phone || null,
+            service_name: serviceLabelForReason,
+            service_category: slugToCategory[eventTypeSlug] || 'other',
+            start_time: startTime,
+            end_time: endTime,
+            duration_minutes: durationMinutes,
+            status: 'scheduled',
+            source: 'cal_com',
+            cal_com_booking_id: String(calcomBookingId),
+            visit_reason: placeholderVisitReason,
+          });
+          if (apptErr) console.error('Appointments insert error:', apptErr);
+        }
+      }
 
       // Check if the appointment was created with notifications suppressed
       // (staff toggled off "Send confirmation to patient" in the booking wizard)

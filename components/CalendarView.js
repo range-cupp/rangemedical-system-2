@@ -897,15 +897,19 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             serviceDetails: Object.keys(serviceDetails).length > 0 ? serviceDetails : null,
           };
 
-          res = await fetch('/api/bookings/create', {
+          const calBookingRes = await fetch('/api/bookings/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
           });
 
-          if (res.ok) {
-            const data = await res.json();
-            await fetch('/api/appointments/create', {
+          if (calBookingRes.ok) {
+            const data = await calBookingRes.json();
+            // Write the native appointments row. This — not /api/bookings/create —
+            // is what /admin/schedule reads from. Capture the response as `res`
+            // so the downstream round-trip notes check sees the ACTUAL saved row,
+            // and any insert failure is surfaced to staff rather than swallowed.
+            res = await fetch('/api/appointments/create', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -929,7 +933,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 service_details: Object.keys(serviceDetails).length > 0 ? serviceDetails : null,
                 services: servicesPayload,
               }),
-            }).catch(err => console.error('Native appointment write error:', err));
+            });
+          } else {
+            res = calBookingRes;
           }
         } else {
           // Fallback: manual booking (no Cal.com, walk-in, or custom time)

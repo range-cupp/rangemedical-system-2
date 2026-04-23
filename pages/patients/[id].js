@@ -1221,14 +1221,58 @@ export default function PatientProfile() {
       setRefundingCharge(null);
       setRefundAmount('');
       setRefundType('full');
-      // Refresh charges
+      // Refresh charges AND purchases (so stripe_status badges update)
       setStripeChargesFetched(false);
       fetchStripeCharges();
+      fetchPatient();
     } catch (err) {
       alert('Error: ' + err.message);
     } finally {
       setRefundLoading(false);
     }
+  };
+
+  // Open the refund modal for a purchase row by looking up its matching Stripe charge.
+  // Purchases store stripe_payment_intent_id; the refund API needs a charge_id, which
+  // we find via the already-fetched stripeCharges list (falls back to on-demand fetch).
+  const openRefundForPurchase = async (purchase) => {
+    if (!purchase?.stripe_payment_intent_id) {
+      return alert('This purchase has no linked Stripe payment and can\'t be refunded through Stripe.');
+    }
+
+    let charges = stripeCharges;
+    if (!stripeChargesFetched || charges.length === 0) {
+      try {
+        const res = await fetch(`/api/patients/${id}/stripe-charges`);
+        const data = await res.json();
+        charges = data.charges || [];
+        setStripeCharges(charges);
+        setStripeChargesFetched(true);
+      } catch (err) {
+        return alert('Could not load Stripe payment details. Please try again.');
+      }
+    }
+
+    const charge = charges.find(c => c.payment_intent_id === purchase.stripe_payment_intent_id);
+    if (!charge) {
+      return alert('Matching Stripe charge not found. The payment may be older than what Stripe returns (last 100 charges) — refund directly in the Stripe dashboard.');
+    }
+
+    const refundable = (charge.amount - charge.amount_refunded) / 100;
+    if (refundable <= 0) {
+      return alert('This charge has already been fully refunded.');
+    }
+
+    setRefundingCharge({
+      key: charge.id, // Stripe charge_id
+      description: purchase.item_name || purchase.product_name || purchase.medication || charge.description || 'Service',
+      date: new Date(charge.created * 1000),
+      amount: charge.amount / 100,
+      amountRefunded: charge.amount_refunded / 100,
+      card_last4: charge.card_last4,
+    });
+    setRefundType('full');
+    setRefundAmount('');
   };
 
   const handleSubAction = async (subscriptionId, action, paymentMethodId) => {
@@ -10750,6 +10794,16 @@ export default function PatientProfile() {
                                             </>
                                           )}
                                         </div>
+                                        {p.stripe_payment_intent_id && p.stripe_status !== 'refunded' && (
+                                          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); openRefundForPurchase(p); }}
+                                              style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, border: '1px solid #fca5a5', borderRadius: 4, background: '#fff', color: '#dc2626', cursor: 'pointer' }}
+                                            >
+                                              {p.stripe_status === 'partially_refunded' ? 'Refund Remaining' : 'Issue Refund'}
+                                            </button>
+                                          </div>
+                                        )}
                                       </div>
                                     )}
                                   </div>

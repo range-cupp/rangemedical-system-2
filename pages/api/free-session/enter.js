@@ -286,50 +286,56 @@ export default async function handler(req, res) {
         .eq('id', trialPassId);
     }
 
-    // 8. Confirmation SMS to patient
+    // 8-10. Run confirmation SMS + staff SMS + staff email in parallel.
+    // Each task has its own try/catch so one failure doesn't drop the others.
+    const notificationTasks = [];
+
     if (normalizedPhone) {
+      notificationTasks.push((async () => {
+        try {
+          const message = `Hey ${firstName}, thanks for signing up for a free ${config.label} session at Range Medical. One ${config.sessionDuration} session won\u2019t be life-changing on its own \u2014 real change takes consistency \u2014 but it\u2019ll give you a real feel for it. If you didn\u2019t finish picking a time on the page, reply here and we\u2019ll get you scheduled.\n\n\u2014 Range Medical`;
+          const smsResult = await sendSMS({ to: normalizedPhone, message });
+          await logComm({
+            channel: 'sms',
+            messageType: `free_session_${trialType}_confirmation`,
+            message,
+            source: 'free-session-enter',
+            patientId,
+            patientName: firstName,
+            recipient: normalizedPhone,
+            status: smsResult.success ? 'sent' : 'error',
+            errorMessage: smsResult.error || null,
+            twilioMessageSid: smsResult.messageSid || null,
+            provider: smsResult.provider || null,
+          });
+        } catch (smsErr) {
+          console.error('Free session confirmation SMS error:', smsErr);
+        }
+      })());
+    }
+
+    notificationTasks.push((async () => {
       try {
-        const message = `Hey ${firstName}, thanks for signing up for a free ${config.label} session at Range Medical. One ${config.sessionDuration} session won\u2019t be life-changing on its own \u2014 real change takes consistency \u2014 but it\u2019ll give you a real feel for it. If you didn\u2019t finish picking a time on the page, reply here and we\u2019ll get you scheduled.\n\n\u2014 Range Medical`;
-        const smsResult = await sendSMS({ to: normalizedPhone, message });
+        const alertMsg = `New FREE ${config.shortLabel} session: ${customerName} (${phone.trim()}). ${struggleLabel} \u00b7 ${importance90d}/10 \u00b7 ${leadTier.toUpperCase()}. Text them to schedule.`;
+        const alertResult = await sendSMS({ to: OWNER_PHONE, message: alertMsg });
         await logComm({
           channel: 'sms',
-          messageType: `free_session_${trialType}_confirmation`,
-          message,
+          messageType: `free_session_${trialType}_staff_alert`,
+          message: alertMsg,
           source: 'free-session-enter',
-          patientId,
-          patientName: firstName,
-          recipient: normalizedPhone,
-          status: smsResult.success ? 'sent' : 'error',
-          errorMessage: smsResult.error || null,
-          twilioMessageSid: smsResult.messageSid || null,
-          provider: smsResult.provider || null,
+          recipient: OWNER_PHONE,
+          status: alertResult.success ? 'sent' : 'error',
+          errorMessage: alertResult.error || null,
+          twilioMessageSid: alertResult.messageSid || null,
+          provider: alertResult.provider || null,
         });
-      } catch (smsErr) {
-        console.error('Free session confirmation SMS error:', smsErr);
+      } catch (alertErr) {
+        console.error('Free session staff alert error:', alertErr);
       }
-    }
+    })());
 
-    // 9. Staff alert SMS
-    try {
-      const alertMsg = `New FREE ${config.shortLabel} session: ${customerName} (${phone.trim()}). ${struggleLabel} \u00b7 ${importance90d}/10 \u00b7 ${leadTier.toUpperCase()}. Text them to schedule.`;
-      const alertResult = await sendSMS({ to: OWNER_PHONE, message: alertMsg });
-      await logComm({
-        channel: 'sms',
-        messageType: `free_session_${trialType}_staff_alert`,
-        message: alertMsg,
-        source: 'free-session-enter',
-        recipient: OWNER_PHONE,
-        status: alertResult.success ? 'sent' : 'error',
-        errorMessage: alertResult.error || null,
-        twilioMessageSid: alertResult.messageSid || null,
-        provider: alertResult.provider || null,
-      });
-    } catch (alertErr) {
-      console.error('Free session staff alert error:', alertErr);
-    }
-
-    // 10. Staff email
-    try {
+    notificationTasks.push((async () => {
+      try {
       const tierColor = leadTier === 'green' ? '#16A34A' : leadTier === 'yellow' ? '#D97706' : '#DC2626';
       const now = new Date().toLocaleString('en-US', {
         timeZone: 'America/Los_Angeles',
@@ -363,9 +369,12 @@ export default async function handler(req, res) {
         subject: `Free ${config.shortLabel} Session: ${customerName} — ${leadTier.toUpperCase()} (${leadScore})`,
         html,
       });
-    } catch (emailErr) {
-      console.error('Free session staff email error:', emailErr);
-    }
+      } catch (emailErr) {
+        console.error('Free session staff email error:', emailErr);
+      }
+    })());
+
+    await Promise.allSettled(notificationTasks);
 
     return res.status(200).json({
       success: true,

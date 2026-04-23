@@ -9,6 +9,7 @@ import Script from 'next/script';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import FreeSessionScheduler from '../components/FreeSessionScheduler';
+import { formatPhone } from '../lib/format-utils';
 
 const META_PIXEL_ID = '4295373617400545';
 
@@ -578,7 +579,7 @@ export default function RLTTrial() {
                       placeholder="(949) 555-0123"
                       className={errors.phone ? 'fs-has-error' : ''}
                       value={contact.phone}
-                      onChange={(e) => { setContact({ ...contact, phone: e.target.value }); clearFieldError('phone'); }}
+                      onChange={(e) => { setContact({ ...contact, phone: formatPhone(e.target.value) }); clearFieldError('phone'); }}
                     />
                     {errors.phone && <div className="fs-field-errmsg">{errors.phone}</div>}
                   </div>
@@ -748,8 +749,14 @@ export default function RLTTrial() {
                   {topError && <div className="fs-error">{topError}</div>}
 
                   <button type="submit" className="fs-btn" disabled={submitting}>
-                    {submitting ? 'Submitting…' : 'Claim My Free Session'}
+                    {submitting ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
+                        <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%', animation: 'fs-btn-spin 0.8s linear infinite', display: 'inline-block' }} />
+                        Setting up your session…
+                      </span>
+                    ) : 'Claim My Free Session'}
                   </button>
+                  <style>{`@keyframes fs-btn-spin { to { transform: rotate(360deg); } }`}</style>
 
                   <p className="fs-fineprint">
                     Newport Beach only. One free session per person.

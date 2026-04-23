@@ -150,8 +150,14 @@ function PaymentForm({
             opacity: (!stripe || !agreed || processing) ? 0.6 : 1, fontFamily: 'inherit',
           }}
         >
-          {processing ? 'Booking\u2026' : 'Book My Free Session'}
+          {processing ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
+              <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%', animation: 'fs-spin 0.8s linear infinite' }} />
+              Booking…
+            </span>
+          ) : 'Book My Free Session'}
         </button>
+        <style>{`@keyframes fs-spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     </form>
   );
@@ -282,7 +288,7 @@ export default function FreeSessionScheduler({
 
           <div style={{ padding: '16px 0', borderTop: '1px solid #e5e5e5', marginTop: 12 }}>
             {loadingSlots && (
-              <p style={{ fontSize: 14, color: '#737373', textAlign: 'center', padding: '24px 0' }}>Loading open times\u2026</p>
+              <p style={{ fontSize: 14, color: '#737373', textAlign: 'center', padding: '24px 0' }}>Loading open times…</p>
             )}
             {!loadingSlots && slots?.length === 0 && (
               <p style={{ fontSize: 14, color: '#737373', textAlign: 'center', padding: '24px 0' }}>
@@ -380,8 +386,11 @@ export default function FreeSessionScheduler({
       )}
 
       {phase === 'booking' && (
-        <div style={{ textAlign: 'center', padding: '80px 0' }}>
-          <p style={{ fontSize: 15, color: '#737373' }}>Booking your session\u2026</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', textAlign: 'center' }}>
+          <div style={{ width: 48, height: 48, border: `3px solid ${accentColor}33`, borderTopColor: accentColor, borderRadius: '50%', animation: 'fs-spin 0.8s linear infinite' }} />
+          <p style={{ fontSize: 16, color: '#171717', fontWeight: 700, margin: '18px 0 4px' }}>Booking your session…</p>
+          <p style={{ fontSize: 13, color: '#737373', margin: 0 }}>Holding your time and saving your card — just a moment.</p>
+          <style>{`@keyframes fs-spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       )}
     </section>

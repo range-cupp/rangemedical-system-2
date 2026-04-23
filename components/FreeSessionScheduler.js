@@ -376,6 +376,11 @@ export default function FreeSessionScheduler({
                 }
                 setBookedStart(data.scheduledStart || selectedSlot);
                 setPhase('done');
+                // Meta Pixel conversion — only fires on a real booking (card on file)
+                if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+                  window.fbq('track', 'Schedule', { content_name: `${trialLabel} free session booked` });
+                  window.fbq('trackCustom', 'FreeSessionBooked', { trial_label: trialLabel });
+                }
               } catch (err) {
                 setBookError(err.message || 'Could not book. Please try again.');
                 setPhase('pay');

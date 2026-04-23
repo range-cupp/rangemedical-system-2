@@ -188,6 +188,29 @@ export default async function handler(req, res) {
       }
     }
 
+    // Create follow-up task for Damon
+    try {
+      const { data: damon } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('email', 'damon@range-medical.com')
+        .single();
+      if (damon?.id) {
+        await supabase.from('tasks').insert({
+          title: `Free ${typeCfg.shortLabel} booked: ${customerName}`,
+          description: `${customerName} self-booked a free ${typeCfg.label} session for ${prettyWhen}.\nPhone: ${trial.phone || 'n/a'}\nEmail: ${trial.email || 'n/a'}\n$25 no-show card is on file (trial_pass ${trialId}).`,
+          assigned_to: damon.id,
+          assigned_by: damon.id,
+          patient_id: trial.patient_id,
+          patient_name: customerName,
+          priority: 'medium',
+          status: 'pending',
+        });
+      }
+    } catch (taskErr) {
+      console.error('Damon task insert error:', taskErr);
+    }
+
     // Staff alert SMS
     try {
       const alertMsg = `Free ${typeCfg.shortLabel} booked: ${customerName} (${trial.phone}) \u2014 ${prettyWhen}. $25 no-show card on file.`;

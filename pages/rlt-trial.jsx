@@ -524,6 +524,15 @@ export default function RLTTrial() {
                 whether continuing makes sense for what you’re working on.
               </p>
 
+              <div className="fs-highlight-box">
+                <strong>How this works</strong>
+                <p>
+                  Fill out the short form below (about 2 minutes), then pick a time
+                  that works for you on the next step. No back-and-forth texting —
+                  you’ll leave with a confirmed appointment.
+                </p>
+              </div>
+
             </section>
 
             <section className="fs-form-section">

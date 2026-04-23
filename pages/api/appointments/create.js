@@ -1,7 +1,11 @@
 // POST /api/appointments/create
-// Creates a new appointment, logs the event, and sends patient notification
-// Range Medical
+// Creates a new appointment. For multi-service visits (services[].length > 1), splits into
+// one row per service — each with its own provider, start_time, duration, and cal.com
+// booking — linked by a shared visit_group_id. Patient notification, audit log, and
+// booking automations run once per visit (for the primary/first row); provider SMS fires
+// per row so each provider hears about their own piece.
 
+import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { sendAppointmentNotification } from '../../../lib/appointment-notifications';
 import { sendProviderNotification } from '../../../lib/provider-notifications';
@@ -36,7 +40,7 @@ export default async function handler(req, res) {
       created_by,
       send_notification = true,
       cal_com_booking_id,
-      services, // array of { name, category, duration } for multi-service appointments
+      services, // array of per-service rows for multi-service visits
       visit_reason,
       modality,
     } = req.body;
@@ -44,78 +48,125 @@ export default async function handler(req, res) {
     if (!patient_name || !service_name || !start_time || !end_time || !duration_minutes) {
       return res.status(400).json({ error: 'patient_name, service_name, start_time, end_time, and duration_minutes are required' });
     }
-
-    // visit_reason is required for all appointments (Cal.com webhook auto-populates a placeholder)
     if (!visit_reason || !visit_reason.trim()) {
       return res.status(400).json({ error: 'visit_reason is required' });
     }
 
-    const appointmentLocation = location || 'Range Medical — Newport Beach';
+    console.log('[appt-create]', {
+      patient: patient_name,
+      service: service_name,
+      source: source || 'manual',
+      notes_len: (notes || '').length,
+      notes_preview: (notes || '').slice(0, 80),
+      visit_reason_len: (visit_reason || '').length,
+      created_by,
+    });
 
-    const insertRow = {
+    const appointmentLocation = location || 'Range Medical — Newport Beach';
+    const sharedBase = {
       patient_id: patient_id || null,
       patient_name,
       patient_phone: patient_phone || null,
-      service_name,
-      service_category: service_category || null,
-      provider: provider || null,
       location: appointmentLocation,
-      start_time,
-      end_time,
-      duration_minutes,
       status: 'scheduled',
       notes: notes || null,
       source: source || 'manual',
       created_by: created_by || null,
-      services: services || null, // null for single-service, array for multi-service
       visit_reason: visit_reason.trim(),
       modality: modality || null,
       send_notification,
     };
 
-    // Include cal_com_booking_id if provided (prevents duplicate when webhook fires)
-    if (cal_com_booking_id) {
-      insertRow.cal_com_booking_id = cal_com_booking_id;
-    }
+    // Build the list of rows to insert. Multi-service → N rows; single-service → 1 row.
+    const isMulti = Array.isArray(services) && services.length > 1;
+    const visitGroupId = isMulti ? randomUUID() : null;
 
-    const { data: appointment, error } = await supabase
+    const rowsToInsert = isMulti
+      ? services.map((svc, idx) => {
+          // Per-service start time: explicit if provided, otherwise stagger from the visit
+          // start using the running duration offset.
+          const offsetMins = services
+            .slice(0, idx)
+            .reduce((sum, s) => sum + (Number(s.duration) || 0), 0);
+          const svcStart = svc.start_time
+            ? new Date(svc.start_time)
+            : new Date(new Date(start_time).getTime() + offsetMins * 60000);
+          const svcDuration = Number(svc.duration) || 0;
+          const svcEnd = new Date(svcStart.getTime() + svcDuration * 60000);
+          return {
+            ...sharedBase,
+            service_name: svc.name,
+            service_category: svc.category || null,
+            provider: svc.provider || null,
+            start_time: svcStart.toISOString(),
+            end_time: svcEnd.toISOString(),
+            duration_minutes: svcDuration,
+            cal_com_booking_id: svc.calcom_booking_id || svc.cal_com_booking_id || null,
+            visit_group_id: visitGroupId,
+          };
+        })
+      : [{
+          ...sharedBase,
+          service_name,
+          service_category: service_category || null,
+          provider: provider || null,
+          start_time,
+          end_time,
+          duration_minutes,
+          cal_com_booking_id: cal_com_booking_id || null,
+          visit_group_id: null,
+        }];
+
+    const { data: inserted, error } = await supabase
       .from('appointments')
-      .insert(insertRow)
-      .select()
-      .single();
+      .insert(rowsToInsert)
+      .select();
 
     if (error) {
       console.error('Create appointment error:', error);
       return res.status(500).json({ error: error.message });
     }
 
-    // Log the created event
-    await supabase.from('appointment_events').insert({
-      appointment_id: appointment.id,
-      event_type: 'created',
-      new_status: 'scheduled',
-      metadata: { created_by, source: source || 'manual', send_notification },
-    });
+    // Sort inserted rows by start_time so "primary" is always the earliest service.
+    const appointments = (inserted || []).slice().sort(
+      (a, b) => new Date(a.start_time) - new Date(b.start_time)
+    );
+    const primary = appointments[0];
 
-    // Audit log — who booked this appointment
+    // Log a 'created' event for each row so audit trails track per-row status changes.
+    await supabase.from('appointment_events').insert(
+      appointments.map(a => ({
+        appointment_id: a.id,
+        event_type: 'created',
+        new_status: 'scheduled',
+        metadata: {
+          created_by,
+          source: source || 'manual',
+          send_notification,
+          visit_group_id: visitGroupId,
+        },
+      }))
+    );
+
+    // Audit log — one entry per visit, with the service list in details for multi-service.
     await logAction({
       employeeName: created_by || 'Unknown',
       action: 'book_appointment',
       resourceType: 'appointment',
-      resourceId: appointment.id,
+      resourceId: primary.id,
       details: {
         patient_name,
-        service_name,
-        start_time,
-        provider: provider || null,
+        service_name: isMulti ? appointments.map(a => a.service_name).join(' + ') : primary.service_name,
+        start_time: primary.start_time,
+        provider: isMulti ? appointments.map(a => a.provider).filter(Boolean).join(', ') : primary.provider,
         source: source || 'manual',
+        visit_group_id: visitGroupId,
       },
       req,
     });
 
-    // Send patient notification (email + SMS) if enabled
+    // Patient notification — once per visit. Use combined service name for multi-service.
     if (send_notification && patient_id) {
-      // Look up patient email/phone
       const { data: patient } = await supabase
         .from('patients')
         .select('id, name, email, phone')
@@ -123,6 +174,12 @@ export default async function handler(req, res) {
         .single();
 
       if (patient) {
+        const totalDuration = appointments.reduce((sum, a) => sum + (a.duration_minutes || 0), 0);
+        const visitEnd = appointments[appointments.length - 1].end_time;
+        const combinedServiceName = isMulti
+          ? appointments.map(a => a.service_name).join(' + ')
+          : primary.service_name;
+
         try {
           await sendAppointmentNotification({
             type: 'confirmation',
@@ -133,40 +190,40 @@ export default async function handler(req, res) {
               phone: patient.phone || patient_phone,
             },
             appointment: {
-              serviceName: services ? services.map(s => s.name).join(' + ') : service_name,
+              serviceName: combinedServiceName,
               serviceSlug: service_slug || null,
-              startTime: start_time,
-              endTime: end_time,
-              durationMinutes: duration_minutes,
+              startTime: primary.start_time,
+              endTime: visitEnd,
+              durationMinutes: totalDuration,
               location: appointmentLocation,
               notes,
             },
           });
         } catch (err) {
           console.error('Appointment notification error:', err);
-          // Don't fail the appointment creation if notification fails
         }
       }
     }
 
-    // Send provider SMS notification (fire-and-forget)
-    if (provider) {
-      sendProviderNotification({
-        type: 'created',
-        provider,
-        appointment: {
-          patientName: patient_name,
-          serviceName: services ? services.map(s => s.name).join(' + ') : service_name,
-          startTime: start_time,
-        },
-      }).catch(err => console.error('Provider SMS notification failed:', err));
+    // Provider SMS — fire per-row so every provider gets a heads-up for their slice.
+    for (const a of appointments) {
+      if (a.provider) {
+        sendProviderNotification({
+          type: 'created',
+          provider: a.provider,
+          appointment: {
+            patientName: patient_name,
+            serviceName: a.service_name,
+            startTime: a.start_time,
+          },
+        }).catch(err => console.error('Provider SMS notification failed:', err));
+      }
     }
 
-    // Run booking automations (prep instructions, forms, prereq check)
-    // Skip if cal_com_booking_id exists — the Cal.com webhook handles those
-    // Skip if send_notification is false — staff opted out of patient comms
-    if (!cal_com_booking_id && send_notification) {
-      // Look up patient email for form sends
+    // Booking automations — only for rows that didn't come from Cal.com, and only once per
+    // visit group (skip duplicating form sends). We fire for each row that lacks a
+    // cal_com_booking_id since prep instructions are service-specific.
+    if (send_notification) {
       let patientEmail = null;
       if (patient_id) {
         const { data: pt } = await supabase
@@ -177,20 +234,28 @@ export default async function handler(req, res) {
         patientEmail = pt?.email || null;
       }
 
-      runBookingAutomations({
-        appointmentId: appointment.id,
-        eventTypeSlug: service_slug || null,
-        serviceCategory: service_category || 'other',
-        patientId: patient_id || null,
-        patientName: patient_name,
-        patientEmail,
-        patientPhone: patient_phone || null,
-        serviceName: service_name,
-        startTime: start_time,
-      }).catch(err => console.error('Booking automations error:', err));
+      for (const a of appointments) {
+        if (a.cal_com_booking_id) continue; // Cal.com webhook handles those
+        runBookingAutomations({
+          appointmentId: a.id,
+          eventTypeSlug: service_slug || null,
+          serviceCategory: a.service_category || 'other',
+          patientId: patient_id || null,
+          patientName: patient_name,
+          patientEmail,
+          patientPhone: patient_phone || null,
+          serviceName: a.service_name,
+          startTime: a.start_time,
+        }).catch(err => console.error('Booking automations error:', err));
+      }
     }
 
-    return res.status(200).json({ appointment });
+    // Return the primary row as `appointment` (back-compat) plus the full list + group id.
+    return res.status(200).json({
+      appointment: primary,
+      appointments,
+      visit_group_id: visitGroupId,
+    });
   } catch (error) {
     console.error('Create appointment error:', error);
     return res.status(500).json({ error: error.message });

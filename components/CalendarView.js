@@ -988,8 +988,26 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       }
 
       if (res.ok) {
-        // Snapshot details for the confirmation screen BEFORE resetting
+        // Snapshot details for the confirmation screen BEFORE resetting.
+        // Round-trip verify: fetch the saved row back and compare notes, so staff
+        // see the actual DB value, not what the browser thinks it sent.
         const allSvcs = selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : []);
+        let savedNotes = null;
+        let notesMismatch = false;
+        try {
+          const payload = await res.json();
+          const saved = payload.appointment || (payload.appointments && payload.appointments[0]) || null;
+          savedNotes = saved?.notes ?? null;
+          const typed = (apptNotes || '').trim();
+          notesMismatch = !!typed && (savedNotes || '').trim() !== typed;
+          if (notesMismatch) {
+            console.error('[booking] notes round-trip mismatch', {
+              typed_len: typed.length, saved_len: (savedNotes || '').length,
+              saved_id: saved?.id,
+            });
+          }
+        } catch {}
+
         setBookingConfirmed({
           patientName: isWalkIn ? walkInName : selectedPatient?.name,
           services: allSvcs,
@@ -999,6 +1017,10 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
           time: formatTimeLabel(apptTime),
           duration: allSvcs.reduce((s, x) => s + (x.duration || 0), 0) || selectedService?.duration,
           notificationSent: sendNotification,
+          typedNotes: apptNotes || '',
+          savedNotes,
+          notesMismatch,
+          visitReason,
         });
         if (!wizardOnly) {
           setCurrentDate(startDT);
@@ -3083,15 +3105,33 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Time</span>
               <span style={{ fontSize: '13px', color: '#111' }}>{bookingConfirmed.time}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #dcfce7' }}>
               <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Location</span>
               <span style={{ fontSize: '13px', color: '#111' }}>📍 {bookingConfirmed.location}</span>
             </div>
+            {bookingConfirmed.visitReason && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #dcfce7' }}>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Visit Reason</span>
+                <span style={{ fontSize: '13px', color: '#111', textAlign: 'right', maxWidth: '60%' }}>{bookingConfirmed.visitReason}</span>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
+              <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Notes</span>
+              <span style={{ fontSize: '13px', color: bookingConfirmed.savedNotes ? '#111' : '#9ca3af', fontStyle: bookingConfirmed.savedNotes ? 'normal' : 'italic', textAlign: 'right', maxWidth: '60%' }}>
+                {bookingConfirmed.savedNotes || '(none saved)'}
+              </span>
+            </div>
           </div>
+
+          {bookingConfirmed.notesMismatch && (
+            <div style={{ marginTop: '12px', padding: '10px 12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: '12.5px', lineHeight: '1.5' }}>
+              <strong>Warning:</strong> the notes you typed didn't save to the appointment. Open the card and use the ✏️ button to add them.
+            </div>
+          )}
 
           <button
             onClick={resetWizard}
-            style={{ ...styles.primaryBtn, width: '100%', background: '#111' }}
+            style={{ ...styles.primaryBtn, width: '100%', background: '#111', marginTop: '12px' }}
           >
             + Book Another Appointment
           </button>

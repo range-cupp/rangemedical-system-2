@@ -7,7 +7,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { buildAdaptiveHRTSchedule, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
-import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS, INJECTION_METHODS, HRT_SUPPLY_TYPES, HRT_SECONDARY_MEDICATIONS, PEPTIDE_OPTIONS, WEIGHT_LOSS_MEDICATIONS } from '../../../lib/protocol-config';
+import { isRecoveryPeptide, isGHPeptide, getVialIdForMedication, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS, INJECTION_METHODS, HRT_SUPPLY_TYPES, HRT_SECONDARY_MEDICATIONS, PEPTIDE_OPTIONS, WEIGHT_LOSS_MEDICATIONS } from '../../../lib/protocol-config';
 import { PROTOCOL_TYPES, detectProtocolType, getDBProgramType, getDeliveryLabel } from '../../../lib/protocol-types';
 import AdminLayout from '../../../components/AdminLayout';
 import { useAuth } from '../../../components/AuthProvider';
@@ -2907,7 +2907,7 @@ export default function ProtocolDetail() {
                     ✅ Weekly Check-ins Active
                   </div>
                 )}
-                {isRecoveryPeptide(protocol?.medication) && !protocol?.peptide_guide_sent && (
+                {protocol?.program_type === 'peptide' && getVialIdForMedication(protocol?.medication, protocol?.program_name) && !protocol?.peptide_guide_sent && (
                   <button
                     onClick={async () => {
                       setSendingGuide(true);

@@ -1,24 +1,12 @@
-// Upload document (PDF, JPG, PNG) for a patient profile
+// Finalize a document upload: the file has already been uploaded directly to
+// Supabase Storage by the browser (via signed upload URL). This endpoint just
+// creates the DB record and generates a signed view URL.
 import { createClient } from '@supabase/supabase-js';
-
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
-};
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const ALLOWED_TYPES = {
-  'application/pdf': 'pdf',
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-};
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -32,42 +20,43 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { fileData, fileName, fileType, documentName, documentType, notes, uploaded_by } = req.body;
+    const {
+      filePath,
+      fileName,
+      fileSize,
+      documentName,
+      documentType,
+      notes,
+      uploaded_by,
+    } = req.body || {};
 
-    if (!fileData || !fileName) {
-      return res.status(400).json({ error: 'File data and name are required' });
+    if (!filePath || !fileName) {
+      return res.status(400).json({ error: 'filePath and fileName are required' });
     }
 
-    // Validate file type
-    const contentType = fileType || 'application/pdf';
-    if (!ALLOWED_TYPES[contentType]) {
-      return res.status(400).json({ error: 'File type not supported. Use PDF, JPG, or PNG.' });
-    }
-
-    // Strip base64 prefix
-    const base64Prefix = /^data:[^;]+;base64,/;
-    const base64Data = fileData.replace(base64Prefix, '');
-    const fileBuffer = Buffer.from(base64Data, 'base64');
-
-    // Generate unique filename
-    const timestamp = Date.now();
-    const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = `${patientId}/${timestamp}-${safeName}`;
-
-    // Upload to Supabase Storage
-    const { error: uploadError } = await supabase.storage
+    // Confirm the file actually landed in storage before creating the DB row.
+    const segments = filePath.split('/');
+    const objectName = segments.pop();
+    const folder = segments.join('/');
+    const { data: listData, error: listError } = await supabase.storage
       .from('patient-documents')
-      .upload(filePath, fileBuffer, {
-        contentType,
-        upsert: false,
-      });
+      .list(folder, { search: objectName });
 
-    if (uploadError) {
-      console.error('Storage upload error:', uploadError);
-      return res.status(500).json({ error: 'Failed to upload file', details: uploadError.message });
+    if (listError) {
+      console.error('Storage list error:', listError);
+      return res.status(500).json({ error: 'Failed to verify upload', details: listError.message });
     }
 
-    // Generate signed URL
+    const found = (listData || []).find((f) => f.name === objectName);
+    if (!found) {
+      return res.status(400).json({ error: 'File not found in storage — upload may have failed' });
+    }
+
+    const resolvedSize = typeof fileSize === 'number' && fileSize > 0
+      ? fileSize
+      : found.metadata?.size || 0;
+
+    // Generate signed URL for viewing
     const { data: urlData } = await supabase.storage
       .from('patient-documents')
       .createSignedUrl(filePath, 60 * 60); // 1 hour
@@ -81,7 +70,7 @@ export default async function handler(req, res) {
         document_url: urlData?.signedUrl || null,
         document_type: documentType || 'General',
         file_path: filePath,
-        file_size: fileBuffer.length,
+        file_size: resolvedSize,
         notes: notes || null,
         uploaded_by: uploaded_by || 'Staff',
       })
@@ -98,7 +87,6 @@ export default async function handler(req, res) {
       success: true,
       document: docRecord,
     });
-
   } catch (error) {
     console.error('Upload error:', error);
     return res.status(500).json({ error: 'Upload failed', details: error.message });

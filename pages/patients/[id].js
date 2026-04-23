@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { formatPhone } from '../../lib/format-utils';
+import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -3208,33 +3209,57 @@ export default function PatientProfile() {
     if (!docUploadForm.file) return setDocUploadError('Please select a file');
     if (!docUploadForm.documentName.trim()) return setDocUploadError('Please enter a document name');
 
+    const MAX_SIZE = 100 * 1024 * 1024; // 100 MB
+    if (docUploadForm.file.size > MAX_SIZE) {
+      return setDocUploadError(`File is too large. Maximum size is 100 MB. This file is ${(docUploadForm.file.size / 1024 / 1024).toFixed(1)} MB.`);
+    }
+
     setDocUploading(true);
     setDocUploadError(null);
 
-    try {
-      const reader = new FileReader();
-      const fileData = await new Promise((resolve, reject) => {
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(docUploadForm.file);
-      });
+    const readJson = async (res) => {
+      const text = await res.text();
+      try { return JSON.parse(text); } catch { return { error: text || `HTTP ${res.status}` }; }
+    };
 
-      const res = await fetch(`/api/patients/${id}/upload-document`, {
+    try {
+      // 1. Ask the server for a signed upload URL (small request, no file bytes).
+      const urlRes = await fetch(`/api/patients/${id}/document-upload-url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fileData,
           fileName: docUploadForm.file.name,
           fileType: docUploadForm.file.type,
+        }),
+      });
+      const urlData = await readJson(urlRes);
+      if (!urlRes.ok) throw new Error(urlData.error || 'Failed to prepare upload');
+
+      // 2. Upload the file directly to Supabase Storage (bypasses Vercel body limit).
+      const { error: storageErr } = await supabase.storage
+        .from('patient-documents')
+        .uploadToSignedUrl(urlData.path, urlData.token, docUploadForm.file, {
+          contentType: docUploadForm.file.type,
+          upsert: false,
+        });
+      if (storageErr) throw new Error(storageErr.message || 'Storage upload failed');
+
+      // 3. Create the DB record now that the file is in storage.
+      const finalizeRes = await fetch(`/api/patients/${id}/upload-document`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filePath: urlData.filePath,
+          fileName: docUploadForm.file.name,
+          fileSize: docUploadForm.file.size,
           documentName: docUploadForm.documentName.trim(),
           documentType: docUploadForm.documentType,
           notes: docUploadForm.notes,
           uploaded_by: employee?.name || 'Staff',
         }),
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      const data = await readJson(finalizeRes);
+      if (!finalizeRes.ok) throw new Error(data.error || 'Upload failed');
 
       // Refresh patient data to get new document with signed URL
       await fetchPatient();

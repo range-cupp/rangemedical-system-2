@@ -20,6 +20,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    const body = req.body || {};
     const {
       filePath,
       fileName,
@@ -28,7 +29,15 @@ export default async function handler(req, res) {
       documentType,
       notes,
       uploaded_by,
-    } = req.body || {};
+    } = body;
+
+    // Stale-tab guard: an old page bundle sends `fileData` (base64) instead of
+    // `filePath`. Hand them a clear recovery action instead of a cryptic error.
+    if (body.fileData && !filePath) {
+      return res.status(400).json({
+        error: 'This page is out of date. Please reload the page (⌘⇧R / Ctrl+Shift+R) and try the upload again.',
+      });
+    }
 
     if (!filePath || !fileName) {
       return res.status(400).json({ error: 'filePath and fileName are required' });

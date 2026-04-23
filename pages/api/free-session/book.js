@@ -51,12 +51,22 @@ export default async function handler(req, res) {
     } = req.body || {};
 
     if (!trialId || !eventTypeId || !slotStart) {
-      return res.status(400).json({ error: 'Missing required booking fields' });
+      console.error('book: missing required fields', {
+        hasTrialId: !!trialId,
+        hasEventTypeId: !!eventTypeId,
+        hasSlotStart: !!slotStart,
+      });
+      return res.status(400).json({
+        error: 'Missing required booking fields',
+        debug: { hasTrialId: !!trialId, hasEventTypeId: !!eventTypeId, hasSlotStart: !!slotStart },
+      });
     }
     if (!paymentMethodId) {
+      console.error('book: missing payment method');
       return res.status(400).json({ error: 'A payment method is required to hold your session' });
     }
     if (noShowAgreed !== true) {
+      console.error('book: no-show not agreed', { noShowAgreed });
       return res.status(400).json({ error: 'You must agree to the $25 no-show fee to continue' });
     }
 

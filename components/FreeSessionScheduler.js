@@ -69,22 +69,23 @@ function PaymentForm({
     setProcessing(true);
     setLocalError('');
     try {
-      const { error: subErr } = await elements.submit();
-      if (subErr) throw new Error(subErr.message);
-
       const returnUrl = `${window.location.origin}${window.location.pathname}?setup=complete`;
       const { error, setupIntent } = await stripe.confirmSetup({
         elements,
         confirmParams: { return_url: returnUrl },
         redirect: 'if_required',
       });
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('Stripe confirmSetup error:', error);
+        throw new Error(error.message || 'Card could not be verified. Please check the details and try again.');
+      }
 
       const paymentMethodId = setupIntent?.payment_method;
-      if (!paymentMethodId) throw new Error('Could not verify your card. Please try again.');
+      if (!paymentMethodId) throw new Error('Card verified but no payment method returned. Please try again.');
 
       await onBook(paymentMethodId);
     } catch (err) {
+      console.error('Payment step error:', err);
       setLocalError(err.message || 'Something went wrong.');
     } finally {
       setProcessing(false);

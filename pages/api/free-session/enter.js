@@ -94,7 +94,7 @@ export default async function handler(req, res) {
       email,
       phone,
       consentMarketing,
-      struggleMain,
+      struggleMains,
       struggleOther,
       badDayDescription,
       importance90d,
@@ -113,7 +113,7 @@ export default async function handler(req, res) {
     if (!consentMarketing) {
       return res.status(400).json({ error: 'Marketing consent is required' });
     }
-    if (!struggleMain || !badDayDescription) {
+    if (!Array.isArray(struggleMains) || struggleMains.length === 0 || !badDayDescription) {
       return res.status(400).json({ error: 'Missing required story fields' });
     }
     if (!importance90d || !budgetAnswer) {
@@ -126,7 +126,7 @@ export default async function handler(req, res) {
 
     const leadScore = computeLeadScore({ importance90d, budgetAnswer });
     const leadTier = computeTier({ importance90d, budgetAnswer });
-    const struggleLabel = STRUGGLE_LABELS[struggleMain] || struggleMain;
+    const struggleLabel = struggleMains.map((v) => STRUGGLE_LABELS[v] || v).join(', ');
     const budgetLabel = BUDGET_LABELS[budgetAnswer] || budgetAnswer;
 
     // 1. Find or create patient

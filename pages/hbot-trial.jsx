@@ -52,10 +52,23 @@ export default function HBOTTrial() {
     consent: false,
   });
   const [story, setStory] = useState({
-    struggle_main: '',
+    struggle_mains: [],
     struggle_other: '',
     bad_day_description: '',
   });
+
+  const toggleStruggle = (value) => {
+    setStory((prev) => {
+      const has = prev.struggle_mains.includes(value);
+      return {
+        ...prev,
+        struggle_mains: has
+          ? prev.struggle_mains.filter((v) => v !== value)
+          : [...prev.struggle_mains, value],
+      };
+    });
+    clearFieldError('struggle_mains');
+  };
   const [importance, setImportance] = useState(7);
   const [budget, setBudget] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -84,8 +97,8 @@ export default function HBOTTrial() {
     if (!contact.phone.trim())     next.phone     = 'Please enter your mobile phone.';
     if (!contact.email.trim())     next.email     = 'Please enter your email.';
     if (!contact.consent)          next.consent   = 'You’ll need to check this box to continue.';
-    if (!story.struggle_main)      next.struggle_main = 'Please pick one.';
-    if (story.struggle_main === 'other' && !story.struggle_other.trim()) {
+    if (!story.struggle_mains.length) next.struggle_mains = 'Please pick at least one.';
+    if (story.struggle_mains.includes('other') && !story.struggle_other.trim()) {
       next.struggle_other = 'Tell us a bit more.';
     }
     if (!story.bad_day_description.trim()) next.bad_day_description = 'Please answer this one.';
@@ -115,8 +128,8 @@ export default function HBOTTrial() {
           email: contact.email.trim().toLowerCase(),
           phone: contact.phone.trim(),
           consentMarketing: contact.consent,
-          struggleMain: story.struggle_main,
-          struggleOther: story.struggle_main === 'other' ? story.struggle_other.trim() : null,
+          struggleMains: story.struggle_mains,
+          struggleOther: story.struggle_mains.includes('other') ? story.struggle_other.trim() : null,
           badDayDescription: story.bad_day_description.trim(),
           importance90d: Number(importance),
           budgetAnswer: budget,
@@ -600,25 +613,38 @@ export default function HBOTTrial() {
                 {/* Step 2 — struggle */}
                 <div className="fs-step">
                   <p className="fs-step-label">Step 2 of 4</p>
-                  <h2>What are you hoping this helps with?</h2>
+                  <h2 style={{ marginBottom: 4 }}>What are you hoping this helps with?</h2>
+                  <p style={{ fontSize: 14, color: '#737373', margin: '0 0 18px', lineHeight: 1.5 }}>
+                    Pick any that apply — choose as many as feel right.
+                  </p>
 
-                  <div className="fs-field" data-field-error={errors.struggle_main ? 'true' : 'false'}>
-                    <div className={errors.struggle_main ? 'fs-options-error' : ''}>
-                      {STRUGGLE_OPTIONS.map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          className={`fs-option${story.struggle_main === opt.value ? ' selected' : ''}`}
-                          onClick={() => { setStory({ ...story, struggle_main: opt.value }); clearFieldError('struggle_main'); }}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
+                  <div className="fs-field" data-field-error={errors.struggle_mains ? 'true' : 'false'}>
+                    <div className={errors.struggle_mains ? 'fs-options-error' : ''}>
+                      {STRUGGLE_OPTIONS.map((opt) => {
+                        const checked = story.struggle_mains.includes(opt.value);
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            className={`fs-option${checked ? ' selected' : ''}`}
+                            onClick={() => toggleStruggle(opt.value)}
+                          >
+                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginRight: 12, border: `1.5px solid ${checked ? ACCENT : '#d4d4d4'}`, background: checked ? ACCENT : '#fff', verticalAlign: 'middle', transition: 'all 0.15s' }}>
+                              {checked && (
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                            </span>
+                            {opt.label}
+                          </button>
+                        );
+                      })}
                     </div>
-                    {errors.struggle_main && <div className="fs-field-errmsg">{errors.struggle_main}</div>}
+                    {errors.struggle_mains && <div className="fs-field-errmsg">{errors.struggle_mains}</div>}
                   </div>
 
-                  {story.struggle_main === 'other' && (
+                  {story.struggle_mains.includes('other') && (
                     <div className="fs-field">
                       <label className="fs-label" htmlFor="fs-other">Tell us more</label>
                       <input

@@ -1,7 +1,13 @@
 // /pages/api/bookings/event-types.js
 // Returns Cal.com event types (services available for booking)
 
+import { createClient } from '@supabase/supabase-js';
 import { getEventTypes } from '../../../lib/calcom';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -15,6 +21,18 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to fetch event types from Cal.com' });
     }
 
+    // Cal.com sometimes returns null names for managed users (API can't set name on
+    // existing users). Fall back to the employees table keyed by calcom_user_id.
+    const { data: employees } = await supabase
+      .from('employees')
+      .select('name, calcom_user_id')
+      .eq('is_active', true)
+      .not('calcom_user_id', 'is', null);
+    const empNameByCalcomId = {};
+    for (const emp of employees || []) {
+      if (emp.calcom_user_id) empNameByCalcomId[emp.calcom_user_id] = emp.name;
+    }
+
     // Return simplified event type data, filtering out hidden ones
     const simplified = eventTypes
       .filter(et => !et.hidden)
@@ -24,13 +42,14 @@ export default async function handler(req, res) {
         slug: et.slug,
         length: et.lengthInMinutes || et.length,
         description: et.description,
-        // Include hosts for provider selection
-        // Cal.com sometimes returns empty names — fall back to username
         hosts: (et.hosts || []).map(h => {
           const username = h.username || h.user?.username || '';
           const rawName = h.name || h.user?.name || '';
-          // If name is empty, capitalize the username as display name
-          const displayName = rawName || (username ? username.charAt(0).toUpperCase() + username.slice(1).replace(/-.*$/, '') : '');
+          const empName = empNameByCalcomId[h.userId];
+          const displayName =
+            rawName ||
+            empName ||
+            (username ? username.charAt(0).toUpperCase() + username.slice(1).replace(/-.*$/, '') : '');
           return {
             userId: h.userId,
             name: displayName,

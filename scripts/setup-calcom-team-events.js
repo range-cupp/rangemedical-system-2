@@ -11,7 +11,7 @@ const TEAM_ID = 207558;
 // Member IDs
 const CHRIS = 2189658;
 const DAMIEN = 2197563;
-const BRENDYN = 2357975;
+const BRENDYN = 2383086;
 const LILY = 2197567;
 const EVAN = 2197566;
 const DAMON = 2197565;
@@ -59,9 +59,9 @@ const EVENT_TYPES = [
   { slug: 'specialty-iv', title: 'Specialty IV', length: 60, desc: 'Specialty IV therapy session.', loc: LOC_IN_PERSON, hosts: hosts([LILY, DAMIEN]) },
 
   // RANGE ASSESSMENT
-  { slug: 'range-assessment-injury', title: 'Range Assessment — Injury & Recovery', length: 30, desc: '$197 Range Assessment for injury recovery. Credited toward treatment if you move forward within 7 days.', loc: LOC_IN_PERSON, hosts: hosts([CHRIS, DAMON, DAMIEN]) },
+  { slug: 'range-assessment-injury', title: 'Range Assessment — Injury & Recovery', length: 30, desc: '$197 Range Assessment for injury recovery. Credited toward treatment if you move forward within 7 days.', loc: LOC_IN_PERSON, hosts: hosts([CHRIS, DAMON, DAMIEN, BRENDYN]) },
   { slug: 'range-assessment-energy', title: 'Range Assessment — Energy & Optimization', length: 30, desc: '$197 Range Assessment for energy, hormones, and weight. Credited toward treatment if you move forward within 7 days.', loc: LOC_IN_PERSON, hosts: hosts([CHRIS, DAMON, DAMIEN]) },
-  { slug: 'range-assessment-both', title: 'Range Assessment — Both', length: 45, desc: '$197 Range Assessment covering both injury recovery and energy optimization. Credited toward treatment if you move forward within 7 days.', loc: LOC_IN_PERSON, hosts: hosts([CHRIS, DAMON, DAMIEN]) },
+  { slug: 'range-assessment-both', title: 'Range Assessment — Both', length: 45, desc: '$197 Range Assessment covering both injury recovery and energy optimization. Credited toward treatment if you move forward within 7 days.', loc: LOC_IN_PERSON, hosts: hosts([CHRIS, DAMON, DAMIEN, BRENDYN]) },
 
   // MEDICAL PROCEDURES (Dr. Burgess only)
   { slug: 'medical-procedure-prp', title: 'PRP Procedure', length: 60, desc: 'PRP (platelet-rich plasma) procedure with Dr. Burgess. Approximately 1 hour.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },

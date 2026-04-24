@@ -58,6 +58,7 @@ export default function EmailCampaignsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [minTotalSpend, setMinTotalSpend] = useState('');
   const [previewPatients, setPreviewPatients] = useState([]);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [segmentPreviewOpen, setSegmentPreviewOpen] = useState(false);
@@ -126,6 +127,7 @@ export default function EmailCampaignsPage() {
     status: statusFilter !== 'all' ? statusFilter : undefined,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
+    minTotalSpend: Number(minTotalSpend) > 0 ? Number(minTotalSpend) : undefined,
   });
 
   const previewSegment = async () => {
@@ -265,6 +267,7 @@ export default function EmailCampaignsPage() {
     setStatusFilter('all');
     setDateFrom('');
     setDateTo('');
+    setMinTotalSpend('');
     setPreviewPatients([]);
     setSegmentPreviewOpen(false);
   };
@@ -295,6 +298,7 @@ export default function EmailCampaignsPage() {
     setStatusFilter(f.status || 'all');
     setDateFrom(f.dateFrom || '');
     setDateTo(f.dateTo || '');
+    setMinTotalSpend(f.minTotalSpend ? String(f.minTotalSpend) : '');
     setSendResult(null);
     setView('compose');
   };
@@ -702,6 +706,34 @@ export default function EmailCampaignsPage() {
                     style={{ ...sharedStyles.input, flex: 1 }}
                     placeholder="To"
                   />
+                </div>
+              </div>
+
+              {/* Minimum Total Spend */}
+              <div style={sharedStyles.fieldGroup}>
+                <label style={sharedStyles.label}>Minimum Total Spend</label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#999',
+                    fontSize: '14px',
+                    pointerEvents: 'none',
+                  }}>$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={minTotalSpend}
+                    onChange={e => setMinTotalSpend(e.target.value)}
+                    style={{ ...sharedStyles.input, width: '100%', paddingLeft: '24px' }}
+                    placeholder="e.g. 2000"
+                  />
+                </div>
+                <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
+                  Lifetime spend across all purchases
                 </div>
               </div>
 

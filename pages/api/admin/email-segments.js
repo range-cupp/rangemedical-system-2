@@ -60,7 +60,8 @@ async function fetchAll(queryBuilder) {
 
 // Core segment query — builds dynamic Supabase query from filters
 export async function querySegment(filters = {}) {
-  const { protocolTypes, purchaseCategories, status, dateFrom, dateTo } = filters;
+  const { protocolTypes, purchaseCategories, status, dateFrom, dateTo, minTotalSpend } = filters;
+  const spendThreshold = Number(minTotalSpend) > 0 ? Number(minTotalSpend) : 0;
 
   // Start with patients who have email addresses
   let query = supabase
@@ -80,7 +81,8 @@ export async function querySegment(filters = {}) {
   // If no filters at all, return all patients with emails
   if ((!protocolTypes || protocolTypes.length === 0) &&
       (!purchaseCategories || purchaseCategories.length === 0) &&
-      (!status || status === 'all')) {
+      (!status || status === 'all') &&
+      spendThreshold === 0) {
     return allPatients;
   }
 
@@ -136,7 +138,43 @@ export async function querySegment(filters = {}) {
     }
   }
 
+  // Filter by minimum lifetime spend (sum of purchases.amount_paid per patient)
+  if (spendThreshold > 0) {
+    const candidateIds = matchingIds
+      ? Array.from(matchingIds)
+      : allPatients.map(p => p.id);
+
+    if (candidateIds.length === 0) {
+      matchingIds = new Set();
+    } else {
+      // Chunk .in() to stay under Postgres parameter limits on large lists
+      const CHUNK = 500;
+      const totals = new Map();
+      for (let i = 0; i < candidateIds.length; i += CHUNK) {
+        const slice = candidateIds.slice(i, i + CHUNK);
+        const rows = await fetchAll(
+          supabase
+            .from('purchases')
+            .select('patient_id, amount_paid')
+            .in('patient_id', slice)
+        );
+        for (const r of rows) {
+          const amt = Number(r.amount_paid) || 0;
+          totals.set(r.patient_id, (totals.get(r.patient_id) || 0) + amt);
+        }
+      }
+
+      const highSpenders = new Set();
+      for (const [pid, total] of totals) {
+        if (total >= spendThreshold) highSpenders.add(pid);
+      }
+
+      matchingIds = matchingIds
+        ? new Set([...matchingIds].filter(id => highSpenders.has(id)))
+        : highSpenders;
+    }
+  }
+
   // Intersect with patients who have emails
-  const patientIdSet = new Set(allPatients.map(p => p.id));
   return allPatients.filter(p => matchingIds.has(p.id));
 }

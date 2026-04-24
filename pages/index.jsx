@@ -176,8 +176,53 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Special Offers Section */}
+        <section id="home-offers" className={`home-section home-animate ${isVisible['home-offers'] ? 'home-visible' : ''}`}>
+          <div className="home-container">
+            <div className="v2-label"><span className="v2-dot" /> Limited-Time Offers</div>
+            <h2>Try a Session.<br />On Us.</h2>
+            <p className="home-section-intro">
+              Curious about our most-requested recovery therapies? We&apos;re giving away free single sessions so you can feel the difference yourself.
+            </p>
+
+            <div className="doors-grid">
+              <div className="door-card">
+                <span className="door-badge">Free Session</span>
+                <span className="door-number">01</span>
+                <h3>Free<br />Hyperbaric<br />Oxygen</h3>
+                <p>Breathe pure oxygen under pressure to support recovery, energy, brain fog, and inflammation.</p>
+                <ul>
+                  <li>60-minute session in our private chamber</li>
+                  <li>Great for recovery, focus, and sleep</li>
+                  <li>No obligation, no pressure</li>
+                  <li>Newport Beach location</li>
+                </ul>
+                <Link href="/hbot-trial" className="v2-link-cta">
+                  Claim Free HBOT Session <span>&rarr;</span>
+                </Link>
+              </div>
+
+              <div className="door-card">
+                <span className="door-badge">Free Session</span>
+                <span className="door-number">02</span>
+                <h3>Free<br />Red Light<br />Therapy</h3>
+                <p>Full-body red and near-infrared light to support skin, sleep, soreness, mood, and cellular recovery.</p>
+                <ul>
+                  <li>Full-body session in our RLT suite</li>
+                  <li>Great for skin, recovery, and mood</li>
+                  <li>No obligation, no pressure</li>
+                  <li>Newport Beach location</li>
+                </ul>
+                <Link href="/rlt-trial" className="v2-link-cta">
+                  Claim Free Red Light Session <span>&rarr;</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Services Section */}
-        <section id="home-services" className={`home-section home-animate ${isVisible['home-services'] ? 'home-visible' : ''}`}>
+        <section id="home-services" className={`home-section-alt home-animate ${isVisible['home-services'] ? 'home-visible' : ''}`}>
           <div className="home-container">
             <div className="v2-label"><span className="v2-dot" /> What We Offer</div>
             <h2>Tools We Use<br />to Help You<br />Feel Better.</h2>

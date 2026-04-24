@@ -515,7 +515,9 @@ function PatientInfoSections({ patientData, loading }) {
             {upcomingAppts.slice(0, 4).map((apt, i) => (
               <div key={apt.id || i} style={styles.infoRow}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={styles.infoTitle}>{apt.service_name || apt.title || 'Appointment'}</div>
+                  <div style={styles.infoTitle}>
+                    {apt.service_name || apt.appointment_title || apt.calendar_name || apt.title || 'Appointment'}
+                  </div>
                   <div style={styles.infoSub}>
                     {fmtDateTimeShort(apt.start_time)}
                     {apt.provider ? ` · ${apt.provider}` : ''}
@@ -647,7 +649,9 @@ function PatientInfoSections({ patientData, loading }) {
             {pastAppts.slice(0, 4).map((apt, i) => (
               <div key={apt.id || i} style={styles.infoRow}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={styles.infoTitle}>{apt.service_name || apt.title || 'Appointment'}</div>
+                  <div style={styles.infoTitle}>
+                    {apt.service_name || apt.appointment_title || apt.calendar_name || apt.title || 'Appointment'}
+                  </div>
                   {apt.provider && <div style={styles.infoSub}>{apt.provider}</div>}
                 </div>
                 <span style={styles.infoMeta}>{fmtShortDate(apt.start_time)}</span>

@@ -97,8 +97,10 @@ export default async function handler(req, res) {
     }
 
     // 4. Send consent forms via SMS if needed
+    // AUTO FORM-SEND DISABLED — staff send forms manually from the patient profile.
+    const AUTO_SEND_FORMS_ON_BOOKING = false;
     let formBundleUrl = null;
-    if (needsForms.length > 0 && patientPhone) {
+    if (AUTO_SEND_FORMS_ON_BOOKING && needsForms.length > 0 && patientPhone) {
       const normalizedPhone = normalizePhone(patientPhone);
       if (normalizedPhone) {
         try {
@@ -160,7 +162,7 @@ export default async function handler(req, res) {
     // 5. Send staff notification email
     const addOnsText = addOnCount > 0 ? `\nAdd-Ons: ${addOns.join(', ')}` : '';
     const bloodWorkText = bloodWork ? '\nPre-Screening Blood Work: Required (G6PD, CMP, CBC)' : '';
-    const formsText = needsForms.length > 0 ? `\nConsent Forms: Sent via SMS (${needsForms.map(f => FORM_DEFINITIONS[f]?.name).join(', ')})` : '\nConsent Forms: Already completed';
+    const formsText = needsForms.length > 0 ? `\nConsent Forms Needed: ${needsForms.map(f => FORM_DEFINITIONS[f]?.name).join(', ')} (send manually)` : '\nConsent Forms: Already completed';
 
     const staffHtml = `
       <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;">
@@ -191,7 +193,7 @@ export default async function handler(req, res) {
           </div>` : ''}
           <div style="background:#f5f5f5;padding:12px 16px;border-radius:8px;margin-top:16px;">
             <p style="margin:0;color:#525252;font-size:13px;">
-              ${needsForms.length > 0 ? `Consent forms sent via SMS: ${needsForms.map(f => FORM_DEFINITIONS[f]?.name).join(', ')}` : 'All consent forms already completed.'}
+              ${needsForms.length > 0 ? `Consent forms needed — send manually: ${needsForms.map(f => FORM_DEFINITIONS[f]?.name).join(', ')}` : 'All consent forms already completed.'}
             </p>
           </div>
         </div>

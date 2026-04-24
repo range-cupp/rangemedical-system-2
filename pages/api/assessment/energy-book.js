@@ -191,10 +191,12 @@ export default async function handler(req, res) {
     }
 
     // --- Send medical intake form via SMS ---
+    // AUTO FORM-SEND DISABLED — staff send forms manually from the patient profile.
+    const AUTO_SEND_FORMS_ON_BOOKING = false;
     let intakeSmsResult = null;
     const normalizedPhone = patientPhone ? normalizePhone(patientPhone) : null;
 
-    if (normalizedPhone) {
+    if (AUTO_SEND_FORMS_ON_BOOKING && normalizedPhone) {
       try {
         // Create form bundle with intake form
         const bundle = await createFormBundle({

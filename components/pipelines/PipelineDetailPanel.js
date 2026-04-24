@@ -8,6 +8,43 @@ import Link from 'next/link';
 import { X, MessageSquare, Trash2 } from 'lucide-react';
 import { STAFF, getStaff, initials } from '../../lib/staff';
 import { CARD_STATUS } from '../../lib/pipelines-config';
+import { formatPhone } from '../../lib/format-utils';
+
+const APPT_STATUS = {
+  scheduled:  { label: 'Scheduled',  bg: '#dbeafe', text: '#1e40af' },
+  confirmed:  { label: 'Confirmed',  bg: '#dcfce7', text: '#166534' },
+  checked_in: { label: 'Checked In', bg: '#fef3c7', text: '#92400e' },
+  in_progress:{ label: 'In Progress',bg: '#e0e7ff', text: '#3730a3' },
+  completed:  { label: 'Completed',  bg: '#dcfce7', text: '#166534' },
+  cancelled:  { label: 'Cancelled',  bg: '#fee2e2', text: '#dc2626' },
+  no_show:    { label: 'No Show',    bg: '#fee2e2', text: '#dc2626' },
+  rescheduled:{ label: 'Rescheduled',bg: '#f3f4f6', text: '#374151' },
+};
+
+function stripNoteHtml(html) {
+  if (!html) return '';
+  return String(html)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+    .replace(/<\/div>\s*<div[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ').replace(/&#39;/g, "'").replace(/&quot;/g, '"')
+    .trim();
+}
+
+function fmtShortDate(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles',
+  });
+}
+
+function fmtDateTimeShort(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })} · ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })}`;
+}
 
 const SMSComposeModal = dynamic(() => import('../SMSComposeModal'), { ssr: false });
 
@@ -51,6 +88,8 @@ export default function PipelineDetailPanel({
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [smsOpen, setSmsOpen]   = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [patientData, setPatientData] = useState(null);
+  const [loadingPatient, setLoadingPatient] = useState(false);
 
   useEffect(() => {
     setStage(card.stage);
@@ -58,6 +97,7 @@ export default function PipelineDetailPanel({
     setAssigned(card.assigned_to || []);
     setNotes(card.notes || '');
     loadEvents();
+    loadPatient();
     function onEsc(e) { if (e.key === 'Escape') onClose?.(); }
     window.addEventListener('keydown', onEsc);
     return () => window.removeEventListener('keydown', onEsc);
@@ -70,6 +110,16 @@ export default function PipelineDetailPanel({
       if (res.ok) setEvents(await res.json());
     } catch { /* silent */ }
     setLoadingEvents(false);
+  }
+
+  async function loadPatient() {
+    if (!card.patient_id) { setPatientData(null); return; }
+    setLoadingPatient(true);
+    try {
+      const res = await fetch(`/api/patients/${card.patient_id}`);
+      if (res.ok) setPatientData(await res.json());
+    } catch { /* silent */ }
+    setLoadingPatient(false);
   }
 
   const stageChanged    = stage !== card.stage;
@@ -180,7 +230,7 @@ export default function PipelineDetailPanel({
           </div>
           <h2 style={styles.name}>{fullName(card)}</h2>
           <div style={styles.contactRow}>
-            {card.phone && <span style={styles.contact}>{card.phone}</span>}
+            {card.phone && <span style={styles.contact}>{formatPhone(card.phone)}</span>}
             {card.email && <span style={styles.contact}>{card.email}</span>}
             {card.patient_id && (
               <Link
@@ -293,6 +343,13 @@ export default function PipelineDetailPanel({
             />
           </Section>
 
+          {card.patient_id && (
+            <PatientInfoSections
+              patientData={patientData}
+              loading={loadingPatient}
+            />
+          )}
+
           <Section label="History">
             {loadingEvents ? (
               <div style={styles.loading}>Loading...</div>
@@ -377,6 +434,232 @@ function Section({ label, children }) {
   );
 }
 
+function PatientInfoSections({ patientData, loading }) {
+  if (loading && !patientData) {
+    return (
+      <div style={styles.section}>
+        <div style={styles.sectionLabel}>Patient Info</div>
+        <div style={styles.loading}>Loading patient data…</div>
+      </div>
+    );
+  }
+  if (!patientData) return null;
+
+  const pt = patientData.patient || {};
+  const activeProtos  = patientData.activeProtocols || [];
+  const upcomingAppts = (patientData.appointments || []).filter(a => new Date(a.start_time) >= new Date());
+  const pastAppts     = (patientData.appointments || []).filter(a => new Date(a.start_time) < new Date());
+  const commsLog      = patientData.commsLog || [];
+  const serviceLogs   = patientData.serviceLogs || [];
+  const purchases     = patientData.allPurchases || [];
+  const patientNotes  = patientData.notes || [];
+
+  return (
+    <>
+      {/* Demographics chips */}
+      {(pt.date_of_birth || pt.gender || pt.created_at) && (
+        <Section label="Demographics">
+          <div style={styles.chipRow}>
+            {pt.date_of_birth && (
+              <span style={styles.chip}>
+                DOB {new Date(pt.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', timeZone: 'America/Los_Angeles' })}
+              </span>
+            )}
+            {pt.gender && <span style={styles.chip}>{pt.gender}</span>}
+            {pt.created_at && (
+              <span style={styles.chip}>
+                Since {new Date(pt.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'America/Los_Angeles' })}
+              </span>
+            )}
+          </div>
+        </Section>
+      )}
+
+      {/* Active Protocols */}
+      <Section label={`Active Protocols (${activeProtos.length})`}>
+        {activeProtos.length === 0 ? (
+          <div style={styles.loading}>No active protocols</div>
+        ) : (
+          <div style={styles.infoList}>
+            {activeProtos.map((p, i) => {
+              const total = p.total_sessions || p.sessions_total || p.duration_days || 0;
+              const used  = p.sessions_used || 0;
+              const pct   = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+              return (
+                <div key={p.id || i} style={styles.infoRow}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={styles.infoTitle}>{p.program_name || p.medication || 'Protocol'}</div>
+                    {p.medication && p.medication !== p.program_name && (
+                      <div style={styles.infoSub}>{p.medication}{p.dosage ? ` · ${p.dosage}` : ''}</div>
+                    )}
+                    {total > 0 && (
+                      <div style={styles.progressTrack}>
+                        <div style={{ ...styles.progressFill, width: `${pct}%`, background: pct >= 100 ? '#16a34a' : '#1a1a1a' }} />
+                      </div>
+                    )}
+                  </div>
+                  <span style={styles.infoMeta}>{used}/{total || '—'}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Section>
+
+      {/* Upcoming Appointments */}
+      <Section label={`Upcoming Appointments (${upcomingAppts.length})`}>
+        {upcomingAppts.length === 0 ? (
+          <div style={styles.loading}>No upcoming appointments</div>
+        ) : (
+          <div style={styles.infoList}>
+            {upcomingAppts.slice(0, 4).map((apt, i) => (
+              <div key={apt.id || i} style={styles.infoRow}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={styles.infoTitle}>{apt.service_name || apt.title || 'Appointment'}</div>
+                  <div style={styles.infoSub}>
+                    {fmtDateTimeShort(apt.start_time)}
+                    {apt.provider ? ` · ${apt.provider}` : ''}
+                  </div>
+                </div>
+                {APPT_STATUS[apt.status] && (
+                  <span style={{
+                    ...styles.statusPill,
+                    background: APPT_STATUS[apt.status].bg,
+                    color: APPT_STATUS[apt.status].text,
+                  }}>
+                    {APPT_STATUS[apt.status].label}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {/* Communications */}
+      <Section label={`Communications (${commsLog.length})`}>
+        {commsLog.length === 0 ? (
+          <div style={styles.loading}>No recent messages</div>
+        ) : (
+          <div style={styles.infoList}>
+            {commsLog.slice(0, 8).map((msg, i) => {
+              const outbound = msg.direction === 'outbound' || msg.direction === 'out';
+              const channel  = msg.channel || (msg.subject ? 'email' : 'sms');
+              const preview  = msg.message || msg.subject || '';
+              return (
+                <div key={msg.id || i} style={styles.infoRow}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                      <span style={{
+                        ...styles.commDot,
+                        background: outbound ? '#1a1a1a' : '#16a34a',
+                      }} />
+                      <span style={styles.commChannel}>
+                        {channel.toUpperCase()} · {outbound ? 'Sent' : 'Received'}
+                      </span>
+                      <span style={styles.commTime}>{fmtShortDate(msg.created_at)}</span>
+                    </div>
+                    {msg.subject && channel === 'email' && (
+                      <div style={{ ...styles.infoTitle, fontSize: '12px' }}>{msg.subject}</div>
+                    )}
+                    <div style={styles.commBody}>
+                      {stripNoteHtml(preview).slice(0, 140)}{stripNoteHtml(preview).length > 140 ? '…' : ''}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Section>
+
+      {/* Recent Visits */}
+      <Section label={`Recent Visits (${serviceLogs.length})`}>
+        {serviceLogs.length === 0 ? (
+          <div style={styles.loading}>No visits recorded</div>
+        ) : (
+          <div style={styles.infoList}>
+            {serviceLogs.slice(0, 6).map((log, i) => (
+              <div key={log.id || i} style={styles.infoRow}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={styles.infoTitle}>
+                    {(log.category || 'Visit').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                  </div>
+                  {log.medication && (
+                    <div style={styles.infoSub}>{log.medication}{log.dosage ? ` ${log.dosage}` : ''}</div>
+                  )}
+                </div>
+                <span style={styles.infoMeta}>{fmtShortDate(log.entry_date || log.created_at)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {/* Recent Transactions */}
+      {purchases.length > 0 && (
+        <Section label={`Recent Transactions (${purchases.length})`}>
+          <div style={styles.infoList}>
+            {purchases.slice(0, 5).map((p, i) => {
+              const paid = parseFloat(p.amount_paid);
+              const amt  = !isNaN(paid) ? paid : (parseFloat(p.amount) || 0);
+              return (
+                <div key={p.id || i} style={styles.infoRow}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={styles.infoTitle}>{p.item_name || p.service_name || p.description || 'Payment'}</div>
+                    <div style={styles.infoSub}>
+                      {p.payment_method ? p.payment_method.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '—'}
+                      {' · '}
+                      {p.purchase_date ? fmtShortDate(p.purchase_date) : ''}
+                    </div>
+                  </div>
+                  <span style={styles.infoAmount}>
+                    {amt === 0 ? 'Comp' : `$${amt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+      )}
+
+      {/* Patient Notes */}
+      {patientNotes.length > 0 && (
+        <Section label={`Patient Notes (${patientNotes.length})`}>
+          <div style={styles.infoList}>
+            {patientNotes.slice(0, 3).map((note, i) => (
+              <div key={note.id || i} style={styles.noteItem}>
+                <div style={styles.noteMeta}>
+                  {fmtShortDate(note.note_date || note.created_at)}
+                  {note.source ? ` · ${note.source}` : ''}
+                </div>
+                <div style={styles.noteBody}>{stripNoteHtml(note.body).slice(0, 200)}{stripNoteHtml(note.body).length > 200 ? '…' : ''}</div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Past Appointments */}
+      {pastAppts.length > 0 && (
+        <Section label={`Past Appointments (${pastAppts.length})`}>
+          <div style={styles.infoList}>
+            {pastAppts.slice(0, 4).map((apt, i) => (
+              <div key={apt.id || i} style={styles.infoRow}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={styles.infoTitle}>{apt.service_name || apt.title || 'Appointment'}</div>
+                  {apt.provider && <div style={styles.infoSub}>{apt.provider}</div>}
+                </div>
+                <span style={styles.infoMeta}>{fmtShortDate(apt.start_time)}</span>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+    </>
+  );
+}
+
 function eventSummary(ev, pipeline) {
   const stageLabel = (k) => pipeline.stages.find(s => s.key === k)?.label || k;
   if (ev.event_type === 'stage_change')      return `${stageLabel(ev.from_stage) || '—'} → ${stageLabel(ev.to_stage)}`;
@@ -397,7 +680,7 @@ const styles = {
   },
   panel: {
     position: 'fixed', top: 0, right: 0, bottom: 0,
-    width: '480px',
+    width: '540px',
     maxWidth: '100vw',
     background: '#ffffff',
     borderLeft: '1px solid #e0e0e0',
@@ -707,5 +990,119 @@ const styles = {
     textTransform: 'uppercase',
     fontFamily: 'Inter, sans-serif',
     borderRadius: 0,
+  },
+  chipRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '6px',
+  },
+  chip: {
+    fontSize: '11px',
+    color: '#1a1a1a',
+    background: '#f4f4f4',
+    border: '1px solid #e0e0e0',
+    padding: '4px 10px',
+    letterSpacing: '0.02em',
+  },
+  infoList: {
+    display: 'flex',
+    flexDirection: 'column',
+    border: '1px solid #e0e0e0',
+  },
+  infoRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '10px 12px',
+    borderBottom: '1px solid #f0f0f0',
+    background: '#fff',
+  },
+  infoTitle: {
+    fontSize: '13px',
+    fontWeight: 600,
+    color: '#1a1a1a',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  infoSub: {
+    fontSize: '11px',
+    color: '#737373',
+    marginTop: '2px',
+  },
+  infoMeta: {
+    fontSize: '11px',
+    color: '#737373',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
+  },
+  infoAmount: {
+    fontSize: '13px',
+    fontWeight: 700,
+    color: '#1a1a1a',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
+  },
+  progressTrack: {
+    marginTop: '6px',
+    height: '4px',
+    background: '#ececec',
+    width: '100%',
+  },
+  progressFill: {
+    height: '100%',
+    background: '#1a1a1a',
+    transition: 'width 0.3s',
+  },
+  statusPill: {
+    fontSize: '10px',
+    fontWeight: 700,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    padding: '3px 8px',
+    flexShrink: 0,
+  },
+  commDot: {
+    width: '6px',
+    height: '6px',
+    borderRadius: '50%',
+    flexShrink: 0,
+  },
+  commChannel: {
+    fontSize: '10px',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    color: '#737373',
+  },
+  commTime: {
+    fontSize: '10px',
+    color: '#a0a0a0',
+    marginLeft: 'auto',
+  },
+  commBody: {
+    fontSize: '12px',
+    color: '#333',
+    lineHeight: 1.4,
+    whiteSpace: 'pre-line',
+    wordBreak: 'break-word',
+  },
+  noteItem: {
+    padding: '10px 12px',
+    borderBottom: '1px solid #f0f0f0',
+    background: '#fff',
+  },
+  noteMeta: {
+    fontSize: '10px',
+    color: '#a0a0a0',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    marginBottom: '4px',
+  },
+  noteBody: {
+    fontSize: '12px',
+    color: '#333',
+    lineHeight: 1.5,
+    whiteSpace: 'pre-line',
+    wordBreak: 'break-word',
   },
 };

@@ -901,7 +901,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
           amount: getItemPriceCents(item),
         });
 
-        // Process WL included add-ons (B12, Super Skinny Shot, Skinny Shot, etc.)
+        // Process WL included add-ons (B12, Skinny + Injection, Skinny Shot, etc.)
         if (item.wlAddons?.length > 0) {
           for (const addon of item.wlAddons) {
             const totalQty = (addon.inClinic || 0) + (addon.takeHome || 0);
@@ -1506,7 +1506,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                   </div>
                   {[
                     { type: 'b12', label: 'B12 Injection' },
-                    { type: 'lipo', label: 'Super Skinny Shot' },
+                    { type: 'lipo', label: 'Skinny + Injection' },
                   ].map(addon => {
                     const existing = wlAddons.find(a => a.type === addon.type);
                     const isActive = !!existing;
@@ -2541,7 +2541,7 @@ function renderMedicationPicker(categoryId, value, onChange) {
           <option value="">Select medication...</option>
           {WEIGHT_LOSS_MEDICATIONS.map(m => <option key={m} value={m}>{m}</option>)}
           <option value="B12">B12 (add-on)</option>
-          <option value="Super Skinny Shot">Super Skinny Shot (add-on)</option>
+          <option value="Skinny + Injection">Skinny + Injection (add-on)</option>
           <option value="Skinny Shot">Skinny Shot (add-on)</option>
         </select>
       );

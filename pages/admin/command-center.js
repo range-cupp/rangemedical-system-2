@@ -1439,7 +1439,7 @@ export default function CommandCenter() {
     { value: 'NAD+ 50mg', label: 'NAD+ 50mg' },
     { value: 'NAD+ 100mg', label: 'NAD+ 100mg' },
     { value: 'L-Carnitine', label: 'L-Carnitine' },
-    { value: 'Super Skinny Shot', label: 'Super Skinny Shot' },
+    { value: 'Skinny + Injection', label: 'Skinny + Injection' },
     { value: 'Skinny Shot', label: 'Skinny Shot' },
     { value: 'Taurine', label: 'Taurine' },
     { value: 'Toradol', label: 'Toradol' }

@@ -47,7 +47,7 @@ const _injectionMeds = PROTOCOL_TYPES.single_injection.medications;
 const VITAMIN_OPTIONS = [
   ..._injectionMeds.map(m => ({ value: m, label: m })),
   // Service-log extras not sold as standalone protocols
-  { value: 'Super Skinny Shot', label: 'Super Skinny Shot' },
+  { value: 'Skinny + Injection', label: 'Skinny + Injection' },
   { value: 'Skinny Shot', label: 'Skinny Shot' },
   { value: 'Taurine', label: 'Taurine' },
   { value: 'Toradol', label: 'Toradol' }

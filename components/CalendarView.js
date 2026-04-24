@@ -1130,13 +1130,17 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const saveApptNotes = async (apptId) => {
     setSavingApptNotes(true);
     try {
+      const savedValue = apptNotesValue;
       const res = await fetch('/api/appointments/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: apptId, table: 'appointments', notes: apptNotesValue }),
+        body: JSON.stringify({ id: apptId, table: 'appointments', notes: savedValue }),
       });
       if (res.ok) {
         setEditingApptNotes(null);
+        // Sync the popover's source-of-truth so the next ✏️ click loads the new value.
+        setSelectedAppt(prev => (prev && prev.id === apptId ? { ...prev, notes: savedValue } : prev));
+        setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, notes: savedValue } : a));
         fetchAppointments();
       }
     } catch (err) {
@@ -1149,13 +1153,16 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const saveApptReason = async (apptId) => {
     setSavingApptReason(true);
     try {
+      const savedValue = apptReasonValue;
       const res = await fetch('/api/appointments/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: apptId, table: 'appointments', visit_reason: apptReasonValue }),
+        body: JSON.stringify({ id: apptId, table: 'appointments', visit_reason: savedValue }),
       });
       if (res.ok) {
         setEditingApptReason(null);
+        setSelectedAppt(prev => (prev && prev.id === apptId ? { ...prev, visit_reason: savedValue } : prev));
+        setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, visit_reason: savedValue } : a));
         fetchAppointments();
       }
     } catch (err) {

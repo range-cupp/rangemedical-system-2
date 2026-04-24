@@ -67,6 +67,29 @@ export default async function handler(req, res) {
 
     for (const notification of pending) {
       try {
+        // Pipeline gate: if metadata pins this notification to a card stage,
+        // verify the card is still in that stage. Drop the notification if
+        // the card has moved on (e.g. the patient is already booked).
+        const gateCardId = notification.metadata?.gate_pipeline_card_id;
+        const gateStage = notification.metadata?.gate_stage;
+        if (gateCardId && gateStage) {
+          const { data: card } = await supabase
+            .from('pipeline_cards')
+            .select('stage')
+            .eq('id', gateCardId)
+            .maybeSingle();
+          if (!card || card.stage !== gateStage) {
+            await supabase
+              .from('notification_queue')
+              .update({
+                status: 'cancelled',
+                error_message: `Gate stage mismatch: expected ${gateStage}, was ${card?.stage || 'missing'}`,
+              })
+              .eq('id', notification.id);
+            continue;
+          }
+        }
+
         let sendResult;
 
         if (notification.channel === 'sms') {

@@ -145,6 +145,34 @@ async function createEncounterReminderTask(appointment) {
   });
 }
 
+async function advanceEnergyWorkupOnCompletion(appointment) {
+  if (!appointment.patient_id) return;
+  const { findActiveCard, moveCard } = await import('../../../../lib/pipelines-server');
+  const { runStageEntry } = await import('../../../../lib/pipeline-automations');
+  const card = await findActiveCard({
+    patient_id: appointment.patient_id,
+    pipeline: 'energy_workup',
+  });
+  if (!card || card.stage !== 'consult_booked') return;
+
+  const consultDate = new Date(appointment.start_time)
+    .toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); // YYYY-MM-DD Pacific
+
+  const updated = await moveCard({
+    card_id: card.id,
+    to_stage: 'consult_completed',
+    triggered_by: 'automation',
+    automation_reason: `appointment_completed:${appointment.id}`,
+  });
+  if (updated) {
+    await runStageEntry({
+      card: updated,
+      stage: 'consult_completed',
+      context: { consultDate },
+    });
+  }
+}
+
 async function processAppointmentEvent(appointment, newStatus, oldStatus) {
   // Auto-create encounter documentation task when appointment is completed
   if (newStatus === 'completed') {
@@ -155,6 +183,11 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
     // Auto-log session/injection in service_logs when appointment is completed
     autoLogSessionFromAppointment(appointment).catch(err =>
       console.error('Auto-session logging error:', err)
+    );
+
+    // Advance energy_workup: consult_booked → consult_completed (Evan's task)
+    advanceEnergyWorkupOnCompletion(appointment).catch(err =>
+      console.error('Energy workup advance on completion error:', err)
     );
   }
 

@@ -166,18 +166,21 @@ export default async function handler(req, res) {
     }
 
     // Pipeline automation: advance energy_workup from labs_scheduled/awaiting_results
-    // to under_review when a lab PDF lands.
+    // to under_review when a lab PDF lands. Then fire stage-entry side-effects
+    // (creates the "Review labs" task for Damien + Evan, SMS both).
     try {
       const { findActiveCard, moveCard } = await import('../../../../lib/pipelines-server');
+      const { runStageEntry } = await import('../../../../lib/pipeline-automations');
       const card = await findActiveCard({ patient_id: patientId, pipeline: 'energy_workup' });
       if (card && ['labs_scheduled', 'awaiting_results'].includes(card.stage)) {
-        await moveCard({
+        const updated = await moveCard({
           card_id: card.id,
           to_stage: 'under_review',
           assigned_to: ['damien', 'evan'],
           triggered_by: 'automation',
           automation_reason: 'lab_pdf_uploaded',
         });
+        await runStageEntry({ card: updated, stage: 'under_review' });
       }
     } catch (pipeErr) {
       console.error('Lab upload pipeline advance error:', pipeErr.message);

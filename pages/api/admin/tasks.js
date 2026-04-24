@@ -35,11 +35,13 @@ async function handleGet(req, res, employee) {
     .select('*')
     .order('created_at', { ascending: false });
 
-  // Filter by view — 'all' is admin-only; non-admins fall back to 'my'
+  // Filter by view — 'all' is admin-only; non-admins fall back to 'my'.
+  // "My tasks" includes primary assignment AND additional_assignees (joint tasks
+  // like the Damien+Evan lab review).
   if (filter === 'all' && employee.is_admin) {
     // No assignee filter — admin sees everything
   } else if (filter === 'my' || (filter === 'all' && !employee.is_admin)) {
-    query = query.eq('assigned_to', employee.id);
+    query = query.or(`assigned_to.eq.${employee.id},additional_assignees.cs.{${employee.id}}`);
   } else if (filter === 'assigned') {
     query = query.eq('assigned_by', employee.id).neq('assigned_to', employee.id);
   }
@@ -212,6 +214,27 @@ async function handlePatch(req, res, employee) {
       taskTitle: data.title,
       priority: data.priority,
     }).catch(err => console.error('Task reassignment SMS notification error:', err));
+  }
+
+  // Pipeline automation: if this task is linked to a pipeline card and has an
+  // on_complete_move_to target, advance the card now. Fires stage-entry
+  // side-effects for the destination stage.
+  if (status === 'completed' && data.pipeline_card_id && data.on_complete_move_to) {
+    try {
+      const { moveCard } = await import('../../../lib/pipelines-server');
+      const { runStageEntry } = await import('../../../lib/pipeline-automations');
+      const updated = await moveCard({
+        card_id: data.pipeline_card_id,
+        to_stage: data.on_complete_move_to,
+        triggered_by: 'automation',
+        automation_reason: `task_completed:${id}`,
+      });
+      if (updated) {
+        await runStageEntry({ card: updated, stage: data.on_complete_move_to });
+      }
+    } catch (pipeErr) {
+      console.error('Task-completion pipeline advance error:', pipeErr);
+    }
   }
 
   return res.status(200).json({ success: true, task: data });

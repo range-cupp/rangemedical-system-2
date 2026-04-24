@@ -359,6 +359,31 @@ export default async function handler(req, res) {
       }
     }
 
+    // Pipeline automation: if the patient has an active energy_workup card
+    // waiting on a consult (ready_to_schedule / scheduling_attempted), booking
+    // any appointment advances it to consult_booked and closes Tara's
+    // "Schedule consult" task.
+    if (patient_id) {
+      try {
+        const { findActiveCard, moveCard } = await import('../../../lib/pipelines-server');
+        const { runStageEntry } = await import('../../../lib/pipeline-automations');
+        const card = await findActiveCard({ patient_id, pipeline: 'energy_workup' });
+        if (card && ['ready_to_schedule', 'scheduling_attempted'].includes(card.stage)) {
+          const updated = await moveCard({
+            card_id: card.id,
+            to_stage: 'consult_booked',
+            triggered_by: 'automation',
+            automation_reason: `appointment_booked:${primary.id}`,
+          });
+          if (updated) {
+            await runStageEntry({ card: updated, stage: 'consult_booked' });
+          }
+        }
+      } catch (pipeErr) {
+        console.error('Appointment→pipeline advance error:', pipeErr);
+      }
+    }
+
     // Return the primary row as `appointment` (back-compat) plus the full list + group id.
     return res.status(200).json({
       appointment: primary,

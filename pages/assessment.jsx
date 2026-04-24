@@ -409,7 +409,7 @@ function filterSlotsByBuffer(slots) {
   const now = new Date();
   const bufferMs = 2 * 60 * 60 * 1000;
   const cutoff = new Date(now.getTime() + bufferMs);
-  return slots.filter(slot => new Date(slot.time) > cutoff);
+  return slots.filter(slot => new Date(slot.start) > cutoff);
 }
 
 function formatPhoneDisplay(phone) {
@@ -651,7 +651,12 @@ export default function Assessment() {
         const data = await res.json();
 
         if (data.success && data.slots) {
-          const filtered = filterSlotsByBuffer(data.slots);
+          // Cal.com v2 returns { 'YYYY-MM-DD': [{ start, end }] } for format=range
+          const raw = data.slots;
+          const list = Array.isArray(raw)
+            ? raw
+            : (raw && typeof raw === 'object' ? (raw[dateStr] || []) : []);
+          const filtered = filterSlotsByBuffer(list);
           setSlots(filtered);
         }
       } catch (err) {
@@ -1157,17 +1162,17 @@ export default function Assessment() {
                     {slots.length > 0 && (
                       <div style={s.timeGrid}>
                         {slots.map(slot => {
-                          const isSelected = selectedSlot === slot.time;
+                          const isSelected = selectedSlot === slot.start;
                           return (
                             <button
-                              key={slot.time}
+                              key={slot.start}
                               style={{
                                 ...s.timeBtn,
                                 ...(isSelected ? s.timeBtnSelected : {}),
                               }}
-                              onClick={() => setSelectedSlot(slot.time)}
+                              onClick={() => setSelectedSlot(slot.start)}
                             >
-                              {formatTime(slot.time)}
+                              {formatTime(slot.start)}
                             </button>
                           );
                         })}

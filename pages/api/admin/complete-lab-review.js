@@ -135,6 +135,32 @@ export default async function handler(req, res) {
       console.error('Some SMS notifications failed:', smsResults.filter(r => r.status === 'rejected').map(r => r.reason));
     }
 
+    // Main Pipeline: advance the energy_workup card from under_review to
+    // ready_to_schedule. Skip task creation (the Tara/Chris scheduling tasks
+    // above cover it) but queue the patient "look out for a call" SMS.
+    try {
+      const { findActiveCard, moveCard } = await import('../../../lib/pipelines-server');
+      const { runStageEntry } = await import('../../../lib/pipeline-automations');
+      const card = await findActiveCard({ patient_id, pipeline: 'energy_workup' });
+      if (card && card.stage === 'under_review') {
+        const updated = await moveCard({
+          card_id: card.id,
+          to_stage: 'ready_to_schedule',
+          triggered_by: 'automation',
+          automation_reason: `lab_review_completed:${task_id}`,
+        });
+        if (updated) {
+          await runStageEntry({
+            card: updated,
+            stage: 'ready_to_schedule',
+            context: { skipTaskCreation: true },
+          });
+        }
+      }
+    } catch (pipeErr) {
+      console.error('complete-lab-review pipeline advance error:', pipeErr.message);
+    }
+
     return res.status(200).json({
       success: true,
       patientName,

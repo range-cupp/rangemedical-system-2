@@ -4,26 +4,39 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Plus } from 'lucide-react';
 import { getPipeline } from '../lib/pipelines-config';
 import { getStaff, initials } from '../lib/staff';
+import AddToPipelineModal from './pipelines/AddToPipelineModal';
 
 function daysSince(iso) {
   if (!iso) return 0;
   return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
 }
 
-export default function PatientPipelineSummary({ patientId }) {
+export default function PatientPipelineSummary({ patientId, patientName }) {
   const [cards, setCards]   = useState([]);
   const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
 
-  useEffect(() => {
+  async function reload() {
     if (!patientId) return;
     setLoading(true);
-    fetch(`/api/pipelines/summary?patient_id=${patientId}`)
-      .then(r => r.ok ? r.json() : [])
-      .then(data => { setCards(data || []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [patientId]);
+    try {
+      const res = await fetch(`/api/pipelines/summary?patient_id=${patientId}`);
+      if (res.ok) setCards(await res.json());
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { reload(); }, [patientId]);
+
+  const addButton = (
+    <button onClick={() => setAdding(true)} style={styles.addBtn} title="Add to a pipeline">
+      <Plus size={12} /> Add
+    </button>
+  );
 
   if (loading) return null;
   if (!cards.length) {
@@ -31,11 +44,22 @@ export default function PatientPipelineSummary({ patientId }) {
       <section style={styles.wrapper}>
         <div style={styles.header}>
           <div style={styles.kicker}>Pipelines</div>
-          <h3 style={styles.title}>No Active Pipelines</h3>
+          <div style={styles.headerRight}>
+            <h3 style={styles.title}>No Active Pipelines</h3>
+            {addButton}
+          </div>
         </div>
         <div style={styles.empty}>
           This patient isn't on any active pipeline boards.
         </div>
+        {adding && (
+          <AddToPipelineModal
+            patientId={patientId}
+            patientName={patientName}
+            onClose={() => setAdding(false)}
+            onCreated={reload}
+          />
+        )}
       </section>
     );
   }
@@ -44,7 +68,10 @@ export default function PatientPipelineSummary({ patientId }) {
     <section style={styles.wrapper}>
       <div style={styles.header}>
         <div style={styles.kicker}>Pipelines</div>
-        <h3 style={styles.title}>{cards.length} Active</h3>
+        <div style={styles.headerRight}>
+          <h3 style={styles.title}>{cards.length} Active</h3>
+          {addButton}
+        </div>
       </div>
 
       <div style={styles.rows}>
@@ -88,6 +115,14 @@ export default function PatientPipelineSummary({ patientId }) {
           );
         })}
       </div>
+      {adding && (
+        <AddToPipelineModal
+          patientId={patientId}
+          patientName={patientName}
+          onClose={() => setAdding(false)}
+          onCreated={reload}
+        />
+      )}
     </section>
   );
 }
@@ -102,9 +137,30 @@ const styles = {
   header: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
+    alignItems: 'center',
     padding: '14px 18px',
     borderBottom: '1px solid #e0e0e0',
+  },
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  addBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '6px 10px',
+    fontSize: '10px',
+    fontWeight: 700,
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase',
+    background: '#1a1a1a',
+    border: '1px solid #1a1a1a',
+    color: '#fff',
+    cursor: 'pointer',
+    borderRadius: 0,
+    fontFamily: 'Inter, sans-serif',
   },
   kicker: {
     fontSize: '10px',

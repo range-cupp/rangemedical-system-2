@@ -5,10 +5,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ChevronLeft } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import AdminLayout from '../../../components/AdminLayout';
 import PipelineBoard from '../../../components/pipelines/PipelineBoard';
 import PipelineFilterChips from '../../../components/pipelines/PipelineFilterChips';
 import PipelineDetailPanel from '../../../components/pipelines/PipelineDetailPanel';
+import AddPatientCardModal from '../../../components/pipelines/AddPatientCardModal';
 import { getPipeline, PIPELINE_ORDER, PIPELINES } from '../../../lib/pipelines-config';
 
 export default function PipelineBoardPage() {
@@ -24,6 +26,7 @@ export default function PipelineBoardPage() {
   const [search, setSearch]   = useState('');
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
     if (!pipelineKey) return;
@@ -88,6 +91,13 @@ export default function PipelineBoardPage() {
             <p style={styles.sub}>{pipeline.description}</p>
           </div>
           <div style={styles.headerRight}>
+            <button
+              onClick={() => setAdding(true)}
+              style={styles.addBtn}
+              title="Add a patient to this pipeline"
+            >
+              <Plus size={14} /> Add Card
+            </button>
             <input
               placeholder="Search name, notes..."
               value={search}
@@ -148,6 +158,14 @@ export default function PipelineBoardPage() {
             setCards(prev => prev.filter(c => c.id !== deleted.id));
             setSelected(null);
           }}
+        />
+      )}
+
+      {adding && (
+        <AddPatientCardModal
+          pipeline={pipeline}
+          onClose={() => setAdding(false)}
+          onCreated={() => load()}
         />
       )}
     </AdminLayout>
@@ -214,6 +232,22 @@ const styles = {
     color: '#737373',
     marginTop: '8px',
     marginBottom: 0,
+  },
+  addBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '10px 14px',
+    fontSize: '11px',
+    fontWeight: 700,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    background: '#1a1a1a',
+    border: '1px solid #1a1a1a',
+    color: '#fff',
+    cursor: 'pointer',
+    borderRadius: 0,
+    fontFamily: 'Inter, sans-serif',
   },
   search: {
     padding: '10px 14px',

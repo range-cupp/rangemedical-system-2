@@ -2,7 +2,7 @@
 // GET  — list cards for a pipeline (active only by default)
 // POST — create a new card on the pipeline
 
-import { sb, createCard } from '../../../lib/pipelines-server';
+import { sb, createCard, findActiveCard } from '../../../lib/pipelines-server';
 import { getPipeline, CARD_STATUS } from '../../../lib/pipelines-config';
 import { HRT_PROGRAM_TYPES, WEIGHT_LOSS_PROGRAM_TYPES } from '../../../lib/protocol-config';
 
@@ -151,6 +151,17 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
       const body = req.body || {};
+      // Block duplicate active cards for the same patient on this pipeline —
+      // staff can manually close or complete the existing card first.
+      if (body.patient_id) {
+        const existing = await findActiveCard({ patient_id: body.patient_id, pipeline });
+        if (existing) {
+          return res.status(409).json({
+            error: `Patient already has an active card on ${def.label}.`,
+            existing,
+          });
+        }
+      }
       const card = await createCard({
         pipeline,
         stage: body.stage,

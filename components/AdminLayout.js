@@ -569,7 +569,6 @@ function useUnreadTasks(employeeId, router) {
 // group: 'medical' = clinical sidebar, 'business' = operations sidebar, undefined = show in both
 const NAV_ITEMS = [
   { href: '/admin', label: 'Dashboard', icon: 'grid' },
-  { href: '/admin/actions', label: 'Actions', icon: 'alert-circle' },
   { href: '/admin/follow-ups', label: 'Follow-Ups', icon: 'bell' },
   { href: '/admin/pipelines', label: 'Pipelines', icon: 'trending-down', group: 'business' },
   { href: '/admin/referrals', label: 'Referrals', icon: 'user-plus', group: 'business' },

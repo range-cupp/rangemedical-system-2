@@ -34,27 +34,29 @@ export default async function handler(req, res) {
     .eq('status', CARD_STATUS.ACTIVE);
   if (error) return res.status(500).json({ error: error.message });
 
-  // Main Pipeline (energy_workup) excludes patients already on active HRT or
-  // weight-loss treatment plans — those live on their own pipelines.
-  const energyPatientIds = [...new Set(
+  // Labs pipelines split by treatment status:
+  //   energy_workup → exclude patients on active HRT/WL
+  //   follow_up_labs → include only patients on active HRT/WL
+  const labsPatientIds = [...new Set(
     (data || [])
-      .filter(r => r.pipeline === 'energy_workup' && r.patient_id)
+      .filter(r => ['energy_workup','follow_up_labs'].includes(r.pipeline) && r.patient_id)
       .map(r => r.patient_id)
   )];
-  const excluded = new Set();
-  if (energyPatientIds.length) {
+  const onTreatment = new Set();
+  if (labsPatientIds.length) {
     const { data: activeTx } = await client
       .from('protocols')
       .select('patient_id')
-      .in('patient_id', energyPatientIds)
+      .in('patient_id', labsPatientIds)
       .eq('status', 'active')
       .in('program_type', ACTIVE_TREATMENT_TYPES);
-    for (const p of activeTx || []) excluded.add(p.patient_id);
+    for (const p of activeTx || []) onTreatment.add(p.patient_id);
   }
 
   const summary = {};
   for (const row of data || []) {
-    if (row.pipeline === 'energy_workup' && row.patient_id && excluded.has(row.patient_id)) continue;
+    if (row.pipeline === 'energy_workup' && row.patient_id && onTreatment.has(row.patient_id)) continue;
+    if (row.pipeline === 'follow_up_labs' && (!row.patient_id || !onTreatment.has(row.patient_id))) continue;
     summary[row.pipeline] ||= { total: 0, by_stage: {} };
     summary[row.pipeline].total++;
     summary[row.pipeline].by_stage[row.stage] = (summary[row.pipeline].by_stage[row.stage] || 0) + 1;

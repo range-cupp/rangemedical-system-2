@@ -57,11 +57,11 @@ export default async function handler(req, res) {
       };
     });
 
-    // Main Pipeline (energy_workup) enrichment: (1) hide cards for patients who
-    // are already on an active HRT or weight-loss treatment — those patients
-    // belong on their own treatment pipelines; (2) attach the latest lab draw
-    // date for display on the card.
-    if (pipeline === 'energy_workup' && rows.length > 0) {
+    // Labs pipelines split by treatment status:
+    //   energy_workup → only patients NOT on active HRT/WL (new workup)
+    //   follow_up_labs → only patients ON active HRT/WL (follow-up review)
+    // Both also surface the latest lab draw date on each card.
+    if (['energy_workup', 'follow_up_labs'].includes(pipeline) && rows.length > 0) {
       const client = sb();
       const patientIds = [...new Set(rows.map(r => r.patient_id).filter(Boolean))];
 
@@ -72,9 +72,12 @@ export default async function handler(req, res) {
           .in('patient_id', patientIds)
           .eq('status', 'active')
           .in('program_type', ACTIVE_TREATMENT_TYPES);
-        const excluded = new Set((activeTx || []).map(p => p.patient_id));
-        if (excluded.size) {
-          rows = rows.filter(r => !excluded.has(r.patient_id));
+        const onTreatment = new Set((activeTx || []).map(p => p.patient_id));
+
+        if (pipeline === 'energy_workup') {
+          rows = rows.filter(r => !r.patient_id || !onTreatment.has(r.patient_id));
+        } else if (pipeline === 'follow_up_labs') {
+          rows = rows.filter(r => r.patient_id && onTreatment.has(r.patient_id));
         }
 
         const remainingIds = [...new Set(rows.map(r => r.patient_id).filter(Boolean))];

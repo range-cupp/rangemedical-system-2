@@ -14,6 +14,7 @@ const FIELD_LABELS = {
   injection_type:      'Type',
   target:              'Target',
   lab_type:            'Lab',
+  labs_drawn_at:       'Drawn',
   source:              'Source',
   path:                'Path',
   urgency:             'Urgency',
@@ -152,6 +153,12 @@ function formatFieldValue(key, card) {
   }
   if (key === 'target')            return meta.target || null;
   if (key === 'lab_type')          return meta.lab_type || null;
+  if (key === 'labs_drawn_at') {
+    const d = formatShortDate(card.labs_drawn_at);
+    if (!d) return null;
+    const days = daysSince(card.labs_drawn_at);
+    return days === 0 ? `${d} · today` : `${d} · ${days}d ago`;
+  }
   if (key === 'source')            return card.source || null;
   if (key === 'path')              return card.path || null;
   if (key === 'urgency')           return card.urgency != null ? `${card.urgency}/10` : null;

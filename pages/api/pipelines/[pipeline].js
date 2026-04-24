@@ -4,11 +4,15 @@
 
 import { sb, createCard } from '../../../lib/pipelines-server';
 import { getPipeline, CARD_STATUS } from '../../../lib/pipelines-config';
+import { HRT_PROGRAM_TYPES, WEIGHT_LOSS_PROGRAM_TYPES } from '../../../lib/protocol-config';
 
 // pipeline → subscriptions.service_category (only where subscriptions exist)
 const PIPELINE_TO_SUB_CATEGORY = { hrt: 'hrt', weight_loss: 'weight_loss' };
 // pipelines that care about payment history (subs or one-time purchases)
 const PAYMENT_PIPELINES = new Set(['hrt', 'weight_loss', 'peptides', 'hbot', 'rlt', 'injections']);
+// Program types that signal a patient is already on an ongoing treatment plan —
+// they don't belong on the Main Pipeline, which is for new workups.
+const ACTIVE_TREATMENT_TYPES = [...HRT_PROGRAM_TYPES, ...WEIGHT_LOSS_PROGRAM_TYPES];
 
 export default async function handler(req, res) {
   const { pipeline } = req.query;
@@ -33,7 +37,7 @@ export default async function handler(req, res) {
       .order('last_activity_at', { ascending: false });
     if (error) return res.status(500).json({ error: error.message });
 
-    const rows = (data || []).map(r => {
+    let rows = (data || []).map(r => {
       const supply = r.protocol?.supply_type || null;
       const supply_category = supply
         ? (supply.startsWith('prefilled') ? 'prefilled' : supply.startsWith('vial') ? 'vial' : null)
@@ -52,6 +56,48 @@ export default async function handler(req, res) {
         supply_category,
       };
     });
+
+    // Main Pipeline (energy_workup) enrichment: (1) hide cards for patients who
+    // are already on an active HRT or weight-loss treatment — those patients
+    // belong on their own treatment pipelines; (2) attach the latest lab draw
+    // date for display on the card.
+    if (pipeline === 'energy_workup' && rows.length > 0) {
+      const client = sb();
+      const patientIds = [...new Set(rows.map(r => r.patient_id).filter(Boolean))];
+
+      if (patientIds.length) {
+        const { data: activeTx } = await client
+          .from('protocols')
+          .select('patient_id')
+          .in('patient_id', patientIds)
+          .eq('status', 'active')
+          .in('program_type', ACTIVE_TREATMENT_TYPES);
+        const excluded = new Set((activeTx || []).map(p => p.patient_id));
+        if (excluded.size) {
+          rows = rows.filter(r => !excluded.has(r.patient_id));
+        }
+
+        const remainingIds = [...new Set(rows.map(r => r.patient_id).filter(Boolean))];
+        if (remainingIds.length) {
+          const { data: labs } = await client
+            .from('lab_documents')
+            .select('patient_id, collection_date, created_at')
+            .in('patient_id', remainingIds)
+            .order('created_at', { ascending: false });
+          const drawnByPatient = {};
+          for (const lab of labs || []) {
+            if (!drawnByPatient[lab.patient_id]) {
+              drawnByPatient[lab.patient_id] = lab.collection_date || lab.created_at;
+            }
+          }
+          for (const r of rows) {
+            if (r.patient_id && drawnByPatient[r.patient_id]) {
+              r.labs_drawn_at = drawnByPatient[r.patient_id];
+            }
+          }
+        }
+      }
+    }
 
     // Enrich with payment data for treatment pipelines
     if (PAYMENT_PIPELINES.has(pipeline) && rows.length > 0) {

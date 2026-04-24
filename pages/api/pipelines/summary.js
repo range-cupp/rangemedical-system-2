@@ -4,6 +4,9 @@
 
 import { sb } from '../../../lib/pipelines-server';
 import { CARD_STATUS } from '../../../lib/pipelines-config';
+import { HRT_PROGRAM_TYPES, WEIGHT_LOSS_PROGRAM_TYPES } from '../../../lib/protocol-config';
+
+const ACTIVE_TREATMENT_TYPES = [...HRT_PROGRAM_TYPES, ...WEIGHT_LOSS_PROGRAM_TYPES];
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -27,12 +30,31 @@ export default async function handler(req, res) {
 
   const { data, error } = await client
     .from('pipeline_cards')
-    .select('pipeline, stage')
+    .select('pipeline, stage, patient_id')
     .eq('status', CARD_STATUS.ACTIVE);
   if (error) return res.status(500).json({ error: error.message });
 
+  // Main Pipeline (energy_workup) excludes patients already on active HRT or
+  // weight-loss treatment plans — those live on their own pipelines.
+  const energyPatientIds = [...new Set(
+    (data || [])
+      .filter(r => r.pipeline === 'energy_workup' && r.patient_id)
+      .map(r => r.patient_id)
+  )];
+  const excluded = new Set();
+  if (energyPatientIds.length) {
+    const { data: activeTx } = await client
+      .from('protocols')
+      .select('patient_id')
+      .in('patient_id', energyPatientIds)
+      .eq('status', 'active')
+      .in('program_type', ACTIVE_TREATMENT_TYPES);
+    for (const p of activeTx || []) excluded.add(p.patient_id);
+  }
+
   const summary = {};
   for (const row of data || []) {
+    if (row.pipeline === 'energy_workup' && row.patient_id && excluded.has(row.patient_id)) continue;
     summary[row.pipeline] ||= { total: 0, by_stage: {} };
     summary[row.pipeline].total++;
     summary[row.pipeline].by_stage[row.stage] = (summary[row.pipeline].by_stage[row.stage] || 0) + 1;

@@ -6070,11 +6070,42 @@ export default function PatientProfile() {
               <section className="card">
                 <div className="card-header">
                   <h3>Active Medications ({allActiveMeds.length})</h3>
-                  {employee?.is_admin && (
-                    <button className="btn-primary-sm" onClick={() => { setMedEditMode('add'); setMedEditForm({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: '', last_pickup_date: '', last_pickup_quantity: '', quantity_unit: 'pills' }); setShowMedEditModal(true); }}>
-                      + Add Medication
-                    </button>
-                  )}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {allActiveMeds.length > 0 && (
+                      <button
+                        className="btn-secondary-sm"
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`/api/patients/${patient.id}/medications-pdf`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ medications: allActiveMeds }),
+                            });
+                            if (!res.ok) {
+                              const err = await res.json().catch(() => ({}));
+                              alert(err.error || 'Failed to generate medication list');
+                              return;
+                            }
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            window.open(url, '_blank');
+                            setTimeout(() => URL.revokeObjectURL(url), 60000);
+                          } catch (e) {
+                            console.error(e);
+                            alert('Failed to generate medication list');
+                          }
+                        }}
+                        title="Print active medications as a take-with-you list"
+                      >
+                        🖨️ Print
+                      </button>
+                    )}
+                    {employee?.is_admin && (
+                      <button className="btn-primary-sm" onClick={() => { setMedEditMode('add'); setMedEditForm({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: '', last_pickup_date: '', last_pickup_quantity: '', quantity_unit: 'pills' }); setShowMedEditModal(true); }}>
+                        + Add Medication
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {allActiveMeds.length === 0 ? (
                   <div className="empty">No active medications</div>

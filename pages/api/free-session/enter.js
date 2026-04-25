@@ -9,6 +9,7 @@ import { logComm } from '../../../lib/comms-log';
 import stripe from '../../../lib/stripe';
 import { getEventTypes } from '../../../lib/calcom';
 import { createCard } from '../../../lib/pipelines-server';
+import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const supabase = createClient(
@@ -246,6 +247,46 @@ export default async function handler(req, res) {
       });
     } catch (cardErr) {
       console.error('Free session pipeline card create error:', cardErr);
+    }
+
+    // 4c. Create a follow-up task for Damien and SMS him.
+    // Non-blocking — log and continue if it fails.
+    try {
+      const { data: damien } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('email', 'burgess@range-medical.com')
+        .single();
+      if (damien?.id) {
+        const taskTitle = `Schedule free ${config.shortLabel}: ${customerName}`;
+        const description = [
+          `${customerName} signed up for a free ${config.label} session and needs to be scheduled.`,
+          `Phone: ${phone.trim()}`,
+          `Email: ${normalizedEmail}`,
+          `Tier: ${leadTier.toUpperCase()} (score ${leadScore})`,
+          `Struggle: ${struggleLabel}`,
+          '',
+          'Text them a link to pick a time.',
+        ].join('\n');
+        const priority = leadTier === 'green' ? 'high' : 'medium';
+        await supabase.from('tasks').insert({
+          title: taskTitle,
+          description,
+          assigned_to: damien.id,
+          assigned_by: damien.id,
+          patient_id: patientId,
+          patient_name: customerName,
+          priority,
+          status: 'pending',
+        });
+        notifyTaskAssignee(damien.id, {
+          assignerName: 'Range Medical',
+          taskTitle,
+          priority,
+        }).catch((err) => console.error('Damien free-session task SMS error:', err));
+      }
+    } catch (taskErr) {
+      console.error('Damien free-session task insert error:', taskErr);
     }
 
     // 5. Resolve Cal.com event type ID for self-booking

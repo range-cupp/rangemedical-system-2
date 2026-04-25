@@ -4555,23 +4555,7 @@ export default function PatientProfile() {
               const freqPart = freqMap[activeHrtProto.frequency]
                 || (ipw === 2 ? 'every 3.5 days' : ipw === 1 ? 'weekly' : ipw === 7 ? 'daily' : ipw > 0 ? `${ipw}x per week` : '');
               const parts = [mgPart, medName, freqPart].filter(Boolean);
-              const primary = parts.join(' ');
-              // Append secondary medications (HCG, Gonadorelin, Nandrolone)
-              let secondaryStr = '';
-              try {
-                const secs = typeof activeHrtProto.secondary_medication_details === 'string'
-                  ? JSON.parse(activeHrtProto.secondary_medication_details)
-                  : activeHrtProto.secondary_medication_details;
-                if (Array.isArray(secs) && secs.length > 0) {
-                  secondaryStr = ' + ' + secs.map(s => {
-                    const n = s?.medication || s?.name || '';
-                    const d = s?.dose || s?.dosage || '';
-                    const f = s?.frequency || '';
-                    return [d, n, f].filter(Boolean).join(' ');
-                  }).filter(Boolean).join(' + ');
-                }
-              } catch {}
-              hrtText = primary + secondaryStr;
+              hrtText = parts.join(' ');
             } else if (intake && intake.on_hrt) {
               hrtText = intake.hrt_details || 'On HRT';
             }

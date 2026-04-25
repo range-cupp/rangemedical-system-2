@@ -2919,62 +2919,70 @@ export default function PatientProfile() {
         }
       }
 
+      // HRT-only fields. Sending these on a non-HRT protocol can falsely trip
+      // the WL dose-change guard (e.g. injections_per_week defaults to 2 in the
+      // form but is null in DB for WL → guard reads it as a frequency increase).
+      const isHRT = selectedProtocol.category === 'hrt';
+
+      const body = {
+        medication: editForm.medication || null,
+        selected_dose: editForm.selectedDose || null,
+        frequency: derivedFrequency,
+        start_date: dateOrNull(editForm.startDate),
+        end_date: derivedEndDate || dateOrNull(editForm.endDate),
+        status: editForm.status,
+        notes: editForm.notes || null,
+        sessions_used: editForm.sessionsUsed,
+        total_sessions: derivedTotalSessions,
+        // Peptide vial fields
+        num_vials: editForm.numVials ? parseInt(editForm.numVials) : null,
+        doses_per_vial: editForm.dosesPerVial ? parseInt(editForm.dosesPerVial) : null,
+        supply_type: editForm.supplyType || null,
+        last_refill_date: dateOrNull(editForm.lastRefillDate),
+        // Delivery & scheduling
+        delivery_method: editForm.deliveryMethod || null,
+        visit_frequency: editForm.visitFrequency || null,
+        scheduled_days: editForm.scheduledDays?.length > 0 ? editForm.scheduledDays : null,
+        last_visit_date: dateOrNull(editForm.lastVisitDate),
+        next_expected_date: dateOrNull(editForm.nextExpectedDate),
+        comp: editForm.comp || false
+      };
+
+      if (isHRT) {
+        // HRT vial-specific fields (dose_per_injection auto-derived from selected_dose)
+        body.dose_per_injection = derivedDosePerInjection;
+        body.injections_per_week = editForm.injectionsPerWeek ? parseInt(editForm.injectionsPerWeek) : null;
+        body.vial_size = editForm.vialSize ? parseFloat(editForm.vialSize) : null;
+        body.last_payment_date = dateOrNull(editForm.lastPaymentDate);
+        body.injection_method = editForm.injectionMethod || null;
+        body.secondary_medications = editForm.secondaryMedications && editForm.secondaryMedications.length > 0
+          ? JSON.stringify(editForm.secondaryMedications) : '[]';
+        body.secondary_medication_details = (() => {
+          if (!editForm.secondaryMedications || editForm.secondaryMedications.length === 0) return '[]';
+          // Merge form edits with existing supply tracking data (preserve pickup dates/vial counts)
+          const existingDetails = selectedProtocol.secondary_medication_details
+            ? (typeof selectedProtocol.secondary_medication_details === 'string'
+              ? JSON.parse(selectedProtocol.secondary_medication_details)
+              : selectedProtocol.secondary_medication_details)
+            : [];
+          const details = editForm.secondaryMedications.map(med => {
+            const existing = existingDetails.find(d => d.medication === med) || {};
+            const formInfo = editForm.secondaryMedDetails?.[med] || {};
+            return {
+              ...existing,
+              medication: med,
+              dosage: formInfo.dosage || existing.dosage || null,
+              frequency: formInfo.frequency || existing.frequency || null,
+            };
+          });
+          return JSON.stringify(details);
+        })();
+      }
+
       const res = await fetch(`/api/protocols/${selectedProtocol.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          medication: editForm.medication || null,
-          selected_dose: editForm.selectedDose || null,
-          frequency: derivedFrequency,
-          start_date: dateOrNull(editForm.startDate),
-          end_date: derivedEndDate || dateOrNull(editForm.endDate),
-          status: editForm.status,
-          notes: editForm.notes || null,
-          sessions_used: editForm.sessionsUsed,
-          total_sessions: derivedTotalSessions,
-          // Peptide vial fields
-          num_vials: editForm.numVials ? parseInt(editForm.numVials) : null,
-          doses_per_vial: editForm.dosesPerVial ? parseInt(editForm.dosesPerVial) : null,
-          // HRT vial-specific fields (dose_per_injection auto-derived from selected_dose for HRT)
-          dose_per_injection: derivedDosePerInjection,
-          injections_per_week: editForm.injectionsPerWeek ? parseInt(editForm.injectionsPerWeek) : null,
-          vial_size: editForm.vialSize ? parseFloat(editForm.vialSize) : null,
-          supply_type: editForm.supplyType || null,
-          last_refill_date: dateOrNull(editForm.lastRefillDate),
-          last_payment_date: dateOrNull(editForm.lastPaymentDate),
-          // HRT injection method
-          injection_method: editForm.injectionMethod || null,
-          // HRT secondary medications + dosage/frequency details
-          secondary_medications: editForm.secondaryMedications && editForm.secondaryMedications.length > 0
-            ? JSON.stringify(editForm.secondaryMedications) : '[]',
-          secondary_medication_details: (() => {
-            if (!editForm.secondaryMedications || editForm.secondaryMedications.length === 0) return '[]';
-            // Merge form edits with existing supply tracking data (preserve pickup dates/vial counts)
-            const existingDetails = selectedProtocol.secondary_medication_details
-              ? (typeof selectedProtocol.secondary_medication_details === 'string'
-                ? JSON.parse(selectedProtocol.secondary_medication_details)
-                : selectedProtocol.secondary_medication_details)
-              : [];
-            const details = editForm.secondaryMedications.map(med => {
-              const existing = existingDetails.find(d => d.medication === med) || {};
-              const formInfo = editForm.secondaryMedDetails?.[med] || {};
-              return {
-                ...existing,
-                medication: med,
-                dosage: formInfo.dosage || existing.dosage || null,
-                frequency: formInfo.frequency || existing.frequency || null,
-              };
-            });
-            return JSON.stringify(details);
-          })(),
-          // Delivery & scheduling
-          delivery_method: editForm.deliveryMethod || null,
-          visit_frequency: editForm.visitFrequency || null,
-          scheduled_days: editForm.scheduledDays?.length > 0 ? editForm.scheduledDays : null,
-          last_visit_date: dateOrNull(editForm.lastVisitDate),
-          next_expected_date: dateOrNull(editForm.nextExpectedDate),
-          comp: editForm.comp || false
-        })
+        body: JSON.stringify(body)
       });
 
       if (res.ok) {

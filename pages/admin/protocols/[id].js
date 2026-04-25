@@ -1860,10 +1860,10 @@ export default function ProtocolDetail() {
                     return diffDays <= 3 && (p.quantity || 0) > 0;
                   });
 
-                  // Auto-populate take-home sessions from pickup
-                  // If there's a pickup with N injections, and fewer than N+1 sessions are logged
-                  // (the +1 accounts for the in-clinic session on pickup day),
-                  // fill remaining slots with projected weekly take-home dates
+                  // Auto-populate take-home sessions from pickup.
+                  // Anchor projections to the next occurrence of the patient's injection_day on or
+                  // after the pickup date so the cadence stays consistent (e.g. every Tuesday) even
+                  // when pickups happen on off-days. Falls back to pickup_date + 7 if no injection_day.
                   let filledInjections = [...groupInjections];
                   if (matchedPickup && filledInjections.length < injectionsPerPurchase) {
                     const pickupQty = matchedPickup.quantity || 0;
@@ -1871,10 +1871,20 @@ export default function ProtocolDetail() {
                     const pickupDose = (matchedPickup.dosage || '').replace(/\d+\s*week\s*supply\s*@\s*/i, '').trim();
                     const loggedDates = new Set(filledInjections.map(l => l.log_date));
 
+                    const DAY_NAME_TO_NUM = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+                    const targetDayNum = DAY_NAME_TO_NUM[protocol.injection_day];
+                    const anchorDate = new Date(pickupDate);
+                    if (targetDayNum != null) {
+                      const daysToShift = (targetDayNum - anchorDate.getDay() + 7) % 7;
+                      anchorDate.setDate(anchorDate.getDate() + daysToShift);
+                    } else {
+                      anchorDate.setDate(anchorDate.getDate() + 7);
+                    }
+
                     // Generate projected weekly dates for each take-home injection
-                    for (let w = 1; w <= pickupQty; w++) {
+                    for (let w = 0; w < pickupQty; w++) {
                       if (filledInjections.length >= injectionsPerPurchase) break;
-                      const projDate = new Date(pickupDate);
+                      const projDate = new Date(anchorDate);
                       projDate.setDate(projDate.getDate() + (w * 7));
                       const projDateStr = projDate.toISOString().split('T')[0];
 

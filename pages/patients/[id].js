@@ -7412,10 +7412,15 @@ export default function PatientProfile() {
 
                                       const sortedLogs = [...wlLogs].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
 
-                                      // Inject projected take-home sessions from pickup data
-                                      // When a patient picks up N injections, generate N weekly projected dates
-                                      // anchored to the pickup date (pickup day = first injection). Skip dates
-                                      // that already have a logged session within ±3 days.
+                                      // Inject projected take-home sessions from pickup data.
+                                      // When a patient picks up N injections, generate N weekly projected dates.
+                                      // Anchor to the next occurrence of the patient's injection_day on or after
+                                      // the pickup date so the cadence stays consistent (e.g. every Tuesday) even
+                                      // when pickups happen on off-days. Falls back to the pickup date itself if
+                                      // no injection_day is set. Dates already covered by a logged session
+                                      // (within ±3 days) are skipped.
+                                      const DAY_NAME_TO_NUM = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+                                      const targetDayNum = DAY_NAME_TO_NUM[protocol.injection_day];
                                       const logsWithProjected = [...sortedLogs];
                                       if (wlDeliveryLogs.length > 0) {
                                         for (const pickup of wlDeliveryLogs) {
@@ -7424,8 +7429,14 @@ export default function PatientProfile() {
                                           const pickupDate = new Date(pickup.entry_date + 'T12:00:00');
                                           const pickupDose = parseDose(pickup.dosage) || protocol.selected_dose || null;
 
+                                          const anchorDate = new Date(pickupDate);
+                                          if (targetDayNum != null) {
+                                            const daysToShift = (targetDayNum - anchorDate.getDay() + 7) % 7;
+                                            anchorDate.setDate(anchorDate.getDate() + daysToShift);
+                                          }
+
                                           for (let w = 0; w < pickupQty; w++) {
-                                            const projDate = new Date(pickupDate);
+                                            const projDate = new Date(anchorDate);
                                             projDate.setDate(projDate.getDate() + w * intervalDays);
                                             const projStr = projDate.toISOString().split('T')[0];
 

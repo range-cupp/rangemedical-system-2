@@ -12,9 +12,11 @@ const FIELD_LABELS = {
   sessions_used:       'Sessions',
   total_sessions:      'Total',
   injection_type:      'Type',
+  prize_type:          'Type',
   target:              'Target',
   lab_type:            'Lab',
   labs_drawn_at:       'Drawn',
+  scheduled_for:       'Scheduled',
   source:              'Source',
   path:                'Path',
   urgency:             'Urgency',
@@ -27,6 +29,11 @@ const FIELD_LABELS = {
   last_payment:        'Paid',
   next_payment:        'Bills',
   payment:             'Billing',
+};
+
+const PRIZE_TYPE_LABELS = {
+  red_light: 'Red Light',
+  hbot:      'HBOT',
 };
 
 const PAYMENT_STATUS_LABELS = {
@@ -56,6 +63,17 @@ function formatShortDate(iso) {
   const d = new Date(iso);
   if (Number.isNaN(+d)) return null;
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+
+function formatScheduledPacific(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(+d)) return null;
+  return d.toLocaleString('en-US', {
+    timeZone: 'America/Los_Angeles',
+    month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+  });
 }
 
 function daysUntil(iso) {
@@ -150,6 +168,14 @@ function formatFieldValue(key, card) {
     if (!t) return null;
     const labels = { prp: 'PRP', exosomes: 'Exosomes', nad: 'NAD+', range: 'Range', specialty: 'Specialty' };
     return labels[t] || t.toUpperCase();
+  }
+  if (key === 'prize_type') {
+    const t = meta.prize_type;
+    if (!t) return null;
+    return PRIZE_TYPE_LABELS[t] || t.replace(/_/g, ' ').toUpperCase();
+  }
+  if (key === 'scheduled_for') {
+    return formatScheduledPacific(card.scheduled_for);
   }
   if (key === 'target')            return meta.target || null;
   if (key === 'lab_type')          return meta.lab_type || null;

@@ -236,8 +236,6 @@ export default async function handler(req, res) {
         notes: notesBlob,
         meta: {
           prize_type: trialType === 'rlt' ? 'red_light' : 'hbot',
-          sessions_used: 0,
-          total_sessions: 5,
           trial_pass_id: trialPassId,
           lead_tier: leadTier,
           lead_score: leadScore,
@@ -249,15 +247,15 @@ export default async function handler(req, res) {
       console.error('Free session pipeline card create error:', cardErr);
     }
 
-    // 4c. Create a follow-up task for Damien and SMS him.
+    // 4c. Create a follow-up task for Damon and SMS him.
     // Non-blocking — log and continue if it fails.
     try {
-      const { data: damien } = await supabase
+      const { data: damon } = await supabase
         .from('employees')
         .select('id')
-        .eq('email', 'burgess@range-medical.com')
+        .eq('email', 'damon@range-medical.com')
         .single();
-      if (damien?.id) {
+      if (damon?.id) {
         const taskTitle = `Schedule free ${config.shortLabel}: ${customerName}`;
         const description = [
           `${customerName} signed up for a free ${config.label} session and needs to be scheduled.`,
@@ -272,21 +270,21 @@ export default async function handler(req, res) {
         await supabase.from('tasks').insert({
           title: taskTitle,
           description,
-          assigned_to: damien.id,
-          assigned_by: damien.id,
+          assigned_to: damon.id,
+          assigned_by: damon.id,
           patient_id: patientId,
           patient_name: customerName,
           priority,
           status: 'pending',
         });
-        notifyTaskAssignee(damien.id, {
+        notifyTaskAssignee(damon.id, {
           assignerName: 'Range Medical',
           taskTitle,
           priority,
-        }).catch((err) => console.error('Damien free-session task SMS error:', err));
+        }).catch((err) => console.error('Damon free-session task SMS error:', err));
       }
     } catch (taskErr) {
-      console.error('Damien free-session task insert error:', taskErr);
+      console.error('Damon free-session task insert error:', taskErr);
     }
 
     // 5. Resolve Cal.com event type ID for self-booking

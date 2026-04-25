@@ -5041,7 +5041,7 @@ export default function PatientProfile() {
                           <span style={{ color: '#6b7280' }}>Current: </span>
                           <span style={{ fontWeight: 700, color: '#7c3aed' }}>{protocol.selected_dose}</span>
                           {protocol.injections_per_week && (
-                            <span style={{ color: '#6b7280', marginLeft: 6 }}>· {protocol.injections_per_week}x/wk</span>
+                            <span style={{ color: '#6b7280', marginLeft: 6 }}>· {protocol.injections_per_week === 2 ? 'every 3.5 days' : `${protocol.injections_per_week}x/wk`}</span>
                           )}
                         </span>
                       )}
@@ -14145,7 +14145,7 @@ export default function PatientProfile() {
               <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700 }}>Dose Change</h3>
               <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
                 Current: <strong style={{ color: '#111' }}>{doseChangeProtocol.selected_dose}</strong>
-                {doseChangeProtocol.injections_per_week && <span> &middot; {doseChangeProtocol.injections_per_week}x/wk</span>}
+                {doseChangeProtocol.injections_per_week && <span> &middot; {doseChangeProtocol.category === 'hrt' && doseChangeProtocol.injections_per_week === 2 ? 'every 3.5 days' : `${doseChangeProtocol.injections_per_week}x/wk`}</span>}
               </div>
 
               {/* ── APPROVAL PENDING STATE ── */}

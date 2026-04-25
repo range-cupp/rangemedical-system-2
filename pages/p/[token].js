@@ -612,6 +612,7 @@ function formatFrequency(freq) {
     twice_daily: 'Twice daily',
     weekly: 'Once weekly',
     '2x_weekly': '2x per week',
+    'every_3_5_days': 'Every 3.5 days',
     '3x_weekly': '3x per week',
     '5_on_2_off': '5 days on, 2 off',
     as_needed: 'As needed'

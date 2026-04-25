@@ -50,7 +50,8 @@ const FREQUENCY_DISPLAY = {
   '5_on_2_off': { label: '5 On / 2 Off', schedule: 'Mon-Fri, rest Sat-Sun' },
   'every_other_day': { label: 'Every Other Day', schedule: 'Alternating days' },
   '3x_weekly': { label: '3× Weekly', schedule: 'Mon, Wed, Fri' },
-  '2x_weekly': { label: '2× Weekly', schedule: 'Monday & Thursday' },
+  '2x_weekly': { label: 'Every 3.5 days', schedule: 'Every 3.5 days' },
+  'every_3_5_days': { label: 'Every 3.5 days', schedule: 'Every 3.5 days' },
   'weekly': { label: 'Weekly', schedule: 'Once per week' },
   '3x weekly': { label: '3× Weekly', schedule: 'Mon, Wed, Fri' },
   '2x weekly': { label: '2× Weekly', schedule: 'Monday & Thursday' },
@@ -541,7 +542,7 @@ export default function PatientTracker() {
         days.push({ day: i * 7 + 3, label: `Wk${i + 1}`, subLabel: 'Wed' });
         days.push({ day: i * 7 + 5, label: `Wk${i + 1}`, subLabel: 'Fri' });
       }
-    } else if (f.includes('2x_weekly') || f.includes('2x weekly')) {
+    } else if (f.includes('2x_weekly') || f.includes('2x weekly') || f.includes('every_3_5_days') || f.includes('every 3.5')) {
       const weeks = Math.ceil(duration / 7);
       for (let i = 0; i < weeks; i++) {
         days.push({ day: i * 7 + 1, label: `Wk${i + 1}`, subLabel: 'Mon' });

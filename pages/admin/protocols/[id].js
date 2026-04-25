@@ -24,6 +24,7 @@ function normalizeFrequencyValue(freq) {
   if (f === 'daily' || f === 'once daily' || f === '1x daily' || f === '1x_daily') return 'daily';
   if (f === '2x daily' || f === 'twice daily' || f === '2x_daily') return '2x_daily';
   if (f === '2x weekly' || f === '2x_weekly' || f === 'twice weekly') return '2x_weekly';
+  if (f === 'every 3.5 days' || f === 'every_3_5_days' || f === 'every 3.5 day') return 'every_3_5_days';
   if (f === 'weekly' || f === 'once per week' || f === 'once weekly') return 'weekly';
   if (f === 'per session' || f === 'per_session') return 'per_session';
   // Ambiguous like "Daily or 2x daily" — default to daily (user sets exact in edit mode)
@@ -1141,6 +1142,7 @@ export default function ProtocolDetail() {
     if (freq === '2x_daily') return 14;
     if (freq === 'weekly') return 1;
     if (freq === '2x_weekly') return 2;
+    if (freq === 'every_3_5_days') return 2;
     return 1;
   };
 
@@ -1280,9 +1282,10 @@ export default function ProtocolDetail() {
                 <div style={styles.dayStatus}>
                   <span style={styles.activeText}>
                     {protocol?.medication || 'HRT Protocol'} · {
-                      protocol?.frequency === '2x_weekly' ? '2x per week' :
+                      protocol?.frequency === 'every_3_5_days' ? 'Every 3.5 days' :
+                      protocol?.frequency === '2x_weekly' ? 'Every 3.5 days' :
                       protocol?.frequency === 'weekly' ? 'Weekly' :
-                      protocol?.frequency || '2x per week'
+                      protocol?.frequency || 'Every 3.5 days'
                     }
                   </span>
                 </div>
@@ -4284,7 +4287,7 @@ function formatDate(d) {
 }
 
 function formatFrequency(f) {
-  const map = { daily: 'Daily', '2x_daily': 'Twice Daily', '2x_weekly': '2x per week', weekly: 'Weekly', per_session: 'Per session' };
+  const map = { daily: 'Daily', '2x_daily': 'Twice Daily', '2x_weekly': '2x per week', every_3_5_days: 'Every 3.5 days', weekly: 'Weekly', per_session: 'Per session' };
   return map[f] || f || '—';
 }
 

@@ -172,7 +172,7 @@ export default function HRTGuide() {
               <div className="step-number">3</div>
               <div className="step-content">
                 <h4>Learn to Inject</h4>
-                <p>We teach you injection technique at the clinic. Testosterone is typically 2x per week. Most patients self-inject at home in under a minute.</p>
+                <p>We teach you injection technique at the clinic. Testosterone is typically dosed every 3.5 days. Most patients self-inject at home in under a minute.</p>
               </div>
             </div>
             <div className="step-item">

@@ -36,7 +36,7 @@ const PROTOCOL_TYPES = {
       { value: '0.4ml/80mg', label: '0.4ml / 80mg' },
       { value: '0.5ml/100mg', label: '0.5ml / 100mg' }
     ],
-    frequencies: [{ value: '2x_weekly', label: '2x per week' }],
+    frequencies: [{ value: 'every_3_5_days', label: 'Every 3.5 days' }],
     supplyTypes: [
       { value: 'prefilled', label: 'Prefilled Syringes (8/month)' },
       { value: 'vial', label: 'Vial (10ml)' }

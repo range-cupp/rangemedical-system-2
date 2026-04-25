@@ -556,7 +556,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
           dosage: protocol?.selected_dose || '',
         }));
         setEntryType(protocol?.delivery_method === 'take_home' ? 'pickup' : 'injection');
-        setProtocolData(prev => ({ ...prev, frequency: '2x_weekly', supplyType: 'prefilled' }));
+        setProtocolData(prev => ({ ...prev, frequency: 'every_3_5_days', supplyType: 'prefilled' }));
       }
     }
   };
@@ -1526,7 +1526,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                             style={slcStyles.select}
                           >
                             <option value="">Select frequency...</option>
-                            <option value="2">2x per week</option>
+                            <option value="2">Every 3.5 days</option>
                             <option value="3">3x per week</option>
                             <option value="7">Daily (SubQ)</option>
                           </select>

@@ -331,7 +331,7 @@ function formatDate(d) {
 }
 
 function formatFrequency(f) {
-  const map = { daily: 'Daily', '2x_daily': 'Twice Daily', '2x_weekly': '2x per week', weekly: 'Weekly' };
+  const map = { daily: 'Daily', '2x_daily': 'Twice Daily', '2x_weekly': '2x per week', every_3_5_days: 'Every 3.5 days', weekly: 'Weekly' };
   return map[f] || f || '—';
 }
 

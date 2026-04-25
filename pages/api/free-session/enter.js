@@ -8,6 +8,7 @@ import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import stripe from '../../../lib/stripe';
 import { getEventTypes } from '../../../lib/calcom';
+import { createCard } from '../../../lib/pipelines-server';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const supabase = createClient(
@@ -218,6 +219,34 @@ export default async function handler(req, res) {
     }
 
     const trialPassId = trial.id;
+
+    // 4b. Create Free Sessions pipeline card. Non-blocking — log and continue
+    // if it fails so the trial pass + notifications still go out.
+    try {
+      await createCard({
+        pipeline: 'free_sessions',
+        stage: 'needs_scheduling',
+        patient_id: patientId,
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        email: normalizedEmail,
+        phone: phone.trim(),
+        source: config.source,
+        notes: notesBlob,
+        meta: {
+          prize_type: trialType === 'rlt' ? 'red_light' : 'hbot',
+          sessions_used: 0,
+          total_sessions: 5,
+          trial_pass_id: trialPassId,
+          lead_tier: leadTier,
+          lead_score: leadScore,
+        },
+        triggered_by: 'free_session_enter',
+        automation_reason: `Free ${config.label} session opt-in`,
+      });
+    } catch (cardErr) {
+      console.error('Free session pipeline card create error:', cardErr);
+    }
 
     // 5. Resolve Cal.com event type ID for self-booking
     let eventTypeId = null;

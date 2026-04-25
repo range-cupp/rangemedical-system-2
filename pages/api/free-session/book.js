@@ -11,6 +11,7 @@ import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
 import stripe from '../../../lib/stripe';
+import { moveCard } from '../../../lib/pipelines-server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -205,6 +206,31 @@ export default async function handler(req, res) {
         if (error) console.error('appointments insert error:', error);
       })(),
     ]);
+
+    // Move the matching Free Sessions pipeline card to "scheduled".
+    // Non-blocking — log and continue if it fails.
+    try {
+      const { data: card } = await supabase
+        .from('pipeline_cards')
+        .select('id')
+        .eq('pipeline', 'free_sessions')
+        .eq('status', 'active')
+        .filter('meta->>trial_pass_id', 'eq', trialId)
+        .maybeSingle();
+      if (card?.id) {
+        await moveCard({
+          card_id: card.id,
+          to_stage: 'scheduled',
+          scheduled_for: startDate.toISOString(),
+          triggered_by: 'free_session_book',
+          automation_reason: 'Cal.com slot booked via /api/free-session/book',
+        });
+      } else {
+        console.warn('No free_sessions card found for trial_pass', trialId);
+      }
+    } catch (cardErr) {
+      console.error('Free session pipeline card move error:', cardErr);
+    }
 
     // SMS confirmation to lead
     const prettyWhen = formatPacific(startDate.toISOString());

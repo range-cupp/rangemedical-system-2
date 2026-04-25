@@ -195,6 +195,7 @@ async function updateProtocol(id, updates, res, req) {
     'last_refill_date',
     'supply_type',
     'notes',
+    'sig',
     'program_name',
     'program_type',
     'starting_weight',

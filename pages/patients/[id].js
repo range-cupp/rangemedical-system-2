@@ -5969,7 +5969,8 @@ export default function PatientProfile() {
               const catStyle = getCategoryStyle(proto.category);
               const medName = proto.medication || getProtocolDisplayName(proto);
               const dose = proto.selected_dose || proto.starting_dose || '';
-              const freq = proto.frequency || '';
+              const ipw = parseInt(proto.injections_per_week);
+              const freq = proto.frequency || (ipw > 0 ? `${ipw}x per week` : '');
               const supply = proto.supply_type ? proto.supply_type.replace(/_/g, ' ') : '';
 
               // Enrich display for HRT injectable medications (testosterone)
@@ -5999,7 +6000,7 @@ export default function PatientProfile() {
                 id: `proto-${proto.id}`,
                 medication_name: displayName,
                 strength: displayStrength,
-                sig: displaySig,
+                sig: proto.sig || displaySig,
                 start_date: proto.start_date,
                 source: proto.category ? proto.category.toUpperCase() : 'Protocol',
                 catStyle,
@@ -6156,26 +6157,28 @@ export default function PatientProfile() {
                             padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600,
                             background: '#dcfce7', color: '#166534', whiteSpace: 'nowrap',
                           }}>Active</span>
-                          {employee?.is_admin && !med.from_protocol && (
+                          {employee?.is_admin && (
                             <>
                               <button onClick={() => { setMedEditMode('edit'); setMedEditForm(med); setShowMedEditModal(true); }} style={{
                                 background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
-                              }} title="Edit medication">✏️</button>
-                              <button onClick={async () => {
-                                if (!confirm(`Delete ${med.medication_name || 'this medication'}? This cannot be undone.`)) return;
-                                try {
-                                  await fetch(`/api/patients/${patient.id}/medications`, {
-                                    method: 'DELETE',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ id: med.id }),
-                                  });
-                                  const res = await fetch(`/api/patients/${patient.id}`);
-                                  const data = await res.json();
-                                  if (data.medications) setMedications(data.medications);
-                                } catch (err) { console.error(err); alert('Failed to delete medication'); }
-                              }} style={{
-                                background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
-                              }} title="Delete medication">🗑️</button>
+                              }} title={med.from_protocol ? 'Edit SIG' : 'Edit medication'}>✏️</button>
+                              {!med.from_protocol && (
+                                <button onClick={async () => {
+                                  if (!confirm(`Delete ${med.medication_name || 'this medication'}? This cannot be undone.`)) return;
+                                  try {
+                                    await fetch(`/api/patients/${patient.id}/medications`, {
+                                      method: 'DELETE',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ id: med.id }),
+                                    });
+                                    const res = await fetch(`/api/patients/${patient.id}`);
+                                    const data = await res.json();
+                                    if (data.medications) setMedications(data.medications);
+                                  } catch (err) { console.error(err); alert('Failed to delete medication'); }
+                                }} style={{
+                                  background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
+                                }} title="Delete medication">🗑️</button>
+                              )}
                             </>
                           )}
                         </div>
@@ -11209,10 +11212,15 @@ export default function PatientProfile() {
           <div className="modal-overlay" {...overlayClickProps(() => setShowMedEditModal(false))}>
             <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
               <div className="modal-header">
-                <h3>{medEditMode === 'add' ? 'Add Medication' : 'Edit Medication'}</h3>
+                <h3>{medEditMode === 'add' ? 'Add Medication' : medEditForm.from_protocol ? 'Edit Protocol Medication' : 'Edit Medication'}</h3>
                 <button onClick={() => setShowMedEditModal(false)} className="modal-close">✕</button>
               </div>
               <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {medEditForm.from_protocol && (
+                  <div style={{ padding: '10px 12px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 0, fontSize: 12, color: '#475569' }}>
+                    This medication is generated from an active protocol. Only the <strong>SIG</strong> can be edited here. Dose, frequency, and other structured fields must be changed via the protocol itself.
+                  </div>
+                )}
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Medication Name *</label>
                   <input
@@ -11220,7 +11228,8 @@ export default function PatientProfile() {
                     value={medEditForm.medication_name}
                     onChange={e => setMedEditForm(f => ({ ...f, medication_name: e.target.value }))}
                     placeholder="e.g., Testosterone Cypionate"
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                    disabled={medEditForm.from_protocol}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, background: medEditForm.from_protocol ? '#f9fafb' : '#fff' }}
                   />
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>
@@ -11231,7 +11240,8 @@ export default function PatientProfile() {
                       value={medEditForm.strength}
                       onChange={e => setMedEditForm(f => ({ ...f, strength: e.target.value }))}
                       placeholder="e.g., 200mg/ml"
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                      disabled={medEditForm.from_protocol}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, background: medEditForm.from_protocol ? '#f9fafb' : '#fff' }}
                     />
                   </div>
                   <div style={{ flex: 1 }}>
@@ -11241,7 +11251,8 @@ export default function PatientProfile() {
                       value={medEditForm.form}
                       onChange={e => setMedEditForm(f => ({ ...f, form: e.target.value }))}
                       placeholder="e.g., Injection, Tablet"
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                      disabled={medEditForm.from_protocol}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, background: medEditForm.from_protocol ? '#f9fafb' : '#fff' }}
                     />
                   </div>
                 </div>
@@ -11249,77 +11260,86 @@ export default function PatientProfile() {
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Sig (Directions)</label>
                   <input
                     type="text"
-                    value={medEditForm.sig}
+                    value={medEditForm.sig || ''}
                     onChange={e => setMedEditForm(f => ({ ...f, sig: e.target.value }))}
-                    placeholder="e.g., 0.4ml IM 2x/week"
+                    placeholder="e.g., Administer 0.25ml (50mg) Intramuscularly 2x per week"
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
                   />
-                </div>
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Start Date</label>
-                    <input
-                      type="date"
-                      value={medEditForm.start_date || ''}
-                      onChange={e => setMedEditForm(f => ({ ...f, start_date: e.target.value }))}
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Source</label>
-                    <input
-                      type="text"
-                      value={medEditForm.source}
-                      onChange={e => setMedEditForm(f => ({ ...f, source: e.target.value }))}
-                      placeholder="e.g., Range Medical, Outside Rx"
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
-                    />
-                  </div>
-                </div>
-                <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 14, marginTop: 2 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#166534', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Last Pickup</label>
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Pickup Date</label>
-                      <input
-                        type="date"
-                        value={medEditForm.last_pickup_date || ''}
-                        onChange={e => setMedEditForm(f => ({ ...f, last_pickup_date: e.target.value }))}
-                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
-                      />
+                  {medEditForm.from_protocol && (
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                      Leave blank to auto-compose from dose and frequency. Set a value to override.
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Quantity</label>
-                      <input
-                        type="number"
-                        value={medEditForm.last_pickup_quantity || ''}
-                        onChange={e => setMedEditForm(f => ({ ...f, last_pickup_quantity: e.target.value }))}
-                        placeholder="e.g., 60"
-                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
-                      />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Unit</label>
-                      <select
-                        value={medEditForm.quantity_unit || 'pills'}
-                        onChange={e => setMedEditForm(f => ({ ...f, quantity_unit: e.target.value }))}
-                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, background: '#fff' }}
-                      >
-                        <option value="pills">Pills</option>
-                        <option value="tablets">Tablets</option>
-                        <option value="capsules">Capsules</option>
-                        <option value="vials">Vials</option>
-                        <option value="syringes">Syringes</option>
-                        <option value="ml">mL</option>
-                        <option value="units">Units</option>
-                      </select>
-                    </div>
-                  </div>
+                  )}
                 </div>
+                {!medEditForm.from_protocol && (
+                  <>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Start Date</label>
+                        <input
+                          type="date"
+                          value={medEditForm.start_date || ''}
+                          onChange={e => setMedEditForm(f => ({ ...f, start_date: e.target.value }))}
+                          style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Source</label>
+                        <input
+                          type="text"
+                          value={medEditForm.source}
+                          onChange={e => setMedEditForm(f => ({ ...f, source: e.target.value }))}
+                          placeholder="e.g., Range Medical, Outside Rx"
+                          style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 14, marginTop: 2 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#166534', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Last Pickup</label>
+                      <div style={{ display: 'flex', gap: 12 }}>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Pickup Date</label>
+                          <input
+                            type="date"
+                            value={medEditForm.last_pickup_date || ''}
+                            onChange={e => setMedEditForm(f => ({ ...f, last_pickup_date: e.target.value }))}
+                            style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                          />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Quantity</label>
+                          <input
+                            type="number"
+                            value={medEditForm.last_pickup_quantity || ''}
+                            onChange={e => setMedEditForm(f => ({ ...f, last_pickup_quantity: e.target.value }))}
+                            placeholder="e.g., 60"
+                            style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                          />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Unit</label>
+                          <select
+                            value={medEditForm.quantity_unit || 'pills'}
+                            onChange={e => setMedEditForm(f => ({ ...f, quantity_unit: e.target.value }))}
+                            style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, background: '#fff' }}
+                          >
+                            <option value="pills">Pills</option>
+                            <option value="tablets">Tablets</option>
+                            <option value="capsules">Capsules</option>
+                            <option value="vials">Vials</option>
+                            <option value="syringes">Syringes</option>
+                            <option value="ml">mL</option>
+                            <option value="units">Units</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
               <div style={{ padding: '12px 20px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  {medEditMode === 'edit' && (
+                  {medEditMode === 'edit' && !medEditForm.from_protocol && (
                     <button
                       onClick={async () => {
                         if (!confirm('Discontinue this medication?')) return;
@@ -11352,16 +11372,30 @@ export default function PatientProfile() {
                       if (!medEditForm.medication_name.trim()) return alert('Medication name is required');
                       setMedEditSaving(true);
                       try {
-                        await fetch(`/api/patients/${patient.id}/medications`, {
-                          method: medEditMode === 'add' ? 'POST' : 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ ...medEditForm, is_active: true }),
-                        });
-                        setShowMedEditModal(false);
-                        // Refresh medications
-                        const res = await fetch(`/api/patients/${patient.id}`);
-                        const data = await res.json();
-                        if (data.medications) setMedications(data.medications);
+                        if (medEditForm.from_protocol && medEditForm.protocol_id) {
+                          await fetch(`/api/protocols/${medEditForm.protocol_id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ sig: (medEditForm.sig || '').trim() || null }),
+                          });
+                          setShowMedEditModal(false);
+                          // Refresh patient data so the new SIG flows back into protocol-derived meds
+                          const res = await fetch(`/api/patients/${patient.id}`);
+                          const data = await res.json();
+                          if (data.activeProtocols) setActiveProtocols(data.activeProtocols);
+                          if (data.medications) setMedications(data.medications);
+                        } else {
+                          await fetch(`/api/patients/${patient.id}/medications`, {
+                            method: medEditMode === 'add' ? 'POST' : 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ...medEditForm, is_active: true }),
+                          });
+                          setShowMedEditModal(false);
+                          // Refresh medications
+                          const res = await fetch(`/api/patients/${patient.id}`);
+                          const data = await res.json();
+                          if (data.medications) setMedications(data.medications);
+                        }
                       } catch (err) { console.error(err); alert('Failed to save medication'); }
                       finally { setMedEditSaving(false); }
                     }}

@@ -362,6 +362,9 @@ function getVialRefillDate(protocol) {
     'Every other day': 3.5,
     '3x per week': 3,
     '2x per week': 2,
+    'every_3_5_days': 2,
+    'Every 3.5 days': 2,
+    '2x_weekly': 2,
     'Weekly': 1,
     'Every 10 days': 0.7,
     'Every 2 weeks': 0.5,
@@ -3358,7 +3361,7 @@ export default function CommandCenter() {
                     value={assignForm.hrtType || 'male'}
                     onChange={e => {
                       const hrtType = e.target.value;
-                      setAssignForm({...assignForm, hrtType, selectedDose: '', medication: HRT_MEDICATIONS[0], frequency: assignForm.hrtReminderSchedule === 'daily' ? '7x per week' : '2x per week', deliveryMethod: assignForm.deliveryMethod || 'take_home'});
+                      setAssignForm({...assignForm, hrtType, selectedDose: '', medication: HRT_MEDICATIONS[0], frequency: assignForm.hrtReminderSchedule === 'daily' ? '7x per week' : 'every_3_5_days', deliveryMethod: assignForm.deliveryMethod || 'take_home'});
                     }}
                     style={styles.formSelect}
                   >
@@ -3456,7 +3459,7 @@ export default function CommandCenter() {
                           ))}
                         </select>
                         <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
-                          At 2x/week — next supply due in {Math.round(((assignForm.hrtQuantity || 8) / 2) * 10) / 10} weeks
+                          Every 3.5 days — next supply due in {Math.round(((assignForm.hrtQuantity || 8) / 2) * 10) / 10} weeks
                         </div>
                       </div>
                     )}

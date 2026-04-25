@@ -2873,7 +2873,7 @@ export default function PatientProfile() {
       if (selectedProtocol.category === 'hrt') {
         const ipw = parseInt(editForm.injectionsPerWeek);
         if (ipw === 1) derivedFrequency = 'Weekly';
-        else if (ipw === 2) derivedFrequency = '2x per week';
+        else if (ipw === 2) derivedFrequency = 'every 3.5 days';
         else if (ipw === 3) derivedFrequency = '3x per week';
         else if (ipw === 7) derivedFrequency = 'Daily';
 
@@ -5970,7 +5970,20 @@ export default function PatientProfile() {
               const medName = proto.medication || getProtocolDisplayName(proto);
               const dose = proto.selected_dose || proto.starting_dose || '';
               const ipw = parseInt(proto.injections_per_week);
-              const freq = proto.frequency || (ipw > 0 ? `${ipw}x per week` : '');
+              // Human-friendly frequency map (testosterone uses "every 3.5 days" instead of "2x per week")
+              const freqLabelMap = {
+                'every_3_5_days': 'every 3.5 days',
+                '2x_weekly': 'every 3.5 days',
+                '2x per week': 'every 3.5 days',
+                '2x weekly': 'every 3.5 days',
+                'twice weekly': 'every 3.5 days',
+                '2x/week': 'every 3.5 days',
+                '3x_weekly': '3x per week',
+                'weekly': 'Weekly',
+                'daily': 'Daily',
+              };
+              const ipwFallback = ipw === 2 ? 'every 3.5 days' : (ipw > 0 ? `${ipw}x per week` : '');
+              const freq = freqLabelMap[proto.frequency] || proto.frequency || ipwFallback;
               const supply = proto.supply_type ? proto.supply_type.replace(/_/g, ' ') : '';
 
               // Enrich display for HRT injectable medications (testosterone)
@@ -11262,7 +11275,7 @@ export default function PatientProfile() {
                     type="text"
                     value={medEditForm.sig || ''}
                     onChange={e => setMedEditForm(f => ({ ...f, sig: e.target.value }))}
-                    placeholder="e.g., Administer 0.25ml (50mg) Intramuscularly 2x per week"
+                    placeholder="e.g., Administer 0.25ml (50mg) Intramuscularly every 3.5 days"
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
                   />
                   {medEditForm.from_protocol && (
@@ -12003,7 +12016,7 @@ export default function PatientProfile() {
                                   onClick={() => setAssignForm({
                                     ...assignForm,
                                     injectionMethod: m.value,
-                                    frequency: m.value === 'subq' ? '7 days a week' : '2x per week',
+                                    frequency: m.value === 'subq' ? '7 days a week' : 'every 3.5 days',
                                     injectionsPerWeek: m.value === 'subq' ? '7' : '2'
                                   })}
                                   style={{
@@ -12019,7 +12032,7 @@ export default function PatientProfile() {
                             </div>
                             {assignForm.injectionMethod && (
                               <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280' }}>
-                                {assignForm.injectionMethod === 'im' ? '2x per week (IM)' : '7 days a week (SubQ)'}
+                                {assignForm.injectionMethod === 'im' ? 'Every 3.5 days (IM)' : '7 days a week (SubQ)'}
                               </div>
                             )}
                           </div>
@@ -12746,7 +12759,7 @@ export default function PatientProfile() {
                         <label>Injections/Week</label>
                         <select value={editForm.injectionsPerWeek} onChange={e => setEditForm({...editForm, injectionsPerWeek: parseInt(e.target.value)})}>
                           <option value={1}>1x per week</option>
-                          <option value={2}>2x per week</option>
+                          <option value={2}>Every 3.5 days</option>
                           <option value={3}>3x per week</option>
                           <option value={7}>7 days a week</option>
                         </select>
@@ -14262,7 +14275,7 @@ export default function PatientProfile() {
                       <select value={doseChangeForm.injectionsPerWeek} onChange={e => setDoseChangeForm(f => ({ ...f, injectionsPerWeek: e.target.value }))}
                         style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}>
                         <option value="1">1x per week</option>
-                        <option value="2">2x per week</option>
+                        <option value="2">Every 3.5 days</option>
                         <option value="3">3x per week</option>
                         <option value="7">Daily</option>
                       </select>

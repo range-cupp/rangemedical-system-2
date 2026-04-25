@@ -72,9 +72,18 @@ export default function HRTPortal() {
     if (protocol.scheduledDays && Array.isArray(protocol.scheduledDays) && protocol.scheduledDays.length > 0) {
       return protocol.scheduledDays.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(' & ');
     }
-    if (protocol.frequency) return protocol.frequency;
+    if (protocol.frequency) {
+      const freqMap = {
+        'every_3_5_days': 'Every 3.5 days',
+        '2x_weekly': 'Every 3.5 days',
+        '2x per week': 'Every 3.5 days',
+        'weekly': 'Weekly',
+        'daily': 'Daily',
+      };
+      return freqMap[protocol.frequency] || protocol.frequency;
+    }
     if (protocol.injectionMethod === 'subq') return 'Daily';
-    return '2x per week';
+    return 'Every 3.5 days';
   };
 
   // Get delivery method display

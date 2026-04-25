@@ -4530,8 +4530,51 @@ export default function PatientProfile() {
               return opt ? opt.label : k;
             });
 
-            // HRT status
-            const hrtText = intake && intake.on_hrt ? (intake.hrt_details || 'On HRT') : null;
+            // HRT status — derive from the active HRT protocol (source of truth)
+            // so the badge stays in sync with the actual prescription. Fall back to
+            // intake free-text if no active HRT protocol exists.
+            const activeHrtProto = (activeProtocols || []).find(p =>
+              p?.category === 'hrt' && (p?.status === 'active' || p?.is_active)
+            );
+            let hrtText = null;
+            if (activeHrtProto) {
+              const medName = (activeHrtProto.medication || 'Testosterone')
+                .replace(/\s*\([^)]*\)\s*/g, '').trim();
+              const mgMatch = (activeHrtProto.selected_dose || '').match(/([\d.]+)\s*mg/i);
+              const mgPart = mgMatch ? `${mgMatch[1]}mg` : (activeHrtProto.selected_dose || '');
+              const ipw = parseInt(activeHrtProto.injections_per_week);
+              const freqMap = {
+                'every_3_5_days': 'every 3.5 days',
+                '2x_weekly': 'every 3.5 days',
+                '2x per week': 'every 3.5 days',
+                '2x weekly': 'every 3.5 days',
+                'twice weekly': 'every 3.5 days',
+                'weekly': 'weekly',
+                'daily': 'daily',
+              };
+              const freqPart = freqMap[activeHrtProto.frequency]
+                || (ipw === 2 ? 'every 3.5 days' : ipw === 1 ? 'weekly' : ipw === 7 ? 'daily' : ipw > 0 ? `${ipw}x per week` : '');
+              const parts = [mgPart, medName, freqPart].filter(Boolean);
+              const primary = parts.join(' ');
+              // Append secondary medications (HCG, Gonadorelin, Nandrolone)
+              let secondaryStr = '';
+              try {
+                const secs = typeof activeHrtProto.secondary_medication_details === 'string'
+                  ? JSON.parse(activeHrtProto.secondary_medication_details)
+                  : activeHrtProto.secondary_medication_details;
+                if (Array.isArray(secs) && secs.length > 0) {
+                  secondaryStr = ' + ' + secs.map(s => {
+                    const n = s?.medication || s?.name || '';
+                    const d = s?.dose || s?.dosage || '';
+                    const f = s?.frequency || '';
+                    return [d, n, f].filter(Boolean).join(' ');
+                  }).filter(Boolean).join(' + ');
+                }
+              } catch {}
+              hrtText = primary + secondaryStr;
+            } else if (intake && intake.on_hrt) {
+              hrtText = intake.hrt_details || 'On HRT';
+            }
 
             const hasAlerts = allergyText || medsText || conditionLabels.length > 0 || hrtText || noKnownAllergies;
 

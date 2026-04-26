@@ -5320,6 +5320,7 @@ export default function PatientProfile() {
             { key: 'tasks', label: 'Tasks', icon: '✅', count: patientTasks.filter(t => (t.task_category || 'business') === 'medical' && t.status === 'pending').length || 0 },
             { key: 'follow_ups', label: 'Follow-Ups', icon: '🔔', count: followUps.filter(f => (f.status === 'pending' || f.status === 'in_progress') && MEDICAL_FOLLOW_UP_TYPES.includes(f.type)).length || 0 },
           ] : [
+            { key: 'protocols', label: 'Protocols', icon: '🩺', count: activeProtocols.length || 0 },
             { key: 'messages', label: 'Messages', icon: '💬', count: commsLog.filter(c => c.direction === 'inbound' && c.status !== 'read').length || 0 },
             { key: 'notes', label: 'Staff Notes', icon: '📝', count: notes.length || 0 },
             { key: 'tasks', label: 'Tasks', icon: '✅', count: patientTasks.filter(t => (t.task_category || 'business') === 'business' && t.status === 'pending').length || 0 },
@@ -6385,8 +6386,8 @@ export default function PatientProfile() {
             );
           })()}
 
-          {/* Protocols Tab — under Medications */}
-          {activeTab === 'medications' && (
+          {/* Protocols Tab — Business view (operational/billing surface for protocols) */}
+          {activeTab === 'protocols' && (
             <>
               <section className="card">
                 <div className="card-header">

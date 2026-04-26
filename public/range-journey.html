@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Range Medical — The Patient Journey</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #ffffff;
+    color: #1a1a1a;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .app {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 32px 28px 80px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e8e8e8;
+    margin-bottom: 56px;
+  }
+  .wordmark {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    color: #1a1a1a;
+  }
+  .progress {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .progress-dot {
+    width: 22px;
+    height: 3px;
+    background: #e0e0e0;
+    border-radius: 2px;
+    transition: background 0.3s;
+  }
+  .progress-dot.active { background: #1a1a1a; }
+  .progress-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: #737373;
+    margin-left: 12px;
+  }
+
+  .screen {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+    animation: fadeIn 0.4s ease;
+  }
+  .screen.active { display: flex; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    color: #737373;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+  }
+  .h1 {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 900;
+    letter-spacing: -0.035em;
+    line-height: 1;
+    margin-bottom: 28px;
+    color: #1a1a1a;
+  }
+  .h2 {
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin-bottom: 20px;
+    color: #1a1a1a;
+  }
+  .lede {
+    font-size: 19px;
+    color: #404040;
+    max-width: 640px;
+    line-height: 1.55;
+    margin-bottom: 40px;
+  }
+  .body-text {
+    font-size: 16px;
+    color: #404040;
+    max-width: 640px;
+    line-height: 1.65;
+    margin-bottom: 16px;
+  }
+
+  .price-tag {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 10px;
+    background: #1a1a1a;
+    color: #ffffff;
+    padding: 12px 18px;
+    margin-bottom: 28px;
+    font-weight: 700;
+  }
+  .price-tag .amount {
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+  }
+  .price-tag .label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #1a1a1a;
+    color: #ffffff;
+    padding: 18px 28px;
+    border: none;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .btn:hover { background: #404040; transform: translateY(-1px); }
+  .btn-secondary {
+    background: transparent;
+    color: #1a1a1a;
+    padding: 18px 0;
+  }
+  .btn-secondary:hover { background: transparent; color: #737373; transform: none; }
+
+  .actions {
+    margin-top: auto;
+    padding-top: 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .actions.right { justify-content: flex-end; }
+
+  /* Path / option cards */
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (min-width: 720px) {
+    .card-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .card-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .card {
+    background: #ffffff;
+    border: 1.5px solid #e0e0e0;
+    padding: 28px 24px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    text-align: left;
+    font-family: inherit;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+    position: relative;
+  }
+  .card:hover {
+    border-color: #1a1a1a;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+  .card-eyebrow {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    color: #737373;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+  .card-title {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    margin-bottom: 10px;
+    color: #1a1a1a;
+  }
+  .card-desc {
+    font-size: 14px;
+    color: #737373;
+    line-height: 1.55;
+    margin-bottom: 20px;
+    flex: 1;
+  }
+  .card-arrow {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    color: #1a1a1a;
+    text-transform: uppercase;
+  }
+  .card.featured {
+    background: #1a1a1a;
+    color: #ffffff;
+    border-color: #1a1a1a;
+  }
+  .card.featured .card-eyebrow,
+  .card.featured .card-desc { color: rgba(255,255,255,0.6); }
+  .card.featured .card-title,
+  .card.featured .card-arrow { color: #ffffff; }
+  .card.featured:hover { background: #404040; border-color: #404040; }
+  .card-badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: #ffffff;
+    color: #1a1a1a;
+    padding: 4px 8px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  /* Included list */
+  .included {
+    background: #fafafa;
+    padding: 32px;
+    margin: 24px 0 32px;
+    max-width: 720px;
+  }
+  .included-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    color: #737373;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .included ul { list-style: none; }
+  .included li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    font-size: 15.5px;
+    color: #1a1a1a;
+    border-bottom: 1px solid #ececec;
+  }
+  .included li:last-child { border-bottom: none; }
+  .included li .check {
+    color: #2E6B35;
+    font-weight: 900;
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-size: 14px;
+  }
+
+  .meta-row {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+  .meta-item .meta-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    color: #737373;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .meta-item .meta-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a1a;
+    letter-spacing: -0.01em;
+  }
+
+  /* Loop diagram */
+  .loop-diagram {
+    background: #fafafa;
+    padding: 40px 32px;
+    margin: 24px 0 32px;
+    max-width: 720px;
+  }
+  .loop-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .loop-step {
+    flex: 1;
+    min-width: 130px;
+    text-align: center;
+    padding: 16px 8px;
+    background: #ffffff;
+    border: 1.5px solid #e0e0e0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #1a1a1a;
+    letter-spacing: 0.02em;
+  }
+  .loop-arrow {
+    font-size: 18px;
+    color: #737373;
+    font-weight: 700;
+  }
+  .loop-note {
+    margin-top: 20px;
+    font-size: 13px;
+    color: #737373;
+    font-style: italic;
+    text-align: center;
+  }
+
+  /* Quote / aside */
+  .aside {
+    border-left: 3px solid #1a1a1a;
+    padding: 8px 0 8px 20px;
+    margin: 24px 0 32px;
+    max-width: 640px;
+  }
+  .aside .aside-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    color: #737373;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .aside .aside-body {
+    font-size: 15px;
+    color: #404040;
+    line-height: 1.6;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 6px 12px;
+    background: #f0f0f0;
+    color: #1a1a1a;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-right: 8px;
+    margin-bottom: 8px;
+  }
+
+  .footer-note {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid #e8e8e8;
+    font-size: 12px;
+    color: #737373;
+    line-height: 1.6;
+    max-width: 640px;
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="wordmark">RANGE&nbsp;&nbsp;MEDICAL</div>
+      <div class="progress">
+        <span class="progress-dot" data-step="1"></span>
+        <span class="progress-dot" data-step="2"></span>
+        <span class="progress-dot" data-step="3"></span>
+        <span class="progress-dot" data-step="4"></span>
+        <span class="progress-dot" data-step="5"></span>
+        <span class="progress-dot" data-step="6"></span>
+        <span class="progress-label" id="progress-label">START</span>
+      </div>
+    </div>
+
+    <!-- ==================== SCREEN 1: WELCOME ==================== -->
+    <section class="screen active" data-screen="welcome">
+      <div class="eyebrow">The Patient Journey</div>
+      <h1 class="h1">Find your Range.</h1>
+      <p class="lede">A walk-through of how every Range Medical patient comes through our front door, picks the right path, and stays in long-term optimization.</p>
+      <p class="body-text">One front door. Three paths. One flagship membership. Built so every patient hears the same clear story — and every staff member tells it the same way.</p>
+      <div class="actions right">
+        <button class="btn" data-go="frontdoor">Begin the journey →</button>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 2: FRONT DOOR ==================== -->
+    <section class="screen" data-screen="frontdoor">
+      <div class="eyebrow">Step 01 — The Front Door</div>
+      <h2 class="h2">The Range Assessment.</h2>
+      <div class="price-tag">
+        <span class="amount">$197</span>
+        <span class="label">Fully credited toward your first treatment</span>
+      </div>
+      <p class="body-text"><strong>Every patient starts here</strong> — whether you're injured, depleted, optimizing, or just don't feel like yourself.</p>
+      <p class="body-text">A 60–90 minute consultative session with our medical team. We listen, ask the right questions, review what you've tried, and figure out which path fits.</p>
+      <div class="aside">
+        <div class="aside-label">The $197 isn't a fee.</div>
+        <div class="aside-body">It's a credit. The full amount applies to your first treatment — labs (energy path) or peptides (recovery path). You don't pay for the conversation.</div>
+      </div>
+      <div class="actions">
+        <button class="btn-secondary btn" data-go="welcome">← Back</button>
+        <button class="btn" data-go="triage">Continue →</button>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 3: TRIAGE ==================== -->
+    <section class="screen" data-screen="triage">
+      <div class="eyebrow">Step 02 — Your Path</div>
+      <h2 class="h2">Where are you headed?</h2>
+      <p class="lede">Three paths come out of the assessment. Pick the one that sounds the most like you.</p>
+      <div class="card-grid cols-3">
+        <button class="card" data-go="program-recovery">
+          <div class="card-eyebrow">Path 01</div>
+          <div class="card-title">I'm injured or recovering.</div>
+          <div class="card-desc">Pain, injury, post-surgery, athletic recovery. You want to heal faster and get back to full strength.</div>
+          <div class="card-arrow">See the program →</div>
+        </button>
+        <button class="card" data-go="program-energy">
+          <div class="card-eyebrow">Path 02</div>
+          <div class="card-title">I want my energy back.</div>
+          <div class="card-desc">Fatigue, brain fog, low drive, hormones, longevity. You want to feel like yourself again and stay sharp.</div>
+          <div class="card-arrow">See the program →</div>
+        </button>
+        <button class="card" data-go="program-weightloss">
+          <div class="card-eyebrow">Path 03</div>
+          <div class="card-title">I want to lose weight.</div>
+          <div class="card-desc">Sustainable weight loss with medical supervision, the right meds, and a coach who actually checks in.</div>
+          <div class="card-arrow">See the program →</div>
+        </button>
+      </div>
+      <div class="actions">
+        <button class="btn-secondary btn" data-go="frontdoor">← Back</button>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 4a: RECOVERY ==================== -->
+    <section class="screen" data-screen="program-recovery">
+      <div class="eyebrow">Step 03 — Your Program · Recovery Path</div>
+      <h2 class="h2">The Recovery Program.</h2>
+      <div class="meta-row">
+        <div class="meta-item">
+          <div class="meta-label">Duration</div>
+          <div class="meta-value">30–60 days</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Cadence</div>
+          <div class="meta-value">Daily protocol, weekly check-ins</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Best for</div>
+          <div class="meta-value">Injury, post-op, performance</div>
+        </div>
+      </div>
+      <div class="included">
+        <div class="included-label">What's Included</div>
+        <ul>
+          <li><span class="check">✓</span><span>Targeted peptide protocol (BPC-157, TB-500, blends — based on your injury)</span></li>
+          <li><span class="check">✓</span><span>Supportive injections (NAD, B12, glutathione as indicated)</span></li>
+          <li><span class="check">✓</span><span>Direct provider messaging — re-dose tweaks, questions, troubleshooting</span></li>
+          <li><span class="check">✓</span><span>Optional HBOT and red light add-ons to accelerate healing</span></li>
+        </ul>
+      </div>
+      <p class="body-text">Most patients run a 30 or 60 day cycle, with measurable change in 2–3 weeks. We adjust the protocol based on how your body responds.</p>
+      <div class="actions">
+        <button class="btn-secondary btn" data-go="triage">← Back</button>
+        <button class="btn" data-go="crossroads">What happens next? →</button>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 4b: ENERGY ==================== -->
+    <section class="screen" data-screen="program-energy">
+      <div class="eyebrow">Step 03 — Your Program · Energy Path</div>
+      <h2 class="h2">Energy &amp; Optimization Program.</h2>
+      <div class="meta-row">
+        <div class="meta-item">
+          <div class="meta-label">Duration</div>
+          <div class="meta-value">6–12 weeks</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Cadence</div>
+          <div class="meta-value">Labs at start, treatments weekly</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Best for</div>
+          <div class="meta-value">Fatigue, hormones, longevity</div>
+        </div>
+      </div>
+      <div class="included">
+        <div class="included-label">What's Included</div>
+        <ul>
+          <li><span class="check">✓</span><span>Comprehensive labs (Essential or Elite panel) — your data is the plan</span></li>
+          <li><span class="check">✓</span><span>Hormone optimization (HRT) if labs show it's warranted</span></li>
+          <li><span class="check">✓</span><span>Cellular Energy Reset modalities — HBOT, red light, IVs to drive ATP production</span></li>
+          <li><span class="check">✓</span><span>Direct provider messaging — adjust dosing, ask questions, stay on track</span></li>
+        </ul>
+      </div>
+      <p class="body-text">Built around <em>your</em> data. We don't guess. Hormones get attention if your labs warrant it. HBOT and red light are dosed specifically to help cells produce more energy.</p>
+      <div class="actions">
+        <button class="btn-secondary btn" data-go="triage">← Back</button>
+        <button class="btn" data-go="crossroads">What happens next? →</button>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 4c: WEIGHT LOSS ==================== -->
+    <section class="screen" data-screen="program-weightloss">
+      <div class="eyebrow">Step 03 — Your Program · Weight Loss Path</div>
+      <h2 class="h2">Weight Loss Program.</h2>
+      <div class="meta-row">
+        <div class="meta-item">
+          <div class="meta-label">Duration</div>
+          <div class="meta-value">12+ weeks</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Cadence</div>
+          <div class="meta-value">Weekly injections + check-ins</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Best for</div>
+          <div class="meta-value">Sustainable, supervised loss</div>
+        </div>
+      </div>
+      <div class="included">
+        <div class="included-label">What's Included</div>
+        <ul>
+          <li><span class="check">✓</span><span>GLP-1 medication (semaglutide, tirzepatide, or retatrutide based on your needs)</span></li>
+          <li><span class="check">✓</span><span>Coaching and accountability check-ins — not just a prescription</span></li>
+          <li><span class="check">✓</span><span>Lab monitoring at baseline and again at 8 weeks</span></li>
+          <li><span class="check">✓</span><span>Optional IVs and supportive injections to manage side effects and energy</span></li>
+        </ul>
+      </div>
+      <p class="body-text">Steady, supervised, sustainable. We adjust dosing as you progress and pull labs to make sure your body's responding well.</p>
+      <div class="actions">
+        <button class="btn-secondary btn" data-go="triage">← Back</button>
+        <button class="btn" data-go="crossroads">What happens next? →</button>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 5: CROSSROADS ==================== -->
+    <section class="screen" data-screen="crossroads">
+      <div class="eyebrow">Step 04 — The Crossroads</div>
+      <h2 class="h2">Around week 3–4 of your program…</h2>
+      <p class="lede">You're feeling better. Things are working. You start asking the question every patient asks:</p>
+      <p class="body-text" style="font-size: 22px; font-weight: 700; color: #1a1a1a; max-width: 540px;">"How do I keep this going?"</p>
+      <div class="card-grid cols-2" style="margin-top: 24px;">
+        <button class="card" data-go="alacarte">
+          <div class="card-eyebrow">Option A</div>
+          <div class="card-title">Stay à la carte.</div>
+          <div class="card-desc">Pay per visit, per product. Total flexibility, no commitment. The right fit if you're seasonal, episodic, or testing the waters.</div>
+          <div class="card-arrow">See how that looks →</div>
+        </button>
+        <button class="card featured" data-go="membership">
+          <div class="card-badge">Recommended</div>
+          <div class="card-eyebrow">Option B</div>
+          <div class="card-title">Range Optimization Membership.</div>
+          <div class="card-desc">$199 every 4 weeks. The simplest way to stay in motion — and the path most patients pick once they've felt the change.</div>
+          <div class="card-arrow">See what's inside →</div>
+        </button>
+      </div>
+      <div class="actions">
+        <button class="btn-secondary btn" data-go="triage">← Back to paths</button>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 5b: A LA CARTE ==================== -->
+    <section class="screen" data-screen="alacarte">
+      <div class="eyebrow">Option A — À La Carte</div>
+      <h2 class="h2">Pay as you go.</h2>
+      <p class="lede">Total flexibility. No subscription. You come in when you want, pay for what you use, and that's it.</p>
+      <div class="included">
+        <div class="included-label">Best Fit For</div>
+        <ul>
+          <li><span class="check">✓</span><span>Patients who only need seasonal or episodic support</span></li>
+          <li><span class="check">✓</span><span>Recovery patients finishing a finite cycle</span></li>
+          <li><span class="check">✓</span><span>Anyone testing the waters before committing to a membership</span></li>
+        </ul>
+      </div>
+      <p class="body-text">Most products and services are à la carte. Peptide cycles, IVs, single HBOT or red light visits, individual injections — all available standalone, no membership required.</p>
+      <div class="actions">
+        <button class="btn-secondary btn" data-go="crossroads">← Back</button>
+        <button class="btn" data-go="membership">Or see the membership →</button>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 6: MEMBERSHIP ==================== -->
+    <section class="screen" data-screen="membership">
+      <div class="eyebrow">Step 05 — The Flagship Membership</div>
+      <h2 class="h2">Range Optimization Membership.</h2>
+      <div class="price-tag">
+        <span class="amount">$199</span>
+        <span class="label">Every 4 weeks</span>
+      </div>
+      <p class="lede">The simplest way to stay in long-term optimization. Built around the modalities that actually move the needle, priced to be obviously worth it.</p>
+      <div class="included">
+        <div class="included-label">What's Included Every 4 Weeks</div>
+        <ul>
+          <li><span class="check">✓</span><span><strong>Quarterly provider check-ins</strong> — to keep your plan honest</span></li>
+          <li><span class="check">✓</span><span><strong>Priority direct messaging</strong> — re-dose tweaks, fast answers, no waiting</span></li>
+          <li><span class="check">✓</span><span><strong>Up to 4 HBOT sessions</strong> per 4 weeks (one per week)</span></li>
+          <li><span class="check">✓</span><span><strong>Unlimited red light sessions</strong> — come in as often as you'd like</span></li>
+          <li><span class="check">✓</span><span><strong>1 supportive injection</strong> per 4 weeks (B12, glutathione, etc.)</span></li>
+          <li><span class="check">✓</span><span><strong>10% off</strong> peptides, weight loss meds, IVs, additional injections</span></li>
+        </ul>
+      </div>
+      <div class="aside">
+        <div class="aside-label">Why we built it this way</div>
+        <div class="aside-body">We have HBOT and red light capacity that's underutilized today. We pass that capacity to members at near-zero marginal cost. You stay in long-term optimization. Margins stay protected on the high-value services — labs, peptides, weight loss meds, HRT — which stay full price (or 10% off as a member).</div>
+      </div>
+      <div>
+        <span class="pill">Cancel anytime</span>
+        <span class="pill">No hidden fees</span>
+        <span class="pill">Real provider access</span>
+      </div>
+      <div class="actions">
+        <button class="btn-secondary btn" data-go="crossroads">← Back</button>
+        <button class="btn" data-go="loop">See the full picture →</button>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 7: LOOP ==================== -->
+    <section class="screen" data-screen="loop">
+      <div class="eyebrow">Step 06 — The Loop</div>
+      <h2 class="h2">Optimization isn't a finish line.</h2>
+      <p class="lede">Every 6–12 months, we run a fresh assessment and labs. Bodies change. Plans should change with them. You stay in your range.</p>
+      <div class="loop-diagram">
+        <div class="loop-row">
+          <div class="loop-step">Range Assessment</div>
+          <div class="loop-arrow">→</div>
+          <div class="loop-step">Your Program</div>
+          <div class="loop-arrow">→</div>
+          <div class="loop-step">Membership</div>
+          <div class="loop-arrow">↻</div>
+          <div class="loop-step">Re-assess at 6–12 months</div>
+        </div>
+        <div class="loop-note">One front door. One clear path. One flagship membership. Everything else is an add-on.</div>
+      </div>
+      <p class="body-text">That's the whole system. Anything that isn't on this map (random one-off IVs, single peptide vials, supplements) is a menu add-on, available to anyone, but never the front door.</p>
+      <div class="actions">
+        <button class="btn-secondary btn" data-go="welcome">↻ Restart the journey</button>
+        <button class="btn" data-go="welcome">Show someone else →</button>
+      </div>
+      <div class="footer-note">
+        <strong>For internal use:</strong> this walk-through is a reference for staff and partners on how every Range patient experiences our system. Numbers and structure are subject to refinement as we test the membership in market.
+      </div>
+    </section>
+
+  </div>
+
+<script>
+  const screens = document.querySelectorAll('.screen');
+  const dots = document.querySelectorAll('.progress-dot');
+  const progressLabel = document.getElementById('progress-label');
+
+  const stepMap = {
+    'welcome':            { step: 0, label: 'START' },
+    'frontdoor':          { step: 1, label: 'STEP 1 / 6' },
+    'triage':             { step: 2, label: 'STEP 2 / 6' },
+    'program-recovery':   { step: 3, label: 'STEP 3 / 6' },
+    'program-energy':     { step: 3, label: 'STEP 3 / 6' },
+    'program-weightloss': { step: 3, label: 'STEP 3 / 6' },
+    'crossroads':         { step: 4, label: 'STEP 4 / 6' },
+    'alacarte':           { step: 4, label: 'STEP 4 / 6' },
+    'membership':         { step: 5, label: 'STEP 5 / 6' },
+    'loop':               { step: 6, label: 'STEP 6 / 6' },
+  };
+
+  function go(target) {
+    screens.forEach(s => s.classList.remove('active'));
+    const next = document.querySelector(`[data-screen="${target}"]`);
+    if (!next) return;
+    next.classList.add('active');
+
+    const meta = stepMap[target] || { step: 0, label: 'START' };
+    dots.forEach((d, i) => {
+      d.classList.toggle('active', (i + 1) <= meta.step);
+    });
+    progressLabel.textContent = meta.label;
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.querySelectorAll('[data-go]').forEach(el => {
+    el.addEventListener('click', e => {
+      e.preventDefault();
+      go(el.dataset.go);
+    });
+  });
+</script>
+</body>
+</html>

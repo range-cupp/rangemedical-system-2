@@ -159,11 +159,13 @@ export default async function handler(req, res) {
     if (protoErr || !protocol) {
       // Approved but can't apply — mark as approved (staff can apply manually)
       console.error('Protocol not found for dose change application:', request.protocol_id);
+      const errMsg = `Protocol ${request.protocol_id} not found — dose change approved but not yet applied`;
+      await recordApplyFailure(request.id, errMsg);
       return res.status(200).json({
         success: true,
         status: 'approved',
         applied: false,
-        error: 'Protocol not found — dose change approved but not yet applied',
+        error: errMsg,
       });
     }
 
@@ -184,11 +186,13 @@ export default async function handler(req, res) {
       const targetExists = existingDetails.some(d => (d.medication || d.name) === targetName);
       if (!targetExists) {
         console.error('Secondary med not found on parent protocol:', { protocol_id: protocol.id, targetName });
+        const errMsg = `Approved but ${targetName} is no longer on the parent protocol — apply the change manually if still needed.`;
+        await recordApplyFailure(request.id, errMsg);
         return res.status(200).json({
           success: true,
           status: 'approved',
           applied: false,
-          error: `Approved but ${targetName} is no longer on the parent protocol — apply the change manually if still needed.`,
+          error: errMsg,
         });
       }
 
@@ -225,21 +229,26 @@ export default async function handler(req, res) {
 
       if (updateErr) {
         console.error('Failed to update secondary med dosage:', updateErr);
+        const errMsg = `Approved but failed to update ${targetName} dose: ${updateErr.message}`;
+        await recordApplyFailure(request.id, errMsg);
         return res.status(200).json({
           success: true,
           status: 'approved',
           applied: false,
-          error: `Approved but failed to update ${targetName} dose: ${updateErr.message}`,
+          error: errMsg,
         });
       }
 
       // Mark request as applied — new_protocol_id stays as the parent protocol
-      // since we updated in place rather than spawning a new row.
+      // since we updated in place rather than spawning a new row. Clear
+      // apply_error in case a previous attempt failed and we're succeeding now.
       await supabase
         .from('dose_change_requests')
         .update({
           status: 'applied',
           applied_at: new Date().toISOString(),
+          apply_attempted_at: new Date().toISOString(),
+          apply_error: null,
           new_protocol_id: protocol.id,
           updated_at: new Date().toISOString(),
         })
@@ -296,11 +305,13 @@ export default async function handler(req, res) {
 
     if (!closeResult.success) {
       console.error('Failed to close old protocol:', closeResult.error);
+      const errMsg = `Approved but failed to close old protocol: ${closeResult.error}`;
+      await recordApplyFailure(request.id, errMsg);
       return res.status(200).json({
         success: true,
         status: 'approved',
         applied: false,
-        error: `Approved but failed to close old protocol: ${closeResult.error}`,
+        error: errMsg,
       });
     }
 
@@ -359,20 +370,25 @@ export default async function handler(req, res) {
         .update({ status: protocol.status, end_date: protocol.end_date })
         .eq('id', request.protocol_id);
 
+      const errMsg = `Approved but failed to create new protocol: ${result.error}`;
+      await recordApplyFailure(request.id, errMsg);
       return res.status(200).json({
         success: true,
         status: 'approved',
         applied: false,
-        error: `Approved but failed to create new protocol: ${result.error}`,
+        error: errMsg,
       });
     }
 
-    // 4. Mark request as applied
+    // 4. Mark request as applied. Clear apply_error in case a previous attempt
+    // failed and we're succeeding now (e.g. after a retry).
     await supabase
       .from('dose_change_requests')
       .update({
         status: 'applied',
         applied_at: new Date().toISOString(),
+        apply_attempted_at: new Date().toISOString(),
+        apply_error: null,
         new_protocol_id: result.protocol.id,
         updated_at: new Date().toISOString(),
       })
@@ -481,4 +497,23 @@ function toFirstNameLastInitial(fullName) {
   const parts = fullName.trim().split(/\s+/);
   if (parts.length < 2) return parts[0];
   return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+}
+
+// Record that the apply step failed after a provider had already approved.
+// Status stays 'approved' (the provider really did approve) but apply_error
+// captures why we couldn't apply the change, and apply_attempted_at marks the
+// most recent attempt. Clearing apply_error happens on a successful apply.
+async function recordApplyFailure(requestId, errorMessage) {
+  try {
+    await supabase
+      .from('dose_change_requests')
+      .update({
+        apply_error: errorMessage,
+        apply_attempted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', requestId);
+  } catch (err) {
+    console.error('Failed to record apply failure on request row:', err);
+  }
 }

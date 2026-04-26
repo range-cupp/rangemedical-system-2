@@ -4,6 +4,7 @@
 // Range Medical System V2
 
 import { createClient } from '@supabase/supabase-js';
+import { INTERNAL_TYPES_PGRST } from '../../../../lib/internal-message-types';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -40,6 +41,10 @@ export default async function handler(req, res) {
         q = q.eq('recipient', phone);
       }
       if (channel) q = q.eq('channel', channel);
+      // Internal staff SMS (dose-change requests, task pings, provider alerts)
+      // may be linked to a patient_id for audit, but were sent to staff phones,
+      // not the patient — never show them in the patient conversation thread.
+      q = q.not('message_type', 'in', INTERNAL_TYPES_PGRST);
       return q;
     };
 
@@ -72,6 +77,7 @@ export default async function handler(req, res) {
           .select('id, channel, message_type, message, html_body, status, error_message, recipient, subject, direction, source, created_at, needs_response')
           .is('patient_id', null)
           .ilike('recipient', `%${digits}`)
+          .not('message_type', 'in', INTERNAL_TYPES_PGRST)
           .order('created_at', { ascending: false })
           .limit(limit);
 

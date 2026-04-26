@@ -4,28 +4,12 @@
 // Range Medical System V2
 
 import { createClient } from '@supabase/supabase-js';
+import { INTERNAL_TYPES_PGRST } from '../../../lib/internal-message-types';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-// Internal/staff-only message types — these are sent TO staff phones (EOD
-// reports, task assignments, lab-scheduling alerts, provider notifications)
-// and must never appear as a patient's conversation preview. If one of these
-// messages happens to share a recipient phone with a real patient message,
-// it can leak into that patient's row and show the wrong last message.
-const INTERNAL_MESSAGE_TYPES = [
-  'lab_review_scheduling',
-  'daily_sales_report',
-  'daily_numbers',
-  'provider_created',
-  'provider_rescheduled',
-  'task_assignment',
-  'giveaway_staff_alert',
-  'wl_midpoint',
-];
-const INTERNAL_TYPES_SQL = `(${INTERNAL_MESSAGE_TYPES.map(t => `"${t}"`).join(',')})`;
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -117,7 +101,7 @@ async function fallbackConversations(req, res, daysNum, limitNum, since, supabas
     .select('id, patient_id, ghl_contact_id, patient_name, direction, message, created_at, read_at, recipient, channel, needs_response, message_type')
     .eq('channel', 'sms')
     .gte('created_at', since.toISOString())
-    .not('message_type', 'in', INTERNAL_TYPES_SQL)
+    .not('message_type', 'in', INTERNAL_TYPES_PGRST)
     .order('created_at', { ascending: false })
     .limit(500);
 

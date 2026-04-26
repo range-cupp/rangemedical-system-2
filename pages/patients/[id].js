@@ -601,6 +601,15 @@ export default function PatientProfile() {
   const [doseChangeRequestStatus, setDoseChangeRequestStatus] = useState(null); // null | 'sending' | 'pending' | 'approved' | 'applied' | 'denied' | 'expired'
   const [doseChangePolling, setDoseChangePolling] = useState(false);
 
+  // Frequency-edit modal state — for changing scheduling cadence on a
+  // protocol-derived medication row without going through the dose-change
+  // approval flow. Frequency edits are explicitly scoped to non-clinical
+  // scheduling decisions per Chris.
+  const [showFreqEditModal, setShowFreqEditModal] = useState(false);
+  const [freqEditProtocol, setFreqEditProtocol] = useState(null);
+  const [freqEditValue, setFreqEditValue] = useState('');
+  const [freqEditSaving, setFreqEditSaving] = useState(false);
+
   // Add Credit modal state
   const [showAddCreditModal, setShowAddCreditModal] = useState(false);
   const [addCreditAmount, setAddCreditAmount] = useState('');
@@ -1492,6 +1501,52 @@ export default function PatientProfile() {
       console.error('Error fetching timeline:', error);
     } finally {
       setTimelineLoading(false);
+    }
+  };
+
+  const openFreqEditModal = (protocol) => {
+    setFreqEditProtocol(protocol);
+    // Seed the picker with whatever's currently on the protocol so the user
+    // sees their starting point. For HRT we read frequency text directly —
+    // injections_per_week derives from the chosen option on save.
+    setFreqEditValue(protocol.frequency || '');
+    setShowFreqEditModal(true);
+  };
+
+  const handleSaveFreqEdit = async () => {
+    if (!freqEditProtocol || !freqEditValue) return;
+    setFreqEditSaving(true);
+    try {
+      // For HRT, derive injections_per_week from the chosen frequency so the
+      // weighted-dose math (and SIG display) stays consistent.
+      const isHRT = freqEditProtocol.category === 'hrt' || (freqEditProtocol.program_type || '').includes('hrt');
+      const ipwMap = {
+        'Daily': 7,
+        '7 days a week': 7,
+        '3x per week': 3,
+        '2x per week': 2,
+        'every 3.5 days': 2,
+        'Weekly': 1,
+        'Every 2 weeks': 1,
+      };
+      const body = { frequency: freqEditValue };
+      if (isHRT && ipwMap[freqEditValue]) {
+        body.injections_per_week = ipwMap[freqEditValue];
+      }
+      const res = await fetch(`/api/protocols/${freqEditProtocol.id}/frequency`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update frequency');
+      setShowFreqEditModal(false);
+      setFreqEditProtocol(null);
+      fetchPatient();
+    } catch (err) {
+      alert('Failed to update frequency: ' + err.message);
+    } finally {
+      setFreqEditSaving(false);
     }
   };
 
@@ -6262,20 +6317,35 @@ export default function PatientProfile() {
                             const isHRT = proto.category === 'hrt' || (proto.program_type || '').includes('hrt');
                             if (!isWL && !isHRT) return null;
                             return (
-                              <button
-                                onClick={() => openDoseChangeModal(proto, med.is_secondary_med ? {
-                                  isSecondary: true,
-                                  secondaryName: med.secondary_medication_name,
-                                  currentDose: med.strength,
-                                  currentSig: med.sig,
-                                } : null)}
-                                style={{
-                                  padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600,
-                                  background: '#fff', color: '#b45309', border: '1px solid #fde68a',
-                                  cursor: 'pointer', whiteSpace: 'nowrap',
-                                }}
-                                title="Request a dose change from a provider"
-                              >Change Dose</button>
+                              <>
+                                <button
+                                  onClick={() => openDoseChangeModal(proto, med.is_secondary_med ? {
+                                    isSecondary: true,
+                                    secondaryName: med.secondary_medication_name,
+                                    currentDose: med.strength,
+                                    currentSig: med.sig,
+                                  } : null)}
+                                  style={{
+                                    padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600,
+                                    background: '#fff', color: '#b45309', border: '1px solid #fde68a',
+                                    cursor: 'pointer', whiteSpace: 'nowrap',
+                                  }}
+                                  title="Request a dose change from a provider"
+                                >Change Dose</button>
+                                {/* Frequency edit — schedule-only, no approval. Hidden on
+                                    HRT secondaries since their cadence lives in free-text SIG
+                                    on the parent protocol's JSON; revisit if needed later. */}
+                                {!med.is_secondary_med && (
+                                  <button
+                                    onClick={() => openFreqEditModal(proto)}
+                                    style={{
+                                      background: 'none', border: 'none', cursor: 'pointer',
+                                      fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
+                                    }}
+                                    title="Edit frequency (no approval needed)"
+                                  >✏️</button>
+                                )}
+                              </>
                             );
                           })()}
                           {employee?.is_admin && !med.from_protocol && (
@@ -14503,6 +14573,63 @@ export default function PatientProfile() {
             </div>
           </>
         )}
+
+        {/* Frequency Edit Modal — schedule-only changes, no approval gate */}
+        {showFreqEditModal && freqEditProtocol && (() => {
+          const isHRT = freqEditProtocol.category === 'hrt' || (freqEditProtocol.program_type || '').includes('hrt');
+          const isWL = freqEditProtocol.category === 'weight_loss' || isWeightLossType(freqEditProtocol.program_type);
+          // Curate the dropdown to options that make sense for the category so
+          // staff aren't picking "After workout" for testosterone.
+          const options = isHRT
+            ? ['Daily', '3x per week', 'every 3.5 days', 'Weekly']
+            : isWL
+              ? ['Weekly', 'Every 2 weeks']
+              : FREQUENCY_OPTIONS.map(o => o.value);
+          const medName = freqEditProtocol.medication || freqEditProtocol.program_name || 'medication';
+          return (
+            <>
+              <div onClick={() => !freqEditSaving && setShowFreqEditModal(false)} style={{
+                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 10000
+              }} />
+              <div style={{
+                position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                background: '#fff', padding: '24px', zIndex: 10001, width: '400px', maxWidth: '90vw',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+              }}>
+                <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700 }}>Edit Frequency</h3>
+                <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
+                  {medName} &middot; current: <strong style={{ color: '#111' }}>{freqEditProtocol.frequency || '—'}</strong>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Frequency</label>
+                  <select
+                    value={freqEditValue}
+                    onChange={e => setFreqEditValue(e.target.value)}
+                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}
+                  >
+                    <option value="">Select frequency...</option>
+                    {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '8px 12px', borderRadius: 0, fontSize: 12, color: '#166534', marginTop: 12 }}>
+                  Schedule change &mdash; no provider approval required.
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+                  <button
+                    onClick={() => setShowFreqEditModal(false)}
+                    disabled={freqEditSaving}
+                    style={{ padding: '6px 16px', border: '1px solid #d1d5db', background: '#fff', borderRadius: 0, cursor: 'pointer', fontSize: 13 }}
+                  >Cancel</button>
+                  <button
+                    onClick={handleSaveFreqEdit}
+                    disabled={freqEditSaving || !freqEditValue || freqEditValue === freqEditProtocol.frequency}
+                    style={{ padding: '6px 16px', background: '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: freqEditSaving ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, opacity: freqEditSaving || !freqEditValue || freqEditValue === freqEditProtocol.frequency ? 0.5 : 1 }}
+                  >{freqEditSaving ? 'Saving...' : 'Save'}</button>
+                </div>
+              </div>
+            </>
+          );
+        })()}
 
         {/* Blood Draw Modal */}
         {bloodDrawModal && (

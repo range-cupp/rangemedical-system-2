@@ -1,11 +1,16 @@
 // /pages/api/dose-change-requests/create.js
-// Creates a dose change request and sends SMS to Dr. Burgess for approval.
-// The protocol is NOT updated until Dr. Burgess approves via the SMS link.
-// Full audit trail: who requested, when SMS sent, when approved, from where.
+// Creates a dose change request and SMS-pings the chosen approving provider
+// (Dr. Burgess or Brendyn Reed NP). The protocol is NOT updated until the
+// provider taps Approve via the SMS link.
+// Full audit trail: who requested, when SMS sent, link opened, approved, IP.
 
 import { createClient } from '@supabase/supabase-js';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
-import { DOSE_APPROVAL_STAFF, STAFF_DISPLAY_NAMES } from '../../../lib/staff-config';
+import {
+  DOSE_APPROVAL_STAFF,
+  STAFF_DISPLAY_NAMES,
+  canApproveDoseChange,
+} from '../../../lib/staff-config';
 import crypto from 'crypto';
 
 const supabase = createClient(
@@ -32,6 +37,9 @@ export default async function handler(req, res) {
     reason,
     requested_by_email,
     requested_by_name,
+    provider_email: requestedProviderEmail,
+    is_secondary_med,
+    secondary_medication_name,
   } = req.body;
 
   if (!patient_id || !protocol_id || !current_dose || !proposed_dose) {
@@ -40,6 +48,10 @@ export default async function handler(req, res) {
 
   if (!requested_by_email || !requested_by_name) {
     return res.status(400).json({ error: 'requested_by_email and requested_by_name are required' });
+  }
+
+  if (is_secondary_med && !secondary_medication_name) {
+    return res.status(400).json({ error: 'secondary_medication_name is required when is_secondary_med is true' });
   }
 
   try {
@@ -66,9 +78,14 @@ export default async function handler(req, res) {
       .eq('protocol_id', protocol_id)
       .in('status', ['pending']);
 
-    // Get the provider info (Dr. Burgess)
-    const providerEmail = DOSE_APPROVAL_STAFF[0]; // burgess@range-medical.com
-    const providerName = STAFF_DISPLAY_NAMES[providerEmail] || 'Dr. Damien Burgess';
+    // Resolve which provider approves this request. Default to first
+    // entry in DOSE_APPROVAL_STAFF (Dr. Burgess) if no choice was sent or
+    // the requested provider isn't authorized to approve dose changes.
+    const requestedLower = (requestedProviderEmail || '').toLowerCase();
+    const providerEmail = canApproveDoseChange(requestedLower)
+      ? requestedLower
+      : DOSE_APPROVAL_STAFF[0];
+    const providerName = STAFF_DISPLAY_NAMES[providerEmail] || providerEmail;
 
     // Create the request
     const { data: request, error: insertError } = await supabase
@@ -89,6 +106,8 @@ export default async function handler(req, res) {
         provider_email: providerEmail,
         provider_name: providerName,
         approval_token: approvalToken,
+        is_secondary_med: is_secondary_med === true,
+        secondary_medication_name: is_secondary_med ? secondary_medication_name : null,
       })
       .select()
       .single();
@@ -98,7 +117,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: insertError.message });
     }
 
-    // Get Dr. Burgess's phone number
+    // Get the chosen provider's phone number
     const { data: provider } = await supabase
       .from('employees')
       .select('phone')
@@ -107,7 +126,7 @@ export default async function handler(req, res) {
 
     if (!provider?.phone) {
       console.error('No phone number for provider:', providerEmail);
-      return res.status(500).json({ error: 'Provider phone number not found. Cannot send approval SMS.' });
+      return res.status(500).json({ error: `Phone number for ${providerName} not found. Cannot send approval SMS.` });
     }
 
     // Build the approval link
@@ -117,12 +136,16 @@ export default async function handler(req, res) {
     const phiSafeName = toFirstNameLastInitial(patient_name);
 
     // Build the SMS message
-    const arrow = changeType === 'increase' ? '\u2191' : '\u2193'; // up/down arrow
+    const medLine = is_secondary_med
+      ? `Medication: ${secondary_medication_name} (HRT secondary)`
+      : medication
+        ? `Medication: ${medication}`
+        : null;
     const smsMessage = [
       `RANGE MEDICAL - Dose ${changeType === 'increase' ? 'Increase' : 'Decrease'} Request`,
       ``,
       `Patient: ${phiSafeName}`,
-      medication ? `Medication: ${medication}` : null,
+      medLine,
       `Current: ${current_dose}${currentIpw ? ` (${currentIpw}x/wk)` : ''}`,
       `Proposed: ${proposed_dose}${proposedIpw && proposedIpw !== currentIpw ? ` (${proposedIpw}x/wk)` : ''}`,
       reason ? `Reason: ${reason}` : null,
@@ -159,7 +182,7 @@ export default async function handler(req, res) {
     if (!smsResult.success) {
       console.error('SMS send failed:', smsResult.error);
       return res.status(500).json({
-        error: `SMS to Dr. Burgess failed: ${smsResult.error}. Please try again or contact him directly.`,
+        error: `SMS to ${providerName} failed: ${smsResult.error}. Please try again or contact them directly.`,
         request_id: request.id,
       });
     }

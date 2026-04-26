@@ -1504,10 +1504,16 @@ export default function PatientProfile() {
   const openDoseChangeModal = (protocol, secondaryMed = null) => {
     setDoseChangeProtocol(protocol);
     setDoseChangeSecondary(secondaryMed);
+    // Pick a sane default for injections_per_week so the form's hidden state
+    // never silently desyncs from reality:
+    //   - WL: always 1x/week (form doesn't show an IPW selector for WL)
+    //   - HRT: protocol's current value, falling back to 2 (most common)
+    const isWL = protocol.category === 'weight_loss' || isWeightLossType(protocol.program_type);
+    const defaultIpw = isWL ? 1 : (protocol.injections_per_week || 2);
     setDoseChangeForm({
       date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
       dose: '',
-      injectionsPerWeek: protocol.injections_per_week || 2,
+      injectionsPerWeek: defaultIpw,
       notes: '',
       sendToEmail: DOSE_APPROVAL_STAFF[0],
     });
@@ -1586,6 +1592,18 @@ export default function PatientProfile() {
       setDoseChangeRequestStatus('sending');
       try {
         const isSecondary = !!(doseChangeSecondary && doseChangeSecondary.isSecondary);
+        const isWL = doseChangeProtocol.category === 'weight_loss' || isWeightLossType(doseChangeProtocol.program_type);
+        // WL protocols are always 1x/week and we don't expose a frequency
+        // selector for them in this modal, so force proposed = current to keep
+        // the API's weekly-weighted change_type calculation honest. Without
+        // this clamp, a stale form state (defaulted to 2) caused the SMS to
+        // read "(2x/wk)" and the up/down arrow to invert.
+        const currentIpw = doseChangeProtocol.injections_per_week || 1;
+        const proposedIpw = isSecondary
+          ? null
+          : isWL
+            ? currentIpw
+            : (parseInt(doseChangeForm.injectionsPerWeek) || currentIpw);
         const res = await fetch('/api/dose-change-requests/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1603,8 +1621,8 @@ export default function PatientProfile() {
             // Injections-per-week applies to the primary (testosterone) med only.
             // For secondary HRT meds (HCG, Gonadorelin), frequency is free-text
             // SIG; we don't carry an integer ipw for them.
-            current_injections_per_week: isSecondary ? null : (doseChangeProtocol.injections_per_week || 1),
-            proposed_injections_per_week: isSecondary ? null : (parseInt(doseChangeForm.injectionsPerWeek) || 1),
+            current_injections_per_week: isSecondary ? null : currentIpw,
+            proposed_injections_per_week: proposedIpw,
             reason: doseChangeForm.notes || null,
             requested_by_email: employee?.email || 'unknown',
             requested_by_name: employee?.name || 'Staff',
@@ -14261,7 +14279,6 @@ export default function PatientProfile() {
               {/* ── APPROVAL PENDING STATE ── */}
               {(() => {
                 const chosenProvider = _STAFF_NAMES[doseChangeForm.sendToEmail] || 'the provider';
-                const chosenShort = chosenProvider.split(' ').slice(0, 2).join(' ');
                 return (
                   <>
                     {doseChangeRequestStatus === 'sending' && (
@@ -14275,7 +14292,7 @@ export default function PatientProfile() {
                     {doseChangeRequestStatus === 'pending' && (
                       <div style={{ textAlign: 'center', padding: '20px 0' }}>
                         <div style={{ fontSize: 36, marginBottom: 12 }}>&#128241;</div>
-                        <div style={{ fontWeight: 700, fontSize: 16, color: '#374151', marginBottom: 6 }}>Waiting for {chosenShort}</div>
+                        <div style={{ fontWeight: 700, fontSize: 16, color: '#374151', marginBottom: 6 }}>Waiting for {chosenProvider}</div>
                         <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.5, marginBottom: 16 }}>
                           An approval text has been sent to {chosenProvider}.<br />
                           This page will update automatically when they respond.
@@ -14301,7 +14318,7 @@ export default function PatientProfile() {
                         <div style={{ fontSize: 36, marginBottom: 12 }}>&#9989;</div>
                         <div style={{ fontWeight: 700, fontSize: 16, color: '#166534', marginBottom: 6 }}>Dose Change Approved & Applied</div>
                         <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
-                          {chosenShort} approved the dose change. The protocol has been updated.
+                          {chosenProvider} approved the dose change. The protocol has been updated.
                         </div>
                         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '12px 16px', borderRadius: 8, marginBottom: 16 }}>
                           <span style={{ color: '#6b7280' }}>{doseChangeProtocol.selected_dose}</span>
@@ -14318,7 +14335,7 @@ export default function PatientProfile() {
                     {doseChangeRequestStatus === 'approved' && (
                       <div style={{ textAlign: 'center', padding: '24px 0' }}>
                         <div style={{ fontSize: 36, marginBottom: 12 }}>&#9989;</div>
-                        <div style={{ fontWeight: 700, fontSize: 16, color: '#166534', marginBottom: 6 }}>Approved by {chosenShort}</div>
+                        <div style={{ fontWeight: 700, fontSize: 16, color: '#166534', marginBottom: 6 }}>Approved by {chosenProvider}</div>
                         <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
                           Applying the dose change to the protocol...
                         </div>
@@ -14330,7 +14347,7 @@ export default function PatientProfile() {
                         <div style={{ fontSize: 36, marginBottom: 12 }}>&#10060;</div>
                         <div style={{ fontWeight: 700, fontSize: 16, color: '#991b1b', marginBottom: 6 }}>Dose Change Denied</div>
                         <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
-                          {chosenShort} denied this dose change request.
+                          {chosenProvider} denied this dose change request.
                         </div>
                         <button onClick={() => { setShowDoseChangeModal(false); setDoseChangeRequestStatus(null); }}
                           style={{ padding: '8px 24px', background: '#111', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
@@ -14344,7 +14361,7 @@ export default function PatientProfile() {
                         <div style={{ fontSize: 36, marginBottom: 12 }}>&#9203;</div>
                         <div style={{ fontWeight: 700, fontSize: 16, color: '#92400e', marginBottom: 6 }}>Request Expired</div>
                         <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
-                          {chosenShort} did not respond within 24 hours. You can submit a new request.
+                          {chosenProvider} did not respond within 24 hours. You can submit a new request.
                         </div>
                         <button onClick={() => { setDoseChangeRequestStatus(null); setDoseChangeRequestId(null); }}
                           style={{ padding: '8px 24px', background: '#111', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
@@ -14455,7 +14472,7 @@ export default function PatientProfile() {
                       {doseChangeSaving
                         ? 'Sending...'
                         : requiresProviderApproval
-                          ? `Send Approval to ${(_STAFF_NAMES[doseChangeForm.sendToEmail] || 'Provider').replace(/^Dr\.\s+/, 'Dr. ').split(' ').slice(0, 2).join(' ')}`
+                          ? `Send Approval to ${_STAFF_NAMES[doseChangeForm.sendToEmail] || 'Provider'}`
                           : 'Apply Dose Change'}
                     </button>
                   </div>

@@ -271,6 +271,9 @@ export default function DoseApprovalPage() {
                     <strong>{request.current_dose}</strong> to{' '}
                     <strong>{request.proposed_dose}</strong>.
                   </p>
+                  <div style={{ marginTop: 16, padding: '12px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, color: '#92400e', fontSize: 14, fontWeight: 600 }}>
+                    Please document this dose change in an encounter note.
+                  </div>
                   <p style={{ color: '#6b7280', fontSize: 13, marginTop: 12 }}>
                     This approval has been recorded with your timestamp and device information for compliance tracking.
                   </p>

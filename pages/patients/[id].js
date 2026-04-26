@@ -14325,6 +14325,9 @@ export default function PatientProfile() {
                           <span style={{ margin: '0 8px' }}>&rarr;</span>
                           <strong style={{ color: '#166534' }}>{doseChangeForm.dose}</strong>
                         </div>
+                        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', padding: '10px 14px', borderRadius: 8, marginBottom: 16, color: '#92400e', fontSize: 13, fontWeight: 600 }}>
+                          Please document this dose change in an encounter note.
+                        </div>
                         <button onClick={() => { setShowDoseChangeModal(false); fetchPatient(); }}
                           style={{ padding: '8px 24px', background: '#111', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
                           Done

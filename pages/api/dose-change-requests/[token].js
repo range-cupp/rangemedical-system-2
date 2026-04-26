@@ -7,6 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { createProtocol, closeProtocol } from '../../../lib/create-protocol';
+import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -246,6 +247,9 @@ export default async function handler(req, res) {
 
       console.log(`Secondary med dose APPROVED & APPLIED by ${request.provider_name} for ${request.patient_name}: ${targetName} ${request.current_dose} -> ${request.proposed_dose}`);
 
+      // Notify the requester (task + SMS) — best effort.
+      await notifyRequesterOfApproval(request);
+
       return res.status(200).json({
         success: true,
         status: 'applied',
@@ -376,6 +380,9 @@ export default async function handler(req, res) {
 
     console.log(`Dose change APPROVED & APPLIED by ${request.provider_name} for ${request.patient_name}: ${request.current_dose} -> ${request.proposed_dose}`);
 
+    // Notify the requester (task + SMS) — best effort, non-blocking on the response.
+    await notifyRequesterOfApproval(request);
+
     return res.status(200).json({
       success: true,
       status: 'applied',
@@ -388,4 +395,90 @@ export default async function handler(req, res) {
     console.error('Dose change approval error:', err);
     return res.status(500).json({ error: err.message });
   }
+}
+
+// Create a follow-up task for the requester and text them so they know to
+// document the change in an encounter note. Both side effects are best-effort —
+// failure here doesn't roll back the dose change application.
+async function notifyRequesterOfApproval(request) {
+  try {
+    // Look up the requester (assigned_to + SMS recipient)
+    const { data: requester } = await supabase
+      .from('employees')
+      .select('id, phone')
+      .ilike('email', request.requested_by_email || '')
+      .maybeSingle();
+
+    // Look up the provider (assigned_by on the task)
+    const { data: provider } = await supabase
+      .from('employees')
+      .select('id')
+      .ilike('email', request.provider_email || '')
+      .maybeSingle();
+
+    const phiName = toFirstNameLastInitial(request.patient_name);
+    const medLine = request.is_secondary_med
+      ? `${request.secondary_medication_name} (HRT secondary)`
+      : (request.medication || 'medication');
+    const direction = request.change_type === 'increase' ? 'increase' : 'decrease';
+
+    // 1. Task — assigned to the requester, prompts them to document the change.
+    if (requester?.id) {
+      const { error: taskErr } = await supabase.from('tasks').insert({
+        title: `Document dose change for ${request.patient_name}`,
+        description: [
+          `${medLine}: ${request.current_dose} → ${request.proposed_dose}`,
+          `Approved by ${request.provider_name}`,
+          request.reason ? `Reason: ${request.reason}` : null,
+          `Please document this dose change in an encounter note.`,
+        ].filter(Boolean).join('\n'),
+        assigned_to: requester.id,
+        // Tasks require assigned_by to be NOT NULL — fall back to self-assign
+        // if the provider isn't in the employees table for some reason.
+        assigned_by: provider?.id || requester.id,
+        patient_id: request.patient_id,
+        patient_name: request.patient_name,
+        task_category: 'medical',
+        priority: 'high',
+      });
+      if (taskErr) console.error('Failed to create dose-change documentation task:', taskErr);
+    }
+
+    // 2. SMS — direct heads-up to the requester so they don't have to refresh.
+    if (requester?.phone) {
+      const message = [
+        `RANGE MEDICAL - Dose ${direction} approved`,
+        ``,
+        `Patient: ${phiName}`,
+        `${medLine}`,
+        `${request.current_dose} → ${request.proposed_dose}`,
+        `Approved by: ${request.provider_name}`,
+        ``,
+        `Please document this dose change in an encounter note.`,
+      ].join('\n');
+
+      const smsResult = await sendSMS({
+        to: normalizePhone(requester.phone),
+        message,
+        log: {
+          messageType: 'dose_change_approved',
+          source: 'dose-change-requests',
+          patientId: request.patient_id,
+          protocolId: request.protocol_id,
+        },
+      });
+      if (!smsResult?.success) {
+        console.error('Failed to SMS requester about approved dose change:', smsResult?.error);
+      }
+    }
+  } catch (err) {
+    console.error('notifyRequesterOfApproval failed:', err);
+  }
+}
+
+function toFirstNameLastInitial(fullName) {
+  if (!fullName) return 'Patient';
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length < 2) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
 }

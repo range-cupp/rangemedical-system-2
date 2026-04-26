@@ -124,7 +124,14 @@ export default function DoseApprovalPage() {
               <div style={styles.infoSection}>
                 <div style={styles.patientName}>{request.patient_name}</div>
                 {request.medication && (
-                  <div style={styles.medication}>{request.medication}</div>
+                  <div style={styles.medication}>
+                    {request.medication}
+                    {request.is_secondary_med && (
+                      <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 400, marginLeft: 6 }}>
+                        (HRT secondary medication)
+                      </span>
+                    )}
+                  </div>
                 )}
                 <div style={styles.requestedBy}>
                   Requested by {request.requested_by_name} &middot; {formatDate(request.requested_at)}

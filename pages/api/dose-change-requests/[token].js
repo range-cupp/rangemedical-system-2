@@ -78,6 +78,8 @@ export default async function handler(req, res) {
       approved_at: request.approved_at,
       denied_at: request.denied_at,
       denial_reason: request.denial_reason,
+      is_secondary_med: request.is_secondary_med || false,
+      secondary_medication_name: request.secondary_medication_name || null,
     });
   }
 
@@ -164,8 +166,96 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3. Apply the dose change (close old protocol, create new one)
     const effDate = todayLA();
+
+    // ── SECONDARY-MED BRANCH ──
+    // Secondary HRT meds (HCG, Gonadorelin, Anastrozole) live inside the parent
+    // protocol's secondary_medication_details JSON. We patch the matching entry
+    // in place — no close+new-protocol dance.
+    if (request.is_secondary_med && request.secondary_medication_name) {
+      const existingDetails = protocol.secondary_medication_details
+        ? (typeof protocol.secondary_medication_details === 'string'
+            ? JSON.parse(protocol.secondary_medication_details)
+            : protocol.secondary_medication_details)
+        : [];
+
+      const targetName = request.secondary_medication_name;
+      const targetExists = existingDetails.some(d => (d.medication || d.name) === targetName);
+      if (!targetExists) {
+        console.error('Secondary med not found on parent protocol:', { protocol_id: protocol.id, targetName });
+        return res.status(200).json({
+          success: true,
+          status: 'approved',
+          applied: false,
+          error: `Approved but ${targetName} is no longer on the parent protocol — apply the change manually if still needed.`,
+        });
+      }
+
+      const updatedDetails = existingDetails.map(d => {
+        if ((d.medication || d.name) === targetName) {
+          return {
+            ...d,
+            medication: d.medication || d.name,
+            dosage: request.proposed_dose,
+            // Record the change in a per-medication history list on the JSON entry
+            history: [
+              ...(Array.isArray(d.history) ? d.history : []),
+              {
+                date: effDate,
+                from_dose: request.current_dose || null,
+                to_dose: request.proposed_dose,
+                approved_by: request.provider_name,
+                approval_request_id: request.id,
+                reason: request.reason || null,
+              },
+            ],
+          };
+        }
+        return d;
+      });
+
+      const { error: updateErr } = await supabase
+        .from('protocols')
+        .update({
+          secondary_medication_details: updatedDetails,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', protocol.id);
+
+      if (updateErr) {
+        console.error('Failed to update secondary med dosage:', updateErr);
+        return res.status(200).json({
+          success: true,
+          status: 'approved',
+          applied: false,
+          error: `Approved but failed to update ${targetName} dose: ${updateErr.message}`,
+        });
+      }
+
+      // Mark request as applied — new_protocol_id stays as the parent protocol
+      // since we updated in place rather than spawning a new row.
+      await supabase
+        .from('dose_change_requests')
+        .update({
+          status: 'applied',
+          applied_at: new Date().toISOString(),
+          new_protocol_id: protocol.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', request.id);
+
+      console.log(`Secondary med dose APPROVED & APPLIED by ${request.provider_name} for ${request.patient_name}: ${targetName} ${request.current_dose} -> ${request.proposed_dose}`);
+
+      return res.status(200).json({
+        success: true,
+        status: 'applied',
+        applied: true,
+        new_protocol_id: protocol.id,
+        secondary_medication_name: targetName,
+      });
+    }
+
+    // 3. Apply the dose change (close old protocol, create new one)
     const newIpw = request.proposed_injections_per_week || protocol.injections_per_week || 2;
     const newDosePerInj = parseMlFromDose(request.proposed_dose);
 

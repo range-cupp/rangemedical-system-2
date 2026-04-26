@@ -591,6 +591,10 @@ export default function PatientProfile() {
   // HRT Dose Change modal state
   const [showDoseChangeModal, setShowDoseChangeModal] = useState(false);
   const [doseChangeProtocol, setDoseChangeProtocol] = useState(null);
+  // When changing a secondary HRT med (HCG, Gonadorelin, etc.), this carries
+  // { isSecondary: true, secondaryName, currentDose, currentSig }. Null when
+  // the change targets the primary protocol medication.
+  const [doseChangeSecondary, setDoseChangeSecondary] = useState(null);
   const [doseChangeForm, setDoseChangeForm] = useState({ date: '', dose: '', injectionsPerWeek: 2, notes: '', approvedByEmail: '', sendToEmail: 'burgess@range-medical.com' });
   const [doseChangeSaving, setDoseChangeSaving] = useState(false);
   const [doseChangeRequestId, setDoseChangeRequestId] = useState(null);
@@ -1492,8 +1496,14 @@ export default function PatientProfile() {
   };
 
   // Blood draw handlers
-  const openDoseChangeModal = (protocol) => {
+  // openDoseChangeModal can target either:
+  //   - the primary protocol medication (default — pass `protocol` only), or
+  //   - a secondary HRT medication living inside the parent protocol's
+  //     secondary_medication_details JSON (pass a `secondaryMed` object with
+  //     { isSecondary: true, secondaryName, currentDose, currentSig }).
+  const openDoseChangeModal = (protocol, secondaryMed = null) => {
     setDoseChangeProtocol(protocol);
+    setDoseChangeSecondary(secondaryMed);
     setDoseChangeForm({
       date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
       dose: '',
@@ -1575,6 +1585,7 @@ export default function PatientProfile() {
     if (requiresProviderApproval) {
       setDoseChangeRequestStatus('sending');
       try {
+        const isSecondary = !!(doseChangeSecondary && doseChangeSecondary.isSecondary);
         const res = await fetch('/api/dose-change-requests/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1582,15 +1593,24 @@ export default function PatientProfile() {
             patient_id: id,
             patient_name: patient?.name || patient?.first_name || 'Patient',
             protocol_id: doseChangeProtocol.id,
-            medication: doseChangeProtocol.medication || doseChangeProtocol.program_name || doseChangeProtocol.program_type || '',
-            current_dose: doseChangeProtocol.selected_dose,
+            medication: isSecondary
+              ? doseChangeSecondary.secondaryName
+              : (doseChangeProtocol.medication || doseChangeProtocol.program_name || doseChangeProtocol.program_type || ''),
+            current_dose: isSecondary
+              ? (doseChangeSecondary.currentDose || '')
+              : doseChangeProtocol.selected_dose,
             proposed_dose: doseChangeForm.dose,
-            current_injections_per_week: doseChangeProtocol.injections_per_week || 1,
-            proposed_injections_per_week: parseInt(doseChangeForm.injectionsPerWeek) || 1,
+            // Injections-per-week applies to the primary (testosterone) med only.
+            // For secondary HRT meds (HCG, Gonadorelin), frequency is free-text
+            // SIG; we don't carry an integer ipw for them.
+            current_injections_per_week: isSecondary ? null : (doseChangeProtocol.injections_per_week || 1),
+            proposed_injections_per_week: isSecondary ? null : (parseInt(doseChangeForm.injectionsPerWeek) || 1),
             reason: doseChangeForm.notes || null,
             requested_by_email: employee?.email || 'unknown',
             requested_by_name: employee?.name || 'Staff',
             provider_email: doseChangeForm.sendToEmail,
+            is_secondary_med: isSecondary,
+            secondary_medication_name: isSecondary ? doseChangeSecondary.secondaryName : null,
           }),
         });
         const data = await res.json();
@@ -6060,15 +6080,19 @@ export default function PatientProfile() {
                 from_protocol: true,
                 protocol_id: proto.id,
               });
-              // Add secondary medications (HRT — Gonadorelin, HCG, Nandrolone)
+              // Add secondary medications (HRT — Gonadorelin, HCG, Nandrolone, Anastrozole).
+              // These live inside the parent protocol's secondary_medication_details JSON,
+              // not as their own protocol rows. The Change Dose flow on these uses the
+              // is_secondary_med branch in /api/dose-change-requests.
               if (proto.secondary_medication_details) {
                 try {
                   const secondaries = typeof proto.secondary_medication_details === 'string'
                     ? JSON.parse(proto.secondary_medication_details) : proto.secondary_medication_details;
                   (secondaries || []).forEach((sec, i) => {
+                    const secMedName = sec.medication || sec.name;
                     protocolMeds.push({
                       id: `proto-sec-${proto.id}-${i}`,
-                      medication_name: sec.medication || sec.name,
+                      medication_name: secMedName,
                       strength: sec.dosage || sec.dose || '',
                       sig: sec.frequency || '',
                       start_date: proto.start_date,
@@ -6077,6 +6101,8 @@ export default function PatientProfile() {
                       is_active: true,
                       from_protocol: true,
                       protocol_id: proto.id,
+                      is_secondary_med: true,
+                      secondary_medication_name: secMedName,
                     });
                   });
                 } catch {}
@@ -6209,28 +6235,51 @@ export default function PatientProfile() {
                             padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600,
                             background: '#dcfce7', color: '#166534', whiteSpace: 'nowrap',
                           }}>Active</span>
-                          {employee?.is_admin && (
+                          {employee?.is_admin && med.from_protocol && (() => {
+                            // Only WL and HRT (primary or secondary) need provider approval.
+                            // Peptides and other categories edit dose directly from Business → Protocols.
+                            const proto = (activeProtocols || []).find(p => p.id === med.protocol_id);
+                            if (!proto) return null;
+                            const isWL = proto.category === 'weight_loss' || isWeightLossType(proto.program_type);
+                            const isHRT = proto.category === 'hrt' || (proto.program_type || '').includes('hrt');
+                            if (!isWL && !isHRT) return null;
+                            return (
+                              <button
+                                onClick={() => openDoseChangeModal(proto, med.is_secondary_med ? {
+                                  isSecondary: true,
+                                  secondaryName: med.secondary_medication_name,
+                                  currentDose: med.strength,
+                                  currentSig: med.sig,
+                                } : null)}
+                                style={{
+                                  padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600,
+                                  background: '#fff', color: '#b45309', border: '1px solid #fde68a',
+                                  cursor: 'pointer', whiteSpace: 'nowrap',
+                                }}
+                                title="Request a dose change from a provider"
+                              >Change Dose</button>
+                            );
+                          })()}
+                          {employee?.is_admin && !med.from_protocol && (
                             <>
                               <button onClick={() => { setMedEditMode('edit'); setMedEditForm(med); setShowMedEditModal(true); }} style={{
                                 background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
-                              }} title={med.from_protocol ? 'Edit SIG' : 'Edit medication'}>✏️</button>
-                              {!med.from_protocol && (
-                                <button onClick={async () => {
-                                  if (!confirm(`Delete ${med.medication_name || 'this medication'}? This cannot be undone.`)) return;
-                                  try {
-                                    await fetch(`/api/patients/${patient.id}/medications`, {
-                                      method: 'DELETE',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ id: med.id }),
-                                    });
-                                    const res = await fetch(`/api/patients/${patient.id}`);
-                                    const data = await res.json();
-                                    if (data.medications) setMedications(data.medications);
-                                  } catch (err) { console.error(err); alert('Failed to delete medication'); }
-                                }} style={{
-                                  background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
-                                }} title="Delete medication">🗑️</button>
-                              )}
+                              }} title="Edit medication">✏️</button>
+                              <button onClick={async () => {
+                                if (!confirm(`Delete ${med.medication_name || 'this medication'}? This cannot be undone.`)) return;
+                                try {
+                                  await fetch(`/api/patients/${patient.id}/medications`, {
+                                    method: 'DELETE',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ id: med.id }),
+                                  });
+                                  const res = await fetch(`/api/patients/${patient.id}`);
+                                  const data = await res.json();
+                                  if (data.medications) setMedications(data.medications);
+                                } catch (err) { console.error(err); alert('Failed to delete medication'); }
+                              }} style={{
+                                background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
+                              }} title="Delete medication">🗑️</button>
                             </>
                           )}
                         </div>
@@ -14192,10 +14241,21 @@ export default function PatientProfile() {
               background: '#fff', padding: '24px', zIndex: 10001, width: '440px', maxWidth: '90vw',
               boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
             }}>
-              <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700 }}>Dose Change</h3>
+              <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700 }}>
+                Dose Change{doseChangeSecondary?.isSecondary ? ` — ${doseChangeSecondary.secondaryName}` : ''}
+              </h3>
               <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
-                Current: <strong style={{ color: '#111' }}>{doseChangeProtocol.selected_dose}</strong>
-                {doseChangeProtocol.injections_per_week && <span> &middot; {doseChangeProtocol.category === 'hrt' && doseChangeProtocol.injections_per_week === 2 ? 'every 3.5 days' : `${doseChangeProtocol.injections_per_week}x/wk`}</span>}
+                {doseChangeSecondary?.isSecondary ? (
+                  <>
+                    Current: <strong style={{ color: '#111' }}>{doseChangeSecondary.currentDose || '—'}</strong>
+                    {doseChangeSecondary.currentSig && <span> &middot; {doseChangeSecondary.currentSig}</span>}
+                  </>
+                ) : (
+                  <>
+                    Current: <strong style={{ color: '#111' }}>{doseChangeProtocol.selected_dose}</strong>
+                    {doseChangeProtocol.injections_per_week && <span> &middot; {doseChangeProtocol.category === 'hrt' && doseChangeProtocol.injections_per_week === 2 ? 'every 3.5 days' : `${doseChangeProtocol.injections_per_week}x/wk`}</span>}
+                  </>
+                )}
               </div>
 
               {/* ── APPROVAL PENDING STATE ── */}
@@ -14303,6 +14363,18 @@ export default function PatientProfile() {
                     <div>
                       <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>New Dose</label>
                       {(() => {
+                        // Secondary HRT meds (HCG, Gonadorelin, Anastrozole) are free-text.
+                        if (doseChangeSecondary?.isSecondary) {
+                          return (
+                            <input
+                              type="text"
+                              value={doseChangeForm.dose}
+                              onChange={e => setDoseChangeForm(f => ({ ...f, dose: e.target.value }))}
+                              placeholder="e.g. 500 IU, 0.25mg"
+                              style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}
+                            />
+                          );
+                        }
                         const isWL = doseChangeProtocol.category === 'weight_loss' || isWeightLossType(doseChangeProtocol.program_type);
                         const wlMed = doseChangeProtocol.medication || '';
                         const wlDoses = isWL && WEIGHT_LOSS_DOSAGES[wlMed] ? WEIGHT_LOSS_DOSAGES[wlMed] : null;
@@ -14326,8 +14398,10 @@ export default function PatientProfile() {
                         );
                       })()}
                     </div>
-                    {/* Injections per week — HRT only (weight loss is always 1x/wk) */}
-                    {!(doseChangeProtocol.category === 'weight_loss' || isWeightLossType(doseChangeProtocol.program_type)) && (
+                    {/* Injections per week — HRT primary only.
+                        Weight loss is always 1x/wk and secondary HRT meds (HCG, Gonadorelin)
+                        keep their existing SIG; only the dose changes through this flow. */}
+                    {!doseChangeSecondary?.isSecondary && !(doseChangeProtocol.category === 'weight_loss' || isWeightLossType(doseChangeProtocol.program_type)) && (
                     <div>
                       <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Injections per Week</label>
                       <select value={doseChangeForm.injectionsPerWeek} onChange={e => setDoseChangeForm(f => ({ ...f, injectionsPerWeek: e.target.value }))}

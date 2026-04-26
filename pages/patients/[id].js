@@ -605,8 +605,12 @@ export default function PatientProfile() {
   // protocol-derived medication row without going through the dose-change
   // approval flow. Frequency edits are explicitly scoped to non-clinical
   // scheduling decisions per Chris.
+  // freqEditSecondary, when set, targets a secondary HRT med inside the
+  // parent protocol's secondary_medication_details JSON instead of the
+  // protocol's top-level frequency field.
   const [showFreqEditModal, setShowFreqEditModal] = useState(false);
   const [freqEditProtocol, setFreqEditProtocol] = useState(null);
+  const [freqEditSecondary, setFreqEditSecondary] = useState(null);
   const [freqEditValue, setFreqEditValue] = useState('');
   const [freqEditSaving, setFreqEditSaving] = useState(false);
 
@@ -1504,12 +1508,20 @@ export default function PatientProfile() {
     }
   };
 
-  const openFreqEditModal = (protocol) => {
+  // openFreqEditModal targets either:
+  //   - the primary protocol medication (default — pass `protocol` only), or
+  //   - a secondary HRT med inside the parent protocol's
+  //     secondary_medication_details JSON (pass a `secondaryMed` object with
+  //     { secondaryName, currentSig }).
+  const openFreqEditModal = (protocol, secondaryMed = null) => {
     setFreqEditProtocol(protocol);
-    // Seed the picker with whatever's currently on the protocol so the user
-    // sees their starting point. For HRT we read frequency text directly —
-    // injections_per_week derives from the chosen option on save.
-    setFreqEditValue(protocol.frequency || '');
+    setFreqEditSecondary(secondaryMed);
+    // Seed with the existing value so staff see their starting point.
+    if (secondaryMed) {
+      setFreqEditValue(secondaryMed.currentSig || '');
+    } else {
+      setFreqEditValue(protocol.frequency || '');
+    }
     setShowFreqEditModal(true);
   };
 
@@ -1517,22 +1529,32 @@ export default function PatientProfile() {
     if (!freqEditProtocol || !freqEditValue) return;
     setFreqEditSaving(true);
     try {
-      // For HRT, derive injections_per_week from the chosen frequency so the
-      // weighted-dose math (and SIG display) stays consistent.
+      const isSecondary = !!(freqEditSecondary && freqEditSecondary.secondaryName);
       const isHRT = freqEditProtocol.category === 'hrt' || (freqEditProtocol.program_type || '').includes('hrt');
-      const ipwMap = {
-        'Daily': 7,
-        '7 days a week': 7,
-        '3x per week': 3,
-        '2x per week': 2,
-        'every 3.5 days': 2,
-        'Weekly': 1,
-        'Every 2 weeks': 1,
-      };
+
       const body = { frequency: freqEditValue };
-      if (isHRT && ipwMap[freqEditValue]) {
-        body.injections_per_week = ipwMap[freqEditValue];
+
+      if (isSecondary) {
+        // Secondary med: API patches the matching entry's `frequency` key
+        // inside the parent protocol's secondary_medication_details JSON.
+        body.secondary_medication_name = freqEditSecondary.secondaryName;
+      } else if (isHRT) {
+        // Primary HRT: derive injections_per_week from the chosen frequency
+        // so the weighted-dose math (and SIG display) stays consistent.
+        const ipwMap = {
+          'Daily': 7,
+          '7 days a week': 7,
+          '3x per week': 3,
+          '2x per week': 2,
+          'every 3.5 days': 2,
+          'Weekly': 1,
+          'Every 2 weeks': 1,
+        };
+        if (ipwMap[freqEditValue]) {
+          body.injections_per_week = ipwMap[freqEditValue];
+        }
       }
+
       const res = await fetch(`/api/protocols/${freqEditProtocol.id}/frequency`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1542,6 +1564,7 @@ export default function PatientProfile() {
       if (!res.ok) throw new Error(data.error || 'Failed to update frequency');
       setShowFreqEditModal(false);
       setFreqEditProtocol(null);
+      setFreqEditSecondary(null);
       fetchPatient();
     } catch (err) {
       alert('Failed to update frequency: ' + err.message);
@@ -6332,19 +6355,24 @@ export default function PatientProfile() {
                                   }}
                                   title="Request a dose change from a provider"
                                 >Change Dose</button>
-                                {/* Frequency edit — schedule-only, no approval. Hidden on
-                                    HRT secondaries since their cadence lives in free-text SIG
-                                    on the parent protocol's JSON; revisit if needed later. */}
-                                {!med.is_secondary_med && (
-                                  <button
-                                    onClick={() => openFreqEditModal(proto)}
-                                    style={{
-                                      background: 'none', border: 'none', cursor: 'pointer',
-                                      fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
-                                    }}
-                                    title="Edit frequency (no approval needed)"
-                                  >✏️</button>
-                                )}
+                                {/* Frequency edit — schedule-only, no approval. Targets the
+                                    primary protocol's frequency field, or for secondary HRT
+                                    meds the matching entry's free-text SIG inside the parent
+                                    protocol's secondary_medication_details JSON. */}
+                                <button
+                                  onClick={() => openFreqEditModal(
+                                    proto,
+                                    med.is_secondary_med ? {
+                                      secondaryName: med.secondary_medication_name,
+                                      currentSig: med.sig,
+                                    } : null
+                                  )}
+                                  style={{
+                                    background: 'none', border: 'none', cursor: 'pointer',
+                                    fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
+                                  }}
+                                  title="Edit frequency (no approval needed)"
+                                >✏️</button>
                               </>
                             );
                           })()}
@@ -14576,16 +14604,26 @@ export default function PatientProfile() {
 
         {/* Frequency Edit Modal — schedule-only changes, no approval gate */}
         {showFreqEditModal && freqEditProtocol && (() => {
+          const isSecondary = !!(freqEditSecondary && freqEditSecondary.secondaryName);
           const isHRT = freqEditProtocol.category === 'hrt' || (freqEditProtocol.program_type || '').includes('hrt');
           const isWL = freqEditProtocol.category === 'weight_loss' || isWeightLossType(freqEditProtocol.program_type);
           // Curate the dropdown to options that make sense for the category so
-          // staff aren't picking "After workout" for testosterone.
+          // staff aren't picking "After workout" for testosterone. Secondary
+          // meds bypass the dropdown — their cadence is free-text SIG.
           const options = isHRT
             ? ['Daily', '3x per week', 'every 3.5 days', 'Weekly']
             : isWL
               ? ['Weekly', 'Every 2 weeks']
               : FREQUENCY_OPTIONS.map(o => o.value);
-          const medName = freqEditProtocol.medication || freqEditProtocol.program_name || 'medication';
+          const medName = isSecondary
+            ? freqEditSecondary.secondaryName
+            : (freqEditProtocol.medication || freqEditProtocol.program_name || 'medication');
+          const currentValue = isSecondary
+            ? (freqEditSecondary.currentSig || '—')
+            : (freqEditProtocol.frequency || '—');
+          const startingValue = isSecondary
+            ? (freqEditSecondary.currentSig || '')
+            : (freqEditProtocol.frequency || '');
           return (
             <>
               <div onClick={() => !freqEditSaving && setShowFreqEditModal(false)} style={{
@@ -14596,20 +14634,34 @@ export default function PatientProfile() {
                 background: '#fff', padding: '24px', zIndex: 10001, width: '400px', maxWidth: '90vw',
                 boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
               }}>
-                <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700 }}>Edit Frequency</h3>
+                <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700 }}>
+                  Edit Frequency{isSecondary ? ` — ${medName}` : ''}
+                </h3>
                 <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
-                  {medName} &middot; current: <strong style={{ color: '#111' }}>{freqEditProtocol.frequency || '—'}</strong>
+                  {!isSecondary && <>{medName} &middot; </>}current: <strong style={{ color: '#111' }}>{currentValue}</strong>
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Frequency</label>
-                  <select
-                    value={freqEditValue}
-                    onChange={e => setFreqEditValue(e.target.value)}
-                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}
-                  >
-                    <option value="">Select frequency...</option>
-                    {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
+                    {isSecondary ? 'Frequency / SIG' : 'Frequency'}
+                  </label>
+                  {isSecondary ? (
+                    <input
+                      type="text"
+                      value={freqEditValue}
+                      onChange={e => setFreqEditValue(e.target.value)}
+                      placeholder="e.g. 2x per week, Mon/Thu, 1x daily"
+                      style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}
+                    />
+                  ) : (
+                    <select
+                      value={freqEditValue}
+                      onChange={e => setFreqEditValue(e.target.value)}
+                      style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}
+                    >
+                      <option value="">Select frequency...</option>
+                      {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  )}
                 </div>
                 <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '8px 12px', borderRadius: 0, fontSize: 12, color: '#166534', marginTop: 12 }}>
                   Schedule change &mdash; no provider approval required.
@@ -14622,8 +14674,8 @@ export default function PatientProfile() {
                   >Cancel</button>
                   <button
                     onClick={handleSaveFreqEdit}
-                    disabled={freqEditSaving || !freqEditValue || freqEditValue === freqEditProtocol.frequency}
-                    style={{ padding: '6px 16px', background: '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: freqEditSaving ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, opacity: freqEditSaving || !freqEditValue || freqEditValue === freqEditProtocol.frequency ? 0.5 : 1 }}
+                    disabled={freqEditSaving || !freqEditValue || freqEditValue === startingValue}
+                    style={{ padding: '6px 16px', background: '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: freqEditSaving ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, opacity: freqEditSaving || !freqEditValue || freqEditValue === startingValue ? 0.5 : 1 }}
                   >{freqEditSaving ? 'Saving...' : 'Save'}</button>
                 </div>
               </div>

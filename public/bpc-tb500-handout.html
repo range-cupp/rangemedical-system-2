@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BPC-157 + TB-500 — Range Medical Handout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #1a1a1a;
+    --gray-900: #262626;
+    --gray-700: #525252;
+    --gray-500: #737373;
+    --gray-400: #a0a0a0;
+    --gray-200: #e0e0e0;
+    --gray-100: #f0f0f0;
+    --gray-50: #fafafa;
+    --green: #2E6B35;
+    --green-tint: rgba(46, 107, 53, 0.10);
+    --red: #dc2626;
+    --red-tint: rgba(220, 38, 38, 0.08);
+  }
+
+  html, body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+    background: #e5e5e5;
+    color: var(--black);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+
+  .page {
+    width: 8.5in;
+    min-height: 11in;
+    padding: 0.45in 0.5in 0.4in;
+    margin: 24px auto;
+    background: #ffffff;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.10);
+    page-break-after: always;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .page:last-of-type { page-break-after: auto; }
+
+  /* Print toolbar */
+  .print-bar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--black);
+    color: #fff;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .print-bar-msg {
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.78);
+  }
+  .print-bar-msg strong { color: #fff; font-weight: 700; }
+  .print-btn {
+    background: #fff;
+    color: var(--black);
+    border: 0;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 10px 18px;
+    cursor: pointer;
+  }
+  .print-btn:hover { background: #f0f0f0; }
+
+  /* Page Header */
+  .pg-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 10px;
+    margin-bottom: 18px;
+    border-bottom: 1.5px solid var(--black);
+  }
+  .pg-clinic {
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--black);
+    text-transform: uppercase;
+  }
+  .pg-contact {
+    font-size: 8.5px;
+    color: var(--gray-500);
+    text-align: right;
+    line-height: 1.4;
+  }
+
+  /* Eyebrow + Headline */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 10px;
+  }
+  .eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    background: var(--black);
+  }
+
+  .headline {
+    font-size: 30px;
+    font-weight: 900;
+    line-height: 0.96;
+    letter-spacing: -0.025em;
+    text-transform: uppercase;
+    color: var(--black);
+    margin-bottom: 10px;
+    max-width: 7in;
+  }
+  .subhead {
+    font-size: 11px;
+    line-height: 1.55;
+    color: var(--gray-500);
+    max-width: 7in;
+    margin-bottom: 16px;
+  }
+  .hr-rule {
+    height: 1px;
+    background: var(--gray-200);
+    margin: 0 0 14px 0;
+    max-width: 5.5in;
+  }
+
+  /* Stat Row */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-200);
+    margin-bottom: 18px;
+  }
+  .stat-cell {
+    text-align: center;
+    padding: 12px 10px;
+    border-right: 1px solid var(--gray-200);
+  }
+  .stat-cell:last-child { border-right: 0; }
+  .stat-num {
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: var(--black);
+    line-height: 1.1;
+    margin-bottom: 5px;
+  }
+  .stat-label {
+    font-size: 8.5px;
+    color: var(--gray-500);
+    line-height: 1.4;
+  }
+
+  /* Section eyebrow + h2 */
+  .section-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 6px;
+  }
+  .section-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--black);
+  }
+  .section-h2 {
+    font-size: 17px;
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--black);
+    margin-bottom: 8px;
+  }
+  .section-sub {
+    font-size: 9.5px;
+    line-height: 1.5;
+    color: var(--gray-500);
+    max-width: 6.5in;
+    margin-bottom: 10px;
+  }
+
+  /* Two-peptide cards (dark inverted block) */
+  .duo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    background: var(--black);
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .duo-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 14px 16px;
+  }
+  .duo-eyebrow {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 6px;
+  }
+  .duo-name {
+    font-size: 18px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+    line-height: 1;
+  }
+  .duo-sub {
+    font-size: 8.5px;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 9px;
+    font-style: italic;
+  }
+  .duo-list {
+    list-style: none;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .duo-list li {
+    padding: 5px 0 5px 14px;
+    font-size: 8.5px;
+    color: rgba(255,255,255,0.78);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+    line-height: 1.4;
+  }
+  .duo-list li:last-child { border-bottom: 0; }
+  .duo-list li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #4ade80;
+    font-weight: 700;
+  }
+
+  /* Why Together callout */
+  .together {
+    border-left: 3px solid var(--black);
+    padding: 11px 14px;
+    background: var(--gray-50);
+    margin-bottom: 8px;
+  }
+  .together-label {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 4px;
+  }
+  .together p {
+    font-size: 10px;
+    line-height: 1.55;
+    color: var(--black);
+    margin: 0;
+  }
+
+  /* Pricing cards */
+  .pricing {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .price-card {
+    border: 1px solid var(--gray-200);
+    background: #fff;
+    padding: 14px 14px 12px;
+    position: relative;
+  }
+  .price-card.featured {
+    border-color: var(--black);
+    border-width: 2px;
+  }
+  .price-tier {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 8px;
+  }
+  .price-amount {
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: -0.025em;
+    line-height: 1;
+    color: var(--black);
+    margin-bottom: 8px;
+  }
+  .price-amount span {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-500);
+    letter-spacing: 0;
+    margin-left: 2px;
+  }
+  .price-tag {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--black);
+    margin-bottom: 5px;
+  }
+  .price-desc {
+    font-size: 8.5px;
+    line-height: 1.5;
+    color: var(--gray-500);
+  }
+  .price-badge {
+    position: absolute;
+    top: -10px;
+    right: 12px;
+    background: var(--black);
+    color: #fff;
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+  }
+
+  /* Steps grid (2x2) */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    border-top: 1px solid var(--gray-200);
+    border-left: 1px solid var(--gray-200);
+    margin-bottom: 12px;
+  }
+  .step {
+    padding: 10px 12px;
+    border-right: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .step-num {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--black);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    margin-top: 1px;
+  }
+  .step-body { flex: 1; }
+  .step-title {
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--black);
+    margin-bottom: 3px;
+    letter-spacing: 0.02em;
+  }
+  .step-desc {
+    font-size: 8.5px;
+    line-height: 1.5;
+    color: var(--gray-500);
+  }
+
+  /* Timeline pair */
+  .timeline {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid var(--gray-200);
+    border-left: 1px solid var(--gray-200);
+    margin-bottom: 12px;
+  }
+  .timeline-card {
+    padding: 11px 14px;
+    border-right: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .timeline-when {
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gray-400);
+    margin-bottom: 5px;
+  }
+  .timeline-what {
+    font-size: 9.5px;
+    line-height: 1.5;
+    color: var(--gray-700);
+  }
+
+  /* Safety pair */
+  .safety {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .safety-card {
+    border: 1px solid var(--gray-200);
+    padding: 11px 14px;
+  }
+  .safety-card.warn {
+    border-left: 3px solid var(--red);
+  }
+  .safety-card.note {
+    border-left: 3px solid var(--gray-400);
+  }
+  .safety-h {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--black);
+    margin-bottom: 6px;
+  }
+  .safety-list {
+    list-style: none;
+  }
+  .safety-list li {
+    font-size: 8.5px;
+    color: var(--gray-500);
+    line-height: 1.5;
+    padding: 2.5px 0 2.5px 14px;
+    position: relative;
+  }
+  .safety-card.warn .safety-list li::before {
+    content: '×';
+    position: absolute;
+    left: 0;
+    color: var(--red);
+    font-weight: 800;
+  }
+  .safety-card.note .safety-list li::before {
+    content: '·';
+    position: absolute;
+    left: 4px;
+    color: var(--gray-400);
+    font-weight: 800;
+    font-size: 12px;
+    line-height: 0.9;
+  }
+  .safety-foot {
+    font-size: 8px;
+    color: var(--gray-500);
+    line-height: 1.5;
+    margin-top: 6px;
+    font-style: italic;
+  }
+
+  /* CTA */
+  .cta {
+    background: var(--black);
+    color: #fff;
+    padding: 14px 18px;
+    text-align: center;
+    margin-top: auto;
+  }
+  .cta-eyebrow {
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 5px;
+  }
+  .cta-h {
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    line-height: 1.05;
+  }
+  .cta-line {
+    width: 44px;
+    height: 1px;
+    background: rgba(255,255,255,0.20);
+    margin: 0 auto 8px;
+  }
+  .cta-text {
+    font-size: 9px;
+    color: rgba(255,255,255,0.65);
+    line-height: 1.5;
+    max-width: 5.5in;
+    margin: 0 auto 10px;
+  }
+  .cta-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .cta-btn {
+    display: inline-block;
+    background: #fff;
+    color: var(--black);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 9px 18px;
+    text-decoration: none;
+  }
+  .cta-or {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.30);
+  }
+  .cta-phone {
+    color: #fff;
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,0.25);
+    padding-bottom: 1px;
+  }
+
+  /* Page Footer */
+  .pg-footer {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 7.5px;
+    color: var(--gray-400);
+    letter-spacing: 0.04em;
+  }
+  .pg-footer .right { text-align: right; }
+
+  /* Print rules */
+  @page {
+    size: letter;
+    margin: 0;
+  }
+  @media print {
+    html, body { background: #fff; }
+    .print-bar { display: none; }
+    .page {
+      box-shadow: none;
+      margin: 0;
+      page-break-after: always;
+    }
+    .page:last-of-type { page-break-after: auto; }
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <div class="print-bar">
+    <div class="print-bar-msg">
+      <strong>BPC-157 + TB-500 — Patient Handout.</strong>
+      Print, or save as PDF (front + back of one page).
+    </div>
+    <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
+  </div>
+
+  <!-- ============================== PAGE 1 ============================== -->
+  <article class="page">
+    <header class="pg-header">
+      <div class="pg-clinic">RANGE MEDICAL</div>
+      <div class="pg-contact">
+        range-medical.com &nbsp;·&nbsp; (949) 997-3988<br>
+        1901 Westcliff Drive, Suite 10, Newport Beach, CA
+      </div>
+    </header>
+
+    <div class="eyebrow">BPC-157 + TB-500 Protocol</div>
+    <h1 class="headline">Heal Faster. Recover Deeper. Move Better.</h1>
+    <div class="hr-rule"></div>
+    <p class="subhead">
+      BPC-157 and Thymosin Beta-4 (TB-500 / TB-4) are the two most-studied recovery peptides in
+      regenerative medicine. We prescribe them together because they work on different parts
+      of the same job — one repairs the tissue, the other builds the environment that lets it heal.
+    </p>
+
+    <div class="stat-row">
+      <div class="stat-cell">
+        <div class="stat-num">500 mcg</div>
+        <div class="stat-label">Of each peptide<br>per daily injection</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-num">1 / day</div>
+        <div class="stat-label">Subcutaneous (just under<br>the skin) — not muscle, not vein</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-num">Insulin needle</div>
+        <div class="stat-label">Pre-filled, single-use syringe.<br>Same gauge diabetics use daily.</div>
+      </div>
+    </div>
+
+    <div class="section-eyebrow">What Each Peptide Does</div>
+    <h2 class="section-h2">Two Peptides. One Recovery System.</h2>
+
+    <div class="duo">
+      <div class="duo-card">
+        <div class="duo-eyebrow">Peptide One</div>
+        <div class="duo-name">BPC-157</div>
+        <div class="duo-sub">Body Protection Compound — found naturally in the stomach</div>
+        <ul class="duo-list">
+          <li>Supports tendon, ligament, and muscle repair</li>
+          <li>Improves blood flow to injured tissue</li>
+          <li>May accelerate wound healing</li>
+          <li>Calms gut and joint inflammation</li>
+        </ul>
+      </div>
+      <div class="duo-card">
+        <div class="duo-eyebrow">Peptide Two</div>
+        <div class="duo-name">TB-500</div>
+        <div class="duo-sub">Thymosin Beta-4 — your body's tissue regeneration signal</div>
+        <ul class="duo-list">
+          <li>Promotes new blood vessel growth</li>
+          <li>Supports cell migration and repair</li>
+          <li>Reduces systemic inflammation</li>
+          <li>Speeds soft-tissue and joint recovery</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="together">
+      <div class="together-label">Why Together</div>
+      <p>
+        BPC-157 directly repairs damaged tissue. TB-500 improves the blood flow and cellular
+        environment that healing depends on. One does the work; the other makes the work possible.
+        That is why we rarely prescribe one without the other.
+      </p>
+    </div>
+
+    <div class="pg-footer">
+      <div>Range Medical · BPC-157 + TB-500 Recovery Protocol</div>
+      <div class="right">Continued on back &rarr;</div>
+    </div>
+  </article>
+
+  <!-- ============================== PAGE 2 ============================== -->
+  <article class="page">
+    <header class="pg-header">
+      <div class="pg-clinic">RANGE MEDICAL</div>
+      <div class="pg-contact">
+        range-medical.com &nbsp;·&nbsp; (949) 997-3988<br>
+        1901 Westcliff Drive, Suite 10, Newport Beach, CA
+      </div>
+    </header>
+
+    <div class="section-eyebrow">Choose Your Protocol</div>
+    <h2 class="section-h2">Pre-Filled Syringes. One Per Day.</h2>
+    <p class="section-sub">
+      Three protocol lengths so you can match the dose to the injury. Pick a starter to test
+      the response, or commit to a full 30-day course for chronic or post-surgical cases.
+    </p>
+
+    <div class="pricing">
+      <div class="price-card">
+        <div class="price-tier">10-Day</div>
+        <div class="price-amount">$250<span>·10 syringes</span></div>
+        <div class="price-tag">Starter</div>
+        <div class="price-desc">
+          For recent injuries, flare-ups, or first-time users. Many notice improvement
+          inside this window.
+        </div>
+      </div>
+      <div class="price-card">
+        <div class="price-tier">20-Day</div>
+        <div class="price-amount">$450<span>·20 syringes</span></div>
+        <div class="price-tag">Extended Healing</div>
+        <div class="price-desc">
+          For moderate injuries needing more time. Builds on initial progress with continued
+          tissue support.
+        </div>
+      </div>
+      <div class="price-card featured">
+        <span class="price-badge">Best Value</span>
+        <div class="price-tier">30-Day</div>
+        <div class="price-amount">$675<span>·30 syringes</span></div>
+        <div class="price-tag">Advanced / Chronic</div>
+        <div class="price-desc">
+          For chronic issues, post-surgery recovery, or athletes in training.
+          Consistency compounds.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-eyebrow">How To Inject</div>
+    <h2 class="section-h2">Daily Injection — About 30 Seconds.</h2>
+
+    <div class="steps">
+      <div class="step">
+        <span class="step-num">1</span>
+        <div class="step-body">
+          <div class="step-title">Prep</div>
+          <div class="step-desc">
+            Wash your hands. Clean the injection site with an alcohol pad. Pull the syringe
+            from the fridge a few minutes early to let it reach room temperature.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">2</span>
+        <div class="step-body">
+          <div class="step-title">Inject Subcutaneous</div>
+          <div class="step-desc">
+            Pinch the skin on lower abdomen, upper thigh, or back of arm. Insert at a 45° angle
+            just under the skin — not into muscle. Push slow.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">3</span>
+        <div class="step-body">
+          <div class="step-title">Rotate Sites</div>
+          <div class="step-desc">
+            Different spot each day. Rotating prevents irritation and keeps absorption
+            consistent. Most patients alternate abdomen → thigh → arm.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">4</span>
+        <div class="step-body">
+          <div class="step-title">Dispose Safely</div>
+          <div class="step-desc">
+            Each syringe is single-use. Do not reuse or recap. Drop in a sharps container or
+            bring used syringes back to the clinic.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-eyebrow">What To Expect</div>
+    <h2 class="section-h2">Healing Builds As You Stay On.</h2>
+
+    <div class="timeline">
+      <div class="timeline-card">
+        <div class="timeline-when">Days 1 — 10</div>
+        <div class="timeline-what">
+          Reduced swelling and inflammation. Improved mobility. Many patients notice less pain
+          during daily activities by the end of the first week.
+        </div>
+      </div>
+      <div class="timeline-card">
+        <div class="timeline-when">Days 10 — 30</div>
+        <div class="timeline-what">
+          Deeper tissue repair. Continued reduction in chronic inflammation. The longer you stay
+          on protocol, the more healing you build — consistency compounds.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-eyebrow">Safety</div>
+    <h2 class="section-h2">Important Safety Information.</h2>
+
+    <div class="safety">
+      <div class="safety-card warn">
+        <div class="safety-h">Do Not Use If You Are:</div>
+        <ul class="safety-list">
+          <li>Pregnant or breastfeeding</li>
+          <li>Living with active cancer</li>
+          <li>Managing serious liver, kidney, or heart conditions</li>
+          <li>Allergic to any ingredient in the formulation</li>
+        </ul>
+      </div>
+      <div class="safety-card note">
+        <div class="safety-h">Possible Mild Side Effects:</div>
+        <ul class="safety-list">
+          <li>Mild redness, swelling, or itching at injection site</li>
+          <li>Slight headache or fatigue in the first few days</li>
+          <li>Occasional mild nausea or lightheadedness</li>
+        </ul>
+        <div class="safety-foot">
+          Usually short-lived. Stop and contact us if symptoms are moderate or severe.
+        </div>
+      </div>
+    </div>
+
+    <div class="cta">
+      <div class="cta-eyebrow">Next Steps</div>
+      <div class="cta-h">Ready To Start? Begin With An Assessment.</div>
+      <div class="cta-line"></div>
+      <p class="cta-text">
+        Every BPC-157 + TB-500 protocol begins with a Range Assessment — we review your goals,
+        confirm you are a candidate, and design the protocol that matches your injury or
+        recovery target. $197, credited toward treatment.
+      </p>
+      <div class="cta-actions">
+        <a class="cta-btn" href="https://www.range-medical.com/assessment">Book Your Range Assessment</a>
+        <span class="cta-or">or</span>
+        <a class="cta-phone" href="tel:9499973988">(949) 997-3988</a>
+      </div>
+    </div>
+
+    <div class="pg-footer">
+      <div>Peptides are not FDA-approved to diagnose, treat, or prevent disease. Individual results vary.</div>
+      <div class="right">range-medical.com</div>
+    </div>
+  </article>
+
+</body>
+</html>

@@ -61,7 +61,7 @@ export default async function handler(req, res) {
     }
 
     // Record each item as a purchase (same logic as complete.js)
-    if (invoice.patient_id && invoice.items?.length > 0) {
+    if (invoice.patient_id && invoice.total_cents > 0) {
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
       const hasDiscount = invoice.discount_cents > 0;
       const subtotalCents = invoice.subtotal_cents || 0;
@@ -79,7 +79,13 @@ export default async function handler(req, res) {
         }
       }
 
-      for (const item of invoice.items) {
+      // Fallback: if invoice has no line items, record the total as a single purchase
+      // so the payment still shows up in the patient's purchases tab.
+      const itemsToRecord = invoice.items?.length > 0
+        ? invoice.items
+        : [{ name: 'Invoice payment', category: null, price_cents: invoice.total_cents, quantity: 1 }];
+
+      for (const item of itemsToRecord) {
         const itemSubtotal = item.price_cents * (item.quantity || 1);
         let itemAmount = itemSubtotal;
         let itemOriginalAmount = null;

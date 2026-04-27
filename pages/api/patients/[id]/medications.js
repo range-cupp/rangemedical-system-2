@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
   // POST — add new medication
   if (req.method === 'POST') {
-    const { medication_name, strength, form, sig, start_date, source, is_active, last_pickup_date, last_pickup_quantity, quantity_unit } = req.body;
+    const { medication_name, strength, form, route, sig, start_date, source, is_active, last_pickup_date, last_pickup_quantity, quantity_unit } = req.body;
     if (!medication_name) return res.status(400).json({ error: 'Medication name required' });
 
     const { data, error } = await supabase
@@ -25,6 +25,7 @@ export default async function handler(req, res) {
         medication_name,
         strength: strength || null,
         form: form || null,
+        route: route || null,
         sig: sig || null,
         start_date: start_date || todayPacific(),
         source: source || null,
@@ -59,7 +60,7 @@ export default async function handler(req, res) {
       updates.stop_date = updates.stop_date || null;
     }
     // Clean empty strings to null for text fields
-    ['strength', 'form', 'sig', 'source', 'quantity_unit'].forEach(k => {
+    ['strength', 'form', 'route', 'sig', 'source', 'quantity_unit'].forEach(k => {
       if (k in updates && updates[k] === '') updates[k] = null;
     });
 

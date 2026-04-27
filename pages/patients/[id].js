@@ -47,7 +47,7 @@ import {
   isWeightLossType
 } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, buildAdaptiveHRTSchedule, isHRTProtocol, getLabStatusSummary } from '../../lib/hrt-lab-schedule';
-import { isRecoveryPeptide, isGHPeptide, findPeptideProduct, calculatePeptideDurationDays, getDosesPerWeek } from '../../lib/protocol-config';
+import { isRecoveryPeptide, isGHPeptide, findPeptideProduct, calculatePeptideDurationDays, getDosesPerWeek, MEDICATION_CATEGORIES, MEDICATION_DEFAULTS, getMedicationsByCategory, resolveDoseList, buildSig } from '../../lib/protocol-config';
 import { VIAL_CATALOG } from '../../lib/vial-catalog';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -509,7 +509,7 @@ export default function PatientProfile() {
   // Medication add/edit modal (admin only)
   const [showMedEditModal, setShowMedEditModal] = useState(false);
   const [medEditMode, setMedEditMode] = useState('add'); // 'add' | 'edit'
-  const [medEditForm, setMedEditForm] = useState({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: '', last_pickup_date: '', last_pickup_quantity: '', quantity_unit: 'pills' });
+  const [medEditForm, setMedEditForm] = useState({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: '', last_pickup_date: '', last_pickup_quantity: '', quantity_unit: 'pills', route: '', quick_category: '', quick_gender: '', quick_medication_key: '', quick_dose: '', quick_frequency: '' });
   const [medEditSaving, setMedEditSaving] = useState(false);
 
   const [pinnedNoteExpanded, setPinnedNoteExpanded] = useState(false);
@@ -6175,6 +6175,7 @@ export default function PatientProfile() {
                 is_active: true,
                 from_protocol: true,
                 protocol_id: proto.id,
+                needs_medication_review: !!proto.needs_medication_review,
               });
               // Add secondary medications (HRT — Gonadorelin, HCG, Nandrolone, Anastrozole).
               // These live inside the parent protocol's secondary_medication_details JSON,
@@ -6276,7 +6277,7 @@ export default function PatientProfile() {
                       </button>
                     )}
                     {employee?.is_admin && (
-                      <button className="btn-primary-sm" onClick={() => { setMedEditMode('add'); setMedEditForm({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: '', last_pickup_date: '', last_pickup_quantity: '', quantity_unit: 'pills' }); setShowMedEditModal(true); }}>
+                      <button className="btn-primary-sm" onClick={() => { setMedEditMode('add'); setMedEditForm({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: 'Range Medical', last_pickup_date: '', last_pickup_quantity: '', quantity_unit: 'pills', route: '', quick_category: '', quick_gender: (patient?.gender || '').toLowerCase(), quick_medication_key: '', quick_dose: '', quick_frequency: '' }); setShowMedEditModal(true); }}>
                         + Add Medication
                       </button>
                     )}
@@ -6324,6 +6325,13 @@ export default function PatientProfile() {
                             {med.from_protocol && (
                               <span style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic' }}>via protocol</span>
                             )}
+                            {med.needs_medication_review && (
+                              <span style={{
+                                fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: 0,
+                                background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a',
+                                textTransform: 'uppercase', letterSpacing: '0.04em',
+                              }}>⚠ Needs Provider Review</span>
+                            )}
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
@@ -6331,6 +6339,25 @@ export default function PatientProfile() {
                             padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600,
                             background: '#dcfce7', color: '#166534', whiteSpace: 'nowrap',
                           }}>Active</span>
+                          {employee?.is_admin && med.needs_medication_review && med.protocol_id && (
+                            <button
+                              onClick={async () => {
+                                if (!confirm('Mark this medication as verified? Make sure the dose, frequency, and sig are correct first.')) return;
+                                try {
+                                  const res = await fetch(`/api/admin/protocols/${med.protocol_id}/verify-medication`, { method: 'POST' });
+                                  if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.error || 'Failed to verify'); return; }
+                                  const r = await fetch(`/api/patients/${patient.id}`);
+                                  const d = await r.json();
+                                  if (d.activeProtocols) setActiveProtocols(d.activeProtocols);
+                                } catch (err) { console.error(err); alert('Failed to verify medication'); }
+                              }}
+                              style={{
+                                padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 700,
+                                background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                              }}
+                              title="Mark medication as verified — clears the review flag and completes the task"
+                            >✓ Verify</button>
+                          )}
                           {employee?.is_admin && med.from_protocol && (() => {
                             // Only WL and HRT (primary or secondary) need provider approval.
                             // Peptides and other categories edit dose directly from Business → Protocols.
@@ -11449,6 +11476,149 @@ export default function PatientProfile() {
                     This medication is generated from an active protocol. Only the <strong>SIG</strong> can be edited here. Dose, frequency, and other structured fields must be changed via the protocol itself.
                   </div>
                 )}
+
+                {/* Quick Pick — guided dropdowns that auto-fill the fields below.
+                    Only shown for manual (non-protocol-derived) meds. */}
+                {!medEditForm.from_protocol && (
+                  <div style={{ padding: '12px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#0f172a', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quick Pick — auto-fills the fields below</div>
+
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#475569', marginBottom: 3 }}>Category</label>
+                        <select
+                          value={medEditForm.quick_category || ''}
+                          onChange={e => {
+                            const cat = e.target.value;
+                            setMedEditForm(f => ({
+                              ...f,
+                              quick_category: cat,
+                              // Default HRT to the patient's gender if known
+                              quick_gender: cat === 'hrt' ? (f.quick_gender || (patient?.gender || '').toLowerCase()) : '',
+                              quick_medication_key: '',
+                              quick_dose: '',
+                              quick_frequency: '',
+                            }));
+                          }}
+                          style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, background: '#fff' }}
+                        >
+                          <option value="">— Manual entry —</option>
+                          {MEDICATION_CATEGORIES.map(c => (
+                            <option key={c.value} value={c.value}>{c.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {medEditForm.quick_category === 'hrt' && (
+                        <div style={{ flex: 1 }}>
+                          <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#475569', marginBottom: 3 }}>Patient Sex</label>
+                          <select
+                            value={medEditForm.quick_gender || ''}
+                            onChange={e => setMedEditForm(f => ({ ...f, quick_gender: e.target.value, quick_medication_key: '', quick_dose: '', quick_frequency: '' }))}
+                            style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, background: '#fff' }}
+                          >
+                            <option value="">Select…</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
+                    {medEditForm.quick_category && (medEditForm.quick_category !== 'hrt' || medEditForm.quick_gender) && (() => {
+                      const meds = getMedicationsByCategory(medEditForm.quick_category, medEditForm.quick_gender);
+                      const selectedMed = meds.find(m => m.key === medEditForm.quick_medication_key) || null;
+                      const doses = resolveDoseList(selectedMed);
+                      const frequencies = selectedMed?.frequencies || [];
+                      return (
+                        <>
+                          <div style={{ marginBottom: 10 }}>
+                            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#475569', marginBottom: 3 }}>Medication</label>
+                            <select
+                              value={medEditForm.quick_medication_key || ''}
+                              onChange={e => {
+                                const key = e.target.value;
+                                const meta = meds.find(m => m.key === key);
+                                if (!meta) {
+                                  setMedEditForm(f => ({ ...f, quick_medication_key: key, quick_dose: '', quick_frequency: '' }));
+                                  return;
+                                }
+                                setMedEditForm(f => ({
+                                  ...f,
+                                  quick_medication_key: key,
+                                  quick_dose: '',
+                                  quick_frequency: meta.defaultFrequency || '',
+                                  // Auto-fill the manual fields below
+                                  medication_name: meta.canonicalName,
+                                  strength: meta.strength || '',
+                                  form: meta.form || '',
+                                  route: meta.route || '',
+                                  sig: '',
+                                }));
+                              }}
+                              style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, background: '#fff' }}
+                            >
+                              <option value="">Select medication…</option>
+                              {meds.map(m => (
+                                <option key={m.key} value={m.key}>{m.canonicalName}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {selectedMed && (
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <div style={{ flex: 1 }}>
+                                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#475569', marginBottom: 3 }}>Dose</label>
+                                <select
+                                  value={medEditForm.quick_dose || ''}
+                                  onChange={e => {
+                                    const dose = e.target.value;
+                                    const newSig = buildSig({
+                                      dose,
+                                      route: selectedMed.route,
+                                      frequency: medEditForm.quick_frequency || selectedMed.defaultFrequency,
+                                      form: selectedMed.form,
+                                    });
+                                    setMedEditForm(f => ({ ...f, quick_dose: dose, sig: newSig || f.sig }));
+                                  }}
+                                  style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, background: '#fff' }}
+                                >
+                                  <option value="">Select…</option>
+                                  {doses.map(d => (
+                                    <option key={d.value || d} value={d.value || d}>{d.label || d.value || d}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#475569', marginBottom: 3 }}>Frequency</label>
+                                <select
+                                  value={medEditForm.quick_frequency || ''}
+                                  onChange={e => {
+                                    const freq = e.target.value;
+                                    const newSig = buildSig({
+                                      dose: medEditForm.quick_dose,
+                                      route: selectedMed.route,
+                                      frequency: freq,
+                                      form: selectedMed.form,
+                                    });
+                                    setMedEditForm(f => ({ ...f, quick_frequency: freq, sig: newSig || f.sig }));
+                                  }}
+                                  style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, background: '#fff' }}
+                                >
+                                  <option value="">Select…</option>
+                                  {frequencies.map(fq => (
+                                    <option key={fq} value={fq}>{fq}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Medication Name *</label>
                   <input
@@ -11474,14 +11644,31 @@ export default function PatientProfile() {
                   </div>
                   <div style={{ flex: 1 }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Form</label>
-                    <input
-                      type="text"
-                      value={medEditForm.form}
+                    <select
+                      value={medEditForm.form || ''}
                       onChange={e => setMedEditForm(f => ({ ...f, form: e.target.value }))}
-                      placeholder="e.g., Injection, Tablet"
                       disabled={medEditForm.from_protocol}
                       style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, background: medEditForm.from_protocol ? '#f9fafb' : '#fff' }}
-                    />
+                    >
+                      <option value="">Select…</option>
+                      {['Solution','Tablet','Capsule','Patch','Cream','Gel','Lozenge','Powder','Spray'].map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Route</label>
+                    <select
+                      value={medEditForm.route || ''}
+                      onChange={e => setMedEditForm(f => ({ ...f, route: e.target.value }))}
+                      disabled={medEditForm.from_protocol}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, background: medEditForm.from_protocol ? '#f9fafb' : '#fff' }}
+                    >
+                      <option value="">Select…</option>
+                      {['Intramuscular','Subcutaneous','Oral','Transdermal','Topical','Sublingual'].map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 <div>
@@ -11613,10 +11800,12 @@ export default function PatientProfile() {
                           if (data.activeProtocols) setActiveProtocols(data.activeProtocols);
                           if (data.medications) setMedications(data.medications);
                         } else {
+                          // Strip Quick Pick UI-only fields before sending to API.
+                          const { quick_category, quick_gender, quick_medication_key, quick_dose, quick_frequency, ...payload } = medEditForm;
                           await fetch(`/api/patients/${patient.id}/medications`, {
                             method: medEditMode === 'add' ? 'POST' : 'PUT',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ ...medEditForm, is_active: true }),
+                            body: JSON.stringify({ ...payload, is_active: true }),
                           });
                           setShowMedEditModal(false);
                           // Refresh medications

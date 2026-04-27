@@ -2,10 +2,11 @@
 // Create New Protocol - Type-specific fields
 // Range Medical
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { getMedicationsByCategory, resolveDoseList, buildSig } from '../../../lib/protocol-config';
 
 const PROTOCOL_TYPES = {
   peptide: {
@@ -29,21 +30,18 @@ const PROTOCOL_TYPES = {
     staffCheckinDays: 7
   },
   hrt: {
+    // HRT uses the dynamic MEDICATION_DEFAULTS-driven flow below — these fields
+    // are kept only so the type-selector card and downstream code (labs,
+    // supply tracking) still recognize HRT as a valid type.
     name: 'HRT Protocol',
-    medications: ['Testosterone Cypionate'],
-    dosages: [
-      { value: '0.3ml/60mg', label: '0.3ml / 60mg' },
-      { value: '0.4ml/80mg', label: '0.4ml / 80mg' },
-      { value: '0.5ml/100mg', label: '0.5ml / 100mg' }
-    ],
-    frequencies: [{ value: 'every_3_5_days', label: 'Every 3.5 days' }],
     supplyTypes: [
       { value: 'prefilled', label: 'Prefilled Syringes (8/month)' },
       { value: 'vial', label: 'Vial (10ml)' }
     ],
     symptoms: ['energy', 'mood', 'libido', 'sleep'],
     requiresLabs: true,
-    symptomCheckinDays: 30
+    symptomCheckinDays: 30,
+    isDynamic: true,
   },
   weight_loss: {
     name: 'Weight Loss',
@@ -82,7 +80,7 @@ export default function NewProtocol() {
     patientName: '',
     patientPhone: '',
     patientEmail: '',
-    
+
     // Protocol details
     medication: '',
     customMedication: '',
@@ -90,23 +88,28 @@ export default function NewProtocol() {
     customDosage: '',
     frequency: '',
     deliveryMethod: 'take_home',
-    
+
     // Duration
     startDate: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
     duration: '',
     totalSessions: '',
-    
+
     // HRT specific
+    hrtGender: '',          // 'male' | 'female' — drives med + dose filtering
+    medicationKey: '',      // key into MEDICATION_DEFAULTS, e.g. 'Testosterone Cypionate (Male)'
+    route: '',              // 'Intramuscular' | 'Subcutaneous' | 'Oral' | 'Transdermal'
+    sig: '',                // generated from dose + freq + route, editable
+    sigManuallyEdited: false,
     supplyType: '',
     supplyDispensedDate: '',
-    
+
     // Weight loss specific
     currentDose: '',
     goalWeight: '',
 
     // Labs
     baselineLabsDate: '',
-    
+
     notes: ''
   });
 
@@ -128,6 +131,37 @@ export default function NewProtocol() {
   }, [patient_id]);
 
   const selectedType = PROTOCOL_TYPES[form.protocolType];
+
+  // HRT — dynamic medication options driven by MEDICATION_DEFAULTS + selected gender
+  const hrtMedicationOptions = useMemo(() => {
+    if (form.protocolType !== 'hrt' || !form.hrtGender) return [];
+    return getMedicationsByCategory('hrt', form.hrtGender);
+  }, [form.protocolType, form.hrtGender]);
+
+  const hrtSelectedMed = useMemo(() => {
+    if (form.protocolType !== 'hrt' || !form.medicationKey) return null;
+    return hrtMedicationOptions.find(m => m.key === form.medicationKey) || null;
+  }, [form.protocolType, form.medicationKey, hrtMedicationOptions]);
+
+  const hrtDoseOptions = useMemo(() => resolveDoseList(hrtSelectedMed), [hrtSelectedMed]);
+
+  // Auto-compose sig whenever the inputs change — staff can override and we
+  // remember that override via sigManuallyEdited.
+  useEffect(() => {
+    if (form.protocolType !== 'hrt') return;
+    if (form.sigManuallyEdited) return;
+    if (!hrtSelectedMed || !form.dosage || !form.frequency) return;
+    const route = form.route || hrtSelectedMed.route;
+    const generated = buildSig({
+      dose: form.dosage,
+      route,
+      frequency: form.frequency,
+      form: hrtSelectedMed.form,
+    });
+    if (generated && generated !== form.sig) {
+      setForm(f => ({ ...f, sig: generated, route }));
+    }
+  }, [form.protocolType, hrtSelectedMed, form.dosage, form.frequency, form.route, form.sigManuallyEdited]);
 
   const submitProtocol = async (force = false) => {
     setSaving(true);
@@ -275,7 +309,19 @@ export default function NewProtocol() {
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setForm({ ...form, protocolType: key, medication: '', dosage: '', frequency: type.frequencies?.[0]?.value || '' })}
+                    onClick={() => setForm({
+                      ...form,
+                      protocolType: key,
+                      medication: '',
+                      dosage: '',
+                      frequency: type.frequencies?.[0]?.value || '',
+                      // Reset HRT-specific fields when switching types
+                      hrtGender: '',
+                      medicationKey: '',
+                      route: '',
+                      sig: '',
+                      sigManuallyEdited: false,
+                    })}
                     style={{
                       ...styles.typeCard,
                       borderColor: form.protocolType === key ? '#000' : '#e5e5e5',
@@ -292,8 +338,153 @@ export default function NewProtocol() {
             {/* Type-Specific Fields */}
             {selectedType && (
               <>
-                {/* Medication & Dosage */}
-                {selectedType.medications && (
+                {/* HRT — gender-driven medication picker with auto-sig */}
+                {form.protocolType === 'hrt' && (
+                  <section style={styles.section}>
+                    <h2 style={styles.sectionTitle}>HRT Setup</h2>
+
+                    {/* Gender selector — drives medication + dose filtering */}
+                    <div style={styles.field}>
+                      <label style={styles.label}>Patient Sex *</label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        {[{ v: 'male', l: 'Male' }, { v: 'female', l: 'Female' }].map(opt => (
+                          <button
+                            key={opt.v}
+                            type="button"
+                            onClick={() => setForm(f => ({
+                              ...f,
+                              hrtGender: opt.v,
+                              medicationKey: '',
+                              medication: '',
+                              dosage: '',
+                              frequency: '',
+                              route: '',
+                              sig: '',
+                              sigManuallyEdited: false,
+                            }))}
+                            style={{
+                              flex: 1,
+                              padding: '10px 14px',
+                              border: '2px solid',
+                              borderColor: form.hrtGender === opt.v ? '#000' : '#e5e5e5',
+                              background: form.hrtGender === opt.v ? '#000' : '#fff',
+                              color: form.hrtGender === opt.v ? '#fff' : '#000',
+                              fontSize: '14px', fontWeight: 500, cursor: 'pointer', borderRadius: 0,
+                            }}
+                          >
+                            {opt.l}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {form.hrtGender && (
+                      <div style={{ ...styles.grid, marginTop: '16px' }}>
+                        <div style={styles.field}>
+                          <label style={styles.label}>Medication *</label>
+                          <select
+                            value={form.medicationKey}
+                            onChange={e => {
+                              const key = e.target.value;
+                              const meta = hrtMedicationOptions.find(m => m.key === key);
+                              setForm(f => ({
+                                ...f,
+                                medicationKey: key,
+                                medication: meta?.canonicalName || '',
+                                route: meta?.route || '',
+                                frequency: meta?.defaultFrequency || '',
+                                dosage: '',
+                                sig: '',
+                                sigManuallyEdited: false,
+                              }));
+                            }}
+                            style={styles.select}
+                            required
+                          >
+                            <option value="">Select medication...</option>
+                            {hrtMedicationOptions.map(m => (
+                              <option key={m.key} value={m.key}>{m.canonicalName}</option>
+                            ))}
+                          </select>
+                          {hrtSelectedMed && (
+                            <p style={styles.hint}>
+                              {hrtSelectedMed.strength} · {hrtSelectedMed.form} · {hrtSelectedMed.route}
+                            </p>
+                          )}
+                        </div>
+
+                        <div style={styles.field}>
+                          <label style={styles.label}>Dose *</label>
+                          <select
+                            value={form.dosage}
+                            onChange={e => setForm(f => ({ ...f, dosage: e.target.value, sig: '', sigManuallyEdited: false }))}
+                            style={styles.select}
+                            required
+                            disabled={!hrtSelectedMed}
+                          >
+                            <option value="">Select...</option>
+                            {hrtDoseOptions.map(d => (
+                              <option key={d.value || d} value={d.value || d}>{d.label || d.value || d}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div style={styles.field}>
+                          <label style={styles.label}>Frequency *</label>
+                          <select
+                            value={form.frequency}
+                            onChange={e => setForm(f => ({ ...f, frequency: e.target.value, sig: '', sigManuallyEdited: false }))}
+                            style={styles.select}
+                            required
+                            disabled={!hrtSelectedMed}
+                          >
+                            <option value="">Select...</option>
+                            {(hrtSelectedMed?.frequencies || []).map(fq => (
+                              <option key={fq} value={fq}>{fq}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div style={styles.field}>
+                          <label style={styles.label}>Route</label>
+                          <select
+                            value={form.route}
+                            onChange={e => setForm(f => ({ ...f, route: e.target.value, sig: '', sigManuallyEdited: false }))}
+                            style={styles.select}
+                          >
+                            <option value="">Default ({hrtSelectedMed?.route || 'auto'})</option>
+                            <option value="Intramuscular">Intramuscular (IM)</option>
+                            <option value="Subcutaneous">Subcutaneous (SubQ)</option>
+                            <option value="Oral">Oral</option>
+                            <option value="Transdermal">Transdermal</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
+
+                    {form.dosage && form.frequency && (
+                      <div style={{ ...styles.field, marginTop: '16px' }}>
+                        <label style={styles.label}>
+                          Sig (Directions)
+                          {!form.sigManuallyEdited && <span style={{ color: '#16a34a', fontWeight: 400, marginLeft: 6 }}>· auto-generated</span>}
+                        </label>
+                        <input
+                          type="text"
+                          value={form.sig}
+                          onChange={e => setForm(f => ({ ...f, sig: e.target.value, sigManuallyEdited: true }))}
+                          placeholder="e.g., Administer 0.25ml (50mg) Intramuscularly every 3.5 days"
+                          style={styles.input}
+                        />
+                        <p style={styles.hint}>
+                          Edit to override. {form.sigManuallyEdited ? 'Manual override active — won\'t auto-update if dose/frequency change.' : 'Will regenerate when dose, frequency, or route change.'}
+                        </p>
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                {/* Non-HRT — original Medication & Dosage block */}
+                {form.protocolType !== 'hrt' && selectedType.medications && (
                   <section style={styles.section}>
                     <h2 style={styles.sectionTitle}>Medication & Dosage</h2>
                     <div style={styles.grid}>
@@ -343,7 +534,7 @@ export default function NewProtocol() {
                             required
                           >
                             <option value="">Select...</option>
-                            {selectedType.dosages.map(d => (
+                            {(selectedType.dosages || []).map(d => (
                               <option key={d.value} value={d.value}>{d.label}</option>
                             ))}
                           </select>
@@ -367,20 +558,23 @@ export default function NewProtocol() {
                 <section style={styles.section}>
                   <h2 style={styles.sectionTitle}>Schedule</h2>
                   <div style={styles.grid}>
-                    <div style={styles.field}>
-                      <label style={styles.label}>Frequency *</label>
-                      <select
-                        value={form.frequency}
-                        onChange={e => setForm({ ...form, frequency: e.target.value })}
-                        style={styles.select}
-                        required
-                      >
-                        {selectedType.frequencies.map(f => (
-                          <option key={f.value} value={f.value}>{f.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                    
+                    {/* HRT sets its own frequency inside the HRT Setup block above */}
+                    {form.protocolType !== 'hrt' && Array.isArray(selectedType.frequencies) && selectedType.frequencies.length > 0 && (
+                      <div style={styles.field}>
+                        <label style={styles.label}>Frequency *</label>
+                        <select
+                          value={form.frequency}
+                          onChange={e => setForm({ ...form, frequency: e.target.value })}
+                          style={styles.select}
+                          required
+                        >
+                          {selectedType.frequencies.map(f => (
+                            <option key={f.value} value={f.value}>{f.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
                     {form.protocolType !== 'red_light' && form.protocolType !== 'hbot' && (
                       <div style={styles.field}>
                         <label style={styles.label}>Delivery Method *</label>

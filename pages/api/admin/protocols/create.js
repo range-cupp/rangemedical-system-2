@@ -64,6 +64,10 @@ export default async function handler(req, res) {
       baselineLabsDate,
       goalWeight,
       notes,
+      // HRT-specific fields from the new gender-aware checkout flow
+      hrtGender,
+      route,
+      sig,
       initial_journey_stage,  // Optional: skip to a specific journey stage (e.g. 'dispensed' for POS purchases)
       source,                  // Optional: 'pos', 'admin', etc.
       force                    // Optional: true to bypass duplicate prevention
@@ -174,10 +178,18 @@ export default async function handler(req, res) {
 
       peptide_reminders_enabled: protocolType === 'peptide' ? true : null,
 
+      // HRT-specific
+      hrt_type: protocolType === 'hrt' ? (hrtGender || 'male') : undefined,
+      injection_method: route === 'Subcutaneous' ? 'subq' : route === 'Intramuscular' ? 'im' : undefined,
+      sig: sig || undefined,
+
       notes,
     }, {
       source: 'admin-protocols-create',
       force: !!force,
+      // When created from the admin form, the provider is filling everything
+      // out themselves — no need for the post-purchase verification gate.
+      skipMedicationReview: true,
     });
 
     if (!result.success) {

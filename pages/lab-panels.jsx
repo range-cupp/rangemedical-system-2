@@ -120,6 +120,52 @@ export default function LabPanels() {
     "DHT": "Dihydrotestosterone, a potent androgen. Relevant for hair loss, acne, and hormone balance assessment."
   };
 
+  // Bundle tests are single orders that report multiple individual biomarkers.
+  // We list the bundle as one row but expand it to show every analyte grouped by what it measures.
+  const bundleComposition = {
+    "Complete Metabolic Panel (CMP)": {
+      count: 17,
+      tagline: "Liver, kidneys, blood sugar, electrolytes, proteins",
+      groups: [
+        { label: "Blood sugar", markers: "Glucose" },
+        { label: "Kidney function", markers: "BUN · Creatinine · eGFR" },
+        { label: "Electrolytes", markers: "Sodium · Potassium · Chloride · CO2 · Calcium" },
+        { label: "Proteins", markers: "Total Protein · Albumin · Globulin · A/G Ratio" },
+        { label: "Liver enzymes", markers: "AST · ALT · ALP · Total Bilirubin" },
+      ],
+    },
+    "Lipid Panel": {
+      count: 6,
+      tagline: "Cholesterol & heart disease risk",
+      groups: [
+        { label: "Cholesterol", markers: "Total · HDL · LDL · Non-HDL" },
+        { label: "Triglycerides & ratios", markers: "Triglycerides · Total/HDL Ratio" },
+      ],
+    },
+    "CBC with Differential": {
+      count: 20,
+      tagline: "Blood cells, anemia, immune function",
+      groups: [
+        { label: "Red blood cells", markers: "RBC · Hemoglobin · Hematocrit · MCV · MCH · MCHC · RDW" },
+        { label: "White blood cells (5-part diff)", markers: "WBC · Neutrophils · Lymphocytes · Monocytes · Eosinophils · Basophils (% and absolute counts)" },
+        { label: "Platelets", markers: "Platelet Count · MPV" },
+      ],
+    },
+    "Iron & TIBC": {
+      count: 3,
+      tagline: "Iron stores and transport",
+      groups: [
+        { label: "Iron status", markers: "Serum Iron · TIBC · Transferrin Saturation" },
+      ],
+    },
+  };
+
+  // Total biomarker counts (with bundles fully expanded)
+  const totalBiomarkers = {
+    men: { essential: 55, elite: 78 },
+    women: { essential: 57, elite: 78 },
+  };
+
   const menEssential = [
     "Complete Metabolic Panel (CMP)",
     "Lipid Panel",
@@ -405,6 +451,22 @@ export default function LabPanels() {
               </button>
             </div>
 
+            {/* Biomarker Count Summary */}
+            <div className="lp-chart-summary">
+              <div className="lp-chart-summary-pill">
+                <span className="lp-chart-summary-num">{totalBiomarkers[activeTab].essential}</span>
+                <span className="lp-chart-summary-label">Essential biomarkers</span>
+              </div>
+              <span className="lp-chart-summary-divider">vs.</span>
+              <div className="lp-chart-summary-pill lp-chart-summary-elite">
+                <span className="lp-chart-summary-num">{totalBiomarkers[activeTab].elite}</span>
+                <span className="lp-chart-summary-label">Elite biomarkers</span>
+              </div>
+            </div>
+            <p className="lp-chart-summary-note">
+              Bundle tests like CMP, Lipid Panel, and CBC each contain multiple individual biomarkers. Tap any row to see what&apos;s tested.
+            </p>
+
             {/* Comparison Chart */}
             <div className="lp-chart-wrapper">
               <div className="lp-chart">
@@ -428,50 +490,84 @@ export default function LabPanels() {
 
                 {/* Rows */}
                 <div className="lp-chart-body">
-                  {(activeTab === 'men' ? menEssential : womenEssential).map((marker, index) => (
+                  {(activeTab === 'men' ? menEssential : womenEssential).map((marker, index) => {
+                    const bundle = bundleComposition[marker];
+                    const isExpanded = expandedMarker === `essential-${index}`;
+                    return (
                     <div key={index}>
                       <div
-                        className={`lp-chart-row lp-chart-row-clickable ${expandedMarker === `essential-${index}` ? 'lp-chart-row-expanded' : ''}`}
+                        className={`lp-chart-row lp-chart-row-clickable ${isExpanded ? 'lp-chart-row-expanded' : ''}`}
                         onClick={() => toggleMarker(`essential-${index}`)}
                       >
                         <div className="lp-chart-marker-col">
-                          <span className="lp-marker-name">{marker}</span>
-                          <span className={`lp-marker-toggle ${expandedMarker === `essential-${index}` ? 'lp-marker-toggle-open' : ''}`}>
-                            {expandedMarker === `essential-${index}` ? '\u2212' : '+'}
+                          <span className="lp-marker-name">
+                            {marker}
+                            {bundle && <span className="lp-marker-count-badge">{bundle.count} biomarkers</span>}
+                          </span>
+                          <span className={`lp-marker-toggle ${isExpanded ? 'lp-marker-toggle-open' : ''}`}>
+                            {isExpanded ? '\u2212' : '+'}
                           </span>
                         </div>
                         <div className="lp-chart-panel-col"><span className="lp-check">{'\u2713'}</span></div>
                         <div className="lp-chart-panel-col lp-chart-panel-featured"><span className="lp-check">{'\u2713'}</span></div>
                       </div>
-                      {expandedMarker === `essential-${index}` && biomarkerInfo[marker] && (
+                      {isExpanded && (biomarkerInfo[marker] || bundle) && (
                         <div className="lp-chart-description">
-                          <p>{biomarkerInfo[marker]}</p>
+                          {biomarkerInfo[marker] && <p>{biomarkerInfo[marker]}</p>}
+                          {bundle && (
+                            <div className="lp-bundle-groups">
+                              {bundle.groups.map((group, gIdx) => (
+                                <div className="lp-bundle-group" key={gIdx}>
+                                  <span className="lp-bundle-group-label">{group.label}</span>
+                                  <span className="lp-bundle-group-markers">{group.markers}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  ))}
-                  {(activeTab === 'men' ? menEliteExtra : womenEliteExtra).map((marker, index) => (
+                    );
+                  })}
+                  {(activeTab === 'men' ? menEliteExtra : womenEliteExtra).map((marker, index) => {
+                    const bundle = bundleComposition[marker];
+                    const isExpanded = expandedMarker === `elite-${index}`;
+                    return (
                     <div key={`elite-${index}`}>
                       <div
-                        className={`lp-chart-row lp-chart-row-elite lp-chart-row-clickable ${expandedMarker === `elite-${index}` ? 'lp-chart-row-expanded' : ''}`}
+                        className={`lp-chart-row lp-chart-row-elite lp-chart-row-clickable ${isExpanded ? 'lp-chart-row-expanded' : ''}`}
                         onClick={() => toggleMarker(`elite-${index}`)}
                       >
                         <div className="lp-chart-marker-col">
-                          <span className="lp-marker-name">{marker}</span>
-                          <span className={`lp-marker-toggle ${expandedMarker === `elite-${index}` ? 'lp-marker-toggle-open' : ''}`}>
-                            {expandedMarker === `elite-${index}` ? '\u2212' : '+'}
+                          <span className="lp-marker-name">
+                            {marker}
+                            {bundle && <span className="lp-marker-count-badge">{bundle.count} biomarkers</span>}
+                          </span>
+                          <span className={`lp-marker-toggle ${isExpanded ? 'lp-marker-toggle-open' : ''}`}>
+                            {isExpanded ? '\u2212' : '+'}
                           </span>
                         </div>
                         <div className="lp-chart-panel-col"><span className="lp-dash">&mdash;</span></div>
                         <div className="lp-chart-panel-col lp-chart-panel-featured"><span className="lp-check">{'\u2713'}</span></div>
                       </div>
-                      {expandedMarker === `elite-${index}` && biomarkerInfo[marker] && (
+                      {isExpanded && (biomarkerInfo[marker] || bundle) && (
                         <div className="lp-chart-description lp-chart-description-elite">
-                          <p>{biomarkerInfo[marker]}</p>
+                          {biomarkerInfo[marker] && <p>{biomarkerInfo[marker]}</p>}
+                          {bundle && (
+                            <div className="lp-bundle-groups">
+                              {bundle.groups.map((group, gIdx) => (
+                                <div className="lp-bundle-group" key={gIdx}>
+                                  <span className="lp-bundle-group-label">{group.label}</span>
+                                  <span className="lp-bundle-group-markers">{group.markers}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Footer with CTAs */}
@@ -635,7 +731,7 @@ export default function LabPanels() {
               <button onClick={() => openCheckout('elite')} className="lp-btn">
                 BOOK ELITE &mdash; $750
               </button>
-              <p>Includes all Essential markers + 20 advanced biomarkers</p>
+              <p>78 total biomarkers — Essential plus 23 advanced markers</p>
             </div>
           </div>
         </section>
@@ -1153,6 +1249,150 @@ export default function LabPanels() {
             font-size: 0.875rem;
             color: #737373;
             line-height: 1.6;
+          }
+
+          /* Biomarker count summary */
+          .lp-chart-summary {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+          }
+
+          .lp-chart-summary-pill {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            padding: 1rem 2rem;
+            min-width: 200px;
+          }
+
+          .lp-chart-summary-elite {
+            background: #1a1a1a;
+            border-color: #1a1a1a;
+          }
+
+          .lp-chart-summary-num {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #1a1a1a;
+            line-height: 1;
+            letter-spacing: -0.02em;
+          }
+
+          .lp-chart-summary-elite .lp-chart-summary-num {
+            color: #ffffff;
+          }
+
+          .lp-chart-summary-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #737373;
+            margin-top: 0.5rem;
+          }
+
+          .lp-chart-summary-elite .lp-chart-summary-label {
+            color: #b8b8b8;
+          }
+
+          .lp-chart-summary-divider {
+            font-size: 0.875rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: #b8b8b8;
+            text-transform: uppercase;
+          }
+
+          .lp-chart-summary-note {
+            text-align: center;
+            font-size: 0.8125rem;
+            color: #737373;
+            margin: 0 0 1.5rem;
+            font-style: italic;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+          }
+
+          /* Bundle count badge on bundle marker rows */
+          .lp-marker-count-badge {
+            display: inline-block;
+            margin-left: 0.625rem;
+            padding: 0.125rem 0.5rem;
+            background: #1a1a1a;
+            color: #ffffff;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            vertical-align: middle;
+            line-height: 1.4;
+          }
+
+          .lp-chart-row-elite .lp-marker-count-badge {
+            background: #525252;
+          }
+
+          /* Bundle group expansion (segmented sub-markers) */
+          .lp-bundle-groups {
+            display: flex;
+            flex-direction: column;
+            gap: 0.625rem;
+            margin-top: 0.875rem;
+            padding-top: 0.875rem;
+            border-top: 1px solid #e0e0e0;
+          }
+
+          .lp-bundle-group {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 1rem;
+            align-items: baseline;
+          }
+
+          .lp-bundle-group-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #1a1a1a;
+            line-height: 1.4;
+          }
+
+          .lp-bundle-group-markers {
+            font-size: 0.8125rem;
+            color: #404040;
+            line-height: 1.5;
+          }
+
+          @media (max-width: 640px) {
+            .lp-chart-summary {
+              flex-direction: column;
+              gap: 0.75rem;
+            }
+            .lp-chart-summary-pill {
+              width: 100%;
+              max-width: 280px;
+            }
+            .lp-chart-summary-divider {
+              transform: rotate(90deg);
+            }
+            .lp-bundle-group {
+              grid-template-columns: 1fr;
+              gap: 0.25rem;
+            }
+            .lp-marker-count-badge {
+              display: block;
+              margin-left: 0;
+              margin-top: 0.25rem;
+              width: fit-content;
+            }
           }
 
           .lp-chart-panel-col {

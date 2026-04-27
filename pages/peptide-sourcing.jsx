@@ -61,7 +61,7 @@ export default function PeptideSourcing() {
     {
       factor: 'Vial Glass',
       us: {
-        label: 'Stevanato pharmaceutical-grade',
+        label: 'Pharmaceutical-grade USP Type I',
         detail: 'Engineered to release zero endotoxins or heavy metals into your peptide.',
       },
       overseas: {
@@ -114,7 +114,7 @@ export default function PeptideSourcing() {
     {
       number: '02',
       title: 'What It Is Stored In',
-      desc: 'Cheap glass leaches heavy metals and alkaline ions into the liquid. Those contaminants slowly destroy the peptide. We use Stevanato Group pharmaceutical glass — the same standard used for hospital injectables.',
+      desc: 'Cheap glass leaches heavy metals and alkaline ions into the liquid. Those contaminants slowly destroy the peptide. A great peptide is sealed in pharmaceutical-grade glass — the same standard used for hospital injectables — engineered to release no contaminants while it sits.',
     },
     {
       number: '03',
@@ -143,7 +143,7 @@ export default function PeptideSourcing() {
     {
       question: 'Why does the glass vial matter as much as the peptide itself?',
       answer:
-        'Peptides do not exist in isolation — they live inside the glass for weeks or months. Low-quality glass leaches heavy metals and alkaline ions into the liquid, which slowly degrade the molecule. We source from Pyxis Biologix, which uses Stevanato Group pharmaceutical-grade glass — engineered to release no detectable endotoxins or heavy metals.',
+        'Peptides do not exist in isolation — they live inside the glass for weeks or months. Low-quality glass leaches heavy metals and alkaline ions into the liquid, which slowly degrade the molecule. A great peptide is sealed in pharmaceutical-grade glass engineered to release no detectable endotoxins or heavy metals — the same standard used for hospital injectables.',
     },
     {
       question: 'What are endotoxins and why should I care?',
@@ -163,12 +163,12 @@ export default function PeptideSourcing() {
     {
       question: 'Why is Range Medical more expensive than gray-market peptides online?',
       answer:
-        'Pharmaceutical-grade synthesis, Stevanato glass, multi-layer verification, and cold-chain distribution cost more than the alternative. Lower-cost peptides may meet superficial specs, but failure at the functional level costs far more — lost time, no results, and uncertainty about what you actually injected. The most expensive peptide is the one that fails after reconstitution.',
+        'Pharmaceutical-grade synthesis, hospital-grade glassware, multi-layer verification, and cold-chain distribution cost more than the alternative. Lower-cost peptides may meet superficial specs, but failure at the functional level costs far more — lost time, no results, and uncertainty about what you actually injected. A cheap peptide ends up being the most expensive one if it does not work.',
     },
     {
       question: 'Where does Range Medical source its peptides?',
       answer:
-        'Range Medical sources peptides from Pyxis Biologix, a U.S.-based manufacturer using FMOC-controlled synthesis, Stevanato Group pharmaceutical-grade vial systems, and full multi-layer analytical verification. Every batch is documented before it is dispensed.',
+        'Range Medical sources peptides exclusively from documented U.S.-based manufacturers using FMOC-controlled synthesis, pharmaceutical-grade glassware, and full multi-layer analytical verification (HPLC, LC-MS/MS, NMR, endotoxin testing). Every batch is documented before it is dispensed. We do not source from gray-market or overseas mass-market suppliers.',
     },
   ];
 
@@ -180,7 +180,7 @@ export default function PeptideSourcing() {
       <Head>
         <meta
           name="keywords"
-          content="peptide sourcing, U.S. peptide manufacturing, pharmaceutical-grade peptides, Pyxis Biologix, Stevanato Group, peptide quality, peptide therapy Newport Beach, Range Medical"
+          content="peptide sourcing, U.S. peptide manufacturing, pharmaceutical-grade peptides, FMOC synthesis, peptide quality, peptide therapy Newport Beach, Range Medical"
         />
         <link rel="canonical" href="https://www.range-medical.com/peptide-sourcing" />
 
@@ -378,29 +378,30 @@ export default function PeptideSourcing() {
           </div>
         </section>
 
-        {/* Quality Partners — Inverted Dark Section */}
+        {/* The Process — Inverted Dark Section */}
         <section className="pep-section pep-section-inverted">
           <div className="pep-container">
             <div className="pep-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                <span className="v2-dot" /> The Source We Trust
+                <span className="v2-dot" /> The Process We Demand
               </div>
-              <h2>WHO ACTUALLY MAKES YOUR PEPTIDES.</h2>
+              <h2>WHAT SEPARATES A GREAT PEPTIDE FROM A CHEAP ONE.</h2>
               <div className="pep-hero-rule" style={{ background: 'rgba(255,255,255,0.1)' }} />
               <p className="pep-body-text">
-                Range Medical sources peptides exclusively from manufacturers whose quality system we can
-                verify. Two names matter most.
+                Two things decide whether the molecule in your vial actually works: how it is built, and
+                how it is stored. Anything else is shortcuts.
               </p>
             </div>
 
             <div className="pep-partners-grid pep-animate">
               <div className="pep-partner-card">
-                <div className="pep-partner-eyebrow">Manufacturing Partner</div>
-                <div className="pep-partner-name">Pyxis Biologix</div>
+                <div className="pep-partner-eyebrow">How a Great Peptide Is Built</div>
+                <div className="pep-partner-name">The Manufacturing Process</div>
                 <p className="pep-partner-desc">
-                  U.S.-based peptide manufacturer using FMOC-controlled solid-phase synthesis. Every amino
-                  acid coupling is independently verified. Every batch is checked with HPLC, LC-MS/MS, NMR
-                  spectroscopy, and endotoxin testing before release.
+                  A great peptide is built one amino acid at a time, with FMOC-controlled solid-phase
+                  synthesis where every coupling is independently verified before the next is added. Every
+                  batch is checked with HPLC, LC-MS/MS, NMR spectroscopy, and endotoxin testing before it
+                  is ever released.
                 </p>
                 <ul className="pep-partner-list">
                   <li>FMOC step-verified synthesis</li>
@@ -411,12 +412,13 @@ export default function PeptideSourcing() {
               </div>
 
               <div className="pep-partner-card">
-                <div className="pep-partner-eyebrow">Container System</div>
-                <div className="pep-partner-name">Stevanato Group</div>
+                <div className="pep-partner-eyebrow">How a Great Peptide Is Stored</div>
+                <div className="pep-partner-name">The Container System</div>
                 <p className="pep-partner-desc">
-                  Pharmaceutical-grade glass system used by Pyxis Biologix to fill every Range Medical vial.
-                  Engineered to release no detectable endotoxins, no heavy metals, and extremely low
-                  extractables — protecting the peptide from the moment it is sealed.
+                  A great peptide is sealed in pharmaceutical-grade glass — the same standard used for
+                  hospital injectables. Engineered to release no detectable endotoxins, no heavy metals,
+                  and extremely low extractables, so the molecule stays intact from fill to fridge to
+                  injection.
                 </p>
                 <ul className="pep-partner-list">
                   <li>No detectable endotoxins</li>

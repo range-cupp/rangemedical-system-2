@@ -318,6 +318,9 @@ function CheckoutInner() {
   const [dispDosage, setDispDosage] = useState('');
   const [dispSupplyType, setDispSupplyType] = useState('');
   const [dispQuantity, setDispQuantity] = useState('');
+  // HRT split-fulfillment dispense: how many of the dispensed injections are
+  // given in-clinic at this visit. Total dispensed = dispInClinicCount + dispQuantity (take-home).
+  const [dispInClinicCount, setDispInClinicCount] = useState('');
   const [dispAdministeredBy, setDispAdministeredBy] = useState('');
   const [dispVerifiedBy, setDispVerifiedBy] = useState('');
   const [dispFulfillment, setDispFulfillment] = useState('in_clinic');
@@ -2002,6 +2005,7 @@ function CheckoutInner() {
     setDispDosage('');
     setDispSupplyType('');
     setDispQuantity('');
+    setDispInClinicCount('');
     setDispAdministeredBy('');
     setDispVerifiedBy('');
     setDispFulfillment('in_clinic');
@@ -2125,6 +2129,14 @@ function CheckoutInner() {
     const itemPrice = isPaid ? (dispSelectedService.price_cents || 0) : 0;
     const qty = isPaid ? (dispItemQty || 1) : 1;
 
+    // HRT split-fulfillment: testosterone primary med can have an in-clinic count
+    // separate from the take-home quantity. When set, processDispenseItems expands
+    // this single cart item into TWO medication-checkout calls.
+    const isTestosteronePrimary = cat === 'testosterone' && (dispMedication === 'Testosterone Cypionate' || dispMedication === 'Testosterone Enanthate');
+    const hrtInClinic = isTestosteronePrimary ? (parseInt(dispInClinicCount) || 0) : 0;
+    const hrtTakeHome = isTestosteronePrimary ? (parseInt(dispQuantity) || 0) : 0;
+    const hasHRTSplit = isTestosteronePrimary && (hrtInClinic + hrtTakeHome) > 0;
+
     const dispenseItem = {
       id: `disp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       type: 'dispense',
@@ -2156,6 +2168,12 @@ function CheckoutInner() {
         // For paid items, store service info for purchase recording
         selectedService: isPaid ? dispSelectedService : null,
         itemQty: qty,
+        // HRT split — when present, processDispenseItems expands into 2 calls
+        hrtDispenseConfig: hasHRTSplit ? {
+          inClinicCount: hrtInClinic,
+          takeHomeCount: hrtTakeHome,
+          totalInjections: hrtInClinic + hrtTakeHome,
+        } : null,
       },
     };
 
@@ -2166,7 +2184,11 @@ function CheckoutInner() {
       const supplyLabel = (HRT_SUPPLY_TYPES || []).find(s => s.value === dispSupplyType)?.label || dispSupplyType;
       parts.push(supplyLabel);
     }
-    if (dispQuantity && parseInt(dispQuantity) > 1) parts.push(`x${dispQuantity}`);
+    if (hasHRTSplit) {
+      parts.push(`${hrtInClinic} in-clinic + ${hrtTakeHome} take-home`);
+    } else if (dispQuantity && parseInt(dispQuantity) > 1) {
+      parts.push(`x${dispQuantity}`);
+    }
     dispenseItem.name = parts.join(' — ');
 
     setCartItems(prev => [...prev, dispenseItem]);
@@ -2174,41 +2196,114 @@ function CheckoutInner() {
     resetDispensing();
   }
 
-  // Process all dispense items in the cart via /api/medication-checkout
+  // Process all dispense items in the cart via /api/medication-checkout.
+  // HRT split items (hrtDispenseConfig) expand into TWO calls per cart item:
+  //   1) entry_type='injection' for the in-clinic count (sessions_used += inClinicCount)
+  //   2) entry_type='pickup' for the take-home count (auto-schedules future injections)
+  // Receipt is only sent on the final call so the patient gets one email per cart item.
   async function processDispenseItems({ sendReceipt = false } = {}) {
     const dispItems = getDispenseItems();
     const results = [];
+
+    async function postOne(body, label) {
+      const res = await fetch('/api/medication-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Failed to dispense ${label}`);
+      return data;
+    }
+
     for (const item of dispItems) {
       const d = item.dispenseDetails;
       if (!d) continue;
+      const hrt = d.hrtDispenseConfig;
+
       try {
-        const body = {
-          patient_id: patient.id,
-          category: d.category,
-          entry_type: d.entryType,
-          medication: d.medication,
-          dosage: d.dosage,
-          quantity: d.quantity,
-          supply_type: d.supplyType,
-          notes: d.notes,
-          protocol_id: d.protocolId,
-          coverage_type: d.coverageType,
-          coverage_source: d.coverageSource,
-          administered_by: d.administeredBy,
-          verified_by: d.verifiedBy,
-          fulfillment_method: d.fulfillmentMethod,
-          tracking_number: d.trackingNumber,
-          entry_date: d.entryDate || null,
-          send_receipt: sendReceipt,
-        };
-        const res = await fetch('/api/medication-checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `Failed to dispense ${d.medication}`);
-        results.push({ success: true, name: item.name, data });
+        if (hrt && (hrt.inClinicCount > 0 || hrt.takeHomeCount > 0)) {
+          // ── HRT split fulfillment: 2 API calls ──
+          const subResults = [];
+          // 1) In-clinic injection (only if count > 0). Each in-clinic shot is one
+          //    'injection' service log; we send quantity=1 N times so sessions_used
+          //    increments correctly per the protocol's existing logic.
+          if (hrt.inClinicCount > 0) {
+            for (let i = 0; i < hrt.inClinicCount; i++) {
+              const inClinicBody = {
+                patient_id: patient.id,
+                category: d.category,
+                entry_type: 'injection',
+                medication: d.medication,
+                dosage: d.dosage,
+                quantity: 1,
+                supply_type: d.supplyType,
+                notes: hrt.inClinicCount > 1
+                  ? `In-clinic injection ${i + 1} of ${hrt.inClinicCount} (split dispense: ${hrt.inClinicCount} in-clinic + ${hrt.takeHomeCount} take-home)`
+                  : `In-clinic injection (split dispense: ${hrt.inClinicCount} in-clinic + ${hrt.takeHomeCount} take-home)`,
+                protocol_id: d.protocolId,
+                coverage_type: d.coverageType,
+                coverage_source: d.coverageSource,
+                administered_by: d.administeredBy,
+                verified_by: d.verifiedBy,
+                fulfillment_method: 'in_clinic',
+                tracking_number: null,
+                entry_date: d.entryDate || null,
+                send_receipt: false, // receipt sent on the final pickup call
+              };
+              subResults.push(await postOne(inClinicBody, `${d.medication} in-clinic ${i + 1}`));
+            }
+          }
+          // 2) Take-home pickup (only if count > 0). One 'pickup' row with
+          //    quantity=takeHomeCount; the bullet-proofed auto-schedule in
+          //    medication-checkout creates the future injection rows.
+          if (hrt.takeHomeCount > 0) {
+            const takeHomeBody = {
+              patient_id: patient.id,
+              category: d.category,
+              entry_type: 'pickup',
+              medication: d.medication,
+              dosage: d.dosage,
+              quantity: hrt.takeHomeCount,
+              supply_type: d.supplyType,
+              notes: `${hrt.takeHomeCount}-syringe take-home (split dispense: ${hrt.inClinicCount} in-clinic + ${hrt.takeHomeCount} take-home)`,
+              protocol_id: d.protocolId,
+              coverage_type: d.coverageType,
+              coverage_source: d.coverageSource,
+              administered_by: d.administeredBy,
+              verified_by: d.verifiedBy,
+              fulfillment_method: d.fulfillmentMethod || 'in_clinic',
+              tracking_number: d.trackingNumber,
+              entry_date: d.entryDate || null,
+              send_receipt: sendReceipt,
+            };
+            subResults.push(await postOne(takeHomeBody, `${d.medication} take-home`));
+          }
+          results.push({ success: true, name: item.name, data: { split: true, calls: subResults } });
+        } else {
+          // ── Single-fulfillment item (existing behavior) ──
+          const body = {
+            patient_id: patient.id,
+            category: d.category,
+            entry_type: d.entryType,
+            medication: d.medication,
+            dosage: d.dosage,
+            quantity: d.quantity,
+            supply_type: d.supplyType,
+            notes: d.notes,
+            protocol_id: d.protocolId,
+            coverage_type: d.coverageType,
+            coverage_source: d.coverageSource,
+            administered_by: d.administeredBy,
+            verified_by: d.verifiedBy,
+            fulfillment_method: d.fulfillmentMethod,
+            tracking_number: d.trackingNumber,
+            entry_date: d.entryDate || null,
+            send_receipt: sendReceipt,
+          };
+          const data = await postOne(body, d.medication);
+          results.push({ success: true, name: item.name, data });
+        }
       } catch (err) {
         results.push({ success: false, name: item.name, error: err.message });
       }
@@ -3071,20 +3166,68 @@ function CheckoutInner() {
                                       </div>
                                     )}
 
-                                    {/* Quantity */}
-                                    <div style={styles.dispenseFieldGroup}>
-                                      <label style={styles.fieldLabel}>
-                                        {dispEntryType === 'injection' ? '# of Injections' : dispEntryType === 'session' ? '# of Sessions' : 'Quantity'}
-                                      </label>
-                                      <input
-                                        type="number"
-                                        min="1"
-                                        value={dispQuantity}
-                                        onChange={e => setDispQuantity(e.target.value)}
-                                        placeholder={dispEntryType === 'injection' ? 'Number of injections' : dispEntryType === 'session' ? 'Number of sessions' : 'Units dispensed'}
-                                        style={{ ...styles.fieldInput, width: '120px' }}
-                                      />
-                                    </div>
+                                    {/* HRT split: in-clinic count + take-home count.
+                                        Total dispensed = inClinic + takeHome. Either can be 0.
+                                        Mirrors the WL/peptide builder pattern where one cart item
+                                        represents mixed fulfillment. */}
+                                    {cat === 'testosterone' && (dispMedication === 'Testosterone Cypionate' || dispMedication === 'Testosterone Enanthate') ? (
+                                      <>
+                                        <div style={{ display: 'flex', gap: 12 }}>
+                                          <div style={{ ...styles.dispenseFieldGroup, flex: 1 }}>
+                                            <label style={styles.fieldLabel}>🏥 Inject In-Clinic Now</label>
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              value={dispInClinicCount}
+                                              onChange={e => setDispInClinicCount(e.target.value)}
+                                              placeholder="0"
+                                              style={styles.fieldInput}
+                                            />
+                                          </div>
+                                          <div style={{ ...styles.dispenseFieldGroup, flex: 1 }}>
+                                            <label style={styles.fieldLabel}>🏠 Take-Home Quantity</label>
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              value={dispQuantity}
+                                              onChange={e => setDispQuantity(e.target.value)}
+                                              placeholder="e.g. 7"
+                                              style={styles.fieldInput}
+                                            />
+                                          </div>
+                                        </div>
+                                        {(() => {
+                                          const inC = parseInt(dispInClinicCount) || 0;
+                                          const tH = parseInt(dispQuantity) || 0;
+                                          const total = inC + tH;
+                                          if (total === 0) return null;
+                                          return (
+                                            <div style={{ marginTop: 4, padding: '6px 10px', background: '#f0f9ff', border: '1px solid #bfdbfe', borderRadius: 4, fontSize: 12, color: '#1e40af' }}>
+                                              Total: <strong>{total}</strong> injection{total !== 1 ? 's' : ''}
+                                              {' · '}
+                                              <span style={{ color: '#2E75B6', fontWeight: 600 }}>{inC} in-clinic</span>
+                                              {' + '}
+                                              <span style={{ color: '#475569', fontWeight: 600 }}>{tH} take-home</span>
+                                              {tH > 0 && <span style={{ color: '#64748b', fontStyle: 'italic' }}> · {tH} future injection{tH !== 1 ? 's' : ''} will auto-schedule</span>}
+                                            </div>
+                                          );
+                                        })()}
+                                      </>
+                                    ) : (
+                                      <div style={styles.dispenseFieldGroup}>
+                                        <label style={styles.fieldLabel}>
+                                          {dispEntryType === 'injection' ? '# of Injections' : dispEntryType === 'session' ? '# of Sessions' : 'Quantity'}
+                                        </label>
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          value={dispQuantity}
+                                          onChange={e => setDispQuantity(e.target.value)}
+                                          placeholder={dispEntryType === 'injection' ? 'Number of injections' : dispEntryType === 'session' ? 'Number of sessions' : 'Units dispensed'}
+                                          style={{ ...styles.fieldInput, width: '120px' }}
+                                        />
+                                      </div>
+                                    )}
 
                                     {/* Administered by + Verified by */}
                                     <div style={{ display: 'flex', gap: '12px' }}>

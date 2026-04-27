@@ -153,154 +153,210 @@ export default async function handler(req, res) {
     }
 
     // 3. Update protocol if linked
+    // Wrapped: protocol update issues must not block the auto-schedule below.
     let protocolUpdate = { updated: false };
 
     if (protocol_id) {
-      protocolUpdate = await updateProtocol(protocol_id, {
-        category,
-        entryType: resolvedEntryType,
-        logDate,
-        medication,
-        dosage,
-        quantity,
-        supply_type,
-        injection_method,
-        injection_frequency,
-        isInClinicPurchase,
-      });
+      try {
+        protocolUpdate = await updateProtocol(protocol_id, {
+          category,
+          entryType: resolvedEntryType,
+          logDate,
+          medication,
+          dosage,
+          quantity,
+          supply_type,
+          injection_method,
+          injection_frequency,
+          isInClinicPurchase,
+        });
+      } catch (puErr) {
+        console.error('[medication-checkout] updateProtocol threw — continuing to auto-schedule:', puErr.message);
+        protocolUpdate = { updated: false, error: puErr.message };
+      }
     }
 
     // 4. For weight loss TAKE-HOME pickups only, create future injection entries
     // In-clinic purchases (WL or peptide) do NOT pre-schedule — encounter notes handle each injection individually
-    if (!isInClinicPurchase && isWeightLossType(category) && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0) {
-      const pickupDosage = dosage || '';
-      const atMatch = pickupDosage.match(/@\s*(.+)/);
-      const injectionDose = atMatch ? atMatch[1].trim() : pickupDosage;
+    // Wrapped so a single insert error doesn't skip subsequent steps.
+    try {
+      if (!isInClinicPurchase && isWeightLossType(category) && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0) {
+        const pickupDosage = dosage || '';
+        const atMatch = pickupDosage.match(/@\s*(.+)/);
+        const injectionDose = atMatch ? atMatch[1].trim() : pickupDosage;
 
-      // Use frequency from request, or look up from protocol, default 7 (weekly)
-      let wlFreqDays = wl_frequency_days ? parseInt(wl_frequency_days) : 0;
-      if (!wlFreqDays && protocol_id) {
-        const { data: proto } = await supabase.from('protocols').select('frequency').eq('id', protocol_id).single();
-        if (proto?.frequency && proto.frequency.toLowerCase().includes('10')) wlFreqDays = 10;
-      }
-      if (!wlFreqDays) wlFreqDays = 7;
+        // Use frequency from request, or look up from protocol, default 7 (weekly)
+        let wlFreqDays = wl_frequency_days ? parseInt(wl_frequency_days) : 0;
+        if (!wlFreqDays && protocol_id) {
+          const { data: proto } = await supabase.from('protocols').select('frequency').eq('id', protocol_id).single();
+          if (proto?.frequency && proto.frequency.toLowerCase().includes('10')) wlFreqDays = 10;
+        }
+        if (!wlFreqDays) wlFreqDays = 7;
 
-      for (let i = 0; i < parseInt(quantity); i++) {
-        const injDate = new Date(logDate + 'T12:00:00');
-        injDate.setDate(injDate.getDate() + i * wlFreqDays);
-        const injDateStr = injDate.toISOString().split('T')[0];
-        const freqLabel = wlFreqDays === 10 ? `injection ${i + 1} of ${quantity}, every 10 days` : `week ${i + 1} of ${quantity}`;
-        await supabase.from('service_logs').insert([{
-          patient_id,
-          category,
-          entry_type: 'injection',
-          entry_date: injDateStr,
-          medication: medication || null,
-          dosage: injectionDose || null,
-          quantity: 1,
-          notes: `Dispensed on ${logDate} (${quantity}-injection pickup, ${freqLabel})`,
-          protocol_id: protocol_id || null,
-          administered_by: administered_by || null,
-          fulfillment_method: fulfillment_method || 'in_clinic',
-        }]);
+        let createdWl = 0;
+        for (let i = 0; i < parseInt(quantity); i++) {
+          const injDate = new Date(logDate + 'T12:00:00');
+          injDate.setDate(injDate.getDate() + i * wlFreqDays);
+          const injDateStr = injDate.toISOString().split('T')[0];
+          const freqLabel = wlFreqDays === 10 ? `injection ${i + 1} of ${quantity}, every 10 days` : `week ${i + 1} of ${quantity}`;
+          const { error: wlInjErr } = await supabase.from('service_logs').insert([{
+            patient_id,
+            category,
+            entry_type: 'injection',
+            entry_date: injDateStr,
+            medication: medication || null,
+            dosage: injectionDose || null,
+            quantity: 1,
+            notes: `Dispensed on ${logDate} (${quantity}-injection pickup, ${freqLabel})`,
+            protocol_id: protocol_id || null,
+            administered_by: administered_by || null,
+            fulfillment_method: fulfillment_method || 'in_clinic',
+          }]);
+          if (wlInjErr) {
+            console.error(`[medication-checkout] WL auto-schedule insert failed for ${injDateStr}:`, wlInjErr.message);
+          } else {
+            createdWl++;
+          }
+        }
+        console.log(`[medication-checkout] WL auto-schedule: created ${createdWl}/${quantity} injection entries`);
       }
+    } catch (wlErr) {
+      console.error('[medication-checkout] WL auto-schedule block error:', wlErr.message);
     }
 
     // 4b. For HRT TAKE-HOME pickups, create future injection entries
     // Same logic as service-log: auto-create individual injection entries dated to the
     // patient's injection schedule (2x/week = Mon/Thu alternating 3/4 day gaps)
-    const isHRTPickup = !isInClinicPurchase && category === 'testosterone' && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0;
-    if (isHRTPickup) {
-      const hrtPickupQty = parseInt(quantity);
-      const pickupDosage = dosage || '';
-      const atMatch = pickupDosage.match(/@\s*(.+)/);
-      const injectionDose = atMatch ? atMatch[1].trim() : pickupDosage;
+    // Wrapped in its own try/catch — must NEVER be skipped due to upstream errors.
+    try {
+      const isHRTPickup = !isInClinicPurchase && category === 'testosterone' && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0;
+      if (isHRTPickup) {
+        const hrtPickupQty = parseInt(quantity);
+        const pickupDosage = dosage || '';
+        const atMatch = pickupDosage.match(/@\s*(.+)/);
+        const injectionDose = atMatch ? atMatch[1].trim() : pickupDosage;
 
-      // Get injection frequency from request, or look it up from the protocol
-      let freq = injection_frequency ? parseInt(injection_frequency) : 0;
-      if (!freq && protocol_id) {
-        const { data: proto } = await supabase.from('protocols').select('injection_frequency').eq('id', protocol_id).single();
-        freq = proto?.injection_frequency ? parseInt(proto.injection_frequency) : 2;
-      }
-      if (!freq) freq = 2; // default 2x/week
-      let dayOffset = 0;
-      let useShortGap = true;
-
-      for (let i = 0; i < hrtPickupQty; i++) {
-        if (freq >= 7) {
-          dayOffset += 1;
-        } else if (freq === 3) {
-          const gaps = [2, 2, 3];
-          dayOffset += gaps[i % 3];
-        } else {
-          dayOffset += useShortGap ? 3 : 4;
-          useShortGap = !useShortGap;
+        // Get injection frequency from request, or look it up from the protocol
+        let freq = injection_frequency ? parseInt(injection_frequency) : 0;
+        if (!freq && protocol_id) {
+          const { data: proto } = await supabase.from('protocols').select('injection_frequency').eq('id', protocol_id).single();
+          freq = proto?.injection_frequency ? parseInt(proto.injection_frequency) : 2;
         }
+        if (!freq) freq = 2; // default 2x/week
 
-        const injDate = new Date(logDate + 'T12:00:00');
-        injDate.setDate(injDate.getDate() + dayOffset);
-        const injDateStr = injDate.toISOString().split('T')[0];
-
-        await supabase.from('service_logs').insert([{
-          patient_id,
-          category,
-          entry_type: 'injection',
-          entry_date: injDateStr,
-          medication: medication || null,
-          dosage: injectionDose || null,
-          quantity: 1,
-          notes: `Take-home injection (dispensed ${logDate}, ${hrtPickupQty}-syringe pickup, ${i + 1} of ${hrtPickupQty})`,
-          protocol_id: protocol_id || null,
-          injection_method: injection_method || null,
-          fulfillment_method: 'take_home',
-        }]);
-      }
-
-      // Sync sessions_used from actual count
-      if (protocol_id) {
-        const { count: hrtCount } = await supabase
+        // Skip if injections already auto-scheduled for this exact pickup
+        // (idempotency: re-saving the same dispense shouldn't double-schedule)
+        const { count: existingFutureCount } = await supabase
           .from('service_logs')
           .select('*', { count: 'exact', head: true })
           .eq('protocol_id', protocol_id)
-          .in('entry_type', ['injection', 'session']);
+          .eq('entry_type', 'injection')
+          .eq('fulfillment_method', 'take_home')
+          .gt('entry_date', logDate)
+          .ilike('notes', `%dispensed ${logDate}, ${hrtPickupQty}-syringe pickup%`);
 
-        await supabase
-          .from('protocols')
-          .update({ sessions_used: hrtCount || 0, updated_at: new Date().toISOString() })
-          .eq('id', protocol_id);
+        if (existingFutureCount && existingFutureCount > 0) {
+          console.log(`[medication-checkout] HRT auto-schedule: ${existingFutureCount} entries already exist for ${logDate} pickup — skipping`);
+        } else {
+          let dayOffset = 0;
+          let useShortGap = true;
+          let createdHrt = 0;
 
-        // Update next_expected_date to after the last auto-created injection
-        const lastInjOffset = dayOffset;
-        const nextGapDays = freq >= 7 ? 1 : freq === 3 ? 2 : (hrtPickupQty % 2 === 1 ? 4 : 3);
-        const nextAfterLast = new Date(logDate + 'T12:00:00');
-        nextAfterLast.setDate(nextAfterLast.getDate() + lastInjOffset + nextGapDays);
+          for (let i = 0; i < hrtPickupQty; i++) {
+            if (freq >= 7) {
+              dayOffset += 1;
+            } else if (freq === 3) {
+              const gaps = [2, 2, 3];
+              dayOffset += gaps[i % 3];
+            } else {
+              dayOffset += useShortGap ? 3 : 4;
+              useShortGap = !useShortGap;
+            }
 
-        await supabase
-          .from('protocols')
-          .update({ next_expected_date: nextAfterLast.toISOString().split('T')[0] })
-          .eq('id', protocol_id);
+            const injDate = new Date(logDate + 'T12:00:00');
+            injDate.setDate(injDate.getDate() + dayOffset);
+            const injDateStr = injDate.toISOString().split('T')[0];
+
+            const { error: hrtInjErr } = await supabase.from('service_logs').insert([{
+              patient_id,
+              category,
+              entry_type: 'injection',
+              entry_date: injDateStr,
+              medication: medication || null,
+              dosage: injectionDose || null,
+              quantity: 1,
+              notes: `Take-home injection (dispensed ${logDate}, ${hrtPickupQty}-syringe pickup, ${i + 1} of ${hrtPickupQty})`,
+              protocol_id: protocol_id || null,
+              injection_method: injection_method || null,
+              fulfillment_method: 'take_home',
+            }]);
+            if (hrtInjErr) {
+              console.error(`[medication-checkout] HRT auto-schedule insert failed for ${injDateStr}:`, hrtInjErr.message);
+            } else {
+              createdHrt++;
+            }
+          }
+          console.log(`[medication-checkout] HRT auto-schedule: created ${createdHrt}/${hrtPickupQty} injection entries`);
+
+          // Sync sessions_used + next_expected_date — wrapped so DB blip on one update doesn't kill the other
+          if (protocol_id) {
+            try {
+              const { count: hrtCount } = await supabase
+                .from('service_logs')
+                .select('*', { count: 'exact', head: true })
+                .eq('protocol_id', protocol_id)
+                .in('entry_type', ['injection', 'session']);
+
+              const lastInjOffset = dayOffset;
+              const nextGapDays = freq >= 7 ? 1 : freq === 3 ? 2 : (hrtPickupQty % 2 === 1 ? 4 : 3);
+              const nextAfterLast = new Date(logDate + 'T12:00:00');
+              nextAfterLast.setDate(nextAfterLast.getDate() + lastInjOffset + nextGapDays);
+
+              await supabase
+                .from('protocols')
+                .update({
+                  sessions_used: hrtCount || 0,
+                  next_expected_date: nextAfterLast.toISOString().split('T')[0],
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', protocol_id);
+            } catch (syncErr) {
+              console.error('[medication-checkout] HRT sessions_used/next_expected sync error:', syncErr.message);
+            }
+          }
+        }
       }
+    } catch (hrtErr) {
+      console.error('[medication-checkout] HRT auto-schedule block error:', hrtErr.message);
     }
 
     // 5. Sync weight to vitals if provided
-    if (weight) {
-      await syncWeightToVitals(patient_id, weight, logDate, administered_by);
+    try {
+      if (weight) {
+        await syncWeightToVitals(patient_id, weight, logDate, administered_by);
+      }
+    } catch (wtErr) {
+      console.error('[medication-checkout] Weight sync error:', wtErr.message);
     }
 
     // 6. Send receipt/confirmation email (if enabled)
-    const isCovered = coverage_type === 'subscription' || coverage_type === 'protocol' || coverage_type === 'comp';
-    if (send_receipt) await sendCheckoutReceipt({
-      patient,
-      patientName,
-      medication,
-      category,
-      quantity,
-      supply_type,
-      dosage,
-      isCovered,
-      coverageSource: coverage_source,
-      logDate,
-    });
+    try {
+      const isCovered = coverage_type === 'subscription' || coverage_type === 'protocol' || coverage_type === 'comp';
+      if (send_receipt) await sendCheckoutReceipt({
+        patient,
+        patientName,
+        medication,
+        category,
+        quantity,
+        supply_type,
+        dosage,
+        isCovered,
+        coverageSource: coverage_source,
+        logDate,
+      });
+    } catch (rcptErr) {
+      console.error('[medication-checkout] Receipt send error:', rcptErr.message);
+    }
 
     return res.status(200).json({
       success: true,

@@ -1378,7 +1378,8 @@ export default function CommandCenter() {
 
   const INJECTION_FREQUENCY_OPTIONS = [
     { value: '7', label: 'Every 7 Days' },
-    { value: '10', label: 'Every 10 Days' }
+    { value: '10', label: 'Every 10 Days' },
+    { value: '14', label: 'Every 14 Days' }
   ];
 
   const INJECTION_DAY_OPTIONS = [

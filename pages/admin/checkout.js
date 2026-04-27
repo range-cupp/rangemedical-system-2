@@ -244,7 +244,7 @@ function CheckoutInner() {
   // ── Fulfillment ──
   const [fulfillmentMethod, setFulfillmentMethod] = useState('in_clinic');
   const [trackingNumber, setTrackingNumber] = useState('');
-  const [wlFrequencyDays, setWlFrequencyDays] = useState(7); // 7 = Weekly, 10 = Every 10 Days
+  const [wlFrequencyDays, setWlFrequencyDays] = useState(7); // 7 = Weekly, 10 = Every 10 Days, 14 = Every 14 Days
 
   // ── WL Injection Builder ──
   const [wlMedication, setWlMedication] = useState('');
@@ -557,10 +557,12 @@ function CheckoutInner() {
     setCartItems([...cartItems, { ...item, quantity: 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
     setCartOpen(true);
 
-    // Auto-set WL frequency from product name (10-day programs → 10, monthly/single → 7)
+    // Auto-set WL frequency from product name (14-day → 14, 10-day → 10, monthly/single → 7)
     if (item.category === 'weight_loss') {
       const lower = (item.name || '').toLowerCase();
-      if (lower.includes('10-day') || lower.includes('10 day') || lower.includes('every 10')) {
+      if (lower.includes('14-day') || lower.includes('14 day') || lower.includes('every 14') || lower.includes('biweekly') || lower.includes('bi-weekly')) {
+        setWlFrequencyDays(14);
+      } else if (lower.includes('10-day') || lower.includes('10 day') || lower.includes('every 10')) {
         setWlFrequencyDays(10);
       } else {
         setWlFrequencyDays(7);
@@ -3867,6 +3869,13 @@ function CheckoutInner() {
                                     ...(wlFrequencyDays === 10 ? { border: '2px solid #e67e22', background: '#FFF5EB', color: '#e67e22' } : {}),
                                   }}
                                 >Every 10 Days</button>
+                                <button
+                                  onClick={() => setWlFrequencyDays(14)}
+                                  style={{
+                                    ...styles.fulfillmentBtn,
+                                    ...(wlFrequencyDays === 14 ? { border: '2px solid #8e44ad', background: '#F5EEFB', color: '#8e44ad' } : {}),
+                                  }}
+                                >Every 14 Days</button>
                               </div>
                             </div>
 
@@ -4827,6 +4836,13 @@ function CheckoutInner() {
                         ...(wlFrequencyDays === 10 ? { border: '2px solid #e67e22', background: '#FFF5EB', color: '#e67e22' } : {}),
                       }}
                     >Every 10 Days</button>
+                    <button
+                      onClick={() => setWlFrequencyDays(14)}
+                      style={{
+                        ...styles.fulfillmentBtn,
+                        ...(wlFrequencyDays === 14 ? { border: '2px solid #8e44ad', background: '#F5EEFB', color: '#8e44ad' } : {}),
+                      }}
+                    >Every 14 Days</button>
                   </div>
                   {cartItems.some(i => i.category === 'weight_loss') && (
                     <div style={{ fontSize: '12px', color: '#888', marginTop: '6px' }}>

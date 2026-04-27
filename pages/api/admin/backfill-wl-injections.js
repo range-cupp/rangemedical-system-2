@@ -67,7 +67,8 @@ export default async function handler(req, res) {
       // Determine interval (default weekly = 7 days)
       const freq = (protocol.frequency || '').toLowerCase();
       let intervalDays = 7;
-      if (freq.includes('10')) intervalDays = 10;
+      if (freq.includes('14') || freq.includes('biweekly') || freq.includes('bi-weekly')) intervalDays = 14;
+      else if (freq.includes('10')) intervalDays = 10;
       if (freq === 'monthly') intervalDays = 28;
 
       // Generate expected injection dates

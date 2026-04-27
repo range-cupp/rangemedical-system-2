@@ -189,7 +189,9 @@ export default async function handler(req, res) {
         let wlFreqDays = wl_frequency_days ? parseInt(wl_frequency_days) : 0;
         if (!wlFreqDays && protocol_id) {
           const { data: proto } = await supabase.from('protocols').select('frequency').eq('id', protocol_id).single();
-          if (proto?.frequency && proto.frequency.toLowerCase().includes('10')) wlFreqDays = 10;
+          const freqStr = (proto?.frequency || '').toLowerCase();
+          if (freqStr.includes('14') || freqStr.includes('biweekly') || freqStr.includes('bi-weekly')) wlFreqDays = 14;
+          else if (freqStr.includes('10')) wlFreqDays = 10;
         }
         if (!wlFreqDays) wlFreqDays = 7;
 
@@ -198,7 +200,9 @@ export default async function handler(req, res) {
           const injDate = new Date(logDate + 'T12:00:00');
           injDate.setDate(injDate.getDate() + i * wlFreqDays);
           const injDateStr = injDate.toISOString().split('T')[0];
-          const freqLabel = wlFreqDays === 10 ? `injection ${i + 1} of ${quantity}, every 10 days` : `week ${i + 1} of ${quantity}`;
+          const freqLabel = wlFreqDays === 7
+            ? `week ${i + 1} of ${quantity}`
+            : `injection ${i + 1} of ${quantity}, every ${wlFreqDays} days`;
           const { error: wlInjErr } = await supabase.from('service_logs').insert([{
             patient_id,
             category,
@@ -531,13 +535,15 @@ async function updateProtocol(protocolId, opts) {
         }
       } else if (quantity) {
         // For peptide/WL pickups, use quantity × frequency days
-        // Check protocol frequency for WL: "Every 10 Days" → 10, else 7
+        // Check protocol frequency for WL: "Every 14 Days" → 14, "Every 10 Days" → 10, else 7
         let perInjDays = 7;
         if (isWeightLossType(category)) {
           if (wl_frequency_days) {
             perInjDays = parseInt(wl_frequency_days);
-          } else if (protocol.frequency && protocol.frequency.toLowerCase().includes('10')) {
-            perInjDays = 10;
+          } else if (protocol.frequency) {
+            const freqStr = protocol.frequency.toLowerCase();
+            if (freqStr.includes('14') || freqStr.includes('biweekly') || freqStr.includes('bi-weekly')) perInjDays = 14;
+            else if (freqStr.includes('10')) perInjDays = 10;
           }
         }
         let days = parseInt(quantity) * perInjDays;

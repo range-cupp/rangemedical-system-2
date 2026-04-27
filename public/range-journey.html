@@ -381,7 +381,32 @@
     margin-bottom: 8px;
   }
 
+  /* Path tabs (savings screen selector) */
+  .path-tabs {
+    display: flex;
+    gap: 8px;
+    margin: 0 0 28px;
+    flex-wrap: wrap;
+  }
+  .path-tab {
+    background: #ffffff;
+    border: 1.5px solid #e0e0e0;
+    color: #737373;
+    padding: 12px 18px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .path-tab:hover { border-color: #1a1a1a; color: #1a1a1a; }
+  .path-tab.active { background: #1a1a1a; border-color: #1a1a1a; color: #ffffff; }
+
   /* Example / savings comparison */
+  .example { display: none; }
+  .example.active { display: block; }
   .example {
     border: 1.5px solid #e0e0e0;
     margin-bottom: 28px;
@@ -761,10 +786,16 @@
     <section class="screen" data-screen="savings">
       <div class="eyebrow">Step 05 — The Math</div>
       <h2 class="h2">What it actually saves you.</h2>
-      <p class="lede">Two realistic patient months. Same care, two ways to pay for it.</p>
+      <p class="lede">Pick a path. See the same month two ways: à la carte, or as a member.</p>
+
+      <div class="path-tabs" role="tablist">
+        <button class="path-tab active" data-path-tab="energy">Energy</button>
+        <button class="path-tab" data-path-tab="recovery">Recovery</button>
+        <button class="path-tab" data-path-tab="weight-loss">Weight Loss</button>
+      </div>
 
       <!-- Example 1: Energy patient -->
-      <div class="example">
+      <div class="example active" data-example="energy">
         <div class="example-header">
           <div class="example-name">Example · Energy &amp; Optimization</div>
           <div class="example-title">Sarah, 42 — wants her energy back.</div>
@@ -795,7 +826,7 @@
       </div>
 
       <!-- Example 2: Recovery patient -->
-      <div class="example">
+      <div class="example" data-example="recovery">
         <div class="example-header">
           <div class="example-name">Example · Injury &amp; Recovery</div>
           <div class="example-title">Mike, 38 — recovering from a shoulder injury.</div>
@@ -822,6 +853,39 @@
         <div class="savings-callout">
           <div><span class="label">He saves</span></div>
           <div><span class="amount">$677 / month</span><span class="pct">(41% off)</span></div>
+        </div>
+      </div>
+
+      <!-- Example 3: Weight loss patient -->
+      <div class="example" data-example="weight-loss">
+        <div class="example-header">
+          <div class="example-name">Example · Weight Loss</div>
+          <div class="example-title">Jen, 45 — three months into a tirzepatide program.</div>
+        </div>
+        <div class="compare">
+          <div class="compare-col">
+            <div class="compare-col-label">Without Membership</div>
+            <div class="line-item"><span class="line-item-name">Tirzepatide — Dose 3 (7.5mg/wk)</span><span class="line-item-price">$599</span></div>
+            <div class="line-item"><span class="line-item-name">2× HBOT sessions</span><span class="line-item-price">$370</span></div>
+            <div class="line-item"><span class="line-item-name">2× Red Light sessions</span><span class="line-item-price">$170</span></div>
+            <div class="line-item"><span class="line-item-name">1× B12 injection</span><span class="line-item-price">$25</span></div>
+            <div class="line-item"><span class="line-item-name">1× Range IV</span><span class="line-item-price">$225</span></div>
+            <div class="line-item-total"><span>Monthly total</span><span>$1,389</span></div>
+          </div>
+          <div class="compare-col member">
+            <div class="compare-col-label">With Membership</div>
+            <div class="line-item discount"><span class="line-item-name">Tirzepatide Dose 3 (10% off)</span><span class="line-item-price"><small>$599</small>$539</span></div>
+            <div class="line-item included"><span class="line-item-name">2× HBOT sessions</span><span class="line-item-price">Included</span></div>
+            <div class="line-item included"><span class="line-item-name">2× Red Light sessions</span><span class="line-item-price">Included</span></div>
+            <div class="line-item included"><span class="line-item-name">1× B12 injection</span><span class="line-item-price">Included</span></div>
+            <div class="line-item discount"><span class="line-item-name">1× Range IV (10% off)</span><span class="line-item-price"><small>$225</small>$202</span></div>
+            <div class="line-item"><span class="line-item-name">Membership</span><span class="line-item-price">$199</span></div>
+            <div class="line-item-total"><span>Monthly total</span><span>$940</span></div>
+          </div>
+        </div>
+        <div class="savings-callout">
+          <div><span class="label">She saves</span></div>
+          <div><span class="amount">$449 / month</span><span class="pct">(32% off)</span></div>
         </div>
       </div>
 
@@ -881,6 +945,24 @@
     'loop':               { step: 6, label: 'STEP 6 / 6' },
   };
 
+  // Track which path the patient picked on the triage screen
+  const pathFromGo = {
+    'program-recovery':   'recovery',
+    'program-energy':     'energy',
+    'program-weightloss': 'weight-loss',
+  };
+  let selectedPath = 'energy';
+
+  function setExample(path) {
+    selectedPath = path;
+    document.querySelectorAll('.path-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.pathTab === path);
+    });
+    document.querySelectorAll('.example').forEach(ex => {
+      ex.classList.toggle('active', ex.dataset.example === path);
+    });
+  }
+
   function go(target) {
     screens.forEach(s => s.classList.remove('active'));
     const next = document.querySelector(`[data-screen="${target}"]`);
@@ -893,13 +975,25 @@
     });
     progressLabel.textContent = meta.label;
 
+    // Sync the savings tab to the path the patient picked on triage
+    if (target === 'savings') setExample(selectedPath);
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   document.querySelectorAll('[data-go]').forEach(el => {
     el.addEventListener('click', e => {
       e.preventDefault();
-      go(el.dataset.go);
+      const goTarget = el.dataset.go;
+      if (pathFromGo[goTarget]) selectedPath = pathFromGo[goTarget];
+      go(goTarget);
+    });
+  });
+
+  document.querySelectorAll('[data-path-tab]').forEach(tab => {
+    tab.addEventListener('click', e => {
+      e.preventDefault();
+      setExample(tab.dataset.pathTab);
     });
   });
 </script>

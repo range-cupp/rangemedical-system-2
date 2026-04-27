@@ -2443,7 +2443,7 @@ export default function PatientProfile() {
           injectionMethod: isHRT ? assignForm.injectionMethod : undefined,
           dosePerInjection: isHRT && assignForm.selectedDose !== 'custom' ? assignForm.selectedDose : (isHRT ? assignForm.dosePerInjection : undefined),
           injectionsPerWeek: isHRT ? parseInt(assignForm.injectionsPerWeek || (assignForm.injectionMethod === 'subq' ? '7' : '2')) : undefined,
-          supplyType: isHRT ? assignForm.supplyType : undefined,
+          supplyType: (isHRT || isWeightLoss) ? (assignForm.supplyType || null) : undefined,
           hrtInitialQuantity: isHRT && assignForm.supplyType ? (() => {
             if (assignForm.supplyType.includes('day')) {
               const match = assignForm.supplyType.match(/(\d+)day/);
@@ -6768,6 +6768,14 @@ export default function PatientProfile() {
                               return (
                                 <span style={{ fontSize: '11px', fontWeight: 600, color: isVial ? '#92400e' : '#065f46', background: isVial ? '#fef3c7' : '#d1fae5', padding: '2px 8px', borderRadius: 0, marginLeft: 4 }}>
                                   {isVial ? 'Vial' : fmt.label}
+                                </span>
+                              );
+                            })()}
+                            {isWeightLoss && protocol.supply_type && (() => {
+                              const isVial = protocol.supply_type === 'vial';
+                              return (
+                                <span style={{ fontSize: '11px', fontWeight: 600, color: isVial ? '#92400e' : '#065f46', background: isVial ? '#fef3c7' : '#d1fae5', padding: '2px 8px', borderRadius: 0, marginLeft: 4 }}>
+                                  {isVial ? 'Vial' : 'Pre-filled'}
                                 </span>
                               );
                             })()}
@@ -12185,6 +12193,14 @@ export default function PatientProfile() {
                             <option value="in_clinic">In-Clinic (all injections)</option>
                             <option value="take_home">Take-Home (all injections)</option>
                             <option value="hybrid">1st Injection In-Clinic + Take-Home Remaining</option>
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label>Supply Type</label>
+                          <select value={assignForm.supplyType} onChange={e => setAssignForm({...assignForm, supplyType: e.target.value})}>
+                            <option value="">Select supply...</option>
+                            <option value="prefilled">Pre-filled (Pen / Syringe)</option>
+                            <option value="vial">Vial</option>
                           </select>
                         </div>
                         <div className="form-group">

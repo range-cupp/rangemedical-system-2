@@ -358,8 +358,9 @@ async function updateProtocol(id, updates, res, req) {
 
   // NOTE: PATCH is for tracking corrections only. A clinical dose change
   // (provider switching the patient to a new dose) must go through
-  // POST /api/protocols/[id]/dose-change, which closes this protocol as
-  // historic and creates a new active protocol with carry-over supply.
+  // POST /api/protocols/[id]/dose-change, which updates this protocol in
+  // place — appending to dose_history and carrying forward the remaining
+  // supply — so the protocol stays one continuous record on the business side.
   // We intentionally do NOT auto-append to dose_history here.
 
   // If dose_history is being set directly (manual adjustment), allow it through

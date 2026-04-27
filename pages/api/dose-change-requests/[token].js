@@ -6,7 +6,6 @@
 // Full audit trail for compliance.
 
 import { createClient } from '@supabase/supabase-js';
-import { createProtocol, closeProtocol } from '../../../lib/create-protocol';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 
 const supabase = createClient(
@@ -268,11 +267,12 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3. Apply the dose change (close old protocol, create new one)
+    // 3. Apply the dose change in place — the protocol stays open and continuous
+    //    on the business side. The medical-side audit trail lives in dose_history.
     const newIpw = request.proposed_injections_per_week || protocol.injections_per_week || 2;
     const newDosePerInj = parseMlFromDose(request.proposed_dose);
 
-    // Calculate remaining supply on old protocol
+    // Calculate remaining supply at the moment of the dose change.
     const oldVialMl = vialMlFromSupplyType(protocol.supply_type);
     const oldStartingMl = protocol.starting_supply_ml != null
       ? parseFloat(protocol.starting_supply_ml)
@@ -295,28 +295,8 @@ export default async function handler(req, res) {
       remainingMl = Math.round(remainingMl * 100) / 100;
     }
 
-    // Close old protocol
-    const closeNotes = `Closed ${effDate} — dose changed to ${request.proposed_dose} (approved by ${request.provider_name})${remainingMl != null ? `. ${remainingMl}ml carried to new protocol.` : ''}`;
-
-    const closeResult = await closeProtocol(request.protocol_id, 'historic', {
-      endDate: effDate,
-      notes: closeNotes,
-    });
-
-    if (!closeResult.success) {
-      console.error('Failed to close old protocol:', closeResult.error);
-      const errMsg = `Approved but failed to close old protocol: ${closeResult.error}`;
-      await recordApplyFailure(request.id, errMsg);
-      return res.status(200).json({
-        success: true,
-        status: 'approved',
-        applied: false,
-        error: errMsg,
-      });
-    }
-
-    // Calculate next expected date
-    let nextExpectedDate = null;
+    // Recalculate next_expected_date based on remaining supply + new dose.
+    let nextExpectedDate = protocol.next_expected_date || null;
     const newVialMl = vialMlFromSupplyType(protocol.supply_type);
     if (newVialMl && newDosePerInj > 0 && newIpw > 0) {
       const supplyMl = remainingMl != null ? remainingMl : newVialMl;
@@ -326,51 +306,57 @@ export default async function handler(req, res) {
       nextExpectedDate = nextDate.toISOString().split('T')[0];
     }
 
-    // Create new protocol with the approved dose
-    const result = await createProtocol({
-      patient_id: protocol.patient_id,
-      program_type: protocol.program_type,
-      program_name: protocol.program_name,
-      medication: protocol.medication,
-      hrt_type: protocol.hrt_type,
-      delivery_method: protocol.delivery_method,
-      supply_type: protocol.supply_type,
-      vial_size: protocol.vial_size,
-      injection_method: protocol.injection_method,
-      hrt_reminders_enabled: protocol.hrt_reminders_enabled,
-      hrt_reminder_schedule: protocol.hrt_reminder_schedule,
-      first_followup_weeks: protocol.first_followup_weeks,
-      secondary_medications: protocol.secondary_medications,
-      selected_dose: request.proposed_dose,
-      injections_per_week: newIpw,
-      dose_per_injection: newDosePerInj,
-      start_date: effDate,
-      last_refill_date: effDate,
-      next_expected_date: nextExpectedDate,
-      parent_protocol_id: request.protocol_id,
-      dose_change_reason: request.reason || `Approved by ${request.provider_name}`,
-      starting_supply_ml: remainingMl,
-      dose_history: [{
+    // Append dose entry to dose_history (audit trail). Seed a starting-dose
+    // entry first if the protocol pre-dates dose tracking.
+    const oldHistory = Array.isArray(protocol.dose_history)
+      ? [...protocol.dose_history]
+      : [];
+    if (
+      oldHistory.length === 0 &&
+      protocol.selected_dose &&
+      protocol.start_date
+    ) {
+      oldHistory.push({
+        date: protocol.start_date,
+        dose: protocol.selected_dose,
+        injections_per_week: protocol.injections_per_week || 2,
+        notes: 'Starting dose',
+      });
+    }
+    const newHistory = [
+      ...oldHistory,
+      {
         date: effDate,
         dose: request.proposed_dose,
         injections_per_week: newIpw,
         notes: `Dose ${request.change_type} approved by ${request.provider_name}`,
         approval_request_id: request.id,
-      }],
-    }, {
-      source: 'dose-change-approval',
-      parentProtocolId: request.protocol_id,
-      skipDuplicateCheck: true,
-    });
+      },
+    ];
 
-    if (!result.success) {
-      // Rollback the close
-      await supabase
-        .from('protocols')
-        .update({ status: protocol.status, end_date: protocol.end_date })
-        .eq('id', request.protocol_id);
+    const updatePayload = {
+      selected_dose: request.proposed_dose,
+      current_dose: request.proposed_dose,
+      injections_per_week: newIpw,
+      dose_history: newHistory,
+      dose_change_reason: request.reason || `Approved by ${request.provider_name}`,
+      // Treat the dose-change date as a checkpoint so the supply-remaining
+      // calculation uses the new dose_per_injection from here forward.
+      last_refill_date: effDate,
+      starting_supply_ml: remainingMl,
+      next_expected_date: nextExpectedDate,
+      updated_at: new Date().toISOString(),
+    };
+    if (newDosePerInj != null) updatePayload.dose_per_injection = newDosePerInj;
 
-      const errMsg = `Approved but failed to create new protocol: ${result.error}`;
+    const { error: updateErr } = await supabase
+      .from('protocols')
+      .update(updatePayload)
+      .eq('id', request.protocol_id);
+
+    if (updateErr) {
+      console.error('Failed to apply dose change to protocol:', updateErr);
+      const errMsg = `Approved but failed to apply dose change: ${updateErr.message}`;
       await recordApplyFailure(request.id, errMsg);
       return res.status(200).json({
         success: true,
@@ -380,8 +366,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // 4. Mark request as applied. Clear apply_error in case a previous attempt
-    // failed and we're succeeding now (e.g. after a retry).
+    // 4. Mark request as applied. new_protocol_id stays as the parent protocol
+    //    since we updated in place rather than spawning a new row.
     await supabase
       .from('dose_change_requests')
       .update({
@@ -389,7 +375,7 @@ export default async function handler(req, res) {
         applied_at: new Date().toISOString(),
         apply_attempted_at: new Date().toISOString(),
         apply_error: null,
-        new_protocol_id: result.protocol.id,
+        new_protocol_id: request.protocol_id,
         updated_at: new Date().toISOString(),
       })
       .eq('id', request.id);
@@ -403,7 +389,7 @@ export default async function handler(req, res) {
       success: true,
       status: 'applied',
       applied: true,
-      new_protocol_id: result.protocol.id,
+      new_protocol_id: request.protocol_id,
       carried_supply_ml: remainingMl,
     });
 

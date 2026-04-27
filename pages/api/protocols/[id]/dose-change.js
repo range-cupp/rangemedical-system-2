@@ -1,12 +1,11 @@
 // /pages/api/protocols/[id]/dose-change.js
-// Provider dose change for HRT (and other vial-based protocols).
+// Provider dose change for HRT and weight loss protocols.
 //
-// Closes the current protocol as `historic` (with end_date = effective date)
-// and creates a NEW active protocol starting on that date with the new dose.
-//
-// Vial supply still on hand carries over to the new protocol via
-// `starting_supply_ml`, so the patient's "weeks left" estimate stays accurate
-// without needing to log a new dispense.
+// Updates the existing protocol in place — the protocol stays open and
+// continuous on the business side. The medical-side audit trail is preserved
+// in dose_history. We do NOT spawn a new protocol or close the old one,
+// so the patient's protocol record is one continuous timeline from enrollment
+// through every dose escalation to the current dose.
 //
 // Body:
 //   {
@@ -18,8 +17,6 @@
 //   }
 
 import { createClient } from '@supabase/supabase-js';
-import { createProtocol, closeProtocol } from '../../../../lib/create-protocol';
-import { DOSE_APPROVAL_STAFF } from '../../../../lib/staff-config';
 import { isWeightLossType, isHRTType } from '../../../../lib/protocol-config';
 
 const supabase = createClient(
@@ -59,7 +56,6 @@ export default async function handler(req, res) {
     injections_per_week,
     dose_per_injection,
     reason,
-    approved_by_email,  // legacy — retained for back-compat, but ignored unless paired with approval_request_id
     approved_dose_change_request_id,  // id of an approved dose_change_requests row
   } = req.body || {};
 
@@ -92,8 +88,7 @@ export default async function handler(req, res) {
     // Policy:
     //   - WL: ALL dose changes require a valid approved_dose_change_request_id.
     //   - HRT: INCREASES require approval; decreases are allowed.
-    // An approved dose_change_requests row is the only valid authorization;
-    // the legacy approved_by_email string is ignored (it wasn't verifiable).
+    // An approved dose_change_requests row is the only valid authorization.
     const isHRT = isHRTType(current.program_type);
     const isWL = isWeightLossType(current.program_type);
     if (isHRT || isWL) {
@@ -142,10 +137,9 @@ export default async function handler(req, res) {
       }
     }
 
-    // 2. Compute remaining supply on the old protocol.
-    //    starting_ml = vial size (or carried-over starting_supply_ml from a prior dose change)
-    //    used_ml     = sum of injections logged since last_refill_date (or start_date)
-    //                  using the OLD dose_per_injection
+    // 2. Compute remaining supply at the moment of the dose change.
+    //    starting_supply_ml may have been seeded by a prior dose change or refill.
+    //    used_ml = injections logged since last_refill_date (or start_date) at OLD dose_per_injection.
     const oldVialMl = vialMlFromSupplyType(current.supply_type);
     const oldStartingMl =
       current.starting_supply_ml != null
@@ -157,7 +151,7 @@ export default async function handler(req, res) {
       const since = current.last_refill_date || current.start_date;
       const { data: logs } = await supabase
         .from('service_logs')
-        .select('id, entry_date, entry_type')
+        .select('id')
         .eq('patient_id', current.patient_id)
         .eq('protocol_id', id)
         .in('entry_type', ['injection', 'session'])
@@ -166,11 +160,12 @@ export default async function handler(req, res) {
       const injCount = (logs || []).length;
       const usedMl = injCount * parseFloat(current.dose_per_injection);
       remainingMl = Math.max(0, oldStartingMl - usedMl);
-      // round to 2 decimals
       remainingMl = Math.round(remainingMl * 100) / 100;
     }
 
-    // 3. Append final entry to old protocol's dose_history (audit trail)
+    // 3. Append dose entry to dose_history (audit trail).
+    //    If history is empty, seed a starting-dose entry first so the timeline
+    //    is complete even for protocols that pre-date dose tracking.
     const oldHistory = Array.isArray(current.dose_history)
       ? [...current.dose_history]
       : [];
@@ -186,98 +181,64 @@ export default async function handler(req, res) {
         notes: 'Starting dose',
       });
     }
+    const newHistory = [
+      ...oldHistory,
+      {
+        date: effDate,
+        dose: selected_dose,
+        injections_per_week: newIpw,
+        notes: reason || 'Dose change',
+      },
+    ];
 
-    // 4. Close old protocol → historic via centralized function
-    const closeNotes = `Closed ${effDate} — dose changed to ${selected_dose}${
-      reason ? ` (${reason})` : ''
-    }${remainingMl != null ? `. ${remainingMl}ml carried to new protocol.` : ''}`;
-
-    // Save dose_history on the old protocol before closing
-    await supabase
-      .from('protocols')
-      .update({ dose_history: oldHistory })
-      .eq('id', id);
-
-    const closeResult = await closeProtocol(id, 'historic', {
-      endDate: effDate,
-      notes: closeNotes,
-    });
-
-    if (!closeResult.success) {
-      console.error('Failed to close old protocol:', closeResult.error);
-      return res.status(500).json({ error: closeResult.error });
-    }
-
-    // 5. Build new protocol payload — copy clinical/admin fields from parent,
-    //    override dose-related ones.
-    let nextExpectedDate = null;
+    // 4. Recalculate next_expected_date based on remaining supply + new dose.
+    let nextExpectedDate = current.next_expected_date || null;
     const newVialMl = vialMlFromSupplyType(current.supply_type);
     if (newVialMl && newDosePerInj > 0 && newIpw > 0) {
       const supplyMl = remainingMl != null ? remainingMl : newVialMl;
-      const supplyDays = Math.round(
-        (supplyMl / (newDosePerInj * newIpw)) * 7
-      );
+      const supplyDays = Math.round((supplyMl / (newDosePerInj * newIpw)) * 7);
       const nextDate = new Date(effDate + 'T12:00:00');
       nextDate.setDate(nextDate.getDate() + supplyDays);
       nextExpectedDate = nextDate.toISOString().split('T')[0];
     }
 
-    const result = await createProtocol({
-      patient_id: current.patient_id,
-      program_type: current.program_type,
-      program_name: current.program_name,
-      medication: current.medication,
-      hrt_type: current.hrt_type,
-      delivery_method: current.delivery_method,
-      supply_type: current.supply_type,
-      vial_size: current.vial_size,
-      injection_method: current.injection_method,
-      hrt_reminders_enabled: current.hrt_reminders_enabled,
-      hrt_reminder_schedule: current.hrt_reminder_schedule,
-      first_followup_weeks: current.first_followup_weeks,
-      secondary_medications: current.secondary_medications,
-      // New dose fields
+    // 5. Update existing protocol in place — protocol stays open; this is a
+    //    continuation, not a new prescription on the business side.
+    const updatePayload = {
       selected_dose,
+      current_dose: selected_dose,
       injections_per_week: newIpw,
-      dose_per_injection: newDosePerInj,
-      // Lifecycle
-      start_date: effDate,
-      last_refill_date: effDate,
-      next_expected_date: nextExpectedDate,
-      // Versioning
-      parent_protocol_id: id,
+      dose_history: newHistory,
       dose_change_reason: reason || null,
+      // Treat the dose-change date as a checkpoint so the supply-remaining
+      // calculation uses the new dose_per_injection from here forward.
+      last_refill_date: effDate,
       starting_supply_ml: remainingMl,
-      dose_history: [
-        {
-          date: effDate,
-          dose: selected_dose,
-          injections_per_week: newIpw,
-          notes: reason || 'Dose change',
-        },
-      ],
-    }, {
-      source: 'dose-change',
-      parentProtocolId: id,
-      skipDuplicateCheck: true, // dose change always creates a new protocol
-    });
+      next_expected_date: nextExpectedDate,
+      updated_at: new Date().toISOString(),
+    };
+    if (newDosePerInj != null) updatePayload.dose_per_injection = newDosePerInj;
 
-    if (!result.success) {
-      console.error('Failed to create new protocol:', result.error);
-      // Try to roll back the close
-      await supabase
-        .from('protocols')
-        .update({ status: current.status, end_date: current.end_date })
-        .eq('id', id);
-      return res.status(500).json({ error: result.error });
+    const { data: updated, error: updateErr } = await supabase
+      .from('protocols')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateErr) {
+      console.error('Failed to update protocol with dose change:', updateErr);
+      return res.status(500).json({ error: updateErr.message });
     }
 
-    const created = result.protocol;
-
+    // Back-compat: prior callers expected `closed_protocol_id` and
+    // `new_protocol`. Both now point to the same protocol — dose changes
+    // update in place rather than spawning a new protocol row.
     return res.status(200).json({
       success: true,
+      protocol: updated,
       closed_protocol_id: id,
-      new_protocol: created,
+      new_protocol: updated,
       carried_supply_ml: remainingMl,
     });
   } catch (err) {

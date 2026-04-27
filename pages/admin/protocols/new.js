@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { getMedicationsByCategory, resolveDoseList, buildSig } from '../../../lib/protocol-config';
+import { getMedicationsByCategory, resolveDoseList, buildSig, buildWeightLossSig } from '../../../lib/protocol-config';
 
 const PROTOCOL_TYPES = {
   peptide: {
@@ -162,6 +162,17 @@ export default function NewProtocol() {
       setForm(f => ({ ...f, sig: generated, route }));
     }
   }, [form.protocolType, hrtSelectedMed, form.dosage, form.frequency, form.route, form.sigManuallyEdited]);
+
+  // Weight loss has a fixed sig format — auto-fill from the selected dose.
+  useEffect(() => {
+    if (form.protocolType !== 'weight_loss') return;
+    if (form.sigManuallyEdited) return;
+    if (!form.dosage) return;
+    const generated = buildWeightLossSig(form.dosage);
+    if (generated && generated !== form.sig) {
+      setForm(f => ({ ...f, sig: generated }));
+    }
+  }, [form.protocolType, form.dosage, form.sigManuallyEdited]);
 
   const submitProtocol = async (force = false) => {
     setSaving(true);

@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peptide Sourcing — Range Medical Handout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #1a1a1a;
+    --gray-900: #262626;
+    --gray-700: #525252;
+    --gray-500: #737373;
+    --gray-400: #a0a0a0;
+    --gray-200: #e0e0e0;
+    --gray-100: #f0f0f0;
+    --gray-50: #fafafa;
+    --green: #2E6B35;
+    --green-tint: rgba(46, 107, 53, 0.10);
+    --red: #dc2626;
+    --red-tint: rgba(220, 38, 38, 0.08);
+  }
+
+  html, body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+    background: #e5e5e5;
+    color: var(--black);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+
+  /* Letter-sized "page" cards displayed on screen + perfectly fitted on print */
+  .page {
+    width: 8.5in;
+    min-height: 11in;
+    padding: 0.45in 0.5in 0.4in;
+    margin: 24px auto;
+    background: #ffffff;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.10);
+    page-break-after: always;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .page:last-of-type { page-break-after: auto; }
+
+  /* Print toolbar — hidden when printing */
+  .print-bar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--black);
+    color: #fff;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .print-bar-msg {
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.78);
+  }
+  .print-bar-msg strong { color: #fff; font-weight: 700; }
+  .print-btn {
+    background: #fff;
+    color: var(--black);
+    border: 0;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 10px 18px;
+    cursor: pointer;
+  }
+  .print-btn:hover { background: #f0f0f0; }
+
+  /* ===== Page Header ===== */
+  .pg-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 10px;
+    margin-bottom: 18px;
+    border-bottom: 1.5px solid var(--black);
+  }
+  .pg-clinic {
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--black);
+    text-transform: uppercase;
+  }
+  .pg-contact {
+    font-size: 8.5px;
+    color: var(--gray-500);
+    text-align: right;
+    line-height: 1.4;
+  }
+
+  /* ===== Eyebrow + Headline ===== */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 10px;
+  }
+  .eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    background: var(--black);
+  }
+
+  .headline {
+    font-size: 30px;
+    font-weight: 900;
+    line-height: 0.96;
+    letter-spacing: -0.025em;
+    text-transform: uppercase;
+    color: var(--black);
+    margin-bottom: 10px;
+    max-width: 7in;
+  }
+  .subhead {
+    font-size: 11px;
+    line-height: 1.55;
+    color: var(--gray-500);
+    max-width: 7in;
+    margin-bottom: 16px;
+  }
+  .hr-rule {
+    height: 1px;
+    background: var(--gray-200);
+    margin: 0 0 14px 0;
+    max-width: 5.5in;
+  }
+
+  /* ===== Stat Row ===== */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-200);
+    margin-bottom: 18px;
+  }
+  .stat-cell {
+    text-align: center;
+    padding: 12px 10px;
+    border-right: 1px solid var(--gray-200);
+  }
+  .stat-cell:last-child { border-right: 0; }
+  .stat-num {
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: #808080;
+    line-height: 1;
+    margin-bottom: 5px;
+  }
+  .stat-label {
+    font-size: 8.5px;
+    color: var(--gray-500);
+    line-height: 1.4;
+  }
+
+  /* ===== Comparison Table ===== */
+  .compare {
+    border: 1px solid var(--gray-200);
+    background: #fff;
+    margin-bottom: 14px;
+  }
+  .compare-head {
+    display: grid;
+    grid-template-columns: 1.5in 1fr 1fr;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .compare-head-cell {
+    padding: 8px 12px;
+    border-right: 1px solid var(--gray-200);
+  }
+  .compare-head-cell:last-child { border-right: 0; }
+  .compare-head-spacer { background: var(--gray-50); }
+  .tag {
+    display: inline-block;
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+  }
+  .tag-us {
+    background: var(--black);
+    color: #fff;
+  }
+  .tag-them {
+    background: #fff;
+    color: var(--gray-500);
+    border: 1px solid var(--gray-200);
+  }
+
+  .compare-row {
+    display: grid;
+    grid-template-columns: 1.5in 1fr 1fr;
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .compare-row:last-child { border-bottom: 0; }
+
+  .compare-factor {
+    padding: 11px 12px;
+    background: var(--gray-50);
+    border-right: 1px solid var(--gray-200);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .compare-factor-num {
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--gray-400);
+    margin-bottom: 4px;
+  }
+  .compare-factor-label {
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--black);
+    line-height: 1.2;
+  }
+
+  .compare-cell {
+    padding: 10px 12px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    border-right: 1px solid var(--gray-200);
+  }
+  .compare-cell:last-child { border-right: 0; }
+
+  .compare-mark {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    margin-top: 1px;
+  }
+  .mark-good {
+    background: var(--green-tint);
+    color: var(--green);
+  }
+  .mark-bad {
+    background: var(--red-tint);
+    color: var(--red);
+  }
+
+  .compare-body { flex: 1; }
+  .compare-headline {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--black);
+    line-height: 1.3;
+    margin-bottom: 3px;
+  }
+  .compare-cell-them .compare-headline { color: var(--gray-700); }
+  .compare-detail {
+    font-size: 8.5px;
+    line-height: 1.5;
+    color: var(--gray-500);
+  }
+
+  /* ===== Section Eyebrow + H2 (smaller) ===== */
+  .section-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 6px;
+  }
+  .section-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--black);
+  }
+  .section-h2 {
+    font-size: 17px;
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--black);
+    margin-bottom: 8px;
+  }
+  .section-sub {
+    font-size: 9.5px;
+    line-height: 1.5;
+    color: var(--gray-500);
+    max-width: 6.5in;
+    margin-bottom: 10px;
+  }
+
+  /* ===== Pillars ===== */
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    border-top: 1px solid var(--gray-200);
+    border-left: 1px solid var(--gray-200);
+    margin-bottom: 12px;
+  }
+  .pillar {
+    padding: 10px 12px;
+    border-right: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .pillar-num {
+    font-size: 15px;
+    font-weight: 900;
+    color: #c4c4c4;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .pillar-title {
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--black);
+    margin-bottom: 4px;
+  }
+  .pillar-desc {
+    font-size: 8.5px;
+    line-height: 1.5;
+    color: var(--gray-500);
+  }
+
+  /* ===== Partners (Dark) ===== */
+  .partners {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    background: var(--black);
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .partner {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 10px 12px;
+  }
+  .partner-eyebrow {
+    font-size: 7.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 4px;
+  }
+  .partner-name {
+    font-size: 14px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -0.02em;
+    margin-bottom: 5px;
+    line-height: 1;
+  }
+  .partner-desc {
+    font-size: 8px;
+    color: rgba(255,255,255,0.65);
+    line-height: 1.5;
+    margin-bottom: 6px;
+  }
+  .partner-list {
+    list-style: none;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .partner-list li {
+    padding: 4px 0 4px 13px;
+    font-size: 8px;
+    color: rgba(255,255,255,0.78);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+    line-height: 1.4;
+  }
+  .partner-list li:last-child { border-bottom: 0; }
+  .partner-list li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #4ade80;
+    font-weight: 700;
+  }
+
+  /* ===== Cost Cards ===== */
+  .cost {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--gray-200);
+    border-left: 1px solid var(--gray-200);
+    margin-bottom: 12px;
+  }
+  .cost-card {
+    padding: 10px 12px;
+    border-right: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .cost-num {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--gray-400);
+    margin-bottom: 5px;
+  }
+  .cost-title {
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--black);
+    margin-bottom: 4px;
+  }
+  .cost-desc {
+    font-size: 8.5px;
+    line-height: 1.5;
+    color: var(--gray-500);
+  }
+
+  /* ===== CTA ===== */
+  .cta {
+    background: var(--black);
+    color: #fff;
+    padding: 14px 18px;
+    text-align: center;
+    margin-top: auto;
+  }
+  .cta-eyebrow {
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 5px;
+  }
+  .cta-h {
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    line-height: 1.05;
+  }
+  .cta-line {
+    width: 44px;
+    height: 1px;
+    background: rgba(255,255,255,0.20);
+    margin: 0 auto 8px;
+  }
+  .cta-text {
+    font-size: 9px;
+    color: rgba(255,255,255,0.65);
+    line-height: 1.5;
+    max-width: 5.5in;
+    margin: 0 auto 10px;
+  }
+  .cta-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .cta-btn {
+    display: inline-block;
+    background: #fff;
+    color: var(--black);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 9px 18px;
+    text-decoration: none;
+  }
+  .cta-or {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.30);
+  }
+  .cta-phone {
+    color: #fff;
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,0.25);
+    padding-bottom: 1px;
+  }
+
+  /* ===== Page Footer ===== */
+  .pg-footer {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 7.5px;
+    color: var(--gray-400);
+    letter-spacing: 0.04em;
+  }
+  .pg-footer .right { text-align: right; }
+
+  /* ===== Print Rules ===== */
+  @page {
+    size: letter;
+    margin: 0;
+  }
+  @media print {
+    html, body { background: #fff; }
+    .print-bar { display: none; }
+    .page {
+      box-shadow: none;
+      margin: 0;
+      page-break-after: always;
+    }
+    .page:last-of-type { page-break-after: auto; }
+    /* Force background colors to print */
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <div class="print-bar">
+    <div class="print-bar-msg">
+      <strong>Peptide Sourcing — Patient Handout.</strong>
+      Print, or save as PDF (front + back of one page).
+    </div>
+    <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
+  </div>
+
+  <!-- ============================== PAGE 1 ============================== -->
+  <article class="page">
+    <header class="pg-header">
+      <div class="pg-clinic">RANGE MEDICAL</div>
+      <div class="pg-contact">
+        range-medical.com &nbsp;·&nbsp; (949) 997-3988<br>
+        1901 Westcliff Drive, Suite 10, Newport Beach, CA
+      </div>
+    </header>
+
+    <div class="eyebrow">Peptide Sourcing</div>
+    <h1 class="headline">Where your peptides come from changes whether they work.</h1>
+    <div class="hr-rule"></div>
+    <p class="subhead">
+      Two peptides can look identical in the bottle and behave completely differently in your body.
+      The difference is not the molecule on the label — it is how the molecule was built, verified,
+      and stored. Here is what we look for, and what we do not accept.
+    </p>
+
+    <div class="stat-row">
+      <div class="stat-cell">
+        <div class="stat-num">100%</div>
+        <div class="stat-label">U.S.-manufactured peptide stock<br>at Range Medical</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-num">5+</div>
+        <div class="stat-label">Independent verification<br>methods per batch</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-num">0</div>
+        <div class="stat-label">Detectable endotoxins<br>in our vial system</div>
+      </div>
+    </div>
+
+    <div class="section-eyebrow">Side By Side</div>
+    <h2 class="section-h2">U.S.-Made vs. Overseas Mass-Market.</h2>
+    <p class="section-sub">
+      The same molecule, manufactured two different ways. Six factors that decide whether the
+      peptide in your vial actually does what it is supposed to.
+    </p>
+
+    <div class="compare">
+      <div class="compare-head">
+        <div class="compare-head-cell compare-head-spacer"></div>
+        <div class="compare-head-cell"><span class="tag tag-us">U.S. Pharmaceutical Grade</span></div>
+        <div class="compare-head-cell"><span class="tag tag-them">Overseas Mass-Market</span></div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-factor">
+          <div class="compare-factor-num">01</div>
+          <div class="compare-factor-label">Synthesis Method</div>
+        </div>
+        <div class="compare-cell compare-cell-us">
+          <span class="compare-mark mark-good">✓</span>
+          <div class="compare-body">
+            <div class="compare-headline">FMOC-controlled, step-verified</div>
+            <div class="compare-detail">Every amino acid is independently verified before the next is added.</div>
+          </div>
+        </div>
+        <div class="compare-cell compare-cell-them">
+          <span class="compare-mark mark-bad">×</span>
+          <div class="compare-body">
+            <div class="compare-headline">Shortened cycles, reused resins</div>
+            <div class="compare-detail">Speed-optimized synthesis can leave hidden defects that pass weight tests but fail in your body.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-factor">
+          <div class="compare-factor-num">02</div>
+          <div class="compare-factor-label">Quality Verification</div>
+        </div>
+        <div class="compare-cell compare-cell-us">
+          <span class="compare-mark mark-good">✓</span>
+          <div class="compare-body">
+            <div class="compare-headline">HPLC + LC-MS/MS + NMR + endotoxin testing</div>
+            <div class="compare-detail">Multi-layer verification confirms purity, sequence, structure, and safety.</div>
+          </div>
+        </div>
+        <div class="compare-cell compare-cell-them">
+          <span class="compare-mark mark-bad">×</span>
+          <div class="compare-body">
+            <div class="compare-headline">Often a single LC-MS check</div>
+            <div class="compare-detail">A correct molecular weight does not guarantee a correctly folded peptide.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-factor">
+          <div class="compare-factor-num">03</div>
+          <div class="compare-factor-label">Vial Glass</div>
+        </div>
+        <div class="compare-cell compare-cell-us">
+          <span class="compare-mark mark-good">✓</span>
+          <div class="compare-body">
+            <div class="compare-headline">Stevanato pharmaceutical-grade</div>
+            <div class="compare-detail">Engineered to release zero endotoxins or heavy metals into your peptide.</div>
+          </div>
+        </div>
+        <div class="compare-cell compare-cell-them">
+          <span class="compare-mark mark-bad">×</span>
+          <div class="compare-body">
+            <div class="compare-headline">Variable, often generic borosilicate</div>
+            <div class="compare-detail">Can leach metals and alkaline ions that degrade the peptide while it sits in the bottle.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-factor">
+          <div class="compare-factor-num">04</div>
+          <div class="compare-factor-label">Endotoxin & Metal Control</div>
+        </div>
+        <div class="compare-cell compare-cell-us">
+          <span class="compare-mark mark-good">✓</span>
+          <div class="compare-body">
+            <div class="compare-headline">Tested at parts-per-billion</div>
+            <div class="compare-detail">Even trace contamination is removed before the vial is filled.</div>
+          </div>
+        </div>
+        <div class="compare-cell compare-cell-them">
+          <span class="compare-mark mark-bad">×</span>
+          <div class="compare-body">
+            <div class="compare-headline">Inconsistent or not tested</div>
+            <div class="compare-detail">Trace endotoxins disrupt peptide folding the moment you reconstitute it.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-factor">
+          <div class="compare-factor-num">05</div>
+          <div class="compare-factor-label">Cold Chain & Distribution</div>
+        </div>
+        <div class="compare-cell compare-cell-us">
+          <span class="compare-mark mark-good">✓</span>
+          <div class="compare-body">
+            <div class="compare-headline">Days from lab to vial, temperature-controlled</div>
+            <div class="compare-detail">Lyophilization integrity is preserved end-to-end.</div>
+          </div>
+        </div>
+        <div class="compare-cell compare-cell-them">
+          <span class="compare-mark mark-bad">×</span>
+          <div class="compare-body">
+            <div class="compare-headline">Long transit, customs delays, inconsistent temps</div>
+            <div class="compare-detail">Heat and humidity damage the peptide before you ever open the box.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-factor">
+          <div class="compare-factor-num">06</div>
+          <div class="compare-factor-label">Bioactivity Over Time</div>
+        </div>
+        <div class="compare-cell compare-cell-us">
+          <span class="compare-mark mark-good">✓</span>
+          <div class="compare-body">
+            <div class="compare-headline">Stability tested under stress</div>
+            <div class="compare-detail">Designed to stay bioactive through the entire vial.</div>
+          </div>
+        </div>
+        <div class="compare-cell compare-cell-them">
+          <span class="compare-mark mark-bad">×</span>
+          <div class="compare-body">
+            <div class="compare-headline">Acceptable at release, decays fast</div>
+            <div class="compare-detail">May lose effectiveness within days of reconstitution.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pg-footer">
+      <div>Range Medical · Peptide Sourcing</div>
+      <div class="right">Continued on back &rarr;</div>
+    </div>
+  </article>
+
+  <!-- ============================== PAGE 2 ============================== -->
+  <article class="page">
+    <header class="pg-header">
+      <div class="pg-clinic">RANGE MEDICAL</div>
+      <div class="pg-contact">
+        range-medical.com &nbsp;·&nbsp; (949) 997-3988<br>
+        1901 Westcliff Drive, Suite 10, Newport Beach, CA
+      </div>
+    </header>
+
+    <div class="section-eyebrow">What We Look For</div>
+    <h2 class="section-h2">Four Pillars of a Peptide That Works.</h2>
+    <p class="section-sub">
+      Range Medical does not source from gray-market suppliers. Every peptide we prescribe is
+      evaluated against these four standards before it ever reaches a patient.
+    </p>
+
+    <div class="pillars">
+      <div class="pillar">
+        <div class="pillar-num">01</div>
+        <div class="pillar-title">How It Is Built</div>
+        <div class="pillar-desc">
+          Peptides are assembled one amino acid at a time. Each link has to be verified before the
+          next is added. Skip a verification step and the peptide can pass a weight test but be
+          subtly broken — wrong shape, wrong charge, wrong receptor fit.
+        </div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">02</div>
+        <div class="pillar-title">What It Is Stored In</div>
+        <div class="pillar-desc">
+          Cheap glass leaches heavy metals and alkaline ions into the liquid. Those contaminants
+          slowly destroy the peptide. We use Stevanato Group pharmaceutical glass — the same
+          standard used for hospital injectables.
+        </div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">03</div>
+        <div class="pillar-title">How It Is Verified</div>
+        <div class="pillar-desc">
+          Real verification means HPLC, LC-MS/MS, NMR spectroscopy, endotoxin testing, and
+          stability studies. Cheaper labs typically run one of these and ship. Our source runs
+          all of them on every batch.
+        </div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">04</div>
+        <div class="pillar-title">How It Gets To You</div>
+        <div class="pillar-desc">
+          Peptides are temperature-sensitive. A few hours in a hot warehouse or at customs can
+          damage them. Domestic supply means short transit, controlled temperature, and no
+          surprises.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-eyebrow">The Source We Trust</div>
+    <h2 class="section-h2">Who Actually Makes Your Peptides.</h2>
+
+    <div class="partners">
+      <div class="partner">
+        <div class="partner-eyebrow">Manufacturing Partner</div>
+        <div class="partner-name">Pyxis Biologix</div>
+        <div class="partner-desc">
+          U.S.-based peptide manufacturer using FMOC-controlled solid-phase synthesis. Every
+          amino acid coupling is independently verified. Every batch is checked before release.
+        </div>
+        <ul class="partner-list">
+          <li>FMOC step-verified synthesis</li>
+          <li>Multi-layer analytical verification</li>
+          <li>Stability studies under thermal & solution stress</li>
+          <li>Documented batch records</li>
+        </ul>
+      </div>
+      <div class="partner">
+        <div class="partner-eyebrow">Container System</div>
+        <div class="partner-name">Stevanato Group</div>
+        <div class="partner-desc">
+          Pharmaceutical-grade glass system used by Pyxis Biologix to fill every Range Medical
+          vial. Engineered to release no detectable endotoxins, no heavy metals, and extremely
+          low extractables.
+        </div>
+        <ul class="partner-list">
+          <li>No detectable endotoxins</li>
+          <li>No heavy metal contamination</li>
+          <li>Extremely low extractables and leachables</li>
+          <li>Same standard used for hospital injectables</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-eyebrow">Why We Won't Cut Corners</div>
+    <h2 class="section-h2">What a Cheap Peptide Actually Costs You.</h2>
+
+    <div class="cost">
+      <div class="cost-card">
+        <div class="cost-num">01</div>
+        <div class="cost-title">Lost Time</div>
+        <div class="cost-desc">
+          Weeks or months on a protocol that was never going to work. By the time you realize,
+          the issue you were treating has compounded.
+        </div>
+      </div>
+      <div class="cost-card">
+        <div class="cost-num">02</div>
+        <div class="cost-title">Unreliable Outcomes</div>
+        <div class="cost-desc">
+          When a peptide fails, you cannot tell whether the protocol, diagnosis, or molecule
+          was wrong. You lose the ability to course-correct.
+        </div>
+      </div>
+      <div class="cost-card">
+        <div class="cost-num">03</div>
+        <div class="cost-title">Real Safety Risk</div>
+        <div class="cost-desc">
+          Endotoxins, heavy metals, and degradation products can introduce contaminants you
+          never agreed to inject.
+        </div>
+      </div>
+    </div>
+
+    <div class="cta">
+      <div class="cta-eyebrow">Next Steps</div>
+      <div class="cta-h">Know exactly what you are injecting.</div>
+      <div class="cta-line"></div>
+      <p class="cta-text">
+        If you are going to commit to a peptide protocol, the molecule itself has to be correct.
+        Start with a Range Assessment — we will review your goals, design your protocol, and
+        source every peptide from documented U.S. manufacturers. $197, credited toward treatment.
+      </p>
+      <div class="cta-actions">
+        <a class="cta-btn" href="https://www.range-medical.com/assessment">Book Your Range Assessment</a>
+        <span class="cta-or">or</span>
+        <a class="cta-phone" href="tel:9499973988">(949) 997-3988</a>
+      </div>
+    </div>
+
+    <div class="pg-footer">
+      <div>Range Medical · 1901 Westcliff Drive, Suite 10, Newport Beach, CA</div>
+      <div class="right">range-medical.com/peptide-sourcing</div>
+    </div>
+  </article>
+
+</body>
+</html>

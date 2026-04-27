@@ -436,10 +436,10 @@ export default function PeptideSourcing() {
               <div className="v2-label">
                 <span className="v2-dot" /> Why We Won't Cut Corners
               </div>
-              <h2>THE MOST EXPENSIVE PEPTIDE IS THE ONE THAT FAILS.</h2>
+              <h2>WHAT A CHEAP PEPTIDE ACTUALLY COSTS YOU.</h2>
               <p className="pep-body-text">
                 A cheaper peptide can meet a basic spec on paper and still be functionally useless by the
-                time you reconstitute it. Here is what that actually costs you.
+                time you reconstitute it. The real cost shows up in three ways.
               </p>
             </div>
 

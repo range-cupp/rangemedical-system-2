@@ -125,6 +125,10 @@ export default async function handler(req, res) {
       if (b.dose_per_injection !== undefined) updateData.dose_per_injection = b.dose_per_injection;
       if (b.injections_per_week !== undefined) updateData.injections_per_week = b.injections_per_week;
       if (b.vial_size !== undefined) updateData.vial_size = b.vial_size;
+      if (b.vial_mg !== undefined) updateData.vial_mg = b.vial_mg;
+      if (b.dose_mg !== undefined) updateData.dose_mg = b.dose_mg;
+      if (b.frequency_days !== undefined) updateData.frequency_days = b.frequency_days;
+      if (b.supply_days !== undefined) updateData.supply_days = b.supply_days;
       if (b.first_followup_weeks !== undefined) updateData.first_followup_weeks = b.first_followup_weeks;
 
       // Weight loss specific

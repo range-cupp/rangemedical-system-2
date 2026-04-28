@@ -279,7 +279,10 @@ export default function ProtocolDetail() {
         scheduledDays: enrichedProtocol.scheduled_days || [],
         secondaryMedications: enrichedProtocol.secondary_medications ? (typeof enrichedProtocol.secondary_medications === 'string' ? JSON.parse(enrichedProtocol.secondary_medications) : enrichedProtocol.secondary_medications) : [],
         goalWeight: enrichedProtocol.goal_weight ? parseFloat(enrichedProtocol.goal_weight) : '',
-        comp: enrichedProtocol.comp || false
+        comp: enrichedProtocol.comp || false,
+        vialMg: enrichedProtocol.vial_mg ?? '',
+        doseMg: enrichedProtocol.dose_mg ?? '',
+        frequencyDays: enrichedProtocol.frequency_days ?? '',
       });
 
       // Build check-in schedule for take-home protocols (NOT HRT — HRT has its own reminder system)
@@ -921,6 +924,19 @@ export default function ProtocolDetail() {
         if (form.dosage) {
           const mlMatch = form.dosage.match(/^(\d+\.?\d*)ml/i);
           if (mlMatch) saveData.dose_per_injection = parseFloat(mlMatch[1]);
+        }
+        // Vial math (only meaningful for vial supply types). Empty inputs are sent as null
+        // to clear stale values; otherwise derive supply_days from the three inputs.
+        const vialMg = form.vialMg === '' || form.vialMg === null || form.vialMg === undefined ? null : parseFloat(form.vialMg);
+        const doseMg = form.doseMg === '' || form.doseMg === null || form.doseMg === undefined ? null : parseFloat(form.doseMg);
+        const freqDays = form.frequencyDays === '' || form.frequencyDays === null || form.frequencyDays === undefined ? null : parseFloat(form.frequencyDays);
+        saveData.vial_mg = Number.isFinite(vialMg) ? vialMg : null;
+        saveData.dose_mg = Number.isFinite(doseMg) ? doseMg : null;
+        saveData.frequency_days = Number.isFinite(freqDays) ? freqDays : null;
+        if (Number.isFinite(vialMg) && Number.isFinite(doseMg) && Number.isFinite(freqDays) && vialMg > 0 && doseMg > 0 && freqDays > 0) {
+          saveData.supply_days = Math.round(Math.floor(vialMg / doseMg) * freqDays);
+        } else {
+          saveData.supply_days = null;
         }
       }
 
@@ -2567,6 +2583,54 @@ export default function ProtocolDetail() {
                         </select>
                       </div>
                     )}
+                    {isHRTProtocol(form.protocolType) && form.deliveryMethod === 'take_home' && (form.supplyType || '').toLowerCase().startsWith('vial') && (() => {
+                      const v = parseFloat(form.vialMg);
+                      const d = parseFloat(form.doseMg);
+                      const f = parseFloat(form.frequencyDays);
+                      const doses = (v > 0 && d > 0) ? Math.floor(v / d) : null;
+                      const days = (doses !== null && f > 0) ? Math.round(doses * f) : null;
+                      return (
+                        <div style={{ ...styles.field, gridColumn: '1 / -1', background: '#fafafa', padding: '14px 16px', border: '1px solid #e5e7eb', marginTop: 4 }}>
+                          <label style={{ ...styles.label, fontSize: 12, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10, display: 'block' }}>
+                            Vial Supply (math)
+                          </label>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                            <div>
+                              <label style={{ ...styles.label, fontSize: 12 }}>Vial size (mg)</label>
+                              <input
+                                type="number" min="0" step="any" value={form.vialMg}
+                                onChange={e => setForm({ ...form, vialMg: e.target.value })}
+                                placeholder="e.g. 2000"
+                                style={styles.input}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ ...styles.label, fontSize: 12 }}>Dose per inj. (mg)</label>
+                              <input
+                                type="number" min="0" step="any" value={form.doseMg}
+                                onChange={e => setForm({ ...form, doseMg: e.target.value })}
+                                placeholder="e.g. 100"
+                                style={styles.input}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ ...styles.label, fontSize: 12 }}>Frequency (days)</label>
+                              <input
+                                type="number" min="0" step="any" value={form.frequencyDays}
+                                onChange={e => setForm({ ...form, frequencyDays: e.target.value })}
+                                placeholder="e.g. 7"
+                                style={styles.input}
+                              />
+                            </div>
+                          </div>
+                          <p style={{ fontSize: 12, color: days !== null ? '#16a34a' : '#6b7280', marginTop: 10, marginBottom: 0 }}>
+                            {days !== null
+                              ? `Supply lasts ~${days} days (${doses} injections × ${f} day${f === 1 ? '' : 's'}).`
+                              : 'Enter vial mg, dose mg, and frequency to compute supply days.'}
+                          </p>
+                        </div>
+                      );
+                    })()}
                     {isHRTProtocol(form.protocolType) && (
                       <div style={styles.field}>
                         <label style={styles.label}>Scheduled Days</label>

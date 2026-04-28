@@ -1,11 +1,13 @@
 // /pages/api/admin/send-wl-checkin.js
-// Manually send the weekly weight loss check-in SMS to a single protocol.
+// Manually send the weight loss check-in SMS to a single protocol. Phrasing
+// follows the protocol's cadence (weekly / biweekly / N-day).
 // Usage: POST /api/admin/send-wl-checkin?protocol_id=<uuid>&secret=<CRON_SECRET>
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../lib/comms-log';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
+import { parseFrequencyDays } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -28,6 +30,7 @@ export default async function handler(req, res) {
     .select(`
       id,
       patient_id,
+      frequency,
       patients!inner ( id, name, first_name, phone, ghl_contact_id )
     `)
     .eq('id', protocolId)
@@ -45,7 +48,9 @@ export default async function handler(req, res) {
   }
 
   const checkinUrl = 'https://app.range-medical.com/patient-checkin.html?contact_id=' + (patient.ghl_contact_id || patient.id);
-  const message = 'Hi ' + firstName + '! 📊\n\nTime for your weekly weight loss check-in. Takes 30 seconds:\n\n' + checkinUrl + '\n\n- Range Medical';
+  const cadenceDays = parseFrequencyDays(protocol.frequency);
+  const cadenceWord = cadenceDays === 7 ? 'weekly' : cadenceDays === 14 ? 'biweekly' : `${cadenceDays}-day`;
+  const message = 'Hi ' + firstName + '! 📊\n\nTime for your ' + cadenceWord + ' weight loss check-in. Takes 30 seconds:\n\n' + checkinUrl + '\n\n- Range Medical';
 
   const smsResult = await sendSMS({ to: phone, message });
 

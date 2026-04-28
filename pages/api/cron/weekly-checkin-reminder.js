@@ -1,12 +1,16 @@
 // /pages/api/cron/weekly-checkin-reminder.js
-// Daily cron to send weekly weight loss check-in SMS reminders via Twilio
-// Runs at 9:00 AM PST - sends reminder to patients on their injection day
+// Daily cron to send weight loss check-in SMS reminders via Twilio.
+// Runs at 9:00 AM PST. Cadence-aware: sends every N days where N is parsed
+// from the protocol's frequency (Weekly = 7, Every 10 Days = 10, etc.). Uses
+// the most recent successful send in checkin_reminders_log as the anchor;
+// for first-time sends, anchors to injection_day when set.
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../lib/comms-log';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../../lib/blooio-optin';
+import { parseFrequencyDays } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -78,7 +82,9 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get active weight loss protocols — join patients to get phone number
+    // Get active weight loss protocols — join patients to get phone number.
+    // Cadence-aware gating happens per-protocol below; we no longer filter on
+    // injection_day at the SQL level so 10-day / 14-day cadences fire too.
     const { data: protocols, error: protocolsError } = await supabase
       .from('protocols')
       .select(`
@@ -88,6 +94,8 @@ export default async function handler(req, res) {
         program_type,
         delivery_method,
         injection_day,
+        frequency,
+        start_date,
         checkin_reminder_enabled,
         patients!inner (
           id,
@@ -100,7 +108,6 @@ export default async function handler(req, res) {
       .eq('status', 'active')
       .ilike('program_type', 'weight_loss%')
       .eq('checkin_reminder_enabled', true)
-      .eq('injection_day', todayPacific)
       .or('delivery_method.neq.in_clinic,delivery_method.is.null');
 
     if (protocolsError) {
@@ -116,12 +123,49 @@ export default async function handler(req, res) {
     }
 
     const protocolList = protocols || [];
-    console.log('Found ' + protocolList.length + ' protocols to send reminders to on ' + todayPacific);
+    console.log('Found ' + protocolList.length + ' active WL protocols with check-in enabled');
+
+    // Anchor "today" in PST midnight so day-diffs are stable
+    const todayMidnightPST = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    todayMidnightPST.setHours(0, 0, 0, 0);
 
     for (const protocol of protocolList) {
       const patient = protocol.patients;
       const firstName = patient.first_name || (patient.name ? patient.name.split(' ')[0] : 'there');
       const ghlContactId = patient.ghl_contact_id;
+
+      // Cadence gate: only send when it's been >= cadence days since the last send.
+      // First-time sends anchor to injection_day if set; otherwise fire today.
+      const cadenceDays = parseFrequencyDays(protocol.frequency);
+
+      const { data: lastSendRow } = await supabase
+        .from('checkin_reminders_log')
+        .select('sent_at')
+        .eq('protocol_id', protocol.id)
+        .eq('status', 'sent')
+        .order('sent_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (lastSendRow?.sent_at) {
+        const lastDate = new Date(lastSendRow.sent_at);
+        lastDate.setHours(0, 0, 0, 0);
+        const daysSince = Math.floor((todayMidnightPST - lastDate) / 86400000);
+        if (daysSince < cadenceDays) {
+          results.skipped.push({
+            patient: patient.name,
+            reason: `last sent ${daysSince}d ago, cadence ${cadenceDays}d`,
+          });
+          continue;
+        }
+      } else if (protocol.injection_day && protocol.injection_day !== todayPacific) {
+        // No prior send — wait for the patient's chosen day-of-week
+        results.skipped.push({
+          patient: patient.name,
+          reason: `first send anchored to ${protocol.injection_day} (today is ${todayPacific})`,
+        });
+        continue;
+      }
 
       // Need a phone number for Twilio
       const phone = normalizePhone(patient.phone);
@@ -136,12 +180,13 @@ export default async function handler(req, res) {
       // Build the check-in URL
       const checkinUrl = 'https://app.range-medical.com/patient-checkin.html?contact_id=' + (ghlContactId || patient.id);
 
-      // Build the message
-      const message = 'Hi ' + firstName + '! 📊\n\nTime for your weekly weight loss check-in. Takes 30 seconds:\n\n' + checkinUrl + '\n\n- Range Medical';
+      // Build the message — phrasing follows the protocol's actual cadence
+      const cadenceWord = cadenceDays === 7 ? 'weekly' : cadenceDays === 14 ? 'biweekly' : `${cadenceDays}-day`;
+      const message = 'Hi ' + firstName + '! 📊\n\nTime for your ' + cadenceWord + ' weight loss check-in. Takes 30 seconds:\n\n' + checkinUrl + '\n\n- Range Medical';
 
       // Blooio two-step: if first contact, send link-free version + queue link message
       if (isBlooioProvider() && !(await hasBlooioOptIn(phone))) {
-        const optInMessage = `Hi ${firstName}! Time for your weekly weight loss check-in. Reply YES to get your check-in link. - Range Medical`;
+        const optInMessage = `Hi ${firstName}! Time for your ${cadenceWord} weight loss check-in. Reply YES to get your check-in link. - Range Medical`;
 
         const optInResult = await sendSMS({ to: phone, message: optInMessage });
         if (optInResult.success) {

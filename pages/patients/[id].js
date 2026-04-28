@@ -66,6 +66,7 @@ const ServiceLogContent = dynamic(() => import('../../components/ServiceLogConte
 const EmailComposeModal = dynamic(() => import('../../components/EmailComposeModal'), { ssr: false });
 const SMSComposeModal = dynamic(() => import('../../components/SMSComposeModal'), { ssr: false });
 import { PROTOCOL_TYPES, getHRTMedication, getHRTConcentration } from '../../lib/protocol-types';
+import { parseFrequencyDays } from '../../lib/protocol-config';
 
 // Parse **bold** markdown into React elements
 // Convert **bold** markdown → HTML for contentEditable display
@@ -7607,7 +7608,7 @@ export default function PatientProfile() {
                                                         pickup: blockPickup,
                                                         blockNum,
                                                         quantity: blockPickup.quantity || 0,
-                                                        intervalDays: (protocol.frequency || '').toLowerCase().includes('bi') ? 14 : 7,
+                                                        intervalDays: parseFrequencyDays(protocol.frequency),
                                                       });
                                                       setRescheduleWLDate(blockPickup.entry_date || '');
                                                       setRescheduleWLError('');
@@ -7726,8 +7727,7 @@ export default function PatientProfile() {
                                       // Take-home pickups auto-generate projected weekly sessions.
                                       // If the protocol is short on sessions (logs < total_sessions), append
                                       // future "Upcoming" rows extending the schedule.
-                                      const freqLower = (protocol.frequency || '').toLowerCase();
-                                      const intervalDays = freqLower.includes('bi') ? 14 : 7;
+                                      const intervalDays = parseFrequencyDays(protocol.frequency);
 
                                       const sortedLogs = [...wlLogs].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
 
@@ -12934,7 +12934,7 @@ export default function PatientProfile() {
                         <label>Start Date</label>
                         <input type="date" value={editForm.startDate} onChange={e => {
                           const newStart = e.target.value;
-                          const interval = (editForm.frequency || '').toLowerCase().includes('bi') ? 14 : 7;
+                          const interval = parseFrequencyDays(editForm.frequency);
                           const today = new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }) + 'T12:00:00');
                           const start = new Date(newStart + 'T12:00:00');
                           const autoWeeks = start <= today ? Math.floor((today - start) / (1000 * 60 * 60 * 24 * interval)) + 1 : 1;
@@ -12974,11 +12974,11 @@ export default function PatientProfile() {
                     {editForm.startDate && editForm.totalSessions && (
                       <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '8px 12px', borderRadius: 0, fontSize: 12, color: '#0369a1', marginBottom: 12 }}>
                         Timeline: {editForm.startDate} → {(() => {
-                          const interval = (editForm.frequency || '').toLowerCase().includes('bi') ? 14 : 7;
+                          const interval = parseFrequencyDays(editForm.frequency);
                           const end = new Date(editForm.startDate + 'T12:00:00');
                           end.setDate(end.getDate() + (editForm.totalSessions - 1) * interval);
                           return end.toISOString().split('T')[0];
-                        })()} ({editForm.totalSessions} {(editForm.frequency || '').toLowerCase().includes('bi') ? 'bi-weekly' : 'weekly'} slots)
+                        })()} ({editForm.totalSessions} slots, every {parseFrequencyDays(editForm.frequency)} days)
                       </div>
                     )}
                   </>

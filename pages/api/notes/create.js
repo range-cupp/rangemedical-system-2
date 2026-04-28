@@ -226,10 +226,14 @@ export default async function handler(req, res) {
           ? new Date(note_date).toISOString().split('T')[0]
           : todayPacific();
 
-        // Find the patient's active weight loss protocol
+        // Find the patient's active weight loss protocol.
+        // program_type + category MUST be selected — guardDoseChange() reads
+        // both to identify WL/HRT. Without them every protocol looks "other"
+        // and the guard silently lets dose writes through (the Lily/Claudia
+        // 6→8mg incident on 2026-04-28).
         const { data: protocols } = await supabase
           .from('protocols')
-          .select('id, starting_weight, sessions_used, total_sessions, selected_dose, dose, patient_id, medication')
+          .select('id, starting_weight, sessions_used, total_sessions, selected_dose, dose, dose_per_injection, injections_per_week, patient_id, medication, program_type, category')
           .eq('patient_id', patient_id)
           .ilike('program_type', 'weight_loss%')
           .in('status', ['active', 'in_progress'])

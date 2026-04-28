@@ -160,10 +160,31 @@ function PeptideSearch({ value, onChange, onSelectMedication }) {
   );
 }
 
-// Main interactive form component
-export default function InteractiveEncounterForm({ formType, vitals, currentUser, onSave, onCancel }) {
+// Main interactive form component.
+//
+// `currentProtocol` (optional) is the patient's active WL/HRT protocol. When
+// present, the dose field locks to `currentProtocol.selected_dose` — staff
+// cannot pick a different dose from the encounter form. Dose changes for
+// gated categories (WL, HRT) must go through the Meds tab → Change Dose flow,
+// which sends a Burgess SMS approval request. This closes the hole that let
+// a nurse bump Claudia Rangel from 6mg → 8mg via a charting note on
+// 2026-04-28.
+export default function InteractiveEncounterForm({ formType, vitals, currentProtocol, currentUser, onSave, onCancel }) {
   const formDef = ENCOUNTER_FORMS[formType];
   if (!formDef) return null;
+
+  // Lock the dose for WL/HRT encounter forms when the patient has an active
+  // gated protocol. We compare the form type — only the categories whose
+  // protocols are gated by the dose-change approval flow get locked.
+  const lockedDose =
+    currentProtocol?.selected_dose &&
+    (formType === 'weight_loss' || formType === 'hrt_followup')
+      ? currentProtocol.selected_dose
+      : null;
+  const lockedMedication =
+    currentProtocol?.medication && formType === 'weight_loss'
+      ? currentProtocol.medication
+      : null;
 
   // Build default field values for a section
   const buildSectionDefaults = (section) => {
@@ -211,6 +232,26 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
   const [selectedMedInfo, setSelectedMedInfo] = useState(null);
   const [customDose, setCustomDose] = useState(false);
   const [selectedWLMed, setSelectedWLMed] = useState('');
+
+  // When the dose is locked to the active protocol, seed the medication and
+  // dose fields so the generated note reflects the prescribed regimen. We
+  // run this once when currentProtocol becomes available — staff can still
+  // edit other fields on the form (route, site, weight, plan, etc.).
+  useEffect(() => {
+    if (!lockedDose && !lockedMedication) return;
+    setFormData(prev => {
+      if (!prev.medication) return prev;
+      const next = { ...prev, medication: { ...prev.medication } };
+      if (lockedMedication && !next.medication.medication_name) {
+        next.medication.medication_name = lockedMedication;
+        if (lockedMedication !== 'Other') setSelectedWLMed(lockedMedication);
+      }
+      if (lockedDose && next.medication.dose !== lockedDose) {
+        next.medication.dose = lockedDose;
+      }
+      return next;
+    });
+  }, [lockedDose, lockedMedication]);
 
   // Rich text editor state for Provider Notes
   const notesEditorRef = useRef(null);
@@ -580,6 +621,24 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
         const wlMed = formData.medication?.medication_name || selectedWLMed;
         const wlDoses = wlMed ? (WEIGHT_LOSS_DOSAGES[wlMed] || []) : [];
 
+        // When a WL protocol is active, the dose is locked to the protocol's
+        // current dose. Dose changes for WL must go through the Meds tab →
+        // Change Dose flow (Burgess SMS approval). Render a read-only display
+        // with a clear notice instead of the dose-picker buttons.
+        if (lockedDose) {
+          return (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: 0 }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>{lockedDose}</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>Locked to active protocol</div>
+              </div>
+              <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280', lineHeight: 1.4 }}>
+                To change the dose, open the patient's <strong>Meds</strong> tab and click <strong>Change Dose</strong> — that sends an approval request to Dr. Burgess (or Brendyn Reed NP). The encounter form documents the dose given, not changes to it.
+              </div>
+            </div>
+          );
+        }
+
         if (!wlMed) {
           return (
             <input
@@ -652,6 +711,21 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
         const patientSex = formData.medication?.patient_sex || '';
         const sexKey = patientSex === 'Male' ? 'male' : patientSex === 'Female' ? 'female' : '';
         const trtDoses = sexKey ? (TESTOSTERONE_DOSES[sexKey] || []) : [];
+
+        // HRT dose changes are gated by the same approval flow as WL.
+        if (lockedDose) {
+          return (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: 0 }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>{lockedDose}</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>Locked to active protocol</div>
+              </div>
+              <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280', lineHeight: 1.4 }}>
+                To change the dose, open the patient's <strong>Meds</strong> tab and click <strong>Change Dose</strong> — that sends an approval request to Dr. Burgess (or Brendyn Reed NP). The encounter form documents the dose given, not changes to it.
+              </div>
+            </div>
+          );
+        }
 
         if (!patientSex) {
           return (
@@ -833,6 +907,16 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
       }
 
       case 'select':
+        // Lock the WL medication picker to the active protocol's medication
+        // so the locked dose can't drift from a mismatched med.
+        if (field.key === 'medication_name' && lockedMedication) {
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>{lockedMedication}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>From active protocol</div>
+            </div>
+          );
+        }
         return (
           <select
             value={value}

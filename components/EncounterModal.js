@@ -1763,6 +1763,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                     formType={interactiveFormType}
                     vitals={vitals}
                     currentUser={currentUser}
+                    currentProtocol={interactiveFormType === 'weight_loss' ? wlProtocol : null}
                     onCancel={() => { setNoteMode('choose'); setInteractiveFormType(null); }}
                     onSave={async ({ markdown, structured_data, note_type, form_type }) => {
                       setSaveError(null);

@@ -70,6 +70,10 @@
       "schedule": "20 16 * * *"
     },
     {
+      "path": "/api/cron/peptide-weekly-checkin",
+      "schedule": "25 16 * * *"
+    },
+    {
       "path": "/api/cron/birthday-sms",
       "schedule": "0 17 * * *"
     },

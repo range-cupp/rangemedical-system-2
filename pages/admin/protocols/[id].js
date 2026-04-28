@@ -209,6 +209,10 @@ export default function ProtocolDetail() {
   const [shipDate, setShipDate] = useState('');
   const [shipTracking, setShipTracking] = useState('');
   const [shipSaving, setShipSaving] = useState(false);
+  const [vialModal, setVialModal] = useState(false);
+  const [vialDate, setVialDate] = useState('');
+  const [vialNotes, setVialNotes] = useState('');
+  const [vialSaving, setVialSaving] = useState(false);
 
   useEffect(() => {
     if (id) fetchProtocol();
@@ -994,6 +998,35 @@ export default function ProtocolDetail() {
     }
   };
 
+  const handleMarkNewVial = async () => {
+    setVialSaving(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/protocols/${id}/mark-new-vial`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vial_start_date: vialDate || undefined,
+          notes: vialNotes.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to log new vial');
+      }
+      const data = await res.json();
+      setSuccess(`New vial started on ${data.vial_start_date}. Next refill expected ${data.next_expected_date}.`);
+      setVialModal(false);
+      setVialDate('');
+      setVialNotes('');
+      fetchProtocol();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setVialSaving(false);
+    }
+  };
+
   const handleMarkShipped = async () => {
     setShipSaving(true);
     setError('');
@@ -1242,6 +1275,14 @@ export default function ProtocolDetail() {
                     style={{ ...styles.headerBtn, background: '#16a34a', color: '#fff', borderColor: '#16a34a' }}
                   >
                     Mark as Shipped
+                  </button>
+                )}
+                {protocol?.program_type === 'hrt' && protocol?.delivery_method === 'in_clinic' && (
+                  <button
+                    onClick={() => { setVialDate(''); setVialNotes(''); setVialModal(true); }}
+                    style={{ ...styles.headerBtn, background: '#7c3aed', color: '#fff', borderColor: '#7c3aed' }}
+                  >
+                    Mark New Vial
                   </button>
                 )}
                 <button onClick={() => setAddSessionsModal(true)} style={styles.headerBtn}>+ Add Sessions</button>
@@ -4264,6 +4305,72 @@ export default function ProtocolDetail() {
                   opacity: shipSaving ? 0.5 : 1
                 }}
               >{shipSaving ? 'Saving...' : 'Mark Shipped'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mark New Vial Modal */}
+      {vialModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }} onClick={() => setVialModal(false)}>
+          <div style={{
+            background: '#fff', borderRadius: 0, padding: '28px', width: '420px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>Mark New Vial Started</h3>
+            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px' }}>
+              {protocol?.patient_name} — {protocol?.medication || protocol?.program_name}
+            </p>
+
+            <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>Vial Start Date</label>
+            <input
+              type="date"
+              value={vialDate}
+              onChange={e => setVialDate(e.target.value)}
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: 0,
+                border: '1px solid #d1d5db', fontSize: '14px', marginBottom: '16px',
+                boxSizing: 'border-box'
+              }}
+            />
+
+            <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>Notes (optional)</label>
+            <input
+              type="text"
+              value={vialNotes}
+              onChange={e => setVialNotes(e.target.value)}
+              placeholder="e.g. Lot #ABC123"
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: 0,
+                border: '1px solid #d1d5db', fontSize: '14px', marginBottom: '20px',
+                boxSizing: 'border-box'
+              }}
+            />
+
+            <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '16px' }}>
+              Restarts the supply countdown. Defaults to today if no date is selected.
+            </p>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setVialModal(false)}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: 0, border: '1px solid #d1d5db',
+                  background: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 500
+                }}
+              >Cancel</button>
+              <button
+                onClick={handleMarkNewVial}
+                disabled={vialSaving}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: 0, border: 'none',
+                  background: '#7c3aed', color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 600,
+                  opacity: vialSaving ? 0.5 : 1
+                }}
+              >{vialSaving ? 'Saving...' : 'Mark Started'}</button>
             </div>
           </div>
         </div>

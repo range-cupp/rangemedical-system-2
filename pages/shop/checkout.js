@@ -173,6 +173,12 @@ export default function ShopCheckout() {
           shippingMethod,
         }),
       });
+      if (res.status === 401) {
+        localStorage.removeItem('shop_token');
+        localStorage.removeItem('shop_patient');
+        router.replace('/shop?expired=1');
+        return;
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not initialize payment');
       setClientSecret(data.clientSecret);

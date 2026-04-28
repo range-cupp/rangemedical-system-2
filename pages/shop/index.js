@@ -11,9 +11,10 @@ export default function ShopLogin() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (router.query.expired) return; // came back here because token expired — don't auto-redirect
     const token = localStorage.getItem('shop_token');
     if (token) router.replace('/shop/catalog');
-  }, []);
+  }, [router.query.expired]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -50,6 +51,12 @@ export default function ShopLogin() {
           <div style={{ background: '#fff', border: '1px solid #e5e5e5', padding: '40px 32px' }}>
             <h1 style={{ fontSize: 18, fontWeight: 700, letterSpacing: 1, margin: '0 0 4px', textAlign: 'center' }}>RANGE MEDICAL</h1>
             <p style={{ fontSize: 13, color: '#666', margin: '0 0 32px', textAlign: 'center' }}>Patient Login</p>
+
+            {router.query.expired && (
+              <div style={{ background: '#fff7ed', border: '1px solid #fdba74', color: '#9a3412', padding: '10px 14px', fontSize: 13, marginBottom: 20 }}>
+                Your session expired. Please sign in again.
+              </div>
+            )}
 
             <form onSubmit={handleLogin}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#333', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Username</label>

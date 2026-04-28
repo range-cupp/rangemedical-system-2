@@ -6236,6 +6236,38 @@ export default function PatientProfile() {
               });
             });
 
+            // Also surface prior dose tiers from each ACTIVE protocol's dose_history.
+            // Dose changes update the protocol in place rather than spawning a new
+            // protocol row, so the historic medical record lives in dose_history.
+            // Each prior entry shows in the meds tab as a discontinued medication
+            // ("Retatrutide 4mg" → "Dose changed to 6mg") even though the protocol
+            // itself stays continuous on the business side.
+            (activeProtocols || []).forEach(proto => {
+              const history = Array.isArray(proto.dose_history) ? proto.dose_history : [];
+              if (history.length < 2) return;
+              const medName = proto.medication || getProtocolDisplayName(proto);
+              const currentDose = proto.current_dose || proto.selected_dose || '';
+              // All entries except the most recent are "discontinued" doses.
+              for (let i = 0; i < history.length - 1; i++) {
+                const entry = history[i] || {};
+                const next = history[i + 1] || {};
+                const entryDose = entry.dose || '';
+                if (!entryDose || entryDose === currentDose) continue;
+                closedProtocolMeds.push({
+                  id: `proto-${proto.id}-dose-${i}`,
+                  medication_name: medName,
+                  strength: entryDose,
+                  start_date: entry.date || proto.start_date,
+                  stop_date: next.date || null,
+                  discontinued_reason: next.dose
+                    ? `Dose changed to ${next.dose}`
+                    : 'Dose changed',
+                  from_protocol: true,
+                  was_dose_change: true,
+                });
+              }
+            });
+
             // Combine: protocol-derived + manually added
             const allActiveMeds = [...protocolMeds, ...medications.filter(m => m.is_active)];
             const allDiscontinuedMeds = [...closedProtocolMeds, ...medications.filter(m => !m.is_active)];

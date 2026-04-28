@@ -105,19 +105,25 @@ export default function ShopAccessAdmin() {
             </label>
 
             {!selectedPatient ? (
-              <div style={{ position: 'relative' }}>
+              <>
                 <input
                   type="text"
                   value={patientSearch}
                   onChange={e => setPatientSearch(e.target.value)}
                   placeholder="Type a name to search…"
+                  autoFocus
                   style={{ width: '100%', padding: '12px 14px', border: '1px solid #d1d1d1', borderRadius: 0, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
                 />
                 {patientSearch.length >= 2 && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e5e5e5', borderTop: 'none', maxHeight: 280, overflowY: 'auto', zIndex: 10 }}>
+                  <div style={{ marginTop: 8, background: '#fff', border: '1px solid #e5e5e5', maxHeight: 360, overflowY: 'auto' }}>
                     {searching && <div style={{ padding: 14, color: '#999', fontSize: 14 }}>Searching…</div>}
                     {!searching && patientResults.length === 0 && (
                       <div style={{ padding: 14, color: '#999', fontSize: 14 }}>No patients found.</div>
+                    )}
+                    {!searching && patientResults.length > 0 && (
+                      <div style={{ padding: '8px 14px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: '#999', borderBottom: '1px solid #f0f0f0', background: '#fafafa' }}>
+                        {patientResults.length} {patientResults.length === 1 ? 'match' : 'matches'}
+                      </div>
                     )}
                     {patientResults.map(p => {
                       const acct = accounts.find(a => a.patient_id === p.id);
@@ -125,19 +131,29 @@ export default function ShopAccessAdmin() {
                         <button
                           key={p.id}
                           onClick={() => { setSelectedPatient(p); setPatientSearch(''); setPatientResults([]); }}
-                          style={{ width: '100%', textAlign: 'left', padding: '10px 14px', background: '#fff', border: 'none', borderBottom: '1px solid #f0f0f0', cursor: 'pointer', fontFamily: 'inherit' }}
+                          style={{ width: '100%', textAlign: 'left', padding: '12px 14px', background: '#fff', border: 'none', borderBottom: '1px solid #f0f0f0', cursor: 'pointer', fontFamily: 'inherit' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#f8f8f8'}
+                          onMouseLeave={e => e.currentTarget.style.background = '#fff'}
                         >
-                          <div style={{ fontSize: 15, fontWeight: 500 }}>{p.name}</div>
-                          <div style={{ fontSize: 13, color: '#999' }}>
-                            {p.email || '—'} · {p.phone || '—'}
-                            {acct && <span style={{ marginLeft: 8, color: '#15803d', fontWeight: 600 }}>· has shop access</span>}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontSize: 15, fontWeight: 600, color: '#111' }}>{p.name}</div>
+                              <div style={{ fontSize: 13, color: '#666', marginTop: 2 }}>
+                                {p.email || 'No email'} · {p.phone || 'No phone'}
+                              </div>
+                            </div>
+                            {acct && (
+                              <span style={{ fontSize: 11, fontWeight: 600, color: '#15803d', background: '#f0fdf4', padding: '3px 8px', whiteSpace: 'nowrap' }}>
+                                HAS ACCESS
+                              </span>
+                            )}
                           </div>
                         </button>
                       );
                     })}
                   </div>
                 )}
-              </div>
+              </>
             ) : (
               <div style={{ background: '#f8f8f8', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>

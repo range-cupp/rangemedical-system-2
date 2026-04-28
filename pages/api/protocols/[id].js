@@ -217,6 +217,10 @@ async function updateProtocol(id, updates, res, req) {
     // HRT take-home injection reminders
     'hrt_reminders_enabled',
     'hrt_reminder_schedule',
+    // WL check-in SMS settings
+    'checkin_reminder_enabled',
+    'injection_day',
+    'checkin_cadence_days',
     // HRT blood draw schedule
     'first_followup_weeks',
     // HRT onboarding

@@ -95,6 +95,7 @@ export default async function handler(req, res) {
         delivery_method,
         injection_day,
         frequency,
+        checkin_cadence_days,
         start_date,
         checkin_reminder_enabled,
         patients!inner (
@@ -136,7 +137,11 @@ export default async function handler(req, res) {
 
       // Cadence gate: only send when it's been >= cadence days since the last send.
       // First-time sends anchor to injection_day if set; otherwise fire today.
-      const cadenceDays = parseFrequencyDays(protocol.frequency);
+      // checkin_cadence_days is a per-protocol override; falls back to the
+      // injection cadence parsed from frequency.
+      const cadenceDays = (Number.isInteger(protocol.checkin_cadence_days) && protocol.checkin_cadence_days > 0)
+        ? protocol.checkin_cadence_days
+        : parseFrequencyDays(protocol.frequency);
 
       const { data: lastSendRow } = await supabase
         .from('checkin_reminders_log')

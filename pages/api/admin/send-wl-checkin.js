@@ -31,6 +31,7 @@ export default async function handler(req, res) {
       id,
       patient_id,
       frequency,
+      checkin_cadence_days,
       patients!inner ( id, name, first_name, phone, ghl_contact_id )
     `)
     .eq('id', protocolId)
@@ -48,7 +49,9 @@ export default async function handler(req, res) {
   }
 
   const checkinUrl = 'https://app.range-medical.com/patient-checkin.html?contact_id=' + (patient.ghl_contact_id || patient.id);
-  const cadenceDays = parseFrequencyDays(protocol.frequency);
+  const cadenceDays = (Number.isInteger(protocol.checkin_cadence_days) && protocol.checkin_cadence_days > 0)
+    ? protocol.checkin_cadence_days
+    : parseFrequencyDays(protocol.frequency);
   const cadenceWord = cadenceDays === 7 ? 'weekly' : cadenceDays === 14 ? 'biweekly' : `${cadenceDays}-day`;
   const message = 'Hi ' + firstName + '! 📊\n\nTime for your ' + cadenceWord + ' weight loss check-in. Takes 30 seconds:\n\n' + checkinUrl + '\n\n- Range Medical';
 

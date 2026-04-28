@@ -98,6 +98,11 @@ export default async function handler(req, res) {
       if (b.comp !== undefined) updateData.comp = b.comp;
       if (b.checkin_reminder_enabled !== undefined) updateData.checkin_reminder_enabled = b.checkin_reminder_enabled;
       if (b.injection_day !== undefined) updateData.injection_day = b.injection_day;
+      if (b.checkin_cadence_days !== undefined) {
+        updateData.checkin_cadence_days = b.checkin_cadence_days === null || b.checkin_cadence_days === ''
+          ? null
+          : parseInt(b.checkin_cadence_days, 10) || null;
+      }
       if (b.last_payment_date !== undefined) updateData.last_payment_date = b.last_payment_date;
       if (b.hrt_reminders_enabled !== undefined) updateData.hrt_reminders_enabled = b.hrt_reminders_enabled;
       if (b.hrt_reminder_schedule !== undefined) updateData.hrt_reminder_schedule = b.hrt_reminder_schedule;

@@ -8031,17 +8031,39 @@ export default function PatientProfile() {
                                 </div>
                               )}
 
-                              {/* Weekly Check-in Settings */}
+                              {/* Check-in SMS Settings */}
                               {protocol.delivery_method !== 'in_clinic' && (() => {
                                 const enabled = protocol.checkin_reminder_enabled === true;
                                 const injDay = protocol.injection_day;
+                                const injectionCadence = parseFrequencyDays(protocol.frequency);
+                                const overrideCadence = Number.isInteger(protocol.checkin_cadence_days) && protocol.checkin_cadence_days > 0
+                                  ? protocol.checkin_cadence_days
+                                  : null;
+                                const effectiveCadence = overrideCadence || injectionCadence;
+                                const cadenceLabel = effectiveCadence === 7 ? 'Weekly' : effectiveCadence === 14 ? 'Biweekly' : `Every ${effectiveCadence} days`;
                                 if (enabled) {
                                   return (
-                                    <div style={{ marginTop: 10, padding: '6px 12px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 0, fontSize: 11, color: '#16A34A', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                      <span>{'\u2705'} Weekly check-ins ({injDay || 'Monday'})</span>
+                                    <div style={{ marginTop: 10, padding: '6px 12px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 0, fontSize: 11, color: '#16A34A', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                                      <span>{'\u2705'} {cadenceLabel} check-ins ({injDay || 'Monday'} anchor){overrideCadence ? ' \u00b7 override' : ''}</span>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <select value={injDay || 'Monday'} onChange={async e => { try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ injection_day: e.target.value }) }); fetchPatient(); } catch {} }} style={{ padding: '2px 4px', border: '1px solid #BBF7D0', borderRadius: 0, fontSize: 10, color: '#15803D', background: '#F0FDF4' }}>
+                                        <select value={injDay || 'Monday'} onChange={async e => { try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ injection_day: e.target.value }) }); fetchPatient(); } catch {} }} style={{ padding: '2px 4px', border: '1px solid #BBF7D0', borderRadius: 0, fontSize: 10, color: '#15803D', background: '#F0FDF4' }} title="First-send anchor day">
                                           {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d => <option key={d} value={d}>{d}</option>)}
+                                        </select>
+                                        <select
+                                          value={overrideCadence ?? ''}
+                                          onChange={async e => {
+                                            const val = e.target.value === '' ? null : parseInt(e.target.value, 10);
+                                            try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ checkin_cadence_days: val }) }); fetchPatient(); } catch {}
+                                          }}
+                                          style={{ padding: '2px 4px', border: '1px solid #BBF7D0', borderRadius: 0, fontSize: 10, color: '#15803D', background: '#F0FDF4' }}
+                                          title="Check-in cadence (overrides injection cadence)"
+                                        >
+                                          <option value="">Match schedule ({injectionCadence}d)</option>
+                                          <option value="7">Every 7 days</option>
+                                          <option value="10">Every 10 days</option>
+                                          <option value="14">Every 14 days</option>
+                                          <option value="21">Every 21 days</option>
+                                          <option value="28">Every 28 days</option>
                                         </select>
                                         <button onClick={async () => { try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ checkin_reminder_enabled: false }) }); fetchPatient(); } catch {} }} style={{ fontSize: 10, color: '#666', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Disable</button>
                                       </div>

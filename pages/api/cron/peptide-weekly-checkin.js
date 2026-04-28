@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import { todayPacific } from '../../../lib/date-utils';
 import { logComm } from '../../../lib/comms-log';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
+import { PEPTIDE_PROGRAM_TYPES } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -64,12 +65,12 @@ export default async function handler(req, res) {
   try {
     const todayStr = todayPacific();
 
-    // Get active peptide protocols (category = 'peptide')
+    // Get active peptide protocols
     const { data: protocols, error: protocolsError } = await supabase
       .from('protocols')
-      .select('id, patient_id, patient_name, category, medication, start_date, end_date')
+      .select('id, patient_id, patient_name, program_type, medication, start_date, end_date')
       .eq('status', 'active')
-      .eq('category', 'peptide')
+      .in('program_type', PEPTIDE_PROGRAM_TYPES)
       .lte('start_date', todayStr)
       .gte('end_date', todayStr)
       .not('patient_id', 'is', null);

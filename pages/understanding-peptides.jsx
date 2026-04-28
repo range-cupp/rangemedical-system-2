@@ -69,7 +69,7 @@ export default function UnderstandingPeptides() {
       benefits: ['Stimulates collagen and elastin production', 'Supports skin firmness and reduces fine lines', 'Promotes wound healing and tissue remodeling', 'Antioxidant properties protect against skin damage', 'May support hair follicle health and growth']
     },
     {
-      name: 'GLOW Blend (GHK-Cu + BPC-157 + TB-500)',
+      name: 'GLOW Blend (GHK-Cu + BPC-157 + TB-4)',
       pathway: 'recovery',
       desc: 'Skin health, hair vitality, and tissue repair through a synergistic peptide combination.',
       durations: '30-day protocols available',
@@ -121,13 +121,13 @@ export default function UnderstandingPeptides() {
       labColor: '#10b981',
       products: [
         { name: 'BPC-157', desc: 'Tissue repair, gut healing, and joint support', benefits: ['Accelerates wound and tissue healing', 'Protects and repairs the gut lining', 'Reduces joint and muscle inflammation', 'Supports tendon and ligament recovery'] },
-        { name: 'TB-500', desc: 'Systemic healing, tissue repair, and reduced inflammation', benefits: ['Promotes systemic tissue repair throughout the body', 'Increases flexibility and reduces stiffness', 'Supports blood vessel growth at injury sites', 'Reduces chronic inflammation'] },
+        { name: 'TB-4', desc: 'Systemic healing, tissue repair, and reduced inflammation', benefits: ['Promotes systemic tissue repair throughout the body', 'Increases flexibility and reduces stiffness', 'Supports blood vessel growth at injury sites', 'Reduces chronic inflammation'] },
         { name: 'BPC-157 / Thymosin-Beta 4', desc: 'Enhanced healing combo for accelerated recovery', benefits: ['Dual-action healing for faster results', 'Addresses both local and systemic inflammation', 'Ideal for stubborn injuries and post-surgery', 'Promotes new blood vessel and tissue formation'] },
         { name: 'KPV', desc: 'Anti-inflammatory peptide supporting gut and immune health', benefits: ['Potent anti-inflammatory without immunosuppression', 'Supports gut barrier integrity', 'May help with inflammatory skin conditions', 'Supports overall immune balance'] },
         { name: 'GHK-Cu (Copper Peptide)', desc: 'Skin regeneration, wound healing, and collagen support', benefits: ['Stimulates collagen and elastin synthesis', 'Promotes wound healing and scar reduction', 'Antioxidant protection for skin', 'Supports hair follicle health'] },
-        { name: 'KLOW Blend (GHK-Cu, KPV, BPC-157, TB-500)', desc: 'Skin health, pigmentation balance, hair vitality, and tissue repair', benefits: ['Four-peptide blend for comprehensive skin and hair support', 'Addresses pigmentation and skin tone evenness', 'Anti-inflammatory and tissue-repairing properties', 'Supports hair thickness and vitality'] },
+        { name: 'KLOW Blend (GHK-Cu, KPV, BPC-157, TB-4)', desc: 'Skin health, pigmentation balance, hair vitality, and tissue repair', benefits: ['Four-peptide blend for comprehensive skin and hair support', 'Addresses pigmentation and skin tone evenness', 'Anti-inflammatory and tissue-repairing properties', 'Supports hair thickness and vitality'] },
         { name: 'LL-37', desc: 'Antimicrobial peptide with immune-boosting properties', benefits: ['Natural antimicrobial defense peptide', 'Supports the body\'s innate immune response', 'May help with chronic infections and biofilms', 'Promotes wound healing in infected tissue'] },
-        { name: 'GLOW (GHK-Cu + BPC-157 + TB-500)', desc: 'Skin health and tissue repair through synergistic peptide signaling', benefits: ['Collagen production plus tissue repair', 'Rejuvenates skin from the inside out', 'Supports hair growth and skin firmness', 'Anti-aging benefits combined with healing'] }
+        { name: 'GLOW (GHK-Cu + BPC-157 + TB-4)', desc: 'Skin health and tissue repair through synergistic peptide signaling', benefits: ['Collagen production plus tissue repair', 'Rejuvenates skin from the inside out', 'Supports hair growth and skin firmness', 'Anti-aging benefits combined with healing'] }
       ]
     },
     {
@@ -167,7 +167,7 @@ export default function UnderstandingPeptides() {
     },
     {
       question: 'Do I need labs before starting peptides?',
-      answer: 'It depends on the peptide. Recovery peptides like BPC-157, TB-500, and KPV do not require labs — you can start the same day after your assessment. Weight loss peptides and growth hormone secretagogues (the GH blends) do require bloodwork first. Mitochondrial and longevity peptides have optional labs, but we recommend them for a complete picture.'
+      answer: 'It depends on the peptide. Recovery peptides like BPC-157, TB-4, and KPV do not require labs — you can start the same day after your assessment. Weight loss peptides and growth hormone secretagogues (the GH blends) do require bloodwork first. Mitochondrial and longevity peptides have optional labs, but we recommend them for a complete picture.'
     },
     {
       question: 'How long is a typical peptide protocol?',
@@ -175,7 +175,7 @@ export default function UnderstandingPeptides() {
     },
     {
       question: 'Can I combine multiple peptides?',
-      answer: 'Absolutely. Many of our patients use multiple peptides as part of a broader protocol. For example, someone recovering from an injury might combine BPC-157 with TB-500. Someone focused on longevity might combine a GH blend with MOTS-C. Your provider will design the right combination for your goals.'
+      answer: 'Absolutely. Many of our patients use multiple peptides as part of a broader protocol. For example, someone recovering from an injury might combine BPC-157 with TB-4. Someone focused on longevity might combine a GH blend with MOTS-C. Your provider will design the right combination for your goals.'
     },
     {
       question: 'How do the check-ins work?',
@@ -193,7 +193,7 @@ export default function UnderstandingPeptides() {
       description="Learn how peptide therapy works at Range Medical. Guided pre-filled syringe protocols with check-ins and progress tracking, plus at-home vial options. Newport Beach."
     >
       <Head>
-        <meta name="keywords" content="understanding peptides, peptide therapy Newport Beach, BPC-157, TB-500, growth hormone peptides, recovery peptides, Range Medical" />
+        <meta name="keywords" content="understanding peptides, peptide therapy Newport Beach, BPC-157, TB-4, growth hormone peptides, recovery peptides, Range Medical" />
         <link rel="canonical" href="https://www.range-medical.com/understanding-peptides" />
 
         <meta property="og:title" content="Understanding Peptides | How Peptide Therapy Works | Newport Beach" />
@@ -303,7 +303,7 @@ export default function UnderstandingPeptides() {
                 </p>
                 <ul className="pm-pathway-list">
                   <li>Recovery peptides available immediately after assessment</li>
-                  <li>BPC-157, TB-500, KPV, GHK-Cu, LL-37, and blends</li>
+                  <li>BPC-157, TB-4, KPV, GHK-Cu, LL-37, and blends</li>
                   <li>Can start the same day</li>
                 </ul>
               </div>

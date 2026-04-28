@@ -22,7 +22,7 @@ export default function PeptideSideEffectsGuide() {
               "@context": "https://schema.org",
               "@type": "MedicalWebPage",
               "name": "Peptide Therapy Side Effects Guide",
-              "description": "Comprehensive patient guide for managing peptide therapy side effects including BPC-157, CJC/Ipamorelin, Tesamorelin/Ipamorelin, and TB-500.",
+              "description": "Comprehensive patient guide for managing peptide therapy side effects including BPC-157, CJC/Ipamorelin, Tesamorelin/Ipamorelin, and TB-4.",
               "url": "https://www.range-medical.com/peptide-side-effects-guide",
               "provider": {
                 "@type": "MedicalBusiness",
@@ -58,7 +58,7 @@ export default function PeptideSideEffectsGuide() {
           <div className="v2-label"><span className="v2-dot" /> THE BIG PICTURE</div>
           <h2 className="section-title">Peptides Have a Mild Side Effect Profile</h2>
           <p className="section-subtitle">Peptides are small proteins that send specific signals to your body. Compared to traditional medications, their side effect profiles are generally mild. Most side effects are related to the injection itself or the body adjusting to new signaling.</p>
-          <p className="body-text">This guide covers the peptides we use most at Range Medical — BPC-157, TB-500 (TB4), CJC-1295/Ipamorelin, and Tesamorelin/Ipamorelin. Range Medical monitors all peptide protocols with regular check-ins. For each side effect below, we give you a clear plan so you never have to just guess.</p>
+          <p className="body-text">This guide covers the peptides we use most at Range Medical — BPC-157, TB-4 (Thymosin Beta-4), CJC-1295/Ipamorelin, and Tesamorelin/Ipamorelin. Range Medical monitors all peptide protocols with regular check-ins. For each side effect below, we give you a clear plan so you never have to just guess.</p>
 
           <div className="nav-grid">
             <a href="#injection-site" className="nav-card">

@@ -529,7 +529,7 @@ export default function PeptideTherapy() {
                   Chronic joint pain limiting workouts. Shoulder injury lingering 8 months. Considering surgery.
                 </div>
                 <div className="pep-result-after">
-                  <span className="pep-result-label">After 10 Weeks &mdash; BPC-157 / TB-500</span>
+                  <span className="pep-result-label">After 10 Weeks &mdash; BPC-157 / TB-4</span>
                   Back to full training. Pain resolved. Surgery cancelled.
                 </div>
               </div>

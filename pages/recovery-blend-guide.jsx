@@ -4,8 +4,8 @@ import Head from 'next/head';
 export default function RecoveryBlendGuide() {
   return (
     <Layout
-      title="Recovery Blend Guide — BPC-157 / TB-500 / KPV / MGF | Range Medical"
-      description="Your guide to the Recovery Blend peptide protocol — BPC-157, TB-500, KPV, and MGF. Injection instructions, what to expect, and safety information. Range Medical, Newport Beach. (949) 997-3988"
+      title="Recovery Blend Guide — BPC-157 / TB-4 / KPV / MGF | Range Medical"
+      description="Your guide to the Recovery Blend peptide protocol — BPC-157, TB-4, KPV, and MGF. Injection instructions, what to expect, and safety information. Range Medical, Newport Beach. (949) 997-3988"
     >
       <Head>
         <script
@@ -14,8 +14,8 @@ export default function RecoveryBlendGuide() {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "MedicalWebPage",
-              "name": "Recovery Blend Peptide Guide — BPC-157, TB-500, KPV, MGF",
-              "description": "Patient guide for the Recovery Blend peptide therapy including BPC-157, TB-500, KPV, and MGF injection instructions, protocol details, and safety information.",
+              "name": "Recovery Blend Peptide Guide — BPC-157, TB-4, KPV, MGF",
+              "description": "Patient guide for the Recovery Blend peptide therapy including BPC-157, TB-4, KPV, and MGF injection instructions, protocol details, and safety information.",
               "url": "https://www.range-medical.com/recovery-blend-guide",
               "provider": {
                 "@type": "MedicalBusiness",
@@ -45,7 +45,7 @@ export default function RecoveryBlendGuide() {
             <p className="rb-body-text">Everything you need to know about your peptide therapy — how it works, how to inject, and what to expect as you heal.</p>
             <div className="rb-hero-dose">
               <div><span>BPC-157</span></div>
-              <div><span>TB-500</span></div>
+              <div><span>TB-4</span></div>
               <div><span>KPV</span></div>
               <div><span>MGF</span></div>
             </div>
@@ -67,7 +67,7 @@ export default function RecoveryBlendGuide() {
         <section className="rb-section rb-section-alt">
           <div className="rb-container">
             <div className="v2-label"><span className="v2-dot" /> YOUR BLEND</div>
-            <h2>BPC-157 + TB-500 + KPV + MGF</h2>
+            <h2>BPC-157 + TB-4 + KPV + MGF</h2>
             <div className="rb-divider"></div>
             <p className="rb-body-text">Four peptides that work together to support deep tissue recovery, reduce inflammation, and accelerate healing.</p>
 
@@ -82,7 +82,7 @@ export default function RecoveryBlendGuide() {
                 </ul>
               </div>
               <div className="rb-info-card">
-                <h3>TB-500</h3>
+                <h3>TB-4</h3>
                 <p>Thymosin Beta-500 — a regenerative peptide involved in tissue repair throughout the body.</p>
                 <ul>
                   <li>Promotes new blood vessel growth</li>
@@ -112,7 +112,7 @@ export default function RecoveryBlendGuide() {
 
             <div className="rb-combo-box">
               <h3>Why This Blend?</h3>
-              <p>BPC-157 drives direct tissue repair. TB-500 improves blood flow and cell migration. KPV calms systemic inflammation. MGF activates muscle stem cells for deep tissue recovery. Together, they address healing from every angle — repairing damaged tissue, building new blood supply, calming inflammation, and regenerating muscle.</p>
+              <p>BPC-157 drives direct tissue repair. TB-4 improves blood flow and cell migration. KPV calms systemic inflammation. MGF activates muscle stem cells for deep tissue recovery. Together, they address healing from every angle — repairing damaged tissue, building new blood supply, calming inflammation, and regenerating muscle.</p>
             </div>
           </div>
         </section>
@@ -204,7 +204,7 @@ export default function RecoveryBlendGuide() {
               </div>
               <div className="rb-timeline-card">
                 <h4>Days 10-30</h4>
-                <p>Deeper healing and tissue regeneration. MGF activates muscle stem cells while TB-500 builds new blood supply to injured areas. Consistency compounds — the longer you stay on protocol, the more benefit you build.</p>
+                <p>Deeper healing and tissue regeneration. MGF activates muscle stem cells while TB-4 builds new blood supply to injured areas. Consistency compounds — the longer you stay on protocol, the more benefit you build.</p>
               </div>
             </div>
           </div>

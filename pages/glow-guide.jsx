@@ -5,7 +5,7 @@ export default function GlowGuide() {
   return (
     <Layout
       title="GLOW Peptide Blend Guide | Range Medical"
-      description="Your guide to the GLOW skin peptide protocol — GHK-Cu, BPC-157, and TB500 for skin rejuvenation. Injection instructions, what to expect, and safety information. Range Medical, Newport Beach. (949) 997-3988"
+      description="Your guide to the GLOW skin peptide protocol — GHK-Cu, BPC-157, and TB-4 for skin rejuvenation. Injection instructions, what to expect, and safety information. Range Medical, Newport Beach. (949) 997-3988"
     >
       <Head>
         <script
@@ -15,7 +15,7 @@ export default function GlowGuide() {
               "@context": "https://schema.org",
               "@type": "MedicalWebPage",
               "name": "GLOW Peptide Blend Guide",
-              "description": "Patient guide for GLOW skin peptide therapy including GHK-Cu, BPC-157, and TB500 injection instructions, protocol details, and safety information.",
+              "description": "Patient guide for GLOW skin peptide therapy including GHK-Cu, BPC-157, and TB-4 injection instructions, protocol details, and safety information.",
               "url": "https://www.range-medical.com/glow-guide",
               "provider": {
                 "@type": "MedicalBusiness",
@@ -46,7 +46,7 @@ export default function GlowGuide() {
             <div className="gl-hero-dose">
               <div><span>GHK-Cu:</span> 1.67 mg</div>
               <div><span>BPC-157:</span> 333 mcg</div>
-              <div><span>TB500:</span> 333 mcg</div>
+              <div><span>TB-4:</span> 333 mcg</div>
             </div>
           </div>
         </section>
@@ -66,7 +66,7 @@ export default function GlowGuide() {
         <section className="gl-section gl-section-alt">
           <div className="gl-container">
             <div className="v2-label"><span className="v2-dot" /> YOUR BLEND</div>
-            <h2>GHK-CU + BPC-157 + TB500</h2>
+            <h2>GHK-CU + BPC-157 + TB-4</h2>
             <div className="gl-divider"></div>
             <p className="gl-body-text">Three peptides that work together to support skin repair, rejuvenation, and a healthy glow.</p>
 
@@ -90,7 +90,7 @@ export default function GlowGuide() {
                 </ul>
               </div>
               <div className="gl-info-card">
-                <h3>TB500</h3>
+                <h3>TB-4</h3>
                 <p>A regenerative peptide that promotes cell migration and new blood vessel growth for healthier skin.</p>
                 <ul>
                   <li>Promotes new blood vessel formation</li>
@@ -102,7 +102,7 @@ export default function GlowGuide() {
 
             <div className="gl-combo-box">
               <h3>Why This Blend?</h3>
-              <p>GHK-Cu drives collagen remodeling and skin tightening. BPC-157 accelerates tissue repair and improves blood flow. TB500 promotes cell migration and reduces inflammation. Together, they address skin rejuvenation from multiple angles — rebuilding structure, boosting circulation, and calming inflammation for a visible, lasting glow.</p>
+              <p>GHK-Cu drives collagen remodeling and skin tightening. BPC-157 accelerates tissue repair and improves blood flow. TB-4 promotes cell migration and reduces inflammation. Together, they address skin rejuvenation from multiple angles — rebuilding structure, boosting circulation, and calming inflammation for a visible, lasting glow.</p>
             </div>
           </div>
         </section>

@@ -89,10 +89,10 @@ export const servicePages = {
 
   'peptide-therapy': {
     seo: {
-      title: 'Peptide Therapy | BPC-157, TB-500, NAD+ | Newport Beach | Range Medical',
-      description: 'Advanced peptide therapy protocols in Newport Beach. BPC-157, TB-500, growth hormone peptides, and immune support. Expert-guided treatment plans.',
+      title: 'Peptide Therapy | BPC-157, TB-4, NAD+ | Newport Beach | Range Medical',
+      description: 'Advanced peptide therapy protocols in Newport Beach. BPC-157, TB-4, growth hormone peptides, and immune support. Expert-guided treatment plans.',
       canonical: 'https://www.range-medical.com/peptide-therapy',
-      keywords: 'peptide therapy Newport Beach, BPC-157, TB-500, growth hormone peptides, recovery peptides, NAD+'
+      keywords: 'peptide therapy Newport Beach, BPC-157, TB-4, growth hormone peptides, recovery peptides, NAD+'
     },
     badge: '🧬 Recovery & Performance',
     title: 'Peptide Therapy',

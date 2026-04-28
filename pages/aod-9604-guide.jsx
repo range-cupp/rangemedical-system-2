@@ -21,7 +21,7 @@ const SERVICES = [
   {
     id: 'peptide',
     name: 'Peptide Therapy',
-    description: 'Advanced peptide protocols for recovery, healing, and optimization. BPC-157, TB-500, GLOW, GHK-Cu, growth hormone blends, and more.',
+    description: 'Advanced peptide protocols for recovery, healing, and optimization. BPC-157, TB-4, GLOW, GHK-Cu, growth hormone blends, and more.',
   },
   {
     id: 'injections',

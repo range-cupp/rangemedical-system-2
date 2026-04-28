@@ -118,9 +118,12 @@ function parseBiomarkers(lines) {
     for (const key of SORTED_KEYS) {
       if (upper.startsWith(key)) {
         const rest = line.slice(key.length);
-        const mVal = rest.match(/^\s*([<>]?\d+\.?\d*)\s*([HL])?/);
+        // Match comma-separated numbers like "1,234" — the original regex
+        // (\d+\.?\d*) was greedy on \d+ but stopped at the first comma, so
+        // "1,234" was read as "1". This mirrors the fix in primex-pdf.js.
+        const mVal = rest.match(/^\s*([<>]?\d{1,3}(?:,\d{3})*\.?\d*)\s*([HL])?/);
         if (mVal) {
-          const valStr = mVal[1].replace(/^[<>]/, '');
+          const valStr = mVal[1].replace(/^[<>]/, '').replace(/,/g, '');
           const val = parseFloat(valStr);
           if (!isNaN(val)) {
             const col = BIOMARKER_MAP[key];

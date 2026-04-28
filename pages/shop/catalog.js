@@ -3,7 +3,7 @@ import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { VIAL_CATALOG, VIAL_CATEGORIES } from '../../lib/vial-catalog';
-import { ShoppingCart, Plus, Minus, LogOut, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, LogOut, ChevronDown, ChevronUp, Info, ShieldCheck } from 'lucide-react';
 
 function useAuth() {
   const router = useRouter();
@@ -70,6 +70,56 @@ function VialCard({ vial, quantity, onAdd, onRemove }) {
             <div><strong>Frequency:</strong> {vial.frequency}</div>
             <div><strong>Injections/vial:</strong> {vial.injectionsPerVial}</div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SourcingCard() {
+  const [expanded, setExpanded] = useState(false);
+
+  const pillars = [
+    { title: 'U.S.-made, FMOC-verified synthesis', desc: 'Each amino acid is independently verified before the next is added — no shortcuts, no hidden defects.' },
+    { title: 'Multi-layer testing on every batch', desc: 'HPLC, LC-MS/MS, NMR spectroscopy, and endotoxin testing confirm purity, sequence, structure, and safety.' },
+    { title: 'Pharmaceutical-grade USP Type I glass', desc: 'The same vial standard used for hospital injectables. Engineered to release zero endotoxins or heavy metals.' },
+    { title: 'Cold-chain delivery, days from lab to vial', desc: 'Temperature-controlled the whole way. No customs delays, no warehouse heat, no surprises.' },
+  ];
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e5e5e5', marginBottom: 20 }}>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+      >
+        <ShieldCheck size={20} color="#15803d" style={{ flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>Why Our Peptides Are Different</div>
+          <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>U.S.-manufactured. Pharmaceutical-grade. Verified.</div>
+        </div>
+        {expanded ? <ChevronUp size={18} color="#999" /> : <ChevronDown size={18} color="#999" />}
+      </button>
+      {expanded && (
+        <div style={{ padding: '4px 18px 18px', borderTop: '1px solid #f0f0f0' }}>
+          <p style={{ fontSize: 13, color: '#444', margin: '14px 0 16px', lineHeight: 1.6 }}>
+            Two peptides can look identical in the bottle and behave completely differently in your body. The difference is process discipline — how the peptide is built, verified, stored, and shipped. Range Medical sources exclusively from documented U.S.-based manufacturers.
+          </p>
+          <div style={{ display: 'grid', gap: 12 }}>
+            {pillars.map((p, i) => (
+              <div key={i} style={{ display: 'flex', gap: 12 }}>
+                <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#f0fdf4', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>
+                  {String(i + 1).padStart(2, '0')}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{p.title}</div>
+                  <div style={{ fontSize: 12, color: '#666', marginTop: 2, lineHeight: 1.5 }}>{p.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 12, color: '#666', margin: '16px 0 0', lineHeight: 1.5, fontStyle: 'italic' }}>
+            We do not source from gray-market or overseas mass-market suppliers. Every batch is documented before it is dispensed.
+          </p>
         </div>
       )}
     </div>
@@ -150,6 +200,8 @@ export default function ShopCatalog() {
         <div style={{ maxWidth: 640, margin: '0 auto', padding: 20 }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>Peptide Vials</h2>
           <p style={{ fontSize: 14, color: '#666', margin: '0 0 20px' }}>Select vials to add to your order. Each vial includes reconstitution instructions.</p>
+
+          <SourcingCard />
 
           {/* Category filters */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>

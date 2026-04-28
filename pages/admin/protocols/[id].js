@@ -205,6 +205,10 @@ export default function ProtocolDetail() {
   const [addSessionsCount, setAddSessionsCount] = useState('');
   const [addSessionsNotes, setAddSessionsNotes] = useState('');
   const [addSessionsSaving, setAddSessionsSaving] = useState(false);
+  const [shipModal, setShipModal] = useState(false);
+  const [shipDate, setShipDate] = useState('');
+  const [shipTracking, setShipTracking] = useState('');
+  const [shipSaving, setShipSaving] = useState(false);
 
   useEffect(() => {
     if (id) fetchProtocol();
@@ -974,6 +978,35 @@ export default function ProtocolDetail() {
     }
   };
 
+  const handleMarkShipped = async () => {
+    setShipSaving(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/protocols/${id}/mark-shipped`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shipped_date: shipDate || undefined,
+          tracking_number: shipTracking.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to mark as shipped');
+      }
+      const data = await res.json();
+      setSuccess(`Shipment logged for ${data.shipped_date}. Next refill expected ${data.next_expected_date}.`);
+      setShipModal(false);
+      setShipDate('');
+      setShipTracking('');
+      fetchProtocol();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setShipSaving(false);
+    }
+  };
+
   const handleAddSessions = async () => {
     const count = parseInt(addSessionsCount);
     if (!count || count < 1) return;
@@ -1187,6 +1220,14 @@ export default function ProtocolDetail() {
             )}
             {!isEditing ? (
               <>
+                {protocol?.delivery_method === 'take_home' && (
+                  <button
+                    onClick={() => { setShipDate(''); setShipTracking(''); setShipModal(true); }}
+                    style={{ ...styles.headerBtn, background: '#16a34a', color: '#fff', borderColor: '#16a34a' }}
+                  >
+                    Mark as Shipped
+                  </button>
+                )}
                 <button onClick={() => setAddSessionsModal(true)} style={styles.headerBtn}>+ Add Sessions</button>
                 <button onClick={() => setIsEditing(true)} style={styles.editBtn}>Edit</button>
               </>
@@ -4092,6 +4133,73 @@ export default function ProtocolDetail() {
                   opacity: (!addSessionsCount || parseInt(addSessionsCount) < 1) ? 0.5 : 1
                 }}
               >{addSessionsSaving ? 'Adding...' : 'Add Sessions'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mark as Shipped Modal */}
+      {shipModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }} onClick={() => setShipModal(false)}>
+          <div style={{
+            background: '#fff', borderRadius: 0, padding: '28px', width: '420px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>Mark as Shipped</h3>
+            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px' }}>
+              {protocol?.patient_name} — {protocol?.medication || protocol?.program_name}
+            </p>
+
+            <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>Shipped Date</label>
+            <input
+              type="date"
+              value={shipDate}
+              onChange={e => setShipDate(e.target.value)}
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: 0,
+                border: '1px solid #d1d5db', fontSize: '14px', marginBottom: '16px',
+                boxSizing: 'border-box'
+              }}
+            />
+
+            <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>Tracking Number (optional)</label>
+            <input
+              type="text"
+              value={shipTracking}
+              onChange={e => setShipTracking(e.target.value)}
+              placeholder="e.g. 1Z9999W99999999999"
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: 0,
+                border: '1px solid #d1d5db', fontSize: '14px', marginBottom: '20px',
+                boxSizing: 'border-box'
+              }}
+            />
+
+            <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '16px' }}>
+              Logs a pickup entry in the service log and updates the next refill date.
+              Defaults to today if no date is selected.
+            </p>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setShipModal(false)}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: 0, border: '1px solid #d1d5db',
+                  background: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 500
+                }}
+              >Cancel</button>
+              <button
+                onClick={handleMarkShipped}
+                disabled={shipSaving}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: 0, border: 'none',
+                  background: '#16a34a', color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 600,
+                  opacity: shipSaving ? 0.5 : 1
+                }}
+              >{shipSaving ? 'Saving...' : 'Mark Shipped'}</button>
             </div>
           </div>
         </div>

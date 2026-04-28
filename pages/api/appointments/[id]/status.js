@@ -4,6 +4,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../../lib/comms-log';
 import { autoLogSessionFromAppointment } from '../../../../lib/auto-session-log';
+import { sendSMS, normalizePhone } from '../../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -195,11 +196,12 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
   if (newStatus === 'cancelled' && appointment.patient_id) {
     const { data: patient } = await supabase
       .from('patients')
-      .select('ghl_contact_id, name')
+      .select('ghl_contact_id, name, phone')
       .eq('id', appointment.patient_id)
       .single();
 
-    if (patient?.ghl_contact_id) {
+    const phone = normalizePhone(patient?.phone);
+    if (patient && phone) {
       const firstName = patient.name.split(' ')[0];
       const apptDate = new Date(appointment.start_time).toLocaleDateString('en-US', {
         weekday: 'long', month: 'long', day: 'numeric',
@@ -208,12 +210,7 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
       const message = `Hi ${firstName}, your ${appointment.service_name} appointment on ${apptDate} has been cancelled. Please call (949) 997-3988 to reschedule.`;
 
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
-        await fetch(`${baseUrl}/api/ghl/send-sms`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contact_id: patient.ghl_contact_id, message }),
-        });
+        const smsResult = await sendSMS({ to: phone, message });
 
         await logComm({
           channel: 'sms',
@@ -223,7 +220,12 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
           patientId: appointment.patient_id,
           patientName: patient.name,
           ghlContactId: patient.ghl_contact_id,
-          provider: null,
+          recipient: phone,
+          twilioMessageSid: smsResult.messageSid || null,
+          status: smsResult.success ? 'sent' : 'error',
+          errorMessage: smsResult.success ? null : smsResult.error,
+          provider: smsResult.provider || null,
+          direction: 'outbound',
         });
       } catch (err) {
         console.error('Cancellation SMS error:', err);

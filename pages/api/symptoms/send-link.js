@@ -3,15 +3,14 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
-import { resolveGHLContactId } from '../../../lib/ghl-sync';
 import { logComm } from '../../../lib/comms-log';
+import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const GHL_API_KEY = process.env.GHL_API_KEY;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
 
 export default async function handler(req, res) {
@@ -37,20 +36,10 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Patient not found' });
     }
 
-    const patientPhone = patient.phone || phone;
+    const rawPhone = patient.phone || phone;
+    const patientPhone = normalizePhone(rawPhone);
     if (!patientPhone) {
       return res.status(400).json({ error: 'Patient has no phone number' });
-    }
-
-    // Resolve GHL contact ID (validates stored ID, falls back to phone search)
-    const ghlContactId = await resolveGHLContactId(patient.ghl_contact_id, {
-      phone: patientPhone,
-      patientId: patient.id,
-      supabase
-    });
-
-    if (!ghlContactId) {
-      return res.status(400).json({ error: 'Could not find GHL contact — check patient phone number' });
     }
 
     // Build the questionnaire link
@@ -61,26 +50,8 @@ export default async function handler(req, res) {
     // Build SMS message
     const message = `Hi ${firstName}! Range Medical here.\n\nPlease take a moment to complete your symptoms questionnaire. It helps us track your progress and tailor your treatment:\n\n${questionnaireUrl}\n\n- Range Medical`;
 
-    // Send SMS via GHL
-    const smsRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-04-15'
-      },
-      body: JSON.stringify({
-        type: 'SMS',
-        contactId: ghlContactId,
-        message
-      })
-    });
-
-    if (!smsRes.ok) {
-      const errorData = await smsRes.text();
-      console.error('GHL SMS error:', errorData);
-      return res.status(500).json({ error: 'Failed to send SMS' });
-    }
+    // Send SMS via the configured provider (Blooio/Twilio router)
+    const smsResult = await sendSMS({ to: patientPhone, message });
 
     // Log the communication
     await logComm({
@@ -89,10 +60,20 @@ export default async function handler(req, res) {
       message,
       source: 'patient-profile',
       patientId: patient.id,
-      ghlContactId,
+      ghlContactId: patient.ghl_contact_id,
       patientName: displayName,
-      provider: 'ghl'
+      recipient: patientPhone,
+      twilioMessageSid: smsResult.messageSid || null,
+      status: smsResult.success ? 'sent' : 'error',
+      errorMessage: smsResult.success ? null : smsResult.error,
+      provider: smsResult.provider || null,
+      direction: 'outbound',
     });
+
+    if (!smsResult.success) {
+      console.error('Symptoms link SMS error:', smsResult.error);
+      return res.status(500).json({ error: 'Failed to send SMS' });
+    }
 
     return res.status(200).json({ success: true, message: 'SMS sent successfully' });
 

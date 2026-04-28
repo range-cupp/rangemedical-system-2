@@ -6,6 +6,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { getRecentTransitions } from '../../../lib/journey-engine';
 import { logComm } from '../../../lib/comms-log';
+import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -216,39 +217,54 @@ export default async function handler(req, res) {
         ? `${patient.first_name} ${patient.last_name}`
         : patient.name || 'Unknown';
 
-      // Send SMS via GHL if contact ID exists
-      if (patient.ghl_contact_id && notification.sms) {
+      // Send SMS if patient has a phone number
+      const phone = normalizePhone(patient.phone);
+      if (phone && notification.sms) {
+        const message = notification.sms(firstName);
         try {
-          const message = notification.sms(firstName);
-          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
+          const smsResult = await sendSMS({ to: phone, message });
 
-          await fetch(`${baseUrl}/api/ghl/send-sms`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contact_id: patient.ghl_contact_id,
+          if (smsResult.success) {
+            await logComm({
+              channel: 'sms',
+              messageType: 'journey_stage',
               message,
-            }),
-          });
+              source: `journey-notification:${transition.id}`,
+              patientId: patient.id,
+              protocolId: transition.protocol_id,
+              ghlContactId: patient.ghl_contact_id,
+              patientName,
+              recipient: phone,
+              twilioMessageSid: smsResult.messageSid || null,
+              provider: smsResult.provider || null,
+              direction: 'outbound',
+            });
 
-          await logComm({
-            channel: 'sms',
-            messageType: 'journey_stage',
-            message,
-            source: `journey-notification:${transition.id}`,
-            patientId: patient.id,
-            protocolId: transition.protocol_id,
-            ghlContactId: patient.ghl_contact_id,
-            patientName,
-            provider: null,
-          });
+            notified++;
+            notifications.push({
+              patient: patientName,
+              stage: transition.current_stage,
+              channel: 'sms',
+            });
+          } else {
+            errors.push(`SMS to ${patientName}: ${smsResult.error}`);
 
-          notified++;
-          notifications.push({
-            patient: patientName,
-            stage: transition.current_stage,
-            channel: 'sms',
-          });
+            await logComm({
+              channel: 'sms',
+              messageType: 'journey_stage',
+              message,
+              source: `journey-notification:${transition.id}`,
+              patientId: patient.id,
+              protocolId: transition.protocol_id,
+              ghlContactId: patient.ghl_contact_id,
+              patientName,
+              recipient: phone,
+              status: 'error',
+              errorMessage: smsResult.error,
+              provider: smsResult.provider || null,
+              direction: 'outbound',
+            });
+          }
         } catch (smsErr) {
           console.error(`SMS error for ${patient.id}:`, smsErr);
           errors.push(`SMS to ${patientName}: ${smsErr.message}`);

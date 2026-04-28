@@ -232,8 +232,21 @@ export default async function handler(req, res) {
     // Same logic as service-log: auto-create individual injection entries dated to the
     // patient's injection schedule (2x/week = Mon/Thu alternating 3/4 day gaps)
     // Wrapped in its own try/catch — must NEVER be skipped due to upstream errors.
+    // Skip when the dispensed medication is a secondary HRT med (HCG, Gonadorelin, etc.)
+    // — the testosterone schedule should not be redrawn from a secondary-med pickup.
     try {
-      const isHRTPickup = !isInClinicPurchase && category === 'testosterone' && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0;
+      let secondaryMedSkip = false;
+      if (protocol_id && medication) {
+        const { data: protoForSecCheck } = await supabase
+          .from('protocols')
+          .select('secondary_medications')
+          .eq('id', protocol_id)
+          .single();
+        if (protoForSecCheck) {
+          secondaryMedSkip = isSecondaryMedicationOnProtocol(protoForSecCheck, medication);
+        }
+      }
+      const isHRTPickup = !isInClinicPurchase && category === 'testosterone' && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0 && !secondaryMedSkip;
       if (isHRTPickup) {
         const hrtPickupQty = parseInt(quantity);
         const pickupDosage = dosage || '';
@@ -376,6 +389,73 @@ export default async function handler(req, res) {
   }
 }
 
+// Default refill intervals for HRT secondary medications (days per vial)
+const SECONDARY_HRT_PER_VIAL_DAYS = {
+  HCG: 30,
+  Gonadorelin: 30,
+  Nandrolone: 30,
+  Anastrozole: 30,
+};
+
+// Detect whether the dispensed `medication` is a secondary med on this protocol.
+// Secondary HRT meds (HCG, Gonadorelin, Nandrolone, Anastrozole) are tracked
+// inside the parent protocol's `secondary_medication_details` JSON, not as
+// their own protocol row. Dispensing them must NOT overwrite the primary
+// protocol's medication / dose / supply / next_expected_date.
+function isSecondaryMedicationOnProtocol(protocol, medication) {
+  if (!medication) return false;
+  let secMeds = [];
+  try {
+    const raw = protocol.secondary_medications;
+    secMeds = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : [];
+  } catch { secMeds = []; }
+  const med = medication.toLowerCase();
+  return (secMeds || []).some(s => (s || '').toLowerCase() === med);
+}
+
+// Update only the matching entry inside protocol.secondary_medication_details.
+// Mirrors syncSecondaryMedPickup in /api/service-log so pickups land on the
+// right place regardless of which endpoint logged them.
+async function updateSecondaryMedDetails(protocol, { medication, dosage, quantity, supply_type, logDate }) {
+  let existing = [];
+  try {
+    const raw = protocol.secondary_medication_details;
+    existing = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : [];
+  } catch { existing = []; }
+
+  const numVials = quantity ? parseInt(quantity) : 1;
+  const perVialDays = SECONDARY_HRT_PER_VIAL_DAYS[medication] || 30;
+  const refillDays = Math.max(1, Math.round(numVials * perVialDays));
+  const nextDate = new Date(logDate + 'T12:00:00');
+  nextDate.setDate(nextDate.getDate() + refillDays);
+  const nextExpected = nextDate.toISOString().split('T')[0];
+
+  const idx = (existing || []).findIndex(d => (d.medication || d.name || '').toLowerCase() === medication.toLowerCase());
+  const prev = idx >= 0 ? (existing[idx] || {}) : {};
+  const merged = {
+    ...prev,
+    medication,
+    dosage: dosage || prev.dosage || null,
+    frequency: prev.frequency || null,
+    supply_type: supply_type || prev.supply_type || 'vial',
+    num_vials: numVials,
+    last_refill_date: logDate,
+    next_expected_date: nextExpected,
+  };
+  if (idx >= 0) existing[idx] = merged; else existing.push(merged);
+
+  const { error: updateErr } = await supabase
+    .from('protocols')
+    .update({
+      secondary_medication_details: existing,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', protocol.id);
+
+  if (updateErr) throw updateErr;
+  return { last_refill_date: logDate, next_expected_date: nextExpected };
+}
+
 // Update protocol based on checkout
 async function updateProtocol(protocolId, opts) {
   const { category, entryType, logDate, medication, dosage, quantity, supply_type, injection_method, injection_frequency, isInClinicPurchase } = opts;
@@ -389,6 +469,19 @@ async function updateProtocol(protocolId, opts) {
 
     if (error || !protocol) {
       return { updated: false, error: 'Protocol not found' };
+    }
+
+    // Secondary HRT med pickup (e.g. HCG against the testosterone protocol):
+    // route to secondary_medication_details and short-circuit so we never
+    // overwrite the primary medication's refill date / dose / supply.
+    if ((entryType === 'pickup' || entryType === 'med_pickup') && isSecondaryMedicationOnProtocol(protocol, medication)) {
+      try {
+        const secResult = await updateSecondaryMedDetails(protocol, { medication, dosage, quantity, supply_type, logDate });
+        return { updated: true, protocol_id: protocolId, mode: 'secondary_med_pickup', medication, ...secResult };
+      } catch (secErr) {
+        console.error('[medication-checkout] secondary med update failed:', secErr.message);
+        return { updated: false, error: secErr.message, mode: 'secondary_med_pickup' };
+      }
     }
 
     const updates = {

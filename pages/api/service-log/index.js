@@ -636,7 +636,28 @@ async function handlePost(req, res) {
     console.log('[service-log] POST:', { patient_id, category, entry_type, resolvedEntryType, protocol_id, logDate, wlMultiQty });
     console.log('[service-log] packageUpdate:', JSON.stringify(packageUpdate));
 
-    if (resolvedEntryType === 'pickup' && is_secondary_med && protocol_id) {
+    // Even when is_secondary_med isn't passed by the caller, detect it from
+    // the protocol's secondary_medications list so a HCG pickup never rewrites
+    // the testosterone protocol's refill date / supply.
+    let resolvedIsSecondary = !!is_secondary_med;
+    if (!resolvedIsSecondary && resolvedEntryType === 'pickup' && protocol_id && medication) {
+      const { data: protoForSecCheck } = await supabase
+        .from('protocols')
+        .select('secondary_medications')
+        .eq('id', protocol_id)
+        .single();
+      if (protoForSecCheck) {
+        let secMeds = [];
+        try {
+          const raw = protoForSecCheck.secondary_medications;
+          secMeds = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : [];
+        } catch { secMeds = []; }
+        const med = (medication || '').toLowerCase();
+        resolvedIsSecondary = (secMeds || []).some(s => (s || '').toLowerCase() === med);
+      }
+    }
+
+    if (resolvedEntryType === 'pickup' && resolvedIsSecondary && protocol_id) {
       // Secondary medication pickup (e.g. HCG on an HRT protocol) — update secondary_medication_details JSONB
       protocolUpdate = await syncSecondaryMedPickup(protocol_id, medication, logDate, secondary_med_details);
     } else if (resolvedEntryType === 'pickup') {

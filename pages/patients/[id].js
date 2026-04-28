@@ -5060,7 +5060,19 @@ export default function PatientProfile() {
         {/* Medical-only: Synopsis sections (medication activity, pinned notes, lab alerts) */}
         {viewMode === 'medical' && !loading && (() => {
           const rows = [];
+          // Secondary HRT meds (HCG, Gonadorelin, etc.) live inside the parent
+          // protocol's secondary_medication_details JSON, not as standalone protocols.
+          // Surface them at the top so the full HRT regimen is visible at a glance.
+          const secondaryRows = [];
+          const getSecondaryNames = (proto) => {
+            try {
+              const raw = proto.secondary_medications;
+              const arr = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : [];
+              return new Set((arr || []).map(s => (s || '').toLowerCase()));
+            } catch { return new Set(); }
+          };
           (activeProtocols || []).forEach(proto => {
+            const secNames = getSecondaryNames(proto);
             const protoLogs = (serviceLogs || [])
               .filter(l => l.protocol_id === proto.id && (l.entry_type === 'pickup' || l.entry_type === 'injection'))
               .sort((a, b) => b.entry_date.localeCompare(a.entry_date));
@@ -5069,10 +5081,30 @@ export default function PatientProfile() {
             // current medication is visible at the top of the profile, even
             // before any injection or pickup has been logged.
             if (protoLogs.length === 0 && !alwaysShow) return;
-            const lastPickup = protoLogs.find(l => l.entry_type === 'pickup');
+            const lastPickup = protoLogs.find(l =>
+              l.entry_type === 'pickup' && !secNames.has((l.medication || '').toLowerCase())
+            );
             const lastInjection = protoLogs.find(l => l.entry_type === 'injection');
             const latest = protoLogs[0] || { medication: proto.medication, entry_date: proto.start_date };
             rows.push({ protocol: proto, latest, lastPickup, lastInjection });
+
+            if (proto.category === 'hrt' && proto.secondary_medication_details) {
+              try {
+                const secondaries = typeof proto.secondary_medication_details === 'string'
+                  ? JSON.parse(proto.secondary_medication_details)
+                  : proto.secondary_medication_details;
+                (secondaries || []).forEach(sec => {
+                  const secName = sec.medication || sec.name;
+                  if (!secName) return;
+                  const secPickup = (serviceLogs || [])
+                    .filter(l => l.protocol_id === proto.id
+                      && l.entry_type === 'pickup'
+                      && (l.medication || '').toLowerCase() === secName.toLowerCase())
+                    .sort((a, b) => b.entry_date.localeCompare(a.entry_date))[0] || null;
+                  secondaryRows.push({ secondaryMed: { ...sec, medication: secName }, parentProtocol: proto, lastPickup: secPickup });
+                });
+              } catch {}
+            }
           });
           // Also include manually-added active medications not already covered by a protocol
           const protoMedNames = new Set(rows.map(r => ((r.protocol || {}).medication || '').toLowerCase()));
@@ -5086,6 +5118,8 @@ export default function PatientProfile() {
               rows.push({ manualMed: med, lastPickup: medPickup });
             }
           });
+          // Prepend secondary HRT meds so they appear at the top.
+          rows.unshift(...secondaryRows);
           if (rows.length === 0) return null;
           return (
             <section style={{
@@ -5099,7 +5133,56 @@ export default function PatientProfile() {
                 LAST MEDICATION ACTIVITY
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {rows.map(({ protocol, latest, lastPickup, lastInjection, manualMed }) => {
+                {rows.map(({ protocol, latest, lastPickup, lastInjection, manualMed, secondaryMed, parentProtocol }) => {
+                  if (secondaryMed) {
+                    const cat = getCategoryStyle('hrt');
+                    const pickupFmt = (log) => {
+                      if (!log) return null;
+                      const days = Math.floor((new Date() - new Date(log.entry_date + 'T00:00:00')) / (1000 * 60 * 60 * 24));
+                      const dLabel = days === 0 ? 'Today' : days === 1 ? 'Yesterday' : `${days}d ago`;
+                      return `${formatShortDate(log.entry_date)} (${dLabel})`;
+                    };
+                    return (
+                      <div key={`sec-${parentProtocol?.id || 'p'}-${secondaryMed.medication}`} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#1f2937', flexWrap: 'wrap' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '1px 8px',
+                          borderRadius: 3,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          background: cat.bg,
+                          color: cat.text,
+                          flexShrink: 0,
+                        }}>{cat.label}</span>
+                        <span style={{ fontWeight: 600 }}>{secondaryMed.medication}</span>
+                        {(secondaryMed.dosage || secondaryMed.dose) && (
+                          <span style={{ color: '#1f2937' }}>
+                            <span style={{ color: '#6b7280' }}>Current: </span>
+                            <span style={{ fontWeight: 700, color: '#7c3aed' }}>{secondaryMed.dosage || secondaryMed.dose}</span>
+                            {secondaryMed.frequency && (
+                              <span style={{ color: '#6b7280', marginLeft: 6 }}>· {secondaryMed.frequency}</span>
+                            )}
+                          </span>
+                        )}
+                        {lastPickup && (
+                          <span style={{ color: '#1f2937' }}>
+                            <span style={{ color: '#6b7280' }}>Last pickup: </span>
+                            {pickupFmt(lastPickup)}
+                            {lastPickup.quantity && <span style={{ color: '#6b7280', marginLeft: 6 }}>· {lastPickup.quantity} dispensed</span>}
+                          </span>
+                        )}
+                        {secondaryMed.next_expected_date && (() => {
+                          const todayStr = new Date().toISOString().slice(0, 10);
+                          if (secondaryMed.next_expected_date < todayStr) return null;
+                          return (
+                            <span style={{ color: '#047857', fontSize: 13, fontWeight: 500 }}>
+                              Next refill: {formatShortDate(secondaryMed.next_expected_date)}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    );
+                  }
                   if (manualMed) {
                     const medName = manualMed.medication_name || manualMed.trade_name || manualMed.generic_name;
                     const pickupFmt = (log) => {

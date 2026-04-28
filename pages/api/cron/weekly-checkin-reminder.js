@@ -164,6 +164,7 @@ export default async function handler(req, res) {
             patientName: patient.name,
             recipient: phone,
             twilioMessageSid: optInResult.messageSid,
+            provider: optInResult.provider || null,
             direction: 'outbound',
           });
           results.sent.push({ patient: patient.name, protocolId: protocol.id, twoStep: true });
@@ -202,6 +203,7 @@ export default async function handler(req, res) {
           patientName: patient.name,
           recipient: phone,
           twilioMessageSid: smsResult.messageSid,
+          provider: smsResult.provider || null,
           direction: 'outbound',
         });
       } else {
@@ -230,6 +232,7 @@ export default async function handler(req, res) {
           recipient: phone,
           status: 'error',
           errorMessage: smsResult.error,
+          provider: smsResult.provider || null,
           direction: 'outbound',
         });
       }

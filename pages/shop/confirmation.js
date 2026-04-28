@@ -1,4 +1,4 @@
-// pages/shop/confirmation.js — Order received confirmation (invoice-based)
+// pages/shop/confirmation.js — Paid order confirmation (Stripe checkout)
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -34,7 +34,7 @@ export default function ShopConfirmation() {
         <div style={{ width: '100%', maxWidth: 520, padding: 20 }}>
           <div style={{ background: '#fff', border: '1px solid #e5e5e5', padding: '40px 32px', textAlign: 'center' }}>
             <CheckCircle size={48} color="#16a34a" style={{ marginBottom: 16 }} />
-            <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>Order Received</h1>
+            <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>Payment Received</h1>
             <p style={{ fontSize: 14, color: '#666', margin: '0 0 8px' }}>Thank you, {patient.name.split(' ')[0]}!</p>
             <p style={{ fontSize: 13, color: '#999', margin: '0 0 28px' }}>Order #{order.orderNumber}</p>
 
@@ -42,7 +42,7 @@ export default function ShopConfirmation() {
             <div style={{ background: '#f8f8f8', padding: '16px 18px', marginBottom: 24, textAlign: 'left' }}>
               <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#999', margin: '0 0 8px' }}>What happens next</p>
               <p style={{ fontSize: 13, color: '#555', margin: 0, lineHeight: 1.6 }}>
-                We'll send you an invoice shortly. Once payment is received, we'll {isPickup ? 'have your order ready for pickup' : 'ship your order right away'}.
+                Your order is confirmed and we're {isPickup ? 'preparing it for pickup' : 'preparing it to ship'}. {isPickup ? "We'll text you when it's ready." : "You'll get tracking info as soon as it ships."}
               </p>
             </div>
 

@@ -123,7 +123,7 @@ export default async function handler(req, res) {
   const decoded = verifyToken(req);
   if (!decoded) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { paymentIntentId, items, shippingMethod, shippingAddress, testMode } = req.body;
+  const { paymentIntentId, items, shippingMethod, shippingAddress, notes, testMode } = req.body;
 
   // Verify payment succeeded (skip for test orders)
   const isTest = testMode && paymentIntentId.startsWith('test_');
@@ -181,6 +181,7 @@ export default async function handler(req, res) {
       total_cents: totalCents,
       shipping_method: shippingMethod,
       shipping_address: addressData,
+      notes: notes || null,
       stripe_payment_intent_id: paymentIntentId,
     })
     .select()

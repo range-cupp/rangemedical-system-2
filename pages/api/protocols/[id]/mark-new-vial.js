@@ -100,6 +100,19 @@ export default async function handler(req, res) {
     console.error('mark-new-vial protocol update error:', updateErr);
   }
 
+  // Auto-resolve any open refill follow-ups for this protocol.
+  await supabase
+    .from('follow_ups')
+    .update({
+      status: 'completed',
+      outcome: 'auto_resolved',
+      outcome_notes: `Auto-resolved by Mark New Vial on ${entryDate}`,
+      completed_at: new Date().toISOString(),
+    })
+    .eq('protocol_id', id)
+    .in('type', ['refill_due_soon', 'wl_payment_due'])
+    .in('status', ['pending', 'in_progress']);
+
   return res.status(200).json({
     success: true,
     service_log_id: serviceLog.id,

@@ -13,7 +13,8 @@ import { supabase } from '../../lib/supabase';
 const TYPE_CONFIG = {
   peptide_renewal:      { label: 'Peptide Renewal',      color: '#7c3aed', bg: '#f5f3ff' },
   protocol_ending:      { label: 'Protocol Ending',      color: '#ea580c', bg: '#fff7ed' },
-  wl_payment_due:       { label: 'WL Payment Due',       color: '#2563eb', bg: '#eff6ff' },
+  wl_payment_due:       { label: 'WL Refill / Payment',  color: '#2563eb', bg: '#eff6ff' },
+  refill_due_soon:      { label: 'HRT Refill Due',       color: '#16a34a', bg: '#f0fdf4' },
   labs_ready:           { label: 'Labs Ready',           color: '#059669', bg: '#ecfdf5' },
   session_verification: { label: 'Session Verify',       color: '#dc2626', bg: '#fef2f2' },
   lead_stale:           { label: 'Stale Lead',           color: '#6b7280', bg: '#f3f4f6' },

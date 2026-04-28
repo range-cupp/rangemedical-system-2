@@ -1,8 +1,8 @@
 // /pages/api/cron/generate-follow-ups.js
 // Auto-generate follow-up items for the Follow-Up Hub
 // Run daily via Vercel Cron (14:15 UTC = 7:15 AM PT)
-// 7 trigger types: peptide_renewal, protocol_ending, wl_payment_due,
-//   labs_ready, session_verification, lead_stale, inactive_patient
+// 8 trigger types: peptide_renewal, protocol_ending, wl_payment_due,
+//   refill_due_soon, labs_ready, session_verification, lead_stale, inactive_patient
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
@@ -35,6 +35,7 @@ export default async function handler(req, res) {
     peptide_renewal: 0,
     protocol_ending: 0,
     wl_payment_due: 0,
+    refill_due_soon: 0,
     labs_ready: 0,
     session_verification: 0,
     lead_stale: 0,
@@ -131,58 +132,164 @@ export default async function handler(req, res) {
       errors.push(`protocol_ending: ${e.message}`);
     }
 
-    // ── 3. WEIGHT LOSS PAYMENT DUE (within 7 days) ──
+    // ── 3. WEIGHT LOSS REFILL/PAYMENT DUE ──
+    // In-clinic: count injections in service_logs since last WL purchase; fire when
+    //   the patient has 1 or fewer injections left in their paid block (block size
+    //   comes from purchases.quantity, defaults to 4).
+    // Take-home: anchor on last_refill_date (set by Mark as Shipped); fire when
+    //   today >= anchor + 21 (28-day supply minus 7-day warning).
+    // Includes comp protocols — they still need refill tracking even with no payment.
     try {
       const { data: wlProtocols } = await supabase
         .from('protocols')
-        .select('id, patient_id, patient_name, program_name, medication, next_expected_date, last_payment_date, last_refill_date, start_date, comp')
+        .select('id, patient_id, patient_name, program_name, medication, delivery_method, last_refill_date, start_date, comp')
         .eq('status', 'active')
-        .neq('comp', true)
         .in('program_type', WEIGHT_LOSS_PROGRAM_TYPES);
 
       if (wlProtocols) {
         for (const p of wlProtocols) {
-          // Calculate next payment date using priority chain:
-          // next_expected_date > last_payment_date + 28d > last_refill_date + 28d > start_date + 28d
-          let nextPayDate = null;
-          if (p.next_expected_date) {
-            nextPayDate = new Date(p.next_expected_date + 'T00:00:00');
-          } else if (p.last_payment_date) {
-            nextPayDate = new Date(p.last_payment_date + 'T00:00:00');
-            nextPayDate.setDate(nextPayDate.getDate() + 28);
-          } else if (p.last_refill_date) {
-            nextPayDate = new Date(p.last_refill_date + 'T00:00:00');
-            nextPayDate.setDate(nextPayDate.getDate() + 28);
-          } else if (p.start_date) {
-            nextPayDate = new Date(p.start_date + 'T00:00:00');
-            nextPayDate.setDate(nextPayDate.getDate() + 28);
+          let shouldFire = false;
+          let reason = '';
+          const med = p.medication || p.program_name;
+          const compTag = p.comp ? ' [COMP]' : '';
+
+          if (p.delivery_method === 'in_clinic') {
+            // Find most recent WL purchase tied to this protocol (or patient+category fallback)
+            let purchase = null;
+            const { data: tied } = await supabase
+              .from('purchases')
+              .select('purchase_date, quantity')
+              .eq('protocol_id', p.id)
+              .order('purchase_date', { ascending: false })
+              .limit(1);
+            if (tied && tied.length > 0) {
+              purchase = tied[0];
+            } else {
+              const { data: byPatient } = await supabase
+                .from('purchases')
+                .select('purchase_date, quantity')
+                .eq('patient_id', p.patient_id)
+                .ilike('category', '%weight%')
+                .order('purchase_date', { ascending: false })
+                .limit(1);
+              if (byPatient && byPatient.length > 0) purchase = byPatient[0];
+            }
+
+            // Comp patients won't have a purchase — anchor to start_date and assume 4-block
+            const blockStart = purchase?.purchase_date || p.start_date;
+            const blockSize = purchase?.quantity || 4;
+            if (!blockStart) continue;
+
+            const { count } = await supabase
+              .from('service_logs')
+              .select('id', { count: 'exact', head: true })
+              .eq('protocol_id', p.id)
+              .eq('entry_type', 'injection')
+              .gte('entry_date', blockStart);
+
+            const injectionsInBlock = count || 0;
+            if (injectionsInBlock >= blockSize - 1) {
+              shouldFire = true;
+              const remaining = blockSize - injectionsInBlock;
+              reason = remaining <= 0
+                ? `${med}${compTag}: block complete (${injectionsInBlock}/${blockSize}). Collect payment before next injection.`
+                : `${med}${compTag}: ${injectionsInBlock} of ${blockSize} injections done. Time to collect for next block.`;
+            }
+          } else if (p.delivery_method === 'take_home') {
+            const anchor = p.last_refill_date || p.start_date;
+            if (!anchor) continue;
+            const anchorDate = new Date(anchor + 'T00:00:00');
+            const triggerDate = new Date(anchorDate);
+            triggerDate.setDate(triggerDate.getDate() + 21); // 28 - 7
+            if (today >= triggerDate) {
+              const dueDate = new Date(anchorDate);
+              dueDate.setDate(dueDate.getDate() + 28);
+              const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+              shouldFire = true;
+              reason = daysLeft <= 0
+                ? `${med}${compTag} take-home OVERDUE by ${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? 's' : ''} (last shipped ${anchor})`
+                : `${med}${compTag} take-home refill due in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} (last shipped ${anchor})`;
+            }
           }
 
-          if (!nextPayDate) continue;
-
-          const daysUntil = Math.ceil((nextPayDate - today) / (1000 * 60 * 60 * 24));
-          if (daysUntil <= 7) {
-            const med = p.medication || p.program_name;
-            const reason = daysUntil <= 0
-              ? `${med} monthly payment is overdue (was due ${nextPayDate.toISOString().split('T')[0]})`
-              : `${med} monthly payment due in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}`;
-
+          if (shouldFire) {
             const created = await createFollowUp({
               patient_id: p.patient_id,
               patient_name: p.patient_name,
               protocol_id: p.id,
               type: 'wl_payment_due',
               trigger_reason: reason,
-              priority: daysUntil <= 0 ? 'urgent' : daysUntil <= 3 ? 'high' : 'medium',
-              due_date: daysUntil <= 0 ? todayStr : nextPayDate.toISOString().split('T')[0],
+              priority: 'high',
+              due_date: todayStr,
             });
             if (created) counts.wl_payment_due++;
           }
         }
       }
     } catch (e) {
-      console.error('WL payment error:', e);
+      console.error('WL refill/payment error:', e);
       errors.push(`wl_payment_due: ${e.message}`);
+    }
+
+    // ── 3b. HRT REFILL DUE (mail-order + in-clinic) ──
+    // Anchor on last_refill_date (set by Mark as Shipped or Mark New Vial), fall back
+    // to start_date. supply_days from vial math; fall back to supply_type defaults.
+    // Includes comp protocols — they still need refill tracking.
+    try {
+      const { data: hrtProtocols } = await supabase
+        .from('protocols')
+        .select('id, patient_id, patient_name, program_name, medication, delivery_method, supply_type, supply_days, last_refill_date, start_date, comp')
+        .eq('status', 'active')
+        .eq('program_type', 'hrt');
+
+      if (hrtProtocols) {
+        for (const p of hrtProtocols) {
+          const anchor = p.last_refill_date || p.start_date;
+          if (!anchor) continue;
+
+          let supplyDays = p.supply_days;
+          if (!supplyDays || supplyDays <= 0) {
+            const supply = (p.supply_type || '').toLowerCase();
+            if (supply === 'prefilled_1week') supplyDays = 7;
+            else if (supply === 'prefilled_2week') supplyDays = 14;
+            else if (supply === 'prefilled_4week' || supply === 'prefilled') supplyDays = 28;
+            else if (supply.startsWith('vial_5')) supplyDays = 42;
+            else if (supply.startsWith('vial')) supplyDays = 84;
+            else if (supply.includes('oral')) supplyDays = 30;
+            else supplyDays = 28;
+          }
+
+          const anchorDate = new Date(anchor + 'T00:00:00');
+          const triggerDate = new Date(anchorDate);
+          triggerDate.setDate(triggerDate.getDate() + supplyDays - 7);
+
+          if (today >= triggerDate) {
+            const dueDate = new Date(anchorDate);
+            dueDate.setDate(dueDate.getDate() + supplyDays);
+            const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+            const med = p.medication || p.program_name;
+            const compTag = p.comp ? ' [COMP]' : '';
+            const event = p.delivery_method === 'in_clinic' ? 'new vial' : 'refill';
+            const reason = daysLeft <= 0
+              ? `${med}${compTag} ${event} OVERDUE by ${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? 's' : ''} (anchor ${anchor}, ${supplyDays}-day supply)`
+              : `${med}${compTag} ${event} due in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} (anchor ${anchor}, ${supplyDays}-day supply)`;
+
+            const created = await createFollowUp({
+              patient_id: p.patient_id,
+              patient_name: p.patient_name,
+              protocol_id: p.id,
+              type: 'refill_due_soon',
+              trigger_reason: reason,
+              priority: 'high',
+              due_date: todayStr,
+            });
+            if (created) counts.refill_due_soon++;
+          }
+        }
+      }
+    } catch (e) {
+      console.error('HRT refill due error:', e);
+      errors.push(`refill_due_soon: ${e.message}`);
     }
 
     // ── 4. LABS READY (results uploaded, not reviewed) ──

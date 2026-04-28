@@ -223,6 +223,7 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
           patientId: appointment.patient_id,
           patientName: patient.name,
           ghlContactId: patient.ghl_contact_id,
+          provider: null,
         });
       } catch (err) {
         console.error('Cancellation SMS error:', err);
@@ -239,6 +240,7 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
       source: 'appointments/status',
       patientId: appointment.patient_id,
       patientName: appointment.patient_name,
+      provider: null,
     });
   }
 }

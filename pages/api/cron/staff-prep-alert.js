@@ -265,6 +265,7 @@ export default async function handler(req, res) {
           recipient: taraPhone,
           status: smsResult.success ? 'sent' : 'error',
           errorMessage: smsResult.error || null,
+          provider: 'blooio',
           direction: 'outbound',
         });
 

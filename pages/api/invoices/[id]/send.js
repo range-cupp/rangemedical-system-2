@@ -196,6 +196,7 @@ export default async function handler(req, res) {
             patientId: invoice.patient_id,
             status: 'error',
             errorMessage: smsErr.message,
+            provider: null,
           });
         }
       } else {

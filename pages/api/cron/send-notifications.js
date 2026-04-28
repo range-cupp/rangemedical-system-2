@@ -136,6 +136,7 @@ export default async function handler(req, res) {
             recipient: notification.channel === 'email' ? notification.recipient : null,
             subject: notification.subject,
             status: 'sent',
+            provider: notification.channel === 'sms' ? (sendResult.provider || null) : null,
           });
 
           results.sent++;
@@ -163,6 +164,7 @@ export default async function handler(req, res) {
             subject: notification.subject,
             status: 'error',
             errorMessage: sendResult.error,
+            provider: notification.channel === 'sms' ? (sendResult.provider || null) : null,
           });
 
           results.errors++;

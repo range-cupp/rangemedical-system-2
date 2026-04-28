@@ -96,6 +96,7 @@ export default async function handler(req, res) {
         status: result.success ? 'sent' : 'error',
         errorMessage: result.error || null,
         twilioMessageSid: result.messageSid || null,
+        provider: result.provider || null,
         direction: 'outbound',
       });
 

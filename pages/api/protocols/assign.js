@@ -956,7 +956,7 @@ export default async function handler(req, res) {
             console.log(`Guide SMS (${guideSlug}) sent via ${smsResult.provider} to ${patientPhone}`);
           } else {
             console.error('Guide SMS error:', smsResult.error);
-            await logComm({ channel: 'sms', messageType: guideLogType, message: guideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, status: 'error', errorMessage: smsResult.error || 'SMS failed' });
+            await logComm({ channel: 'sms', messageType: guideLogType, message: guideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, status: 'error', errorMessage: smsResult.error || 'SMS failed', provider: smsResult.provider || null });
           }
         }
       }

@@ -110,6 +110,7 @@ async function logToCommsLog(appointment, event) {
     source: 'appointments/webhook',
     patientId: appointment.patient_id,
     patientName: appointment.patient_name,
+    provider: null,
   });
 }
 
@@ -121,6 +122,7 @@ async function createNoShowAlert(appointment, event) {
     source: 'appointments/webhook',
     patientId: appointment.patient_id,
     patientName: appointment.patient_name,
+    provider: null,
   });
 }
 

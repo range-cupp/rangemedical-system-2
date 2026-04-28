@@ -76,6 +76,7 @@ export default async function handler(req, res) {
     twilioMessageSid: smsResult.messageSid,
     status: smsResult.success ? undefined : 'error',
     errorMessage: smsResult.success ? undefined : smsResult.error,
+    provider: smsResult.provider || null,
     direction: 'outbound',
   });
 

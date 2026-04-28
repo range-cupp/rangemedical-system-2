@@ -240,6 +240,7 @@ export default async function handler(req, res) {
             protocolId: transition.protocol_id,
             ghlContactId: patient.ghl_contact_id,
             patientName,
+            provider: null,
           });
 
           notified++;
@@ -261,6 +262,7 @@ export default async function handler(req, res) {
             protocolId: transition.protocol_id,
             status: 'error',
             errorMessage: smsErr.message,
+            provider: null,
           });
         }
       }

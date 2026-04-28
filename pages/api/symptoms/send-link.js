@@ -90,7 +90,8 @@ export default async function handler(req, res) {
       source: 'patient-profile',
       patientId: patient.id,
       ghlContactId,
-      patientName: displayName
+      patientName: displayName,
+      provider: 'ghl'
     });
 
     return res.status(200).json({ success: true, message: 'SMS sent successfully' });

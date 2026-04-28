@@ -174,7 +174,8 @@ export default async function handler(req, res) {
               patientName: patient.name,
               recipient: phone,
               status: 'error',
-              errorMessage: smsResult.error
+              errorMessage: smsResult.error,
+              provider: smsResult.provider || null
             });
           }
         }

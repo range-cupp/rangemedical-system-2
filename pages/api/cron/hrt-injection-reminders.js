@@ -186,6 +186,7 @@ export default async function handler(req, res) {
           patientName: protocol.patient_name,
           recipient: phone,
           twilioMessageSid: smsResult.messageSid,
+          provider: smsResult.provider || null,
           direction: 'outbound',
         });
         results.sent.push({ patient: protocol.patient_name });
@@ -201,6 +202,7 @@ export default async function handler(req, res) {
           recipient: phone,
           status: 'error',
           errorMessage: smsResult.error,
+          provider: smsResult.provider || null,
           direction: 'outbound',
         });
         results.errors.push({ patient: protocol.patient_name, error: smsResult.error });

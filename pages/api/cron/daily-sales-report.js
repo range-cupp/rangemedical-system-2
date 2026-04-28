@@ -199,6 +199,7 @@ export default async function handler(req, res) {
         source: 'cron/daily-sales-report',
         recipient: '+19496900339',
         status: 'sent',
+        provider: smsResult.provider || null,
       });
       console.log('Daily Sales Report SMS sent to Chris');
     } else {
@@ -211,6 +212,7 @@ export default async function handler(req, res) {
         recipient: '+19496900339',
         status: 'error',
         errorMessage: smsResult.error,
+        provider: smsResult.provider || null,
       });
     }
 

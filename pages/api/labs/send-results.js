@@ -78,6 +78,11 @@ export default async function handler(req, res) {
         patientId: patient_id,
         patientName: patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim(),
         source: 'lab-results-send',
+        recipient: phone,
+        status: smsResult.success ? 'sent' : 'error',
+        errorMessage: smsResult.error || null,
+        twilioMessageSid: smsResult.messageSid || null,
+        provider: smsResult.provider || null,
       });
     } catch (logErr) {
       console.error('Lab results comms log error:', logErr);

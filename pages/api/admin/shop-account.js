@@ -131,17 +131,26 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
-    // Get shop account for a patient
     const { patientId } = req.query;
-    if (!patientId) return res.status(400).json({ error: 'Patient ID required' });
 
-    const { data: account } = await supabase
+    // Single-account lookup
+    if (patientId) {
+      const { data: account } = await supabase
+        .from('shop_accounts')
+        .select('id, username, is_active, last_login_at, created_at')
+        .eq('patient_id', patientId)
+        .single();
+
+      return res.status(200).json({ account: account || null });
+    }
+
+    // List all shop accounts with patient info
+    const { data: accounts } = await supabase
       .from('shop_accounts')
-      .select('id, username, is_active, last_login_at, created_at')
-      .eq('patient_id', patientId)
-      .single();
+      .select('id, username, is_active, last_login_at, created_at, patient_id, patients(id, name, email, phone)')
+      .order('created_at', { ascending: false });
 
-    return res.status(200).json({ account: account || null });
+    return res.status(200).json({ accounts: accounts || [] });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });

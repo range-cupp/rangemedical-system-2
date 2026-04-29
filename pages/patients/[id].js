@@ -6566,9 +6566,22 @@ export default function PatientProfile() {
                 </div>
                 {prescriptions.length === 0 ? (
                   <div className="empty">No prescriptions on file — e-prescribing coming soon</div>
-                ) : (
+                ) : (() => {
+                  // Single source of truth: when a prescription is linked to a protocol,
+                  // render the protocol's current medication / dose / sig so this section
+                  // and Active Medications never drift apart.
+                  const protoById = new Map();
+                  for (const p of [...(activeProtocols || []), ...(completedProtocols || []), ...(historicProtocols || [])]) {
+                    if (p?.id) protoById.set(p.id, p);
+                  }
+                  return (
                   <div style={{ padding: '0 16px 12px' }}>
-                    {prescriptions.map(rx => (
+                    {prescriptions.map(rx => {
+                      const linked = rx.protocol_id ? protoById.get(rx.protocol_id) : null;
+                      const medName = linked?.medication || rx.medication_name;
+                      const strength = linked?.selected_dose || linked?.starting_dose || rx.strength;
+                      const sig = linked?.sig || rx.sig;
+                      return (
                       <div key={rx.id} style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                         padding: '12px 14px', marginBottom: '8px',
@@ -6576,11 +6589,11 @@ export default function PatientProfile() {
                       }}>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 600, fontSize: '14px', color: '#0f172a' }}>
-                            {rx.medication_name}
-                            {rx.strength && <span style={{ fontWeight: 400, color: '#475569' }}> {rx.strength}</span>}
+                            {medName}
+                            {strength && <span style={{ fontWeight: 400, color: '#475569' }}> {strength}</span>}
                           </div>
-                          {rx.sig && (
-                            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', fontStyle: 'italic' }}>Sig: {rx.sig}</div>
+                          {sig && (
+                            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', fontStyle: 'italic' }}>Sig: {sig}</div>
                           )}
                           <div style={{ display: 'flex', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
                             {rx.quantity && <span style={{ fontSize: '11px', color: '#64748b' }}>Qty: {rx.quantity}</span>}
@@ -6603,9 +6616,11 @@ export default function PatientProfile() {
                           color: rx.status === 'signed' ? '#166534' : rx.status === 'sent' ? '#1e40af' : '#6b7280',
                         }}>{rx.status || 'draft'}</span>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
-                )}
+                  );
+                })()}
               </section>
 
               {/* Medication History — dose changes */}

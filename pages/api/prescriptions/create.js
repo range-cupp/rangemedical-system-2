@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   }
 
   const {
-    patient_id, appointment_id, note_id,
+    patient_id, appointment_id, note_id, protocol_id,
     medication_name, strength, form, quantity, sig, refills, days_supply, daw,
     is_controlled, schedule, category,
     created_by
@@ -31,6 +31,7 @@ export default async function handler(req, res) {
         patient_id,
         appointment_id: appointment_id || null,
         note_id: note_id || null,
+        protocol_id: protocol_id || null,
         medication_name,
         strength: strength || null,
         form: form || null,

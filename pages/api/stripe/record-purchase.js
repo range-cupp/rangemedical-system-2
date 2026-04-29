@@ -160,6 +160,7 @@ export default async function handler(req, res) {
       wl_frequency_days,
       wl_config,
       peptide_config,
+      hrt_config,
       injection_frequency,
       item_description,
     } = req.body;
@@ -332,6 +333,7 @@ export default async function handler(req, res) {
           wlFrequencyDays: wl_frequency_days || null,
           wlConfig: wl_config || null,
           peptideConfig: peptide_config || null,
+          hrtConfig: hrt_config || null,
           injectionFrequency: injection_frequency || null,
         });
       } catch (err) {

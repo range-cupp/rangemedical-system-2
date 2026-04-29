@@ -32,6 +32,10 @@ import {
   getDoseOptions,
   WL_BUILDER_DOSES,
   getWlInjectionPrice,
+  MEDICATION_DEFAULTS,
+  getMedicationsByCategory,
+  resolveDoseList,
+  buildSig,
 } from '../../lib/protocol-config';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
@@ -257,6 +261,18 @@ function CheckoutInner() {
   const [peptidePhase, setPeptidePhase] = useState(0); // 0 = not applicable
   const [peptideInClinicCount, setPeptideInClinicCount] = useState(0);
   const [peptideInjectionCount, setPeptideInjectionCount] = useState(0); // Custom count for phase-based peptides (0 = use full phase package)
+
+  // ── HRT Builder (modal triggered when adding HRT Membership / Single Month) ──
+  // Operator picks medication / dose / frequency / supply type instead of using
+  // the legacy hardcoded defaults in lib/auto-protocol.js. Optional secondary
+  // meds (HCG, Gonadorelin, Anastrozole, Nandrolone) can be added inline.
+  const [hrtModalOpen, setHrtModalOpen] = useState(false);
+  const [hrtModalPendingItem, setHrtModalPendingItem] = useState(null); // POS item awaiting builder confirmation
+  const [hrtPrimaryMedKey, setHrtPrimaryMedKey] = useState(''); // MEDICATION_DEFAULTS key, e.g. "Testosterone Cypionate (Male)"
+  const [hrtPrimaryDose, setHrtPrimaryDose] = useState('');
+  const [hrtPrimaryFrequency, setHrtPrimaryFrequency] = useState('');
+  const [hrtSupplyType, setHrtSupplyType] = useState('prefilled'); // prefilled | vial_5ml | vial_10ml
+  const [hrtSecondaries, setHrtSecondaries] = useState([]); // [{ medKey, dose, frequency }]
 
   // ── Injection Builder (NAD+, Standard, Premium) ──
   const [injBuilderType, setInjBuilderType] = useState(''); // 'nad', 'standard', 'premium'
@@ -554,6 +570,15 @@ function CheckoutInner() {
       showWarning('Cannot add items when a recurring item is in cart');
       return;
     }
+
+    // HRT injection memberships need the operator to set medication / dose /
+    // frequency / supply type before the protocol is created — defer the cart
+    // add and open the builder modal instead.
+    if (needsHrtBuilder(item)) {
+      openHrtBuilderForItem(item);
+      return;
+    }
+
     setCartItems([...cartItems, { ...item, quantity: 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
     setCartOpen(true);
 
@@ -913,6 +938,184 @@ function CheckoutInner() {
     setPeptideInjectionCount(0);
   }
 
+  // ── HRT Builder helpers ──
+  // The HRT injection products ("HRT Membership" recurring, "HRT — Single Month")
+  // need patient-specific dose / frequency / supply type. Oral HRT (Testosterone
+  // Booster, Enclomiphene, Anastrozole) is dispensed as-is — no builder.
+  function needsHrtBuilder(item) {
+    if (!item || item.category !== 'hrt') return false;
+    const name = (item.name || '').toLowerCase();
+    if (name.includes('oral') || name.includes('enclomiphene') || name.includes('anastrozole')) return false;
+    return name.includes('membership') || name.includes('single month') || name.includes('monthly');
+  }
+
+  // Patient gender drives which testosterone dose list and primary medication
+  // options are shown. Falls back to 'male' when not set on the patient record.
+  function hrtBuilderGender() {
+    const g = (patient?.gender || '').toLowerCase();
+    return g === 'female' ? 'female' : 'male';
+  }
+
+  // Primary medications shown at the top of the modal — gender-aware. We
+  // exclude oral pills here; those are sold as their own POS products.
+  function hrtPrimaryOptions() {
+    const gender = hrtBuilderGender();
+    return getMedicationsByCategory('hrt', gender).filter(m => {
+      const oral = m.route === 'Oral' || m.form === 'Tablet' || m.form === 'Capsule';
+      const isSecondary = ['HCG', 'Gonadorelin', 'Anastrozole', 'Nandrolone'].includes(m.canonicalName);
+      return !oral && !isSecondary;
+    });
+  }
+
+  // Secondary medications operators can layer on (HCG / Gonadorelin /
+  // Anastrozole / Nandrolone). Anastrozole is male-only, others are gender 'all'.
+  function hrtSecondaryOptions() {
+    const gender = hrtBuilderGender();
+    const wanted = ['HCG', 'Gonadorelin', 'Anastrozole', 'Nandrolone'];
+    return getMedicationsByCategory('hrt', gender).filter(m => wanted.includes(m.canonicalName));
+  }
+
+  function hrtMedMeta(key) {
+    return MEDICATION_DEFAULTS[key] || null;
+  }
+
+  function hrtMedFrequencies(key) {
+    const meta = hrtMedMeta(key);
+    return meta?.frequencies || [];
+  }
+
+  function hrtMedDoseList(key) {
+    const meta = hrtMedMeta(key);
+    return resolveDoseList(meta) || [];
+  }
+
+  // Only injectable testosterone has a supply-type choice (pre-filled vs vial
+  // size). Patches / oral pills don't need it.
+  function hrtMedNeedsSupplyType(key) {
+    const meta = hrtMedMeta(key);
+    if (!meta) return false;
+    return meta.form === 'Solution' && meta.route === 'Intramuscular';
+  }
+
+  // The medication string we persist on the protocol record matches the format
+  // used elsewhere in the app: "Testosterone Cypionate (200mg/ml)" — canonical
+  // name + strength in parens for injectables.
+  function hrtMedDisplayName(key) {
+    const meta = hrtMedMeta(key);
+    if (!meta) return key;
+    if (meta.form === 'Solution' && meta.strength) {
+      return `${meta.canonicalName} (${meta.strength})`;
+    }
+    return meta.canonicalName;
+  }
+
+  function openHrtBuilderForItem(item) {
+    setHrtModalPendingItem(item);
+    // Default to Testosterone Cypionate for the patient's gender — the most
+    // common HRT primary med. Operator can change it.
+    const gender = hrtBuilderGender();
+    const defaultKey = gender === 'female' ? 'Testosterone Cypionate (Female)' : 'Testosterone Cypionate (Male)';
+    const meta = hrtMedMeta(defaultKey);
+    setHrtPrimaryMedKey(defaultKey);
+    setHrtPrimaryDose('');
+    setHrtPrimaryFrequency(meta?.defaultFrequency || '');
+    setHrtSupplyType('prefilled');
+    setHrtSecondaries([]);
+    setHrtModalOpen(true);
+  }
+
+  function closeHrtBuilder() {
+    setHrtModalOpen(false);
+    setHrtModalPendingItem(null);
+  }
+
+  function setHrtPrimaryMedAndResetDeps(key) {
+    const meta = hrtMedMeta(key);
+    setHrtPrimaryMedKey(key);
+    setHrtPrimaryDose('');
+    setHrtPrimaryFrequency(meta?.defaultFrequency || '');
+    if (!hrtMedNeedsSupplyType(key)) setHrtSupplyType('');
+    else if (!hrtSupplyType) setHrtSupplyType('prefilled');
+  }
+
+  function addHrtSecondary() {
+    setHrtSecondaries(prev => [...prev, { medKey: '', dose: '', frequency: '' }]);
+  }
+
+  function removeHrtSecondary(idx) {
+    setHrtSecondaries(prev => prev.filter((_, i) => i !== idx));
+  }
+
+  function updateHrtSecondary(idx, patch) {
+    setHrtSecondaries(prev => prev.map((s, i) => {
+      if (i !== idx) return s;
+      const next = { ...s, ...patch };
+      if (patch.medKey && patch.medKey !== s.medKey) {
+        // Reset dose/frequency to medication defaults when switching meds
+        const meta = hrtMedMeta(patch.medKey);
+        next.dose = '';
+        next.frequency = meta?.defaultFrequency || '';
+      }
+      return next;
+    }));
+  }
+
+  function hrtBuilderReady() {
+    if (!hrtPrimaryMedKey || !hrtPrimaryDose || !hrtPrimaryFrequency) return false;
+    if (hrtMedNeedsSupplyType(hrtPrimaryMedKey) && !hrtSupplyType) return false;
+    // Each added secondary must be fully filled in
+    for (const s of hrtSecondaries) {
+      if (!s.medKey || !s.dose || !s.frequency) return false;
+    }
+    return true;
+  }
+
+  function confirmHrtBuilder() {
+    if (!hrtBuilderReady() || !hrtModalPendingItem) return;
+    const item = hrtModalPendingItem;
+    const meta = hrtMedMeta(hrtPrimaryMedKey);
+    const medDisplay = hrtMedDisplayName(hrtPrimaryMedKey);
+    const sig = buildSig({
+      dose: hrtPrimaryDose,
+      route: meta?.route || 'Intramuscular',
+      frequency: hrtPrimaryFrequency,
+      form: meta?.form || 'Solution',
+    });
+    const hrtConfig = {
+      hrtType: hrtBuilderGender(),
+      medication: medDisplay,
+      medicationKey: hrtPrimaryMedKey,
+      route: meta?.route || 'Intramuscular',
+      form: meta?.form || 'Solution',
+      strength: meta?.strength || null,
+      selectedDose: hrtPrimaryDose,
+      frequency: hrtPrimaryFrequency,
+      supplyType: hrtMedNeedsSupplyType(hrtPrimaryMedKey) ? hrtSupplyType : null,
+      sig,
+      secondaryMedications: hrtSecondaries.map(s => {
+        const sm = hrtMedMeta(s.medKey);
+        return {
+          medication: sm ? sm.canonicalName : s.medKey,
+          medicationKey: s.medKey,
+          dose: s.dose,
+          frequency: s.frequency,
+          route: sm?.route || null,
+          form: sm?.form || null,
+          strength: sm?.strength || null,
+        };
+      }),
+    };
+    setCartItems(prev => [...prev, {
+      ...item,
+      quantity: 1,
+      itemDiscountType: 'none',
+      itemDiscountValue: '',
+      hrtConfig,
+    }]);
+    setCartOpen(true);
+    closeHrtBuilder();
+  }
+
   // ── Injection Builder helpers ──
   function getInjPricePerUnit() {
     if (injBuilderType === 'nad') return INJECTION_PRICING.nad.doses[injNadDose] || 0;
@@ -1254,6 +1457,7 @@ function CheckoutInner() {
           wl_frequency_days: item.category === 'weight_loss' ? (isWlBuilder ? item.wlConfig.frequency : wlFrequencyDays) : undefined,
           wl_config: isWlBuilder ? item.wlConfig : undefined,
           peptide_config: isPeptideBuilder ? item.peptideConfig : undefined,
+          hrt_config: item.hrtConfig || undefined,
           injection_frequency: isInjBuilder ? item.injConfig.frequency : undefined,
           skip_receipt: skipNotification || cartItems.length > 1,
           ...(itemDiscountAmt > 0 && !amount_override ? {
@@ -5242,6 +5446,205 @@ function CheckoutInner() {
             </div>
           </div>
         )}
+
+        {/* ── HRT Builder Modal ── Triggered when adding HRT Membership / Single Month products. */}
+        {hrtModalOpen && hrtModalPendingItem && (() => {
+          const primaryMeta = hrtMedMeta(hrtPrimaryMedKey);
+          const doseList = hrtMedDoseList(hrtPrimaryMedKey);
+          const freqList = hrtMedFrequencies(hrtPrimaryMedKey);
+          const needsSupply = hrtMedNeedsSupplyType(hrtPrimaryMedKey);
+          const gender = hrtBuilderGender();
+          const ready = hrtBuilderReady();
+          return (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
+              <div style={{ background: '#fff', width: '100%', maxWidth: '720px', maxHeight: '92vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                {/* Header */}
+                <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e5e5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', textTransform: 'uppercase' }}>HRT Setup — {hrtModalPendingItem.name}</div>
+                    <h2 style={{ margin: '4px 0 0', fontSize: '20px', fontWeight: 700 }}>
+                      {patient?.name || 'Patient'} <span style={{ fontSize: '14px', color: '#888', fontWeight: 500 }}>· {gender === 'female' ? 'Female' : 'Male'}</span>
+                    </h2>
+                  </div>
+                  <button onClick={closeHrtBuilder} style={{ border: 'none', background: 'none', fontSize: '22px', cursor: 'pointer', color: '#888' }}>×</button>
+                </div>
+
+                {/* Body */}
+                <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+                  {/* Primary medication */}
+                  <div style={{ marginBottom: '18px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>PRIMARY MEDICATION</label>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {hrtPrimaryOptions().map(m => (
+                        <button
+                          key={m.key}
+                          onClick={() => setHrtPrimaryMedAndResetDeps(m.key)}
+                          style={{
+                            padding: '10px 14px', fontSize: '14px', fontWeight: 600,
+                            border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
+                            ...(hrtPrimaryMedKey === m.key ? { border: '2px solid #1a1a1a', background: '#f9fafb', color: '#1a1a1a' } : { color: '#333' }),
+                          }}
+                        >{m.canonicalName}{m.strength ? ` (${m.strength})` : ''}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Dose */}
+                  {hrtPrimaryMedKey && doseList.length > 0 && (
+                    <div style={{ marginBottom: '18px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>DOSE</label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '6px' }}>
+                        {doseList.map(d => {
+                          const val = typeof d === 'string' ? d : d.value;
+                          const lbl = typeof d === 'string' ? d : d.label;
+                          return (
+                            <button
+                              key={val}
+                              onClick={() => setHrtPrimaryDose(val)}
+                              style={{
+                                padding: '9px 10px', fontSize: '13px', fontWeight: 600,
+                                border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
+                                ...(hrtPrimaryDose === val ? { border: '2px solid #2E6B35', background: '#EEF6EF', color: '#2E6B35' } : { color: '#333' }),
+                              }}
+                            >{lbl}</button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Frequency */}
+                  {hrtPrimaryMedKey && freqList.length > 0 && (
+                    <div style={{ marginBottom: '18px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>FREQUENCY</label>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {freqList.map(f => (
+                          <button
+                            key={f}
+                            onClick={() => setHrtPrimaryFrequency(f)}
+                            style={{
+                              padding: '10px 14px', fontSize: '14px', fontWeight: 600,
+                              border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
+                              ...(hrtPrimaryFrequency === f ? { border: '2px solid #2E75B6', background: '#EBF3FB', color: '#2E75B6' } : { color: '#333' }),
+                            }}
+                          >{f}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Supply type — only for injectable testosterone */}
+                  {needsSupply && (
+                    <div style={{ marginBottom: '18px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>SUPPLY TYPE</label>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {(HRT_SUPPLY_TYPES || []).map(s => (
+                          <button
+                            key={s.value}
+                            onClick={() => setHrtSupplyType(s.value)}
+                            style={{
+                              padding: '10px 14px', fontSize: '14px', fontWeight: 600,
+                              border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
+                              ...(hrtSupplyType === s.value ? { border: '2px solid #7c3aed', background: '#f5f3ff', color: '#7c3aed' } : { color: '#333' }),
+                            }}
+                          >{s.label}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Secondary medications */}
+                  <div style={{ marginTop: '24px', paddingTop: '18px', borderTop: '1px solid #eee' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888' }}>SECONDARY MEDICATIONS (OPTIONAL)</label>
+                      <button
+                        onClick={addHrtSecondary}
+                        style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 600, border: '1px dashed #bbb', background: '#fff', cursor: 'pointer', color: '#444' }}
+                      >+ Add Secondary</button>
+                    </div>
+                    {hrtSecondaries.length === 0 && (
+                      <div style={{ fontSize: '13px', color: '#999', fontStyle: 'italic', padding: '8px 0' }}>
+                        None — Dr. Burgess can add HCG / Gonadorelin / Anastrozole later.
+                      </div>
+                    )}
+                    {hrtSecondaries.map((sec, idx) => {
+                      const sMeta = hrtMedMeta(sec.medKey);
+                      const sDoseList = hrtMedDoseList(sec.medKey);
+                      const sFreqList = hrtMedFrequencies(sec.medKey);
+                      return (
+                        <div key={idx} style={{ padding: '12px', background: '#f9fafb', border: '1px solid #e5e5e5', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginBottom: '8px' }}>
+                            <select
+                              value={sec.medKey}
+                              onChange={e => updateHrtSecondary(idx, { medKey: e.target.value })}
+                              style={{ flex: 1, padding: '8px', border: '1px solid #ddd', fontSize: '14px', background: '#fff' }}
+                            >
+                              <option value="">Select medication…</option>
+                              {hrtSecondaryOptions().map(m => (
+                                <option key={m.key} value={m.key}>{m.canonicalName}{m.strength ? ` (${m.strength})` : ''}</option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => removeHrtSecondary(idx)}
+                              style={{ padding: '6px 10px', fontSize: '14px', border: 'none', background: 'none', color: '#999', cursor: 'pointer' }}
+                            >×</button>
+                          </div>
+                          {sec.medKey && (
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <select
+                                value={sec.dose}
+                                onChange={e => updateHrtSecondary(idx, { dose: e.target.value })}
+                                style={{ flex: 1, padding: '8px', border: '1px solid #ddd', fontSize: '13px', background: '#fff' }}
+                              >
+                                <option value="">Dose…</option>
+                                {sDoseList.map(d => {
+                                  const val = typeof d === 'string' ? d : d.value;
+                                  const lbl = typeof d === 'string' ? d : d.label;
+                                  return <option key={val} value={val}>{lbl}</option>;
+                                })}
+                              </select>
+                              <select
+                                value={sec.frequency}
+                                onChange={e => updateHrtSecondary(idx, { frequency: e.target.value })}
+                                style={{ flex: 1, padding: '8px', border: '1px solid #ddd', fontSize: '13px', background: '#fff' }}
+                              >
+                                <option value="">Frequency…</option>
+                                {sFreqList.map(f => <option key={f} value={f}>{f}</option>)}
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Sig preview */}
+                  {hrtPrimaryDose && hrtPrimaryFrequency && primaryMeta && (
+                    <div style={{ marginTop: '16px', padding: '10px 12px', background: '#fafafa', border: '1px solid #eee', fontSize: '13px', color: '#444' }}>
+                      <strong style={{ fontSize: '11px', letterSpacing: '0.08em', color: '#888', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Sig preview</strong>
+                      {buildSig({
+                        dose: hrtPrimaryDose,
+                        route: primaryMeta.route || 'Intramuscular',
+                        frequency: hrtPrimaryFrequency,
+                        form: primaryMeta.form || 'Solution',
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div style={{ padding: '16px 24px', borderTop: '1px solid #e5e5e5', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button onClick={closeHrtBuilder} style={{ ...styles.secondaryBtn }}>Cancel</button>
+                  <button
+                    onClick={confirmHrtBuilder}
+                    disabled={!ready}
+                    style={{ ...styles.primaryBtn, opacity: ready ? 1 : 0.5, cursor: ready ? 'pointer' : 'not-allowed', width: 'auto', minWidth: '220px' }}
+                  >Add to Cart — {hrtModalPendingItem.name}</button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </AdminLayout>
   );

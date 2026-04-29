@@ -699,7 +699,7 @@ function CheckoutInner() {
 
     const cartItem = {
       id: 'wl-builder-' + Date.now(),
-      name: 'Weight Loss Program',
+      name: internalName,
       category: 'weight_loss',
       price: totalCents,
       quantity: 1,

@@ -48,7 +48,7 @@ import {
   isWeightLossType
 } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, buildAdaptiveHRTSchedule, isHRTProtocol, getLabStatusSummary } from '../../lib/hrt-lab-schedule';
-import { isRecoveryPeptide, isGHPeptide, findPeptideProduct, calculatePeptideDurationDays, getDosesPerWeek, MEDICATION_CATEGORIES, MEDICATION_DEFAULTS, getMedicationsByCategory, resolveDoseList, buildSig, buildPeptideSig } from '../../lib/protocol-config';
+import { isRecoveryPeptide, isGHPeptide, findPeptideProduct, calculatePeptideDurationDays, getDosesPerWeek, MEDICATION_CATEGORIES, MEDICATION_DEFAULTS, getMedicationsByCategory, resolveDoseList, buildSig, buildPeptideSig, formatProtocolFrequency } from '../../lib/protocol-config';
 import { VIAL_CATALOG } from '../../lib/vial-catalog';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -6954,7 +6954,7 @@ export default function PatientProfile() {
                               <span style={{ fontWeight: 500 }}>{protocol.medication}</span>
                             )}
                             {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
-                            {protocol.frequency && <span>{protocol.frequency}</span>}
+                            {protocol.frequency && <span>{formatProtocolFrequency(protocol.frequency)}</span>}
                             {protocol.category === 'hrt' && (() => {
                               try {
                                 const sec = typeof protocol.secondary_medications === 'string'
@@ -8589,7 +8589,7 @@ export default function PatientProfile() {
                                   {protocol.frequency && (
                                     <div className="px-stat">
                                       <span className="px-stat-label">Frequency</span>
-                                      <span className="px-stat-value">{protocol.frequency}</span>
+                                      <span className="px-stat-value">{formatProtocolFrequency(protocol.frequency)}</span>
                                     </div>
                                   )}
                                   {(lastPickup || protocol.last_refill_date) && (

@@ -272,6 +272,7 @@ function CheckoutInner() {
   const [hrtPrimaryDose, setHrtPrimaryDose] = useState('');
   const [hrtPrimaryFrequency, setHrtPrimaryFrequency] = useState('');
   const [hrtSupplyType, setHrtSupplyType] = useState('prefilled'); // prefilled | vial_5ml | vial_10ml
+  const [hrtDispenseQty, setHrtDispenseQty] = useState(0); // # of prefilled syringes given today (drives supply tracking)
   const [hrtSecondaries, setHrtSecondaries] = useState([]); // [{ medKey, dose, frequency }]
 
   // ── Injection Builder (NAD+, Standard, Premium) ──
@@ -1009,6 +1010,20 @@ function CheckoutInner() {
     return meta.canonicalName;
   }
 
+  // For prefilled supply, derive injections-per-month from the primary frequency
+  // so a 1-month membership ships the right syringe count by default. Operator
+  // can override in the modal.
+  function defaultMonthlySyringes(frequency) {
+    const f = (frequency || '').toLowerCase();
+    if (f.includes('twice') || f.includes('2x') || f.includes('every 3.5') || f === 'every_3_5_days') return 8;
+    if (f.includes('weekly') && !f.includes('bi')) return 4;
+    if (f.includes('biweekly') || f.includes('bi-weekly') || f.includes('every 2 week')) return 2;
+    if (f.includes('3x')) return 12;
+    if (f.includes('daily')) return 28;
+    if (f.includes('every other day')) return 14;
+    return 4;
+  }
+
   function openHrtBuilderForItem(item) {
     setHrtModalPendingItem(item);
     // Default to Testosterone Cypionate for the patient's gender — the most
@@ -1016,10 +1031,12 @@ function CheckoutInner() {
     const gender = hrtBuilderGender();
     const defaultKey = gender === 'female' ? 'Testosterone Cypionate (Female)' : 'Testosterone Cypionate (Male)';
     const meta = hrtMedMeta(defaultKey);
+    const defaultFreq = meta?.defaultFrequency || '';
     setHrtPrimaryMedKey(defaultKey);
     setHrtPrimaryDose('');
-    setHrtPrimaryFrequency(meta?.defaultFrequency || '');
+    setHrtPrimaryFrequency(defaultFreq);
     setHrtSupplyType('prefilled');
+    setHrtDispenseQty(defaultMonthlySyringes(defaultFreq));
     setHrtSecondaries([]);
     setHrtModalOpen(true);
   }
@@ -1031,11 +1048,18 @@ function CheckoutInner() {
 
   function setHrtPrimaryMedAndResetDeps(key) {
     const meta = hrtMedMeta(key);
+    const newFreq = meta?.defaultFrequency || '';
     setHrtPrimaryMedKey(key);
     setHrtPrimaryDose('');
-    setHrtPrimaryFrequency(meta?.defaultFrequency || '');
+    setHrtPrimaryFrequency(newFreq);
+    setHrtDispenseQty(defaultMonthlySyringes(newFreq));
     if (!hrtMedNeedsSupplyType(key)) setHrtSupplyType('');
     else if (!hrtSupplyType) setHrtSupplyType('prefilled');
+  }
+
+  function setHrtPrimaryFrequencyAndResetQty(f) {
+    setHrtPrimaryFrequency(f);
+    setHrtDispenseQty(defaultMonthlySyringes(f));
   }
 
   function addHrtSecondary() {
@@ -1081,6 +1105,8 @@ function CheckoutInner() {
       frequency: hrtPrimaryFrequency,
       form: meta?.form || 'Solution',
     });
+    const supplyType = hrtMedNeedsSupplyType(hrtPrimaryMedKey) ? hrtSupplyType : null;
+    const dispenseQty = supplyType === 'prefilled' ? Math.max(1, parseInt(hrtDispenseQty) || 0) : null;
     const hrtConfig = {
       hrtType: hrtBuilderGender(),
       medication: medDisplay,
@@ -1090,7 +1116,8 @@ function CheckoutInner() {
       strength: meta?.strength || null,
       selectedDose: hrtPrimaryDose,
       frequency: hrtPrimaryFrequency,
-      supplyType: hrtMedNeedsSupplyType(hrtPrimaryMedKey) ? hrtSupplyType : null,
+      supplyType,
+      dispenseQty, // # of prefilled syringes handed out today; null for vials
       sig,
       secondaryMedications: hrtSecondaries.map(s => {
         const sm = hrtMedMeta(s.medKey);
@@ -5521,7 +5548,7 @@ function CheckoutInner() {
                         {freqList.map(f => (
                           <button
                             key={f}
-                            onClick={() => setHrtPrimaryFrequency(f)}
+                            onClick={() => setHrtPrimaryFrequencyAndResetQty(f)}
                             style={{
                               padding: '10px 14px', fontSize: '14px', fontWeight: 600,
                               border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
@@ -5549,6 +5576,32 @@ function CheckoutInner() {
                             }}
                           >{s.label}</button>
                         ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dispense quantity — pre-filled syringes only. Auto-derived from
+                      frequency (1-month supply) but operator can override. Drives
+                      next_expected_date / supply tracking on the protocol. */}
+                  {needsSupply && hrtSupplyType === 'prefilled' && (
+                    <div style={{ marginBottom: '18px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>SYRINGES TO DISPENSE TODAY</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <input
+                          type="number"
+                          min="1"
+                          value={hrtDispenseQty}
+                          onChange={e => setHrtDispenseQty(Math.max(1, parseInt(e.target.value) || 1))}
+                          style={{ width: '90px', padding: '10px', border: '1px solid #ddd', fontSize: '15px', fontWeight: 700, textAlign: 'center' }}
+                        />
+                        <span style={{ fontSize: '13px', color: '#666' }}>
+                          ≈ {Math.round((hrtDispenseQty || 0) * (defaultMonthlySyringes(hrtPrimaryFrequency) ? 28 / defaultMonthlySyringes(hrtPrimaryFrequency) : 7))} day supply · refill due {(() => {
+                            const days = Math.round((hrtDispenseQty || 0) * (defaultMonthlySyringes(hrtPrimaryFrequency) ? 28 / defaultMonthlySyringes(hrtPrimaryFrequency) : 7));
+                            const d = new Date();
+                            d.setDate(d.getDate() + days);
+                            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                          })()}
+                        </span>
                       </div>
                     </div>
                   )}

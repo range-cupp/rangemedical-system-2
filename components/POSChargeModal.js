@@ -254,6 +254,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       weight_loss: [
         { label: 'Tirzepatide — Monthly Program', match: i => i.name.toLowerCase().includes('tirzepatide') && i.name.toLowerCase().includes('monthly') },
         { label: 'Retatrutide — Monthly Program', match: i => i.name.toLowerCase().includes('retatrutide') && i.name.toLowerCase().includes('monthly') },
+        { label: 'Tirzepatide — Vials', match: i => i.name.toLowerCase().includes('tirzepatide') && i.name.toLowerCase().includes('vial') },
         { label: 'Tirzepatide — Single Injections', match: i => i.name.toLowerCase().includes('tirzepatide') && i.name.toLowerCase().includes('single') },
         { label: 'Retatrutide — Single Injections', match: i => i.name.toLowerCase().includes('retatrutide') && i.name.toLowerCase().includes('single') },
         { label: 'Semaglutide', match: i => i.name.toLowerCase().includes('semaglutide') },

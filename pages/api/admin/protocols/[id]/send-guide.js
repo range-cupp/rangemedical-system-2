@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     // Fetch the clicked protocol
     const { data: protocol, error: protocolError } = await supabase
       .from('protocols')
-      .select('id, patient_id, medication, program_name, patient_name, peptide_guide_sent, notes')
+      .select('id, patient_id, medication, program_name, patient_name, peptide_guide_sent, notes, delivery_method, supply_type, num_vials, total_sessions')
       .eq('id', id)
       .single();
 
@@ -57,10 +57,10 @@ export default async function handler(req, res) {
     // Gather ALL active peptide protocols for this patient
     const { data: allProtocols } = await supabase
       .from('protocols')
-      .select('id, medication, program_name, category, status, total_sessions, delivery_method, supply_type, num_vials, secondary_medications, secondary_medication_details, selected_dose, frequency')
+      .select('id, medication, program_name, program_type, status, total_sessions, delivery_method, supply_type, num_vials, secondary_medications, secondary_medication_details, selected_dose, frequency')
       .eq('patient_id', protocol.patient_id)
       .eq('status', 'active')
-      .in('category', ['peptide', 'recovery', 'longevity', 'gh_blend', 'skin', 'neuro', 'immune', 'sexual_health', 'injection', 'hrt']);
+      .in('program_type', ['peptide', 'longevity', 'hrt', 'injection', 'injection_pack', 'nad_injection', 'recovery_jumpstart_10day', 'month_program_30day', 'weight_loss']);
 
     // Build enhanced vial entries: vialId.days.delivery
     // num_vials > 0 = patient got a whole vial (needs reconstitution)
@@ -113,7 +113,12 @@ export default async function handler(req, res) {
     // Fallback: if nothing matched, try just the clicked protocol
     if (vialEntries.length === 0) {
       const fallbackId = getVialIdForMedication(protocol.medication, protocol.program_name);
-      if (fallbackId) vialEntries.push({ vialId: fallbackId, days: null, delivery: 'vial' });
+      if (fallbackId) {
+        const fbSupply = (protocol.supply_type || '').toLowerCase();
+        const fbDelivery = (protocol.delivery_method || '').toLowerCase();
+        const fbIsVial = (protocol.num_vials && protocol.num_vials > 0) || fbSupply === 'vial' || fbDelivery.includes('vial');
+        vialEntries.push({ vialId: fallbackId, days: protocol.total_sessions || null, delivery: fbIsVial ? 'vial' : 'prefilled' });
+      }
     }
 
     if (vialEntries.length === 0) {
@@ -149,7 +154,8 @@ export default async function handler(req, res) {
       const optedIn = await hasBlooioOptIn(phone);
 
       if (!optedIn) {
-        const optInMsg = `Hi ${firstName}! Range Medical here. We have your peptide reconstitution guide ready for you. Reply YES to receive it.`;
+        const hasVials = vialEntries.some(e => e.delivery === 'vial');
+        const optInMsg = `Hi ${firstName}! Range Medical here. We have your peptide ${hasVials ? 'reconstitution ' : ''}guide ready for you. Reply YES to receive it.`;
 
         const optInResult = await sendSMS({ to: phone, message: optInMsg });
         if (!optInResult.success) {

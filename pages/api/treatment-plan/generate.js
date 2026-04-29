@@ -1,6 +1,8 @@
 // /api/treatment-plan/generate
 // Generates a treatment plan PDF from pasted SUMMARY/RECOMMENDATIONS bullets.
-// mode='preview' streams the PDF inline. mode='send' emails + archives it.
+// mode='preview' streams the PDF inline.
+// mode='save'    archives it to the patient's profile (no email).
+// mode='send'    archives it AND emails the patient.
 
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
@@ -119,14 +121,17 @@ export default async function handler(req, res) {
     }
 
     // -----------------------------
-    // SEND: upload, email, archive
+    // SAVE / SEND: upload + archive, optionally email
     // -----------------------------
-    if (mode === 'send') {
-      if (!patient.email) {
-        return res.status(400).json({ error: 'Patient has no email on file' });
-      }
-      if (!resend) {
-        return res.status(500).json({ error: 'Email service not configured' });
+    if (mode === 'save' || mode === 'send') {
+      // Fail fast on email config when sending — don't waste an upload.
+      if (mode === 'send') {
+        if (!patient.email) {
+          return res.status(400).json({ error: 'Patient has no email on file' });
+        }
+        if (!resend) {
+          return res.status(500).json({ error: 'Email service not configured' });
+        }
       }
 
       const timestamp = Date.now();
@@ -162,26 +167,27 @@ export default async function handler(req, res) {
         uploaded_by: providerDisplay || 'Range Medical',
       });
 
-      // Send email with PDF attachment
-      const issueObj = new Date(planDate + 'T00:00:00');
-      const dateStr = issueObj.toLocaleDateString('en-US', {
-        month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles',
-      });
+      if (mode === 'send') {
+        const issueObj = new Date(planDate + 'T00:00:00');
+        const dateStr = issueObj.toLocaleDateString('en-US', {
+          month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles',
+        });
 
-      const { error: emailErr } = await resend.emails.send({
-        from: 'Range Medical <hello@range-medical.com>',
-        to: patient.email,
-        subject: `Your Treatment Plan — ${dateStr}`,
-        html: buildEmailHtml({ firstName: patient.first_name, dateStr }),
-        attachments: [{ filename: fileName, content: buffer.toString('base64') }],
-      });
+        const { error: emailErr } = await resend.emails.send({
+          from: 'Range Medical <hello@range-medical.com>',
+          to: patient.email,
+          subject: `Your Treatment Plan — ${dateStr}`,
+          html: buildEmailHtml({ firstName: patient.first_name, dateStr }),
+          attachments: [{ filename: fileName, content: buffer.toString('base64') }],
+        });
 
-      if (emailErr) {
-        console.error('Treatment plan email error:', emailErr);
-        return res.status(500).json({ error: 'Failed to send email', details: emailErr.message });
+        if (emailErr) {
+          console.error('Treatment plan email error:', emailErr);
+          return res.status(500).json({ error: 'Failed to send email', details: emailErr.message });
+        }
       }
 
-      return res.status(200).json({ success: true, document_url: urlData?.signedUrl || null });
+      return res.status(200).json({ success: true, mode, document_url: urlData?.signedUrl || null });
     }
 
     return res.status(400).json({ error: 'Invalid mode' });

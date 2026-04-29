@@ -68,7 +68,8 @@ export default function TreatmentPlanModal({
   const [pdfUrl, setPdfUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [status, setStatus] = useState(null); // { kind: 'ok'|'err', msg }
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState(null); // { kind: 'ok'|'err', msg, action?: 'save'|'send' }
   const objectUrlRef = useRef(null);
 
   useEffect(() => () => {
@@ -130,11 +131,48 @@ export default function TreatmentPlanModal({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Send failed');
-      setStatus({ kind: 'ok', msg: patientEmail ? `Treatment plan emailed to ${patientEmail}.` : 'Treatment plan emailed to the patient.' });
+      setStatus({
+        kind: 'ok',
+        action: 'send',
+        msg: patientEmail
+          ? `Treatment plan emailed to ${patientEmail} and saved to profile.`
+          : 'Treatment plan emailed to the patient and saved to profile.',
+      });
     } catch (err) {
       setStatus({ kind: 'err', msg: err.message || 'Could not send treatment plan.' });
     } finally {
       setSending(false);
+    }
+  };
+
+  const saveToProfile = async () => {
+    if (!hasContent || !patientId) return;
+    setSaving(true);
+    setStatus(null);
+    try {
+      const res = await fetch('/api/treatment-plan/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patientId,
+          summary_text: summaryText,
+          next_steps_text: nextStepsText,
+          note_id: noteId || null,
+          provider: provider || null,
+          mode: 'save',
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Save failed');
+      setStatus({
+        kind: 'ok',
+        action: 'save',
+        msg: `Treatment plan saved to ${patientName ? `${patientName}'s` : 'the patient’s'} profile.`,
+      });
+    } catch (err) {
+      setStatus({ kind: 'err', msg: err.message || 'Could not save treatment plan.' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -268,15 +306,15 @@ export default function TreatmentPlanModal({
         }}>
           <div style={{ fontSize: 12, color: '#6b7280' }}>
             {step === 'edit'
-              ? 'Preview generates the PDF. Send emails it to the patient and archives it to their profile.'
-              : 'This is exactly what the patient will receive by email.'}
+              ? 'Save archives the PDF to the patient profile. Preview opens the PDF first, where you can also send it to the patient by email.'
+              : 'Save archives this PDF to the patient profile. Send also emails it to the patient.'}
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
             {step === 'preview' && (
               <button
                 onClick={backToEdit}
-                disabled={sending}
+                disabled={sending || saving}
                 style={btnSecondary}
               >
                 ← Back to Edit
@@ -285,19 +323,26 @@ export default function TreatmentPlanModal({
             {step === 'edit' && (
               <button
                 onClick={requestPreview}
-                disabled={!hasContent || loading}
-                style={{ ...btnPrimary, opacity: (!hasContent || loading) ? 0.5 : 1 }}
+                disabled={!hasContent || loading || saving}
+                style={{ ...btnSecondary, opacity: (!hasContent || loading || saving) ? 0.5 : 1 }}
               >
                 {loading ? 'Generating…' : 'Preview'}
               </button>
             )}
+            <button
+              onClick={saveToProfile}
+              disabled={!hasContent || saving || sending || (status?.kind === 'ok' && status?.action === 'save')}
+              style={{ ...btnPrimary, opacity: (!hasContent || saving || sending || (status?.kind === 'ok' && status?.action === 'save')) ? 0.5 : 1 }}
+            >
+              {saving ? 'Saving…' : (status?.kind === 'ok' && status?.action === 'save') ? 'Saved ✓' : 'Save to Profile'}
+            </button>
             {step === 'preview' && (
               <button
                 onClick={sendToPatient}
-                disabled={sending || status?.kind === 'ok'}
-                style={{ ...btnPrimary, opacity: (sending || status?.kind === 'ok') ? 0.5 : 1 }}
+                disabled={sending || saving || (status?.kind === 'ok' && status?.action === 'send')}
+                style={{ ...btnPrimary, opacity: (sending || saving || (status?.kind === 'ok' && status?.action === 'send')) ? 0.5 : 1 }}
               >
-                {sending ? 'Sending…' : status?.kind === 'ok' ? 'Sent ✓' : 'Send to Patient'}
+                {sending ? 'Sending…' : (status?.kind === 'ok' && status?.action === 'send') ? 'Sent ✓' : 'Send to Patient'}
               </button>
             )}
           </div>

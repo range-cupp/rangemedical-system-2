@@ -4947,7 +4947,17 @@ export default function PatientProfile() {
             const isWL = proto.category === 'weight_loss';
             const isHRT = proto.category === 'hrt';
             const isPeptide = proto.category === 'peptide';
-            const totalSessions = proto.total_sessions || 0;
+            // For WL, total = paid blocks × 4 (each linked purchase = one block).
+            // protocol.total_sessions drifts when purchases are linked manually,
+            // so we derive from billing — same source of truth as the protocol card.
+            let totalSessions = proto.total_sessions || 0;
+            if (isWL) {
+              const WL_BLOCK_SIZE = 4;
+              const linkedPurchaseCount = (allPurchases || []).filter(p => p.protocol_id === proto.id && p.purchase_date).length;
+              if (linkedPurchaseCount > 0) {
+                totalSessions = Math.max(totalSessions, linkedPurchaseCount * WL_BLOCK_SIZE);
+              }
+            }
             const sessionsUsed = proto.sessions_used || 0;
             const protoName = proto.program_name || proto.medication || proto.category;
 
@@ -7528,7 +7538,6 @@ export default function PatientProfile() {
                                   </thead>
                                   <tbody>
                                     {(() => {
-                                      const totalSlots = protocol.total_sessions;
                                       const startStr = protocol.start_date;
                                       const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
                                       const todayDate = new Date(todayStr + 'T12:00:00');
@@ -7544,9 +7553,15 @@ export default function PatientProfile() {
                                         .filter(p => p.protocol_id === protocol.id && p.purchase_date)
                                         .sort((a, b) => new Date(a.purchase_date) - new Date(b.purchase_date));
 
-                                      // Determine total blocks: cover all logged injections + scheduled slots, in chunks of 4
-                                      const projectedTotalInjections = Math.max(totalSlots || 0, wlLogs.length);
+                                      // Determine total blocks: cover paid blocks + logged injections + scheduled slots, in chunks of 4.
+                                      // Including paid-block count keeps the schedule in sync with billing even when
+                                      // protocol.total_sessions hasn't been bumped by manual purchase linking.
+                                      const rawTotalSlots = protocol.total_sessions;
+                                      const projectedTotalInjections = Math.max(rawTotalSlots || 0, wlLogs.length, protoLinkedPurchases.length * BLOCK_SIZE);
                                       const numBlocks = Math.max(1, Math.ceil(projectedTotalInjections / BLOCK_SIZE));
+                                      // Effective total = blocks × 4. This is the source of truth for the schedule table —
+                                      // ensures upcoming slots (e.g. 7 and 8 after Block 2 is paid) actually render.
+                                      const totalSlots = numBlocks * BLOCK_SIZE;
 
                                       // Build blocks and find the first injection date for each (used to match purchases by date)
                                       const sortedLogsForBlocks = [...wlLogs].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
@@ -7684,8 +7699,8 @@ export default function PatientProfile() {
                                       // Track running injection count for group assignment
                                       let injectionCounter = 0;
 
-                                      // Ongoing protocols (no total_sessions) — just show actual logs
-                                      if (!totalSlots || !startStr) {
+                                      // Ongoing protocols (no total_sessions, no purchases) — just show actual logs
+                                      if ((!rawTotalSlots && protoLinkedPurchases.length === 0) || !startStr) {
                                         // Get first weight for "Total" column
                                       const firstOngoingWeight = (() => {
                                         for (const l of wlLogs) {

@@ -175,9 +175,12 @@ export default async function handler(req, res) {
               if (byPatient && byPatient.length > 0) purchase = byPatient[0];
             }
 
-            // Comp patients won't have a purchase — anchor to start_date and assume 4-block
+            // Comp patients won't have a purchase — anchor to start_date and assume 4-block.
+            // WL is billed in 4-injection blocks by default. POS data often records each
+            // visit as qty=1 even when the patient prepaid for a multi-injection block,
+            // so anything <= 1 falls back to the 4-block standard.
             const blockStart = purchase?.purchase_date || p.start_date;
-            const blockSize = purchase?.quantity || 4;
+            const blockSize = (purchase?.quantity && purchase.quantity > 1) ? purchase.quantity : 4;
             if (!blockStart) continue;
 
             const { count } = await supabase

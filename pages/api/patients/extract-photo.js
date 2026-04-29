@@ -51,29 +51,20 @@ export default async function handler(req, res) {
       imageBuffer = Buffer.from(out);
     }
 
-    // Get image dimensions
-    const metadata = await sharp(imageBuffer).metadata();
-    const { width, height } = metadata;
-
-    // 2. Convert to base64 for Claude Vision
-    // Resize if very large to stay within limits
-    let processedBuffer = imageBuffer;
-    let processedWidth = width;
-    let processedHeight = height;
-
-    if (width > 2000 || height > 2000) {
-      const resized = await sharp(imageBuffer)
-        .resize(2000, 2000, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 85 })
-        .toBuffer();
-      const resizedMeta = await sharp(resized).metadata();
-      processedBuffer = resized;
-      processedWidth = resizedMeta.width;
-      processedHeight = resizedMeta.height;
-    }
+    // 2. Always re-encode through sharp as JPEG. This normalizes the format so
+    // the media type we declare to Anthropic always matches the bytes —
+    // extensions and content-type headers are unreliable (PNGs that are
+    // actually HEIF, .jpg-named HEIC files, etc.).
+    const processedBuffer = await sharp(imageBuffer)
+      .resize(2000, 2000, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 85 })
+      .toBuffer();
+    const processedMeta = await sharp(processedBuffer).metadata();
+    const processedWidth = processedMeta.width;
+    const processedHeight = processedMeta.height;
 
     const base64Image = processedBuffer.toString('base64');
-    const mediaType = photo_id_url.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+    const mediaType = 'image/jpeg';
 
     // 3. Ask Claude Vision to find the face bounding box
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

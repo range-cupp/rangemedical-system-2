@@ -76,6 +76,10 @@ async function extractForPatient(patientId, photoIdUrl) {
   // Convert HEIC to JPEG if needed (detected by magic bytes — extension can lie)
   imageBuffer = await ensureJpeg(imageBuffer);
 
+  // Always re-encode through sharp as JPEG. This normalizes the format so the
+  // media type we declare to Anthropic always matches the bytes — extensions
+  // and even content-type headers in the wild are unreliable (PNGs that are
+  // actually HEIF, etc.).
   let metadata;
   try {
     metadata = await sharp(imageBuffer).metadata();
@@ -84,21 +88,16 @@ async function extractForPatient(patientId, photoIdUrl) {
   }
   let { width, height } = metadata;
 
-  // Resize if very large
-  if (width > 2000 || height > 2000) {
-    imageBuffer = await sharp(imageBuffer)
-      .resize(2000, 2000, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 85 })
-      .toBuffer();
-    const m = await sharp(imageBuffer).metadata();
-    width = m.width;
-    height = m.height;
-  }
+  imageBuffer = await sharp(imageBuffer)
+    .resize(2000, 2000, { fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 85 })
+    .toBuffer();
+  const m = await sharp(imageBuffer).metadata();
+  width = m.width;
+  height = m.height;
 
   const base64Image = imageBuffer.toString('base64');
-  // After ensureJpeg() the buffer is always JPEG (HEIC was converted, others passed through).
-  // Only declare PNG when the original file was actually PNG — extension is the only signal we have.
-  const mediaType = lower.endsWith('.png') ? 'image/png' : 'image/jpeg';
+  const mediaType = 'image/jpeg';
 
   // 2. Ask Claude Vision to find face bbox
   const visionResponse = await anthropic.messages.create({

@@ -92,6 +92,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [loading, setLoading] = useState(false);
   const [selectedAppt, setSelectedAppt] = useState(null);
   const popoverRef = useRef(null);
+  const wizardPanelRef = useRef(null);
 
   // New appointment wizard state
   const [wizardStep, setWizardStep] = useState(0); // 0=patient, 1=service, 2=location(IV only), 3=provider, 4=datetime, 5=confirm
@@ -1440,6 +1441,30 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     return result;
   };
 
+  // Click an empty hour cell to start a New Appointment at that time.
+  // Snaps the click position to the nearest 15-min slot and pre-fills the
+  // wizard's date + time, then opens it scrolled into view. Patient/service/
+  // provider still go through the normal step-by-step flow.
+  const openWizardAtSlot = (hour, e) => {
+    if (wizardOnly) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const offsetY = Math.max(0, Math.min(HOUR_HEIGHT - 1, e.clientY - rect.top));
+    const slot = Math.floor(offsetY / (HOUR_HEIGHT / 4)); // 0..3
+    const minutes = Math.max(0, Math.min(3, slot)) * 15;
+    const hh = String(hour).padStart(2, '0');
+    const mm = String(minutes).padStart(2, '0');
+
+    resetWizard();
+    setApptDate(formatDateISO(currentDate));
+    setApptTime(`${hh}:${mm}`);
+    setUseCustomTime(true); // honor the explicitly clicked slot
+    setWizardCollapsed(false);
+
+    setTimeout(() => {
+      wizardPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  };
+
   const renderDayView = () => {
     const dayAppts = appointments.filter(a =>
       formatDateISO(new Date(a.start_time)) === formatDateISO(currentDate)
@@ -1457,7 +1482,11 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             <div style={styles.hourLabel}>
               {hour > 12 ? hour - 12 : hour} {hour >= 12 ? 'PM' : 'AM'}
             </div>
-            <div style={styles.hourCell} />
+            <div
+              style={{ ...styles.hourCell, cursor: 'pointer' }}
+              onClick={(e) => openWizardAtSlot(hour, e)}
+              title="Click to schedule at this time"
+            />
           </div>
         ))}
         {/* Appointment blocks */}
@@ -1838,9 +1867,15 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </div>
               <div style={{ ...styles.hourCell, display: 'flex' }}>
                 {cols.map(emp => (
-                  <div key={emp.id} style={{
-                    width: colWidth, borderRight: '1px solid #f3f4f6', minHeight: `${HOUR_HEIGHT}px`,
-                  }} />
+                  <div
+                    key={emp.id}
+                    style={{
+                      width: colWidth, borderRight: '1px solid #f3f4f6', minHeight: `${HOUR_HEIGHT}px`,
+                      cursor: 'pointer',
+                    }}
+                    onClick={(e) => openWizardAtSlot(hour, e)}
+                    title="Click to schedule at this time"
+                  />
                 ))}
               </div>
             </div>
@@ -4308,7 +4343,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     <div style={wizardOnly ? { ...styles.container, minHeight: 'unset' } : { ...styles.container, flexDirection: 'column' }} className="cal-container">
       {/* Collapsible New Appointment panel */}
       {!wizardOnly && (
-        <div style={{
+        <div ref={wizardPanelRef} style={{
           borderBottom: wizardCollapsed ? 'none' : '1px solid #e5e5e5',
           background: '#fafafa',
         }}>

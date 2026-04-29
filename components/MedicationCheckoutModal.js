@@ -31,6 +31,7 @@ import {
   CATEGORY_COLORS,
   getDoseOptions,
 } from '../lib/protocol-config';
+import { overlayClickProps } from './AdminLayout';
 
 const SERVICE_CATEGORIES = [
   { id: 'testosterone', label: 'HRT / Testosterone', icon: '💉', color: '#7c3aed' },
@@ -1005,7 +1006,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   const cartTotal = allCartItems.reduce((sum, i) => sum + (i.coverageType === 'paid' && i.paymentMethod !== 'comp' ? getItemPriceCents(i) : 0), 0);
 
   return (
-    <div style={styles.overlay} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div style={styles.overlay} {...overlayClickProps(onClose)}>
       <div style={styles.modal}>
         {/* Header */}
         <div style={styles.header}>

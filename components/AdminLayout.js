@@ -1320,12 +1320,32 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
 // Helper: returns onMouseDown + onClick props for modal overlays.
 // Only closes when BOTH mousedown and mouseup occur on the overlay itself,
 // preventing accidental closes from scrolling/dragging inside the modal.
+// Also: if focus is in any text field (input/textarea/contenteditable) at
+// mousedown time, suppress the close — the user is mid-edit and an accidental
+// overlay click should never wipe in-flight typing. Works for both
+// overlay-wraps-modal and backdrop+modal-sibling layouts.
+const NON_TEXT_INPUT_TYPES = new Set(['button','submit','reset','checkbox','radio','file','hidden','image','color','range']);
+function isFocusInTextField() {
+  const ae = typeof document !== 'undefined' ? document.activeElement : null;
+  if (!ae) return false;
+  if (ae.tagName === 'TEXTAREA') return true;
+  if (ae.tagName === 'INPUT' && !NON_TEXT_INPUT_TYPES.has((ae.type || '').toLowerCase())) return true;
+  if (ae.isContentEditable) return true;
+  return false;
+}
 export function overlayClickProps(closeFn) {
   return {
-    onMouseDown: (e) => { if (e.target === e.currentTarget) e.currentTarget._overlayMouseDown = true; },
+    onMouseDown: (e) => {
+      if (e.target !== e.currentTarget) return;
+      e.currentTarget._overlayMouseDown = true;
+      e.currentTarget._overlayWasTyping = isFocusInTextField();
+    },
     onClick: (e) => {
-      if (e.target === e.currentTarget && e.currentTarget._overlayMouseDown) closeFn();
+      const wasMouseDown = e.currentTarget._overlayMouseDown;
+      const wasTyping = e.currentTarget._overlayWasTyping;
       e.currentTarget._overlayMouseDown = false;
+      e.currentTarget._overlayWasTyping = false;
+      if (e.target === e.currentTarget && wasMouseDown && !wasTyping) closeFn();
     },
   };
 }

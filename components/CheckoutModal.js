@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { overlayClickProps } from './AdminLayout';
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -197,7 +198,7 @@ export default function CheckoutModal({
   };
 
   return (
-    <div style={s.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div style={s.overlay} {...overlayClickProps(onClose)}>
       <div style={s.modal}>
         {/* Close button */}
         <button onClick={onClose} style={s.closeBtn} aria-label="Close">&times;</button>

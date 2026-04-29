@@ -92,6 +92,10 @@
     {
       "path": "/api/cron/giveaway-scholarships",
       "schedule": "0 18 25 4 *"
+    },
+    {
+      "path": "/api/cron/reminder-obrien-hrt",
+      "schedule": "0 16 5 5 *"
     }
   ]
 }

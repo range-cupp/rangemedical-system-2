@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth } from '../../../../../lib/auth';
+import { pushToEmployees } from '../../../../../lib/web-push';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -122,6 +123,11 @@ async function sendMessage(req, res, employee, channelId) {
       .eq('channel_id', channelId)
       .eq('employee_id', employee.id);
 
+    // Fire web-push to other members in the background — don't block the response.
+    sendChannelPush({ channelId, message, sender: employee }).catch((e) => {
+      console.warn('Channel push failed (non-fatal):', e?.message || e);
+    });
+
     return res.status(201).json({
       message: {
         ...message,
@@ -132,4 +138,50 @@ async function sendMessage(req, res, employee, channelId) {
     console.error('Send message error:', err);
     return res.status(500).json({ error: 'Failed to send message' });
   }
+}
+
+/**
+ * Notify every other (non-muted) channel member about a new message.
+ * Best-effort: any failure is logged, never thrown.
+ */
+async function sendChannelPush({ channelId, message, sender }) {
+  // Channel info — needed to choose a good notification title.
+  const { data: channel } = await supabase
+    .from('staff_channels')
+    .select('id, name, type')
+    .eq('id', channelId)
+    .maybeSingle();
+  if (!channel) return;
+
+  // All other (non-muted) members.
+  const { data: members } = await supabase
+    .from('staff_channel_members')
+    .select('employee_id, muted')
+    .eq('channel_id', channelId)
+    .neq('employee_id', sender.id);
+  if (!members || members.length === 0) return;
+  const recipientIds = members.filter((m) => !m.muted).map((m) => m.employee_id);
+  if (recipientIds.length === 0) return;
+
+  const senderFirst = (sender.name || 'Someone').split(' ')[0];
+  let title;
+  if (channel.type === 'dm') {
+    title = senderFirst;
+  } else {
+    title = channel.name ? `${senderFirst} in ${channel.name}` : `${senderFirst} (group)`;
+  }
+  const body = message.content
+    ? message.content.slice(0, 140)
+    : (message.attachment_name ? `📎 ${message.attachment_name}` : 'New message');
+
+  await pushToEmployees(recipientIds, {
+    title,
+    body,
+    data: {
+      channel_id: channelId,
+      message_id: message.id,
+      sender_id: sender.id,
+      sender_name: sender.name,
+    },
+  });
 }

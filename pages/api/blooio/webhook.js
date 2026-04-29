@@ -6,7 +6,6 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { sendBlooioMessage } from '../../../lib/blooio';
-import { getPendingMessages, markPendingMessageSent } from '../../../lib/blooio-optin';
 import { identifyStaff, handleStaffMessage } from '../../../lib/staff-bot';
 import { shouldAutoReply, generateReply } from '../../../lib/patient-bot';
 import { logComm } from '../../../lib/comms-log';
@@ -277,8 +276,7 @@ async function handleInboundMessage(body) {
     }
   }
 
-  // Auto-send any pending link messages now that patient has replied
-  await sendPendingMessages(senderPhone, patient);
+  // Pending link auto-send disabled — forms are now sent directly via send-forms-sms
 
   // ================================================================
   // PATIENT AUTO-REPLY BOT
@@ -480,49 +478,6 @@ async function handleInboundMessage(body) {
         }
       }
     }
-  }
-}
-
-async function sendPendingMessages(phone, patient) {
-  try {
-    const pending = await getPendingMessages(phone);
-    if (pending.length === 0) return;
-
-    console.log(`Found ${pending.length} pending link message(s) for ${phone} — auto-sending`);
-
-    for (const msg of pending) {
-      // Send the queued link message via Blooio (patient just replied on Blooio)
-      const result = await sendBlooioMessage({ to: msg.phone, message: msg.message });
-
-      if (result.success) {
-        // Log auto-send to comms_log
-        const logRow = {
-          patient_id: msg.patient_id || patient?.id || null,
-          patient_name: msg.patient_name || patient?.name || phone,
-          ghl_contact_id: patient?.ghl_contact_id || null,
-          channel: 'sms',
-          message_type: msg.message_type || 'auto_send',
-          message: msg.message,
-          source: 'blooio/webhook(auto-send)',
-          status: 'sent',
-          recipient: msg.phone,
-          direction: 'outbound',
-          provider: 'blooio',
-        };
-        if (result.messageSid) logRow.twilio_message_sid = result.messageSid;
-
-        await supabase.from('comms_log').insert(logRow);
-
-        // Mark pending message as sent
-        await markPendingMessageSent(msg.id);
-
-        console.log(`Auto-sent pending ${msg.message_type} to ${msg.phone} (${msg.id})`);
-      } else {
-        console.error(`Failed to auto-send pending message ${msg.id}:`, result.error);
-      }
-    }
-  } catch (err) {
-    console.error('sendPendingMessages error:', err);
   }
 }
 

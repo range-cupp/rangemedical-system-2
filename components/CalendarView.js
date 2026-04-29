@@ -1469,6 +1469,14 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     resetWizard();
   };
 
+  // ESC closes the wizard modal (only way out besides the X button)
+  useEffect(() => {
+    if (!wizardModalOpen) return;
+    const onKey = (e) => { if (e.key === 'Escape') closeWizardModal(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [wizardModalOpen]);
+
   const renderDayView = () => {
     const dayAppts = appointments.filter(a =>
       formatDateISO(new Date(a.start_time)) === formatDateISO(currentDate)
@@ -4508,10 +4516,12 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       {/* Detail popover */}
       {renderDetailPopover()}
 
-      {/* New Appointment wizard modal — opened by clicking a time slot */}
+      {/* New Appointment wizard modal — opened by clicking a time slot.
+          Intentionally does NOT close on overlay click — only the X button
+          or the ESC key dismisses, so accidental clicks can't wipe progress. */}
       {wizardModalOpen && (
-        <div style={styles.wizardModalOverlay} {...overlayClickProps(closeWizardModal)}>
-          <div style={styles.wizardModal} onClick={e => e.stopPropagation()}>
+        <div style={styles.wizardModalOverlay}>
+          <div style={styles.wizardModal}>
             <button
               onClick={closeWizardModal}
               style={styles.wizardModalClose}

@@ -316,14 +316,14 @@ export default async function handler(req, res) {
 
     // Staff note — mirror the visit reason (and notes) into the patient's staff notes
     // so it shows up on the patient profile without having to open the appointment.
+    // Intentionally NOT linking via appointment_id / encounter_service — those fields
+    // make the note count as a clinical encounter (inflates appointment encounter
+    // badges and shows a service tag in the staff notes list).
     if (patient_id && visit_reason) {
       try {
         const noteBody = notes
           ? `${visit_reason.trim()}\n\n${notes.trim()}`
           : visit_reason.trim();
-        const combinedService = isMulti
-          ? appointments.map(a => a.service_name).join(' + ')
-          : primary.service_name;
 
         await supabase.from('patient_notes').insert({
           patient_id,
@@ -333,10 +333,6 @@ export default async function handler(req, res) {
           note_date: new Date().toISOString(),
           source: 'manual',
           note_category: 'internal',
-          appointment_id: primary.id,
-          encounter_service: combinedService,
-          visit_group_id: visitGroupId,
-          status: 'signed',
         });
       } catch (noteErr) {
         console.error('Staff note from visit reason failed:', noteErr);

@@ -45,16 +45,19 @@ const appts = await fetchAll(
   (q) => q.not('patient_id', 'is', null).not('visit_reason', 'is', null),
 );
 
+// Dedupe key: patient_id|body. We no longer store appointment_id on these
+// notes (so they don't get mistaken for clinical encounter notes), so the
+// safest re-run dedupe is content-based.
 const internalNotes = await fetchAll(
   'patient_notes',
-  'id, appointment_id',
-  (q) => q.eq('note_category', 'internal').not('appointment_id', 'is', null),
+  'id, patient_id, body',
+  (q) => q.eq('note_category', 'internal'),
 );
 
-const notedApptIds = new Set(internalNotes.map(n => String(n.appointment_id)));
+const notedKeys = new Set(internalNotes.map(n => `${n.patient_id}|${String(n.body || '').trim()}`));
 
 console.log(`Loaded ${appts.length} appointments with patient_id + visit_reason.`);
-console.log(`Loaded ${internalNotes.length} internal notes already linked to an appointment.\n`);
+console.log(`Loaded ${internalNotes.length} existing internal staff notes (used for dedupe).\n`);
 
 // Group multi-service visits — one note per visit_group_id, anchored to the
 // earliest appointment row so it matches what the live API does on booking.
@@ -82,42 +85,34 @@ function buildBody(visit_reason, notes) {
 
 // Singles
 for (const a of singles) {
-  if (notedApptIds.has(String(a.id))) { skipped.alreadyNoted++; continue; }
+  const body = buildBody(a.visit_reason, a.notes);
+  if (notedKeys.has(`${a.patient_id}|${body}`)) { skipped.alreadyNoted++; continue; }
   toInsert.push({
     patient_id: a.patient_id,
-    body: buildBody(a.visit_reason, a.notes),
-    raw_input: buildBody(a.visit_reason, a.notes),
+    body,
+    raw_input: body,
     created_by: a.created_by || 'System',
     note_date: a.created_at || new Date().toISOString(),
     source: 'manual',
     note_category: 'internal',
-    appointment_id: a.id,
-    encounter_service: a.service_name || null,
-    visit_group_id: null,
-    status: 'signed',
     _patient_name: a.patient_name,
   });
 }
 
 // Multi-service visits
-for (const [groupId, rows] of byGroup) {
+for (const [, rows] of byGroup) {
   const sorted = rows.slice().sort((x, y) => new Date(x.created_at) - new Date(y.created_at));
   const primary = sorted[0];
-  const alreadyHas = sorted.some(r => notedApptIds.has(String(r.id)));
-  if (alreadyHas) { skipped.alreadyNoted++; continue; }
-  const combinedService = sorted.map(r => r.service_name).filter(Boolean).join(' + ');
+  const body = buildBody(primary.visit_reason, primary.notes);
+  if (notedKeys.has(`${primary.patient_id}|${body}`)) { skipped.alreadyNoted++; continue; }
   toInsert.push({
     patient_id: primary.patient_id,
-    body: buildBody(primary.visit_reason, primary.notes),
-    raw_input: buildBody(primary.visit_reason, primary.notes),
+    body,
+    raw_input: body,
     created_by: primary.created_by || 'System',
     note_date: primary.created_at || new Date().toISOString(),
     source: 'manual',
     note_category: 'internal',
-    appointment_id: primary.id,
-    encounter_service: combinedService || primary.service_name || null,
-    visit_group_id: groupId,
-    status: 'signed',
     _patient_name: primary.patient_name,
   });
 }

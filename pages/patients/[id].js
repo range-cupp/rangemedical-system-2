@@ -6882,7 +6882,18 @@ export default function PatientProfile() {
                       const sessionsCompleted = isWeightLoss
                         ? (wlActualCount || protocol.sessions_used || 0)
                         : (protocol.sessions_used || protocol.sessions_completed || protoServiceLogs.filter(l => ['injection', 'session'].includes(l.entry_type)).length);
-                      const sessionsTotal = protocol.total_sessions || protocol.sessions_total;
+                      let sessionsTotal = protocol.total_sessions || protocol.sessions_total;
+                      // WL: total injections = paid blocks × 4. Each linked purchase = one block.
+                      // Derive from billing instead of trusting protocol.total_sessions, which drifts
+                      // when purchases are linked manually (link-purchase API doesn't bump total_sessions).
+                      // This stays in sync with the block-renderer below, which uses the same logic.
+                      if (isWeightLoss) {
+                        const WL_BLOCK_SIZE = 4;
+                        const linkedPurchaseCount = (allPurchases || []).filter(p => p.protocol_id === protocol.id && p.purchase_date).length;
+                        if (linkedPurchaseCount > 0) {
+                          sessionsTotal = Math.max(linkedPurchaseCount, Math.ceil(wlLogs.length / WL_BLOCK_SIZE)) * WL_BLOCK_SIZE;
+                        }
+                      }
                       // Aggregate side effects from all service logs
                       const logsWithSideEffects = protoServiceLogs
                         .filter(l => parseSideEffects(l.notes))
@@ -7114,7 +7125,7 @@ export default function PatientProfile() {
                               <span style={{ color: '#d1d5db' }}>|</span>
                               <span>
                                 <strong>{sessionsCompleted}</strong>
-                                {protocol.total_sessions ? <span style={{ color: '#6b7280' }}> of {protocol.total_sessions}</span> : ''}
+                                {sessionsTotal ? <span style={{ color: '#6b7280' }}> of {sessionsTotal}</span> : ''}
                                 <span style={{ color: '#6b7280' }}> injections</span>
                               </span>
                             </div>

@@ -5,11 +5,21 @@
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import sharp from 'sharp';
+import heicConvert from 'heic-convert';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// HEIF/HEIC files start with `ftyp` at byte 4. iPhone uploads often use a .jpg extension
+// even when the bytes are HEIF, so we detect by magic bytes — extension can lie.
+function isHeic(buf) {
+  if (buf.length < 12) return false;
+  if (buf.slice(4, 8).toString('ascii') !== 'ftyp') return false;
+  const brand = buf.slice(8, 12).toString('ascii').toLowerCase();
+  return ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'hevm', 'hevs', 'mif1', 'msf1'].includes(brand);
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -33,7 +43,13 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Failed to fetch photo ID image' });
     }
 
-    const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+    let imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+
+    // Convert HEIC -> JPEG up front; sharp can't decode HEIF without libvips heif support.
+    if (isHeic(imageBuffer)) {
+      const out = await heicConvert({ buffer: imageBuffer, format: 'JPEG', quality: 0.9 });
+      imageBuffer = Buffer.from(out);
+    }
 
     // Get image dimensions
     const metadata = await sharp(imageBuffer).metadata();

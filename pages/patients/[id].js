@@ -15,6 +15,7 @@ import { useAuth } from '../../components/AuthProvider';
 import { useVoice } from '../../components/VoiceContext';
 import { CALL_STATE } from '../../hooks/useVoiceCall';
 import EnergyPackBalance from '../../components/EnergyPackBalance';
+import PatientAvatar from '../../components/PatientAvatar';
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
@@ -4422,46 +4423,52 @@ export default function PatientProfile() {
                 style={{ display: 'none' }}
                 onChange={handlePhotoIdUpload}
               />
-              {intakes.find(i => i.photo_id_url) ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <button className="photo-id-badge" onClick={() => {
-                    const photoIdUrl = intakes.find(i => i.photo_id_url)?.photo_id_url;
-                    if (photoIdUrl) openPdfViewer(photoIdUrl, 'Photo ID');
-                  }} title="View Photo ID">
-                    <span className="photo-id-icon">🪪</span>
-                    <span className="photo-id-label">Photo ID</span>
-                  </button>
+              {(() => {
+                const photoIdUrl = intakes.find(i => i.photo_id_url)?.photo_id_url;
+                const hasPhoto = !!patient?.profile_photo_url;
+                if (hasPhoto || photoIdUrl) {
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <PatientAvatar
+                        patient={patient}
+                        size={48}
+                        title={photoIdUrl ? 'View Photo ID' : 'Patient'}
+                        onClick={photoIdUrl ? () => openPdfViewer(photoIdUrl, 'Photo ID') : undefined}
+                      />
+                      <button
+                        onClick={() => photoIdInputRef.current?.click()}
+                        disabled={uploadingPhotoId}
+                        title={photoIdUrl ? 'Replace Photo ID' : 'Upload Photo ID'}
+                        style={{
+                          background: '#f3f4f6',
+                          border: '1px solid #d1d5db',
+                          borderRadius: 6,
+                          padding: '4px 8px',
+                          fontSize: 11,
+                          color: '#374151',
+                          cursor: uploadingPhotoId ? 'wait' : 'pointer',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {uploadingPhotoId ? '…' : (photoIdUrl ? 'Replace' : 'Upload')}
+                      </button>
+                    </div>
+                  );
+                }
+                return (
                   <button
+                    className="photo-id-badge photo-id-empty"
                     onClick={() => photoIdInputRef.current?.click()}
                     disabled={uploadingPhotoId}
-                    title="Replace Photo ID"
-                    style={{
-                      background: '#f3f4f6',
-                      border: '1px solid #d1d5db',
-                      borderRadius: 6,
-                      padding: '4px 8px',
-                      fontSize: 11,
-                      color: '#374151',
-                      cursor: uploadingPhotoId ? 'wait' : 'pointer',
-                      whiteSpace: 'nowrap',
-                    }}
+                    title="Upload Photo ID"
+                    style={{ cursor: uploadingPhotoId ? 'wait' : 'pointer' }}
                   >
-                    {uploadingPhotoId ? '…' : 'Replace'}
+                    <span className="photo-id-initials">
+                      {uploadingPhotoId ? '…' : '+ID'}
+                    </span>
                   </button>
-                </div>
-              ) : (
-                <button
-                  className="photo-id-badge photo-id-empty"
-                  onClick={() => photoIdInputRef.current?.click()}
-                  disabled={uploadingPhotoId}
-                  title="Upload Photo ID"
-                  style={{ cursor: uploadingPhotoId ? 'wait' : 'pointer' }}
-                >
-                  <span className="photo-id-initials">
-                    {uploadingPhotoId ? '…' : '+ID'}
-                  </span>
-                </button>
-              )}
+                );
+              })()}
               <div className="header-identity">
                 <h1>{getPatientDisplayName()}</h1>
                 <div className="contact-row">

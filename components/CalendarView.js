@@ -11,6 +11,7 @@ import { overlayClickProps } from './AdminLayout';
 import { APPOINTMENT_SERVICES, getAllServices, PROVIDERS, LOCATIONS, DEFAULT_LOCATION, LOCATION_ENABLED_CATEGORIES, REQUIRED_FORMS } from '../lib/appointment-services';
 import EncounterModal from './EncounterModal';
 import { useAuth } from './AuthProvider';
+import PatientAvatar from './PatientAvatar';
 
 // Form display names + consent_type normalization (inlined to avoid importing server-only form-bundles.js)
 const FORM_NAMES = {
@@ -1973,30 +1974,17 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     {appt.patient_name}
                   </button>
                 ) : appt.patient_name}
-                {/* Photo ID badge */}
+                {/* Patient avatar (cropped face from photo ID, or initials fallback) */}
                 {apptPatientInfo && (() => {
-                  const photoUrl = (apptPatientInfo.intakes || []).find(i => i.photo_id_url)?.photo_id_url;
-                  return photoUrl ? (
-                    <button
-                      onClick={() => setPhotoIdViewer({ url: photoUrl, title: `${appt.patient_name} — Photo ID` })}
-                      title="View Photo ID"
-                      style={{
-                        width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #e5e5e5',
-                        background: '#f9fafb', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', fontSize: '14px', flexShrink: 0, padding: 0,
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#f0f0f0'; e.currentTarget.style.borderColor = '#ccc'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.borderColor = '#e5e5e5'; }}
-                    >🪪</button>
-                  ) : (
-                    <span
-                      title="No photo ID on file"
-                      style={{
-                        width: '28px', height: '28px', borderRadius: '50%', border: '1px dashed #d1d5db',
-                        background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '11px', color: '#ccc', flexShrink: 0, fontWeight: '600',
-                      }}
-                    >{(appt.patient_name?.[0] || '?').toUpperCase()}</span>
+                  const photoIdUrl = (apptPatientInfo.intakes || []).find(i => i.photo_id_url)?.photo_id_url;
+                  return (
+                    <PatientAvatar
+                      patient={apptPatientInfo}
+                      name={appt.patient_name}
+                      size={32}
+                      title={photoIdUrl ? 'View Photo ID' : (apptPatientInfo.profile_photo_url ? 'Patient' : 'No photo ID on file')}
+                      onClick={photoIdUrl ? () => setPhotoIdViewer({ url: photoIdUrl, title: `${appt.patient_name} — Photo ID` }) : undefined}
+                    />
                   );
                 })()}
               </span>

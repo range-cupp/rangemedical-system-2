@@ -21,7 +21,7 @@ export default async function handler(req, res) {
 
     const { data: recentAppts } = await supabase
       .from('appointments')
-      .select('patient_id, start_time, patients(id, first_name, last_name, phone, date_of_birth)')
+      .select('patient_id, start_time, patients(id, first_name, last_name, phone, date_of_birth, profile_photo_url)')
       .gte('start_time', since.toISOString())
       .in('status', ['scheduled', 'confirmed', 'rescheduled', 'completed'])
       .order('start_time', { ascending: false })
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
 
   let dbQuery = supabase
     .from('patients')
-    .select('id, first_name, last_name, phone, email, date_of_birth')
+    .select('id, first_name, last_name, phone, email, date_of_birth, profile_photo_url')
     .limit(20);
 
   if (isPhone) {

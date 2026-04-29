@@ -9,7 +9,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const SELECT_COLS = 'id, first_name, last_name, name, email, phone, ghl_contact_id';
+const SELECT_COLS = 'id, first_name, last_name, name, email, phone, ghl_contact_id, profile_photo_url';
 const PAGE_SIZE = 1000;
 
 export default async function handler(req, res) {

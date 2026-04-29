@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import AppLayout from '../../components/AppLayout';
+import PatientAvatar from '../../components/PatientAvatar';
 
 export default function AppPatients() {
   const router = useRouter();
@@ -156,10 +157,9 @@ export default function AppPatients() {
         {list.length > 0 ? (
           <div style={{ background: '#fff' }}>
             {list.map(p => {
-              const initials = `${p.first_name?.[0] || ''}${p.last_name?.[0] || ''}`.toUpperCase();
               return (
                 <div key={p.id} className="patient-row" onClick={() => openPatient(p)}>
-                  <div className="patient-avatar">{initials}</div>
+                  <PatientAvatar patient={p} size={42} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 15, fontWeight: 600, color: '#0f172a' }}>{p.first_name} {p.last_name}</div>
                     <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>

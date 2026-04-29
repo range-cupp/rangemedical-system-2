@@ -48,7 +48,7 @@ import {
   isWeightLossType
 } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, buildAdaptiveHRTSchedule, isHRTProtocol, getLabStatusSummary } from '../../lib/hrt-lab-schedule';
-import { isRecoveryPeptide, isGHPeptide, findPeptideProduct, calculatePeptideDurationDays, getDosesPerWeek, MEDICATION_CATEGORIES, MEDICATION_DEFAULTS, getMedicationsByCategory, resolveDoseList, buildSig } from '../../lib/protocol-config';
+import { isRecoveryPeptide, isGHPeptide, findPeptideProduct, calculatePeptideDurationDays, getDosesPerWeek, MEDICATION_CATEGORIES, MEDICATION_DEFAULTS, getMedicationsByCategory, resolveDoseList, buildSig, buildPeptideSig } from '../../lib/protocol-config';
 import { VIAL_CATALOG } from '../../lib/vial-catalog';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -6235,6 +6235,11 @@ export default function PatientProfile() {
               let displayName = medName;
               let displayStrength = dose;
               let displaySig = [freq, supply].filter(Boolean).join(' · ');
+              // Peptides have a fixed sig format — "Administer 1 Prefilled Syringe {Frequency}"
+              if (proto.category === 'peptide' && freq) {
+                const peptideSig = buildPeptideSig(freq);
+                if (peptideSig) displaySig = peptideSig;
+              }
               const isTestosterone = /^testosterone/i.test(medName);
 
               if (isTestosterone && dose) {

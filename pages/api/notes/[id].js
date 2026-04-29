@@ -110,9 +110,15 @@ export default async function handler(req, res) {
         updates.pinned = pinned;
       }
 
-      // Body edits are disabled — notes are immutable once created
+      // Body edits — only the original note author can edit
       if (typeof body === 'string') {
-        return res.status(403).json({ error: 'Note body editing is disabled. Add an addendum instead.' });
+        if (!requesting_user) {
+          return res.status(400).json({ error: 'requesting_user is required to edit a note' });
+        }
+        if (!note.created_by || !isNoteAuthor(note.created_by, requesting_user)) {
+          return res.status(403).json({ error: 'Only the note author can edit this note. Add an addendum instead.' });
+        }
+        updates.body = body;
       }
 
       // Handle note_date edit (for backdating pre-transition notes)

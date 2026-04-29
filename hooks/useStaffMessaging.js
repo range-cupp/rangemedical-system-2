@@ -324,13 +324,28 @@ export default function useStaffMessaging(employee, session) {
           // Play sound
           playStaffMessageSound();
 
-          // Browser notification
+          // Browser notification — match the title format the server push uses
+          // so the user sees the same thing whether the app is open or not:
+          //   DM         → "Damon"
+          //   named group → "Damon in Front Desk"
+          //   anon group → "Damon (group)"
           if (Notification.permission === 'granted') {
-            const preview = newMsg.content || 'Sent an attachment';
-            const notif = new Notification('Team Message — Range Medical', {
-              body: preview.substring(0, 100),
-              icon: '/favicon.ico',
-              tag: 'staff-msg-' + newMsg.channel_id,
+            const senderFirst = (initialSender.name || 'Someone').split(' ')[0];
+            let notifTitle;
+            if (cachedChannel?.type === 'dm') {
+              notifTitle = senderFirst;
+            } else if (cachedChannel?.name) {
+              notifTitle = `${senderFirst} in ${cachedChannel.name}`;
+            } else {
+              notifTitle = `${senderFirst} (group)`;
+            }
+            const preview = newMsg.content
+              ? newMsg.content.slice(0, 140)
+              : (newMsg.attachment_name ? `📎 ${newMsg.attachment_name}` : 'Sent an attachment');
+            const notif = new Notification(notifTitle, {
+              body: preview,
+              icon: '/android-chrome-192x192.png',
+              tag: 'chat-' + newMsg.channel_id,
             });
             notif.onclick = () => {
               window.focus();

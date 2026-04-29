@@ -162,15 +162,29 @@ Make the box slightly larger than the face to include some padding (forehead to 
   return photoUrl;
 }
 
-async function processOne(p) {
-  try {
-    const url = await extractForPatient(p.id, p.photo_id_url);
-    console.log(`✓ ${p.name || p.id} → ${url.split('?')[0].split('/').pop()}`);
-    return { ok: true };
-  } catch (err) {
-    console.log(`✗ ${p.name || p.id}: ${err.message}`);
-    return { ok: false, err: err.message };
+function isRateLimit(err) {
+  const m = err?.message || '';
+  return m.includes('429') || m.toLowerCase().includes('rate_limit');
+}
+
+async function processOne(p, { maxRetries = 4 } = {}) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const url = await extractForPatient(p.id, p.photo_id_url);
+      console.log(`✓ ${p.name || p.id} → ${url.split('?')[0].split('/').pop()}`);
+      return { ok: true };
+    } catch (err) {
+      if (isRateLimit(err) && attempt < maxRetries) {
+        const wait = Math.min(60000, 5000 * Math.pow(2, attempt)); // 5s, 10s, 20s, 40s, 60s
+        console.log(`… ${p.name || p.id}: rate-limited, sleeping ${wait}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+      console.log(`✗ ${p.name || p.id}: ${err.message.slice(0, 200)}`);
+      return { ok: false, err: err.message };
+    }
   }
+  return { ok: false, err: 'exhausted retries' };
 }
 
 async function main() {
@@ -179,7 +193,9 @@ async function main() {
   const limitArg = args.indexOf('--limit');
   const limit = limitArg >= 0 ? parseInt(args[limitArg + 1], 10) : null;
   const concArg = args.indexOf('--concurrency');
-  const concurrency = concArg >= 0 ? parseInt(args[concArg + 1], 10) : 2;
+  const concurrency = concArg >= 0 ? parseInt(args[concArg + 1], 10) : 1;
+  const delayArg = args.indexOf('--delay');
+  const interRequestDelay = delayArg >= 0 ? parseInt(args[delayArg + 1], 10) : 1500;
 
   if (isAll) {
     // Pull all patients needing extraction (have photo_id_url, missing profile_photo_url)
@@ -212,6 +228,7 @@ async function main() {
         if (idx >= patients.length) return;
         const r = await processOne(patients[idx]);
         if (r.ok) ok++; else fail++;
+        if (interRequestDelay > 0) await new Promise(r => setTimeout(r, interRequestDelay));
       }
     }
     await Promise.all(Array.from({ length: concurrency }, worker));

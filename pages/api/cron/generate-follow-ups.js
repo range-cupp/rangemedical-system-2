@@ -7,6 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { PEPTIDE_PROGRAM_TYPES, WEIGHT_LOSS_PROGRAM_TYPES } from '../../../lib/protocol-config';
+import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -508,13 +509,80 @@ export default async function handler(req, res) {
       errors.push(`inactive_patient: ${e.message}`);
     }
 
+    // ── 8. MORNING DIGEST SMS — single message per assignee, no PHI ──
+    // After all sections insert their rows, send Damon and Tara ONE SMS each
+    // summarizing today's pending queue. Counts only — no patient names, no
+    // medications, no protocol IDs. Skips entirely if there's nothing due.
+    let digestSent = 0;
+    try {
+      const { data: pendingToday } = await supabase
+        .from('follow_ups')
+        .select('type')
+        .eq('status', 'pending')
+        .lte('due_date', todayStr);
+
+      const dueCount = pendingToday?.length || 0;
+
+      if (dueCount > 0) {
+        const TYPE_LABEL = {
+          refill_due_soon: 'HRT refills',
+          wl_payment_due: 'WL refills',
+          peptide_renewal: 'peptide renewals',
+          protocol_ending: 'protocols ending',
+          labs_ready: 'labs to review',
+          session_verification: 'session verifications',
+          lead_stale: 'stale leads',
+          inactive_patient: 'inactive patients',
+          custom: 'manual tasks',
+        };
+
+        const byType = {};
+        for (const f of pendingToday) {
+          byType[f.type] = (byType[f.type] || 0) + 1;
+        }
+        const breakdown = Object.entries(byType)
+          .sort((a, b) => b[1] - a[1])
+          .map(([type, n]) => `${n} ${TYPE_LABEL[type] || type}`)
+          .join(', ');
+
+        const { data: digestStaff } = await supabase
+          .from('employees')
+          .select('id, name, phone, email')
+          .in('email', ['damon@range-medical.com', 'tara@range-medical.com'])
+          .eq('is_active', true);
+
+        for (const staff of digestStaff || []) {
+          if (!staff.phone) continue;
+          const firstName = (staff.name || '').split(' ')[0] || 'there';
+          const message =
+            `Good morning ${firstName} — ${dueCount} follow-up${dueCount === 1 ? '' : 's'} ` +
+            `in your queue today: ${breakdown}. ` +
+            `Open the hub: https://app.range-medical.com/admin/follow-ups`;
+
+          const result = await sendSMS({
+            to: normalizePhone(staff.phone),
+            message,
+            log: {
+              messageType: 'follow_up_digest',
+              source: 'generate-follow-ups',
+            },
+          });
+          if (result?.success) digestSent++;
+        }
+      }
+    } catch (e) {
+      console.error('Morning digest SMS error:', e);
+      errors.push(`digest_sms: ${e.message}`);
+    }
+
     const totalCreated = Object.values(counts).reduce((a, b) => a + b, 0);
-    console.log(`Follow-ups generated: ${totalCreated}`, counts);
+    console.log(`Follow-ups generated: ${totalCreated} | digest SMS sent: ${digestSent}`, counts);
 
     return res.status(200).json({
       success: true,
       created: totalCreated,
       counts,
+      digest_sent: digestSent,
       errors: errors.length > 0 ? errors : undefined,
       run_at: new Date().toISOString(),
     });

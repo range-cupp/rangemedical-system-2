@@ -92,7 +92,6 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [loading, setLoading] = useState(false);
   const [selectedAppt, setSelectedAppt] = useState(null);
   const popoverRef = useRef(null);
-  const wizardPanelRef = useRef(null);
 
   // New appointment wizard state
   const [wizardStep, setWizardStep] = useState(0); // 0=patient, 1=service, 2=location(IV only), 3=provider, 4=datetime, 5=confirm
@@ -245,6 +244,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
   // Collapsible wizard panel
   const [wizardCollapsed, setWizardCollapsed] = useState(true);
+
+  // Centered wizard modal — opened by clicking a time slot in Day view
+  const [wizardModalOpen, setWizardModalOpen] = useState(false);
 
   // Fetch appointments
   const fetchAppointments = useCallback(async () => {
@@ -1442,9 +1444,10 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   };
 
   // Click an empty hour cell to start a New Appointment at that time.
-  // Snaps the click position to the nearest 15-min slot and pre-fills the
-  // wizard's date + time, then opens it scrolled into view. Patient/service/
-  // provider still go through the normal step-by-step flow.
+  // Snaps the click position to the nearest 15-min slot, pre-fills the
+  // wizard's date + time, and opens the wizard as a centered modal popup
+  // right where the user clicked. Patient/service/provider still go
+  // through the normal step-by-step flow.
   const openWizardAtSlot = (hour, e) => {
     if (wizardOnly) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -1458,11 +1461,12 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     setApptDate(formatDateISO(currentDate));
     setApptTime(`${hh}:${mm}`);
     setUseCustomTime(true); // honor the explicitly clicked slot
-    setWizardCollapsed(false);
+    setWizardModalOpen(true);
+  };
 
-    setTimeout(() => {
-      wizardPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
+  const closeWizardModal = () => {
+    setWizardModalOpen(false);
+    resetWizard();
   };
 
   const renderDayView = () => {
@@ -4343,7 +4347,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     <div style={wizardOnly ? { ...styles.container, minHeight: 'unset' } : { ...styles.container, flexDirection: 'column' }} className="cal-container">
       {/* Collapsible New Appointment panel */}
       {!wizardOnly && (
-        <div ref={wizardPanelRef} style={{
+        <div style={{
           borderBottom: wizardCollapsed ? 'none' : '1px solid #e5e5e5',
           background: '#fafafa',
         }}>
@@ -4503,6 +4507,23 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
       {/* Detail popover */}
       {renderDetailPopover()}
+
+      {/* New Appointment wizard modal — opened by clicking a time slot */}
+      {wizardModalOpen && (
+        <div style={styles.wizardModalOverlay} {...overlayClickProps(closeWizardModal)}>
+          <div style={styles.wizardModal} onClick={e => e.stopPropagation()}>
+            <button
+              onClick={closeWizardModal}
+              style={styles.wizardModalClose}
+              aria-label="Close"
+              title="Close"
+            >&times;</button>
+            <div style={styles.wizardModalBody}>
+              {renderWizard()}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Photo ID Viewer overlay */}
       {photoIdViewer && (
@@ -5353,6 +5374,44 @@ const styles = {
     fontWeight: '500',
     color: '#333',
     marginBottom: '4px',
+  },
+  // New Appointment wizard modal (opened by clicking a time slot)
+  wizardModalOverlay: {
+    position: 'fixed',
+    top: 0, left: 0, right: 0, bottom: 0,
+    background: 'rgba(0,0,0,0.45)',
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    paddingTop: '40px',
+    paddingBottom: '40px',
+    overflowY: 'auto',
+    zIndex: 1100,
+  },
+  wizardModal: {
+    background: '#fff',
+    width: '560px',
+    maxWidth: 'calc(100vw - 40px)',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+    position: 'relative',
+    border: '1px solid #e5e5e5',
+  },
+  wizardModalClose: {
+    position: 'absolute',
+    top: '10px',
+    right: '12px',
+    background: 'none',
+    border: 'none',
+    fontSize: '24px',
+    lineHeight: 1,
+    color: '#6b7280',
+    cursor: 'pointer',
+    padding: '4px 8px',
+    zIndex: 2,
+  },
+  wizardModalBody: {
+    padding: '24px',
+    paddingTop: '20px',
   },
   // Popover
   popoverOverlay: {

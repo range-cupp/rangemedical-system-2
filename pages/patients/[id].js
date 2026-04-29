@@ -4425,20 +4425,19 @@ export default function PatientProfile() {
               />
               {(() => {
                 const photoIdUrl = intakes.find(i => i.photo_id_url)?.photo_id_url;
-                const hasPhoto = !!patient?.profile_photo_url;
-                if (hasPhoto || photoIdUrl) {
+                if (photoIdUrl) {
                   return (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <PatientAvatar
                         patient={patient}
                         size={48}
-                        title={photoIdUrl ? 'View Photo ID' : 'Patient'}
-                        onClick={photoIdUrl ? () => openPdfViewer(photoIdUrl, 'Photo ID') : undefined}
+                        title="View Photo ID"
+                        onClick={() => openPdfViewer(photoIdUrl, 'Photo ID')}
                       />
                       <button
                         onClick={() => photoIdInputRef.current?.click()}
                         disabled={uploadingPhotoId}
-                        title={photoIdUrl ? 'Replace Photo ID' : 'Upload Photo ID'}
+                        title="Replace Photo ID"
                         style={{
                           background: '#f3f4f6',
                           border: '1px solid #d1d5db',
@@ -4450,7 +4449,7 @@ export default function PatientProfile() {
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {uploadingPhotoId ? '…' : (photoIdUrl ? 'Replace' : 'Upload')}
+                        {uploadingPhotoId ? '…' : 'Replace'}
                       </button>
                     </div>
                   );

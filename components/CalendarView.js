@@ -1974,7 +1974,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     {appt.patient_name}
                   </button>
                 ) : appt.patient_name}
-                {/* Patient avatar (cropped face from photo ID, or initials fallback) */}
+                {/* Patient avatar — colored initials; clicks to open the photo ID viewer if one is on file */}
                 {apptPatientInfo && (() => {
                   const photoIdUrl = (apptPatientInfo.intakes || []).find(i => i.photo_id_url)?.photo_id_url;
                   return (
@@ -1982,7 +1982,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       patient={apptPatientInfo}
                       name={appt.patient_name}
                       size={32}
-                      title={photoIdUrl ? 'View Photo ID' : (apptPatientInfo.profile_photo_url ? 'Patient' : 'No photo ID on file')}
+                      title={photoIdUrl ? 'View Photo ID' : 'No photo ID on file'}
                       onClick={photoIdUrl ? () => setPhotoIdViewer({ url: photoIdUrl, title: `${appt.patient_name} — Photo ID` }) : undefined}
                     />
                   );

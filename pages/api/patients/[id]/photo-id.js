@@ -95,24 +95,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // Trigger profile photo extraction (cropped face headshot). Best-effort —
-    // extraction failures must not fail the upload itself, and we don't want
-    // to block the response on a vision API round-trip. Fire it inline so
-    // serverless doesn't kill it before the call completes, but swallow errors.
-    try {
-      const proto = req.headers['x-forwarded-proto'] || 'https';
-      const host = req.headers['x-forwarded-host'] || req.headers.host;
-      if (host) {
-        await fetch(`${proto}://${host}/api/patients/extract-photo`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ patient_id: patientId, photo_id_url: publicUrl }),
-        });
-      }
-    } catch (extractErr) {
-      console.warn('Profile photo extraction skipped:', extractErr.message);
-    }
-
     return res.status(200).json({ success: true, photo_id_url: publicUrl });
   } catch (err) {
     console.error('Photo ID handler error:', err);

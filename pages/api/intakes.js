@@ -404,26 +404,6 @@ export default async function handler(req, res) {
       );
     }
 
-    // ===== Trigger profile photo extraction =====
-    // Crops the face out of the uploaded photo ID and saves it to patients.profile_photo_url
-    // so the patient detail page, calendar, and patient lists can render an avatar.
-    // Fire-and-forget — extraction failures must not block the intake response.
-    if (linkedPatientId && intakeRecord.photo_id_url) {
-      try {
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
-        if (baseUrl) {
-          fetch(`${baseUrl}/api/patients/extract-photo`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ patient_id: linkedPatientId, photo_id_url: intakeRecord.photo_id_url }),
-          }).catch(err => console.error('Profile photo extraction fire-and-forget error:', err));
-          console.log(`📷 Profile photo extraction fired for patient ${linkedPatientId}`);
-        }
-      } catch (extractErr) {
-        console.error('Profile photo extraction setup error:', extractErr);
-      }
-    }
-
     // ===== Trigger baseline questionnaire SMS =====
     // Fire-and-forget — don't block the intake response
     if (intakeRecord.injured || intakeRecord.interested_in_optimization) {

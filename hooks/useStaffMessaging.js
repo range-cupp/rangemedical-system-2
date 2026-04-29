@@ -34,15 +34,20 @@ export default function useStaffMessaging(employee, session) {
   const [totalUnread, setTotalUnread] = useState(0);
   const subscriptionRef = useRef(null);
   const channelIdsRef = useRef([]);
+  const channelsRef = useRef([]);
   const activeChannelIdRef = useRef(null);
   const headers = session?.access_token
     ? { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' }
     : {};
 
-  // Keep ref in sync
+  // Keep refs in sync so the realtime callback can read fresh values
   useEffect(() => {
     activeChannelIdRef.current = activeChannelId;
   }, [activeChannelId]);
+
+  useEffect(() => {
+    channelsRef.current = channels;
+  }, [channels]);
 
   // Fetch channel list
   const fetchChannels = useCallback(async () => {
@@ -240,17 +245,39 @@ export default function useStaffMessaging(employee, session) {
           // Ignore our own messages (we already added them optimistically)
           if (newMsg.sender_id === employee.id) return;
 
+          // Resolve the sender from the cached channel members list. Falls back to
+          // a one-shot fetch from `employees` if the sender was just added to the
+          // channel and isn't in our cached members yet.
+          const cachedChannel = channelsRef.current.find((c) => c.id === newMsg.channel_id);
+          const cachedSender = cachedChannel?.members?.find((m) => m.id === newMsg.sender_id);
+          const initialSender = cachedSender
+            ? { id: cachedSender.id, name: cachedSender.name, title: cachedSender.title }
+            : { id: newMsg.sender_id, name: '' };
+
+          const enrichSenderLater = !cachedSender;
+
           // If viewing this channel, append the message
           if (activeChannelIdRef.current === newMsg.channel_id) {
-            // Fetch sender info for display
             setMessages((prev) => {
               // Avoid duplicates
               if (prev.some((m) => m.id === newMsg.id)) return prev;
-              return [...prev, {
-                ...newMsg,
-                sender: { id: newMsg.sender_id, name: '' }, // Will be enriched
-              }];
+              return [...prev, { ...newMsg, sender: initialSender }];
             });
+
+            // Sender wasn't in our cache — fetch their record and patch the message.
+            if (enrichSenderLater) {
+              supabase
+                .from('employees')
+                .select('id, name, title')
+                .eq('id', newMsg.sender_id)
+                .maybeSingle()
+                .then(({ data }) => {
+                  if (!data) return;
+                  setMessages((prev) =>
+                    prev.map((m) => (m.id === newMsg.id ? { ...m, sender: data } : m))
+                  );
+                });
+            }
 
             // Mark as read since we're viewing it
             fetch(`/api/staff-messaging/channels/${newMsg.channel_id}/read`, {
@@ -269,7 +296,8 @@ export default function useStaffMessaging(employee, session) {
             );
           }
 
-          // Update last message in channel list
+          // Update last message in channel list — use the resolved sender name
+          // so the conversation list doesn't render "Unknown:" or ":<msg>".
           setChannels((prev) => {
             const updated = prev.map((c) => {
               if (c.id !== newMsg.channel_id) return c;
@@ -279,7 +307,7 @@ export default function useStaffMessaging(employee, session) {
                   content: newMsg.attachment_name && !newMsg.content
                     ? `Sent ${newMsg.attachment_name}`
                     : newMsg.content,
-                  sender_name: '',
+                  sender_name: initialSender.name || '',
                   created_at: newMsg.created_at,
                 },
               };

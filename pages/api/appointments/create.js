@@ -314,6 +314,35 @@ export default async function handler(req, res) {
       }
     }
 
+    // Staff note — mirror the visit reason (and notes) into the patient's staff notes
+    // so it shows up on the patient profile without having to open the appointment.
+    if (patient_id && visit_reason) {
+      try {
+        const noteBody = notes
+          ? `${visit_reason.trim()}\n\n${notes.trim()}`
+          : visit_reason.trim();
+        const combinedService = isMulti
+          ? appointments.map(a => a.service_name).join(' + ')
+          : primary.service_name;
+
+        await supabase.from('patient_notes').insert({
+          patient_id,
+          body: noteBody,
+          raw_input: noteBody,
+          created_by: created_by || 'System',
+          note_date: new Date().toISOString(),
+          source: 'manual',
+          note_category: 'internal',
+          appointment_id: primary.id,
+          encounter_service: combinedService,
+          visit_group_id: visitGroupId,
+          status: 'signed',
+        });
+      } catch (noteErr) {
+        console.error('Staff note from visit reason failed:', noteErr);
+      }
+    }
+
     // Provider SMS — fire per-row so every provider gets a heads-up for their slice.
     for (const a of appointments) {
       if (a.provider) {

@@ -1528,48 +1528,15 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         {/* Note actions — hide while editing, only for authorized users */}
                         {editingNoteId !== note.id && canAuthorNotes && (
                           <div className="enc-note-actions">
-                            {note.status !== 'signed' && (
-                              <>
-                                <button onClick={() => {
-                                  setEditingNoteId(note.id);
-                                  setEditNoteDate(new Date(note.note_date || note.created_at).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
-                                  setEditNoteEmpty(!(note.body || '').trim());
-                                  setShowEditHighlightPicker(false);
-                                  // Load note body into contentEditable after it renders
-                                  setTimeout(() => {
-                                    if (editNoteRef.current) {
-                                      editNoteRef.current.innerHTML = mdToHtml(note.body || '');
-                                    }
-                                  }, 50);
-                                }} className="enc-btn enc-btn-secondary enc-btn-sm">
-                                  ✏️ Edit
-                                </button>
-                                {isNoteAuthor(note.created_by, currentUser) && (
-                                  <button onClick={() => handleSignNote(note.id)} className="enc-btn enc-btn-sign enc-btn-sm">
-                                    ✍ Sign & Lock
-                                  </button>
-                                )}
-                              </>
+                            {note.status !== 'signed' && isNoteAuthor(note.created_by, currentUser) && (
+                              <button onClick={() => handleSignNote(note.id)} className="enc-btn enc-btn-sign enc-btn-sm">
+                                ✍ Sign & Lock
+                              </button>
                             )}
                             {note.status === 'signed' && (
-                              <>
-                                <button onClick={() => {
-                                  setEditingNoteId(note.id);
-                                  setEditNoteDate(new Date(note.note_date || note.created_at).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
-                                  setEditNoteEmpty(!(note.body || '').trim());
-                                  setShowEditHighlightPicker(false);
-                                  setTimeout(() => {
-                                    if (editNoteRef.current) {
-                                      editNoteRef.current.innerHTML = mdToHtml(note.body || '');
-                                    }
-                                  }, 50);
-                                }} className="enc-btn enc-btn-secondary enc-btn-sm">
-                                  ✏️ Edit
-                                </button>
-                                <button onClick={() => setAddendumParentId(note.id)} className="enc-btn enc-btn-ghost enc-btn-sm">
-                                  + Add Addendum
-                                </button>
-                              </>
+                              <button onClick={() => setAddendumParentId(note.id)} className="enc-btn enc-btn-ghost enc-btn-sm">
+                                + Add Addendum
+                              </button>
                             )}
                             <button onClick={() => setTreatmentPlanNote(note)} className="enc-btn enc-btn-secondary enc-btn-sm">
                               📋 Treatment Plan

@@ -110,9 +110,9 @@ export default async function handler(req, res) {
         updates.pinned = pinned;
       }
 
-      // Handle body/content edit
+      // Body edits are disabled — notes are immutable once created
       if (typeof body === 'string') {
-        updates.body = body;
+        return res.status(403).json({ error: 'Note body editing is disabled. Add an addendum instead.' });
       }
 
       // Handle note_date edit (for backdating pre-transition notes)

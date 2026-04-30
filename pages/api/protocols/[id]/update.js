@@ -51,7 +51,9 @@ export default async function handler(req, res) {
       hrt_reminder_schedule,
       // Peptide vial fields
       num_vials,
-      doses_per_vial
+      doses_per_vial,
+      // Admin-only
+      comp
     } = req.body;
 
     const updateData = {};
@@ -87,6 +89,7 @@ export default async function handler(req, res) {
     // Peptide vial fields
     if (num_vials !== undefined) updateData.num_vials = num_vials ? parseInt(num_vials) : null;
     if (doses_per_vial !== undefined) updateData.doses_per_vial = doses_per_vial ? parseInt(doses_per_vial) : null;
+    if (comp !== undefined) updateData.comp = !!comp;
 
     // Gate WL/HRT dose changes — must go through the Dose Change modal → Burgess SMS approval.
     const wantsDoseWrite =

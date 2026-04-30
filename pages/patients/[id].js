@@ -2552,6 +2552,27 @@ export default function PatientProfile() {
     }
   };
 
+  const handleCompBlock = async (protocolId, blockNum) => {
+    if (!protocolId) return;
+    if (!confirm(`Mark Block ${blockNum} (4 injections) as complimentary?`)) return;
+    try {
+      const res = await fetch('/api/protocols/comp-block', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ protocolId, blockNum })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        fetchPatient();
+      } else {
+        alert(data.error || 'Failed to comp block');
+      }
+    } catch (error) {
+      console.error('Error comping block:', error);
+      alert('Failed to comp block');
+    }
+  };
+
   const handleDismissNotification = async (notificationId) => {
     try {
       await fetch(`/api/purchases/${notificationId}/dismiss`, { method: 'POST' });
@@ -7620,7 +7641,9 @@ export default function PatientProfile() {
                                         if (purchase) {
                                           const pDate = new Date(purchase.purchase_date + 'T12:00:00');
                                           const dateLabel = pDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
-                                          const amount = purchase.amount_paid != null ? `$${parseFloat(purchase.amount_paid).toFixed(0)}` : 'No amount';
+                                          const paidAmount = purchase.amount_paid != null ? parseFloat(purchase.amount_paid) : null;
+                                          const isComp = paidAmount === 0 || purchase.payment_method === 'comp';
+                                          const amount = paidAmount != null ? `$${paidAmount.toFixed(0)}` : 'No amount';
                                           const blockPickup = boundary.pickup;
                                           const pickupQty = blockPickup ? (blockPickup.quantity || 0) : 0;
                                           const isOvernight = blockPickup?.fulfillment_method === 'overnight';
@@ -7632,12 +7655,18 @@ export default function PatientProfile() {
                                             takeHomeQty > 0 && { color: '#475569', label: `🏠 ${takeHomeQty} take-home` },
                                             overnightedQty > 0 && { color: '#e67e22', label: `📦 ${overnightedQty} overnighted` },
                                           ].filter(Boolean);
+                                          const headerBg = isComp ? '#f0fdf4' : '#f1f5f9';
+                                          const headerBorder = isComp ? '#bbf7d0' : '#cbd5e1';
+                                          const headerColor = isComp ? '#15803d' : '#334155';
+                                          const subColor = isComp ? '#166534' : '#64748b';
                                           return (
-                                            <tr key={'group-' + blockIdx + '-' + purchase.id} style={{ background: '#f1f5f9', borderTop: blockIdx > 0 ? '2px solid #cbd5e1' : 'none' }}>
-                                              <td colSpan={7} style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: '#334155' }}>
-                                                <span style={{ marginRight: 6 }}>💳</span>
-                                                Block {blockNum} · {injRange} — Paid {dateLabel}
-                                                <span style={{ fontWeight: 500, color: '#64748b', marginLeft: 6 }}>({amount})</span>
+                                            <tr key={'group-' + blockIdx + '-' + purchase.id} style={{ background: headerBg, borderTop: blockIdx > 0 ? `2px solid ${headerBorder}` : 'none' }}>
+                                              <td colSpan={7} style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: headerColor }}>
+                                                <span style={{ marginRight: 6 }}>{isComp ? '🎁' : '💳'}</span>
+                                                Block {blockNum} · {injRange} — {isComp ? `Complimentary ${dateLabel}` : `Paid ${dateLabel}`}
+                                                {!isComp && (
+                                                  <span style={{ fontWeight: 500, color: subColor, marginLeft: 6 }}>({amount})</span>
+                                                )}
                                                 {chips.length > 0 && (
                                                   <>
                                                     <span style={{ color: '#cbd5e1', margin: '0 8px' }}>·</span>
@@ -7705,6 +7734,13 @@ export default function PatientProfile() {
                                                 title="Link a purchase to this block"
                                               >
                                                 + Link Purchase
+                                              </button>
+                                              <button
+                                                onClick={(e) => { e.stopPropagation(); handleCompBlock(protocol.id, blockNum); }}
+                                                style={{ marginLeft: 6, padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#fff', color: '#15803d', border: '1px solid #86efac', borderRadius: 4, cursor: 'pointer' }}
+                                                title="Mark this block as complimentary (no charge)"
+                                              >
+                                                🎁 Comp Block
                                               </button>
                                             </td>
                                           </tr>

@@ -276,7 +276,40 @@ async function handleInboundMessage(body) {
     }
   }
 
-  // Pending link auto-send disabled — forms are now sent directly via send-forms-sms
+  // Auto-send any pending link messages (forms/guides queued during Blooio two-step opt-in)
+  if (senderPhone) {
+    try {
+      const { getPendingMessages, markPendingMessageSent } = await import('../../../lib/blooio-optin');
+      const pending = await getPendingMessages(senderPhone);
+
+      for (const msg of pending) {
+        const sendResult = await sendBlooioMessage({ to: senderPhone, message: msg.message });
+
+        await logComm({
+          channel: 'sms',
+          messageType: msg.message_type || 'form_links',
+          message: msg.message,
+          source: 'blooio/webhook(pending-auto-send)',
+          patientId: msg.patient_id || patient?.id || null,
+          patientName: msg.patient_name || patient?.name || null,
+          recipient: senderPhone,
+          status: sendResult.success ? 'sent' : 'error',
+          errorMessage: sendResult.error || null,
+          twilioMessageSid: sendResult.messageSid || null,
+          direction: 'outbound',
+          provider: 'blooio',
+        }).catch(err => { console.error('comms_log error:', err.message); });
+
+        await markPendingMessageSent(msg.id);
+
+        if (sendResult.success) {
+          console.log(`Auto-sent pending ${msg.message_type} to ${msg.patient_name || senderPhone} after reply`);
+        }
+      }
+    } catch (err) {
+      console.error('Pending link auto-send error (non-fatal):', err.message);
+    }
+  }
 
   // ================================================================
   // PATIENT AUTO-REPLY BOT

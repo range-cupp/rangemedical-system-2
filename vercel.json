@@ -34,6 +34,10 @@
       "schedule": "0 7 * * *"
     },
     {
+      "path": "/api/cron/hrt-pickup-due-sweep",
+      "schedule": "10 7 * * *"
+    },
+    {
       "path": "/api/cron/data-audit-digest",
       "schedule": "0 14 * * *"
     },

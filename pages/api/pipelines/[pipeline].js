@@ -102,6 +102,19 @@ export default async function handler(req, res) {
       }
     }
 
+    // HRT board prioritizes next pickup date so overdue/soonest float to the top.
+    // Cards without a next_expected_date sort to the bottom, then by last_activity_at.
+    if (pipeline === 'hrt' && rows.length > 0) {
+      rows.sort((a, b) => {
+        const aDate = a.protocol?.next_expected_date || null;
+        const bDate = b.protocol?.next_expected_date || null;
+        if (aDate && bDate) return aDate.localeCompare(bDate);
+        if (aDate) return -1;
+        if (bDate) return 1;
+        return (b.last_activity_at || '').localeCompare(a.last_activity_at || '');
+      });
+    }
+
     // Enrich with payment data for treatment pipelines
     if (PAYMENT_PIPELINES.has(pipeline) && rows.length > 0) {
       const client = sb();

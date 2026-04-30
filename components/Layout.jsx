@@ -24,7 +24,7 @@ export default function Layout({ children, title, description }) {
         <div className="rm-header-inner">
           <Link href="/" className="rm-wordmark">
             <img
-              src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png"
+              src="https://www.range-medical.com/brand/range_logo_transparent_black.png"
               alt="Range Medical"
               style={{ height: '56px' }}
             />
@@ -133,7 +133,7 @@ export default function Layout({ children, title, description }) {
         <div className="rm-footer-inner">
           <div className="rm-footer-brand">
             <img
-              src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png"
+              src="https://www.range-medical.com/brand/range_logo_transparent_black.png"
               alt="Range Medical"
               className="rm-footer-wordmark"
               style={{ height: '24px' }}

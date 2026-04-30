@@ -149,7 +149,7 @@ export default function OxygenLanding() {
         {/* Open Graph */}
         <meta property="og:title" content="Hyperbaric Oxygen Therapy Guide | Range Medical" />
         <meta property="og:description" content="Learn how hyperbaric oxygen therapy may support injury recovery, energy, and healing. Used by pro athletes and top medical centers." />
-        <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+        <meta property="og:image" content="https://www.range-medical.com/brand/range_logo_transparent_black.png" />
         <meta property="og:url" content="https://www.range-medical.com/oxygen" />
         <meta property="og:type" content="website" />
 
@@ -157,7 +157,7 @@ export default function OxygenLanding() {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Hyperbaric Oxygen Therapy Guide | Range Medical" />
         <meta name="twitter:description" content="Learn how hyperbaric oxygen therapy may support injury recovery, energy, and healing." />
-        <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+        <meta name="twitter:image" content="https://www.range-medical.com/brand/range_logo_transparent_black.png" />
       </Head>
 
       <div className="oxygen-page">
@@ -175,7 +175,7 @@ export default function OxygenLanding() {
         {/* Hero */}
         <section className="hero">
           <div className="hero-logo">
-            <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" alt="Range Medical" />
+            <img src="https://www.range-medical.com/brand/range_logo_transparent_black.png" alt="Range Medical" />
           </div>
           <div className="kicker">Recovery · Energy · Healing</div>
           <h1>Your Guide to Hyperbaric Oxygen Therapy</h1>
@@ -386,7 +386,7 @@ export default function OxygenLanding() {
         {/* Footer */}
         <footer className="footer">
           <div className="footer-logo">
-            <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" alt="Range Medical" />
+            <img src="https://www.range-medical.com/brand/range_logo_transparent_black.png" alt="Range Medical" />
           </div>
           <p>© 2026 Range Medical. All information provided is for educational purposes only. Hyperbaric oxygen therapy results may vary. Always consult with a healthcare professional.</p>
         </footer>

@@ -199,14 +199,14 @@ export default function UnderstandingPeptides() {
         <meta property="og:title" content="Understanding Peptides | How Peptide Therapy Works | Newport Beach" />
         <meta property="og:description" content="Learn how peptide therapy works at Range Medical. Guided protocols with check-ins, progress tracking, and at-home options." />
         <meta property="og:url" content="https://www.range-medical.com/understanding-peptides" />
-        <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+        <meta property="og:image" content="https://www.range-medical.com/brand/range_logo_transparent_black.png" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Range Medical" />
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Understanding Peptides | How Peptide Therapy Works | Newport Beach" />
         <meta name="twitter:description" content="Learn how peptide therapy works at Range Medical. Guided protocols with check-ins and progress tracking." />
-        <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+        <meta name="twitter:image" content="https://www.range-medical.com/brand/range_logo_transparent_black.png" />
 
         <meta name="geo.region" content="US-CA" />
         <meta name="geo.placename" content="Newport Beach" />

@@ -15,7 +15,7 @@ export default function GHKCuGuide() {
         <meta property="og:description" content="Easy guide to make your GHK-Cu peptide injections more comfortable. Learn why injections sting and simple tips to reduce pain." />
         <meta property="og:url" content="https://www.range-medical.com/ghk-cu-guide" />
         <meta property="og:type" content="article" />
-        <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+        <meta property="og:image" content="https://www.range-medical.com/brand/range_logo_transparent_black.png" />
         
         {/* FAQ Schema */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

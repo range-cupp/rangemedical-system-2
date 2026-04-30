@@ -163,7 +163,7 @@ export default function HyperbaricOxygenTherapy() {
                 "name": "Range Medical",
                 "url": "https://www.range-medical.com",
                 "telephone": "(949) 997-3988",
-                "image": "https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png",
+                "image": "https://www.range-medical.com/brand/range_logo_transparent_black.png",
                 "address": {
                   "@type": "PostalAddress",
                   "streetAddress": "1901 Westcliff Dr. Suite 10",

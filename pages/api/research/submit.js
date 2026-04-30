@@ -241,7 +241,7 @@ function generateEmailHtml(study, firstName) {
           <!-- Header -->
           <tr>
             <td style="background-color: #000000; padding: 32px 40px; text-align: center;">
-              <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" alt="Range Medical" width="180" style="display: block; margin: 0 auto;">
+              <img src="https://www.range-medical.com/brand/range_logo_transparent_black.png" alt="Range Medical" width="180" style="display: block; margin: 0 auto;">
             </td>
           </tr>
 

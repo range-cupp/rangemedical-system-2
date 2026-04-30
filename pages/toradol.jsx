@@ -363,7 +363,7 @@ export default function ToradolPostInjection() {
       <header className="toradol-header">
         <div className="toradol-container">
           <a href="https://range-medical.com" className="toradol-logo">
-            <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" alt="Range Medical" />
+            <img src="https://www.range-medical.com/brand/range_logo_transparent_black.png" alt="Range Medical" />
           </a>
           <div className="toradol-header-contact">
             Questions? <a href="tel:949-997-3988">949-997-3988</a>
@@ -534,7 +534,7 @@ export default function ToradolPostInjection() {
       {/* Footer */}
       <footer className="toradol-footer">
         <div className="toradol-container">
-          <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" alt="Range Medical" />
+          <img src="https://www.range-medical.com/brand/range_logo_transparent_black.png" alt="Range Medical" />
           <p>© 2025 Range Medical. All rights reserved.</p>
         </div>
       </footer>

@@ -14,7 +14,7 @@ export const guides = {
         'The 7 blood markers that explain brain fog — fasting insulin, A1c, hs-CRP, homocysteine, B12, ferritin, full thyroid panel. Free guide from Range Medical, Newport Beach.',
       canonical: 'https://www.range-medical.com/guides/brain-fog',
       ogImage:
-        'https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png',
+        'https://www.range-medical.com/brand/range_logo_transparent_black.png',
     },
     hero: {
       kicker: 'BRAIN FOG IS A LAB RESULT.',

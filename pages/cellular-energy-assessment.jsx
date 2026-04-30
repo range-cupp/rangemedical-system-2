@@ -613,13 +613,13 @@ const CellularEnergyAssessment = () => {
         <meta property="og:url" content="https://range-medical.com/cellular-energy-assessment" />
         <meta property="og:title" content="Cellular Energy Assessment — $197 (credited toward treatment)" />
         <meta property="og:description" content="Labs, provider review, and experience sessions. 100% credits toward the 6-Week Reset." />
-        <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+        <meta property="og:image" content="https://www.range-medical.com/brand/range_logo_transparent_black.png" />
         
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Cellular Energy Assessment — $197 (credited toward treatment)" />
         <meta name="twitter:description" content="Labs, provider review, and experience sessions. 100% credits toward the 6-Week Reset." />
-        <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+        <meta name="twitter:image" content="https://www.range-medical.com/brand/range_logo_transparent_black.png" />
       </Head>
       
     <div className="cea-page">
@@ -630,7 +630,7 @@ const CellularEnergyAssessment = () => {
         <div className="cea-header-inner">
           <a href="https://range-medical.com">
             <img 
-              src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" 
+              src="https://www.range-medical.com/brand/range_logo_transparent_black.png" 
               alt="Range Medical" 
               className="cea-logo"
             />

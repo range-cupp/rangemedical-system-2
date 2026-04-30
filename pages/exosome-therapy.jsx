@@ -107,7 +107,7 @@ export default function ExosomeTherapy() {
         <meta property="og:title" content="Exosome Therapy | Regenerative Medicine | Newport Beach" />
         <meta property="og:description" content="Exosome IV therapy for regeneration and anti-aging. Cell signaling molecules that support natural repair. Newport Beach." />
         <meta property="og:url" content="https://www.range-medical.com/exosome-therapy" />
-        <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+        <meta property="og:image" content="https://www.range-medical.com/brand/range_logo_transparent_black.png" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Range Medical" />
 
@@ -115,7 +115,7 @@ export default function ExosomeTherapy() {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Exosome Therapy | Regenerative Medicine | Newport Beach" />
         <meta name="twitter:description" content="Exosome IV therapy for regeneration and anti-aging. Newport Beach." />
-        <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+        <meta name="twitter:image" content="https://www.range-medical.com/brand/range_logo_transparent_black.png" />
 
         {/* Geo Tags */}
         <meta name="geo.region" content="US-CA" />
@@ -134,7 +134,7 @@ export default function ExosomeTherapy() {
                 "name": "Range Medical",
                 "url": "https://www.range-medical.com",
                 "telephone": "(949) 997-3988",
-                "image": "https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png",
+                "image": "https://www.range-medical.com/brand/range_logo_transparent_black.png",
                 "address": {
                   "@type": "PostalAddress",
                   "streetAddress": "1901 Westcliff Dr. Suite 10",

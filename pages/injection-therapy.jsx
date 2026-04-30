@@ -118,14 +118,14 @@ export default function InjectionTherapy() {
         <meta property="og:title" content="Injection Therapy | Vitamin Injections | Newport Beach" />
         <meta property="og:description" content="Vitamin and nutrient injections in Newport Beach. B12, glutathione, NAD+, and more. Walk-ins welcome." />
         <meta property="og:url" content="https://www.range-medical.com/injection-therapy" />
-        <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+        <meta property="og:image" content="https://www.range-medical.com/brand/range_logo_transparent_black.png" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Range Medical" />
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Injection Therapy | Vitamin Injections | Newport Beach" />
         <meta name="twitter:description" content="Vitamin and nutrient injections. B12, glutathione, NAD+, and more. Walk-ins welcome." />
-        <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
+        <meta name="twitter:image" content="https://www.range-medical.com/brand/range_logo_transparent_black.png" />
 
         <meta name="geo.region" content="US-CA" />
         <meta name="geo.placename" content="Newport Beach" />
@@ -142,7 +142,7 @@ export default function InjectionTherapy() {
                 "name": "Range Medical",
                 "url": "https://www.range-medical.com",
                 "telephone": "(949) 997-3988",
-                "image": "https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png",
+                "image": "https://www.range-medical.com/brand/range_logo_transparent_black.png",
                 "address": {
                   "@type": "PostalAddress",
                   "streetAddress": "1901 Westcliff Dr. Suite 10",

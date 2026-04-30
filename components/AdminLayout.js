@@ -868,9 +868,9 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
           <div style={styles.logoArea}>
             <Link href="/admin" style={styles.logo}>
               <img
-                src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png"
+                src="/brand/range_logo_transparent_white.png"
                 alt="Range Medical"
-                style={{ height: '32px', display: 'block', filter: 'brightness(0) invert(1)' }}
+                style={{ height: '32px', display: 'block' }}
               />
             </Link>
           </div>

@@ -107,7 +107,7 @@ export default function SocietyOC() {
         {/* Header */}
         <header style={styles.header}>
           <img 
-            src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" 
+            src="https://www.range-medical.com/brand/range_logo_transparent_black.png" 
             alt="Range Medical" 
             style={styles.logo}
           />
@@ -413,7 +413,7 @@ export default function SocietyOC() {
         {/* Footer */}
         <footer style={styles.footer}>
           <img 
-            src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" 
+            src="https://www.range-medical.com/brand/range_logo_transparent_black.png" 
             alt="Range Medical" 
             style={styles.footerLogo}
           />

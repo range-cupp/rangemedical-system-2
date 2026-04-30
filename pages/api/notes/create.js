@@ -15,6 +15,13 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+function isClinicalProvider(createdBy) {
+  if (!createdBy) return false;
+  const lower = createdBy.toLowerCase();
+  return ['burgess', 'brendyn', 'lily', 'evan'].some(key => lower.includes(key))
+    || lower.includes('practice fusion');
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -77,7 +84,9 @@ export default async function handler(req, res) {
         protocol_name: protocol_name || null,
         appointment_id: appointment_id || null,
         encounter_service: encounter_service || null,
-        note_category: note_category || ((appointment_id || encounter_service || protocol_id) ? 'clinical' : 'internal'),
+        note_category: note_category === 'internal' ? 'internal'
+          : (isClinicalProvider(created_by) && (note_category === 'clinical' || appointment_id || encounter_service || protocol_id)) ? 'clinical'
+          : 'internal',
         visit_group_id: visit_group_id || null,
       })
       .select()

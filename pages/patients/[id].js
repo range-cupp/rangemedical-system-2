@@ -9865,21 +9865,6 @@ export default function PatientProfile() {
                           <div className="note-date">
                             {formatDate(note.note_date || note.created_at)}
                             {note.created_by && <span style={{ fontWeight: 400, marginLeft: 8 }}>by {getStaffDisplayName(note.created_by)}</span>}
-                            <span style={{
-                              marginLeft: 8, fontSize: 11, padding: '2px 8px', borderRadius: 0, fontWeight: 500,
-                              background: note.source === 'encounter' ? '#fef3c7' : note.source === 'addendum' ? '#fef3c7' : note.source === 'protocol' ? '#f3e8ff' : note.source === 'manual' ? '#dbeafe' : '#f3f4f6',
-                              color: note.source === 'encounter' ? '#92400e' : note.source === 'addendum' ? '#92400e' : note.source === 'protocol' ? '#7c3aed' : note.source === 'manual' ? '#1e40af' : '#6b7280',
-                            }}>
-                              {note.source === 'encounter' ? 'Encounter' : note.source === 'addendum' ? 'Addendum' : note.source === 'protocol' ? 'Protocol Note' : note.source === 'manual' ? 'Staff Note' : 'GHL Import'}
-                            </span>
-                            {note.encounter_service && (
-                              <span style={{
-                                marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 0, fontWeight: 500,
-                                background: '#ede9fe', color: '#5b21b6',
-                              }}>
-                                {note.encounter_service.replace(/\b\w/g, l => l.toUpperCase())} Note
-                              </span>
-                            )}
                             {note.status && (
                               <span style={{
                                 marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 0, fontWeight: 500,

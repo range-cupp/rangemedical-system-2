@@ -388,6 +388,10 @@ export default function PatientProfile() {
     if (!note.created_by || note.status === 'signed') return false;
     return _isNoteAuthor(note.created_by, currentUserEmail);
   };
+  const canEditNote = (note) => {
+    if (!note.created_by) return false;
+    return _isNoteAuthor(note.created_by, currentUserEmail);
+  };
 
   // Email & SMS compose modals
   const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -5408,11 +5412,13 @@ export default function PatientProfile() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                <button
-                  onClick={() => { setEditingNote(pinnedNote); setEditNoteBody(pinnedNote.body); }}
-                  style={{ background: 'none', border: 'none', color: '#92400e', cursor: 'pointer', fontSize: 13, padding: '2px 6px' }}
-                  title="Edit note"
-                >✏️</button>
+                {canEditNote(pinnedNote) && (
+                  <button
+                    onClick={() => { setEditingNote(pinnedNote); setEditNoteBody(pinnedNote.body); }}
+                    style={{ background: 'none', border: 'none', color: '#92400e', cursor: 'pointer', fontSize: 13, padding: '2px 6px' }}
+                    title="Edit note"
+                  >✏️</button>
+                )}
                 <button
                   onClick={() => handleTogglePin(pinnedNote.id, true)}
                   style={{ background: 'none', border: 'none', color: '#92400e', cursor: 'pointer', fontSize: 14, padding: '2px 6px' }}
@@ -9494,11 +9500,13 @@ export default function PatientProfile() {
                                 )}
                               </div>
                               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                <button
-                                  onClick={() => { setEditingNote(note); setEditNoteBody(note.body); }}
-                                  style={{ background: '#f3f4f6', border: '1px solid #d1d5db', color: '#374151', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
-                                  title="Edit note"
-                                >Edit</button>
+                                {canEditNote(note) && (
+                                  <button
+                                    onClick={() => { setEditingNote(note); setEditNoteBody(note.body); }}
+                                    style={{ background: '#f3f4f6', border: '1px solid #d1d5db', color: '#374151', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
+                                    title="Edit note"
+                                  >Edit</button>
+                                )}
                                 {canSignNote(note) && (
                                   <button
                                     onClick={() => handleSignNote(note.id)}
@@ -9914,11 +9922,13 @@ export default function PatientProfile() {
                             )}
                           </div>
                           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                            <button
-                              onClick={() => { setEditingNote(note); setEditNoteBody(note.body); }}
-                              style={{ background: '#f3f4f6', border: '1px solid #d1d5db', color: '#374151', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
-                              title="Edit note"
-                            >Edit</button>
+                            {canEditNote(note) && (
+                              <button
+                                onClick={() => { setEditingNote(note); setEditNoteBody(note.body); }}
+                                style={{ background: '#f3f4f6', border: '1px solid #d1d5db', color: '#374151', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
+                                title="Edit note"
+                              >Edit</button>
+                            )}
                             <button
                               onClick={() => handleTogglePin(note.id, note.pinned)}
                               style={{

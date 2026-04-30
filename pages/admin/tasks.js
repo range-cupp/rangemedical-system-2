@@ -487,15 +487,13 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
 
               {editingNoteId !== note.id && canAuthorNotes && (
                 <div style={s.noteActions}>
-                  {note.status !== 'signed' && (
+                  {note.status !== 'signed' && isNoteAuthor(note.created_by, currentUser) && (
                     <>
                       <button onClick={() => { setEditingNoteId(note.id); setEditNoteInput(note.body); }} style={{ ...s.btn, ...s.btnSecondary }}>Edit</button>
-                      {isNoteAuthor(note.created_by, currentUser) && (
-                        <button onClick={() => handleSignNote(note.id)} style={{ ...s.btn, ...s.btnSign }}>✍ Sign & Lock</button>
-                      )}
+                      <button onClick={() => handleSignNote(note.id)} style={{ ...s.btn, ...s.btnSign }}>✍ Sign & Lock</button>
                     </>
                   )}
-                  {note.status === 'signed' && (
+                  {note.status === 'signed' && isNoteAuthor(note.created_by, currentUser) && (
                     <button onClick={() => { setEditingNoteId(note.id); setEditNoteInput(note.body); }} style={{ ...s.btn, ...s.btnSecondary }}>Edit</button>
                   )}
                   {note.status === 'signed' && (

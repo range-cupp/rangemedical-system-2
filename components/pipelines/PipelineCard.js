@@ -25,7 +25,7 @@ const FIELD_LABELS = {
   supply:              'Supply',
   frequency:           'Freq',
   last_dispensed:      'Last',
-  next_due:            'Next',
+  next_due:            'Pickup',
   last_payment:        'Paid',
   next_payment:        'Bills',
   payment:             'Billing',

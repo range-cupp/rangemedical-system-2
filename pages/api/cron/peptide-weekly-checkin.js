@@ -65,13 +65,18 @@ export default async function handler(req, res) {
   try {
     const todayStr = todayPacific();
 
-    // Get active peptide protocols
+    // First check-in goes out 7 days after protocol start, not the next day
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const sevenDaysAgoStr = sevenDaysAgo.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+
+    // Get active peptide protocols that started at least 7 days ago
     const { data: protocols, error: protocolsError } = await supabase
       .from('protocols')
       .select('id, patient_id, patient_name, program_type, medication, start_date, end_date')
       .eq('status', 'active')
       .in('program_type', PEPTIDE_PROGRAM_TYPES)
-      .lte('start_date', todayStr)
+      .lte('start_date', sevenDaysAgoStr)
       .gte('end_date', todayStr)
       .not('patient_id', 'is', null);
 

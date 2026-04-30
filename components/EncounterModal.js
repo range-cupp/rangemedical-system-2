@@ -1466,7 +1466,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                               />
                             </div>
                             {/* Mini formatting toolbar for edit mode */}
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginBottom: 4, padding: '4px 6px', background: '#f9fafb', border: '1px solid #e5e7eb', alignItems: 'center' }}>
+                            <div onMouseDown={e => e.preventDefault()} style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginBottom: 4, padding: '4px 6px', background: '#f9fafb', border: '1px solid #e5e7eb', alignItems: 'center' }}>
                               <button type="button" onClick={() => execEditFormat('bold')} title="Bold" style={{ padding: '3px 7px', fontSize: 12, fontWeight: 800, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', fontFamily: 'serif', lineHeight: 1 }}>B</button>
                               <button type="button" onClick={() => execEditFormat('italic')} title="Italic" style={{ padding: '3px 8px', fontSize: 12, fontWeight: 400, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', fontFamily: 'serif', fontStyle: 'italic', lineHeight: 1 }}>I</button>
                               <button type="button" onClick={() => execEditFormat('underline')} title="Underline" style={{ padding: '3px 7px', fontSize: 12, fontWeight: 400, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', fontFamily: 'serif', textDecoration: 'underline', lineHeight: 1 }}>U</button>
@@ -1503,6 +1503,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                                 const text = editNoteRef.current?.innerText || '';
                                 setEditNoteEmpty(!text.trim());
                               }}
+                              onMouseDown={() => setShowEditHighlightPicker(false)}
                               onFocus={() => setShowEditHighlightPicker(false)}
                               style={{
                                 width: '100%', minHeight: 120, resize: 'vertical', fontFamily: 'inherit', fontSize: 14,
@@ -1940,7 +1941,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                     )}
 
                     {/* Formatting toolbar */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginBottom: 6, padding: '6px 8px', background: '#f9fafb', border: '1px solid #e5e7eb', alignItems: 'center' }}>
+                    <div onMouseDown={e => e.preventDefault()} style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginBottom: 6, padding: '6px 8px', background: '#f9fafb', border: '1px solid #e5e7eb', alignItems: 'center' }}>
                       {/* Undo */}
                       <button type="button" onClick={handleUndo} title="Undo (Ctrl+Z)" style={{ padding: '5px 8px', fontSize: 13, fontWeight: 600, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', lineHeight: 1 }}>
                         ↩
@@ -2035,6 +2036,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                           const text = noteRef.current?.innerText || '';
                           setNoteIsEmpty(!text.trim());
                         }}
+                        onMouseDown={() => { setShowHighlightPicker(false); setShowFontSizePicker(false); }}
                         onFocus={() => { setShowHighlightPicker(false); setShowFontSizePicker(false); }}
                         onKeyDown={handleNoteKeyDown}
                         style={{

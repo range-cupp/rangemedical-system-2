@@ -146,6 +146,39 @@ async function createEncounterReminderTask(appointment) {
   });
 }
 
+async function advanceFreeSessionOnCompletion(appointment) {
+  if (!appointment.patient_id) return;
+  const { moveCard } = await import('../../../../lib/pipelines-server');
+
+  const prizeTypeMap = { hbot: 'hbot', rlt: 'red_light' };
+  const prizeType = prizeTypeMap[appointment.service_category];
+
+  let query = supabase
+    .from('pipeline_cards')
+    .select('id')
+    .eq('pipeline', 'free_sessions')
+    .eq('status', 'active')
+    .eq('stage', 'scheduled')
+    .eq('patient_id', appointment.patient_id);
+
+  if (prizeType) {
+    query = query.filter('meta->>prize_type', 'eq', prizeType);
+  }
+
+  const { data: card } = await query
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!card) return;
+
+  await moveCard({
+    card_id: card.id,
+    to_stage: 'completed',
+    triggered_by: 'automation',
+    automation_reason: `appointment_completed:${appointment.id}`,
+  });
+}
+
 async function advanceEnergyWorkupOnCompletion(appointment) {
   if (!appointment.patient_id) return;
   const { findActiveCard, moveCard } = await import('../../../../lib/pipelines-server');
@@ -189,6 +222,11 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
     // Advance energy_workup: consult_booked → consult_completed (Evan's task)
     advanceEnergyWorkupOnCompletion(appointment).catch(err =>
       console.error('Energy workup advance on completion error:', err)
+    );
+
+    // Advance free_sessions: scheduled → completed
+    advanceFreeSessionOnCompletion(appointment).catch(err =>
+      console.error('Free session advance on completion error:', err)
     );
   }
 

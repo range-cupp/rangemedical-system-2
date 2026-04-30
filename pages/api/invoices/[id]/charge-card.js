@@ -127,6 +127,9 @@ export default async function handler(req, res) {
           itemOriginalAmount = itemSubtotal;
         }
 
+        // Use internal_name (with actual peptide) for protocol creation, not
+        // the patient-facing display name. Pass through builder configs.
+        const serviceName = item.internal_name || item.name;
         try {
           await fetch(`${baseUrl}/api/stripe/record-purchase`, {
             method: 'POST',
@@ -136,9 +139,16 @@ export default async function handler(req, res) {
               amount: itemAmount,
               description: item.name,
               service_category: item.category || null,
-              service_name: item.name,
+              service_name: serviceName,
               stripe_payment_intent_id: paymentIntent.id,
               payment_method: 'stripe',
+              quantity: item.quantity || 1,
+              delivery_method: item.delivery_method || null,
+              duration_days: item.duration_days || null,
+              peptide_config: item.peptide_config || null,
+              wl_config: item.wl_config || null,
+              hrt_config: item.hrt_config || null,
+              injection_frequency: item.inj_config?.frequency || null,
               ...(hasDiscount && itemOriginalAmount ? {
                 discount_type: discountType,
                 discount_amount: discountAmount,

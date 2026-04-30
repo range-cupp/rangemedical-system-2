@@ -46,17 +46,19 @@ export default async function handler(req, res) {
     if (patient_email !== undefined) updateData.patient_email = patient_email;
     if (patient_phone !== undefined) updateData.patient_phone = patient_phone;
     if (items !== undefined) {
-      // Generate PHI-safe display names for patient-facing invoices
+      // Generate PHI-safe display names for patient-facing invoices.
+      // Run regex on internal_name (with peptide) so we classify correctly.
       updateData.items = items.map(item => {
         const cat = (item.category || '').toLowerCase();
+        const detectionName = item.internal_name || item.name || '';
         let display_name = null;
         if (cat === 'weight_loss') {
           display_name = 'Weight Loss Program';
         } else if (cat === 'peptide' || cat === 'vials') {
-          const isRecovery = /bpc|tb[-\s]?500|thymosin|kpv|mgf/i.test(item.name || '')
-            && !/blend|2x|3x|4x|ghrp/i.test(item.name || '');
+          const isRecovery = /bpc|tb[-\s]?500|thymosin|kpv|mgf|klow|glow/i.test(detectionName)
+            && !/blend|2x|3x|4x|ghrp/i.test(detectionName);
           const label = isRecovery ? 'Injury & Recovery Protocol' : 'Energy & Optimization Protocol';
-          const durationMatch = (item.name || '').match(/(\d+)\s*Day/i);
+          const durationMatch = detectionName.match(/(\d+)\s*Day/i);
           const duration = durationMatch ? durationMatch[1] : null;
           display_name = duration ? `${label} — ${duration} Day` : label;
         }

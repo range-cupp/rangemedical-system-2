@@ -2095,12 +2095,31 @@ function CheckoutInner() {
     if (!patient) return;
     setInvoiceSending(true);
     try {
-      const items = cartItems.map(item => ({
-        name: item.name,
-        category: item.category,
-        price_cents: item.price,
-        quantity: item.quantity || 1,
-      }));
+      // Preserve builder configs + internal name so the protocol gets the
+      // actual peptide name (not the program display name) when invoice is paid.
+      const items = cartItems.map(item => {
+        const isPeptideBuilder = !!item.peptideConfig;
+        const isWlBuilder = !!item.wlConfig;
+        const isInjBuilder = !!item.injConfig;
+        const internalName = isPeptideBuilder ? item.peptideConfig.internalName
+          : isWlBuilder ? item.wlConfig.internalName
+          : isInjBuilder ? item.injConfig.internalName
+          : item.peptide_identifier ? `${item.name} — ${item.peptide_identifier}`
+          : item.name;
+        return {
+          name: item.name,
+          internal_name: internalName,
+          category: item.category,
+          price_cents: item.price,
+          quantity: item.quantity || 1,
+          delivery_method: item.delivery_method || null,
+          duration_days: isPeptideBuilder ? item.peptideConfig.durationDays : (item.duration_days || null),
+          peptide_config: item.peptideConfig || null,
+          wl_config: item.wlConfig || null,
+          hrt_config: item.hrtConfig || null,
+          inj_config: item.injConfig || null,
+        };
+      });
       const createRes = await fetch('/api/invoices/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

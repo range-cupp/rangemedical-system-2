@@ -7681,6 +7681,17 @@ export default function PatientProfile() {
                                             </tr>
                                           );
                                         }
+                                        // Comp block — no payment tracking needed
+                                        if (protocol.comp) {
+                                          return (
+                                            <tr key={'group-' + blockIdx + '-comp'} style={{ background: '#f0fdf4', borderTop: blockIdx > 0 ? '2px solid #bbf7d0' : 'none' }}>
+                                              <td colSpan={7} style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: '#15803d' }}>
+                                                <span style={{ marginRight: 6 }}>🎁</span>
+                                                Block {blockNum} · {injRange} — Complimentary
+                                              </td>
+                                            </tr>
+                                          );
+                                        }
                                         // Unpaid block
                                         return (
                                           <tr key={'group-' + blockIdx + '-unpaid'} style={{ background: '#fef2f2', borderTop: blockIdx > 0 ? '2px solid #fecaca' : 'none' }}>

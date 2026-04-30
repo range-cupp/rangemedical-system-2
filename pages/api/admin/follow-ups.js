@@ -94,9 +94,24 @@ async function handleGet(req, res, employee) {
       }
     }
 
+    // Enrich with patient phone/email for contact card display
+    const patientIds = [...new Set(filtered.map(f => f.patient_id).filter(Boolean))];
+    let patientMap = {};
+    if (patientIds.length > 0) {
+      const { data: patients } = await supabase
+        .from('patients')
+        .select('id, phone, email')
+        .in('id', patientIds);
+      if (patients) {
+        patientMap = Object.fromEntries(patients.map(p => [p.id, { phone: p.phone, email: p.email }]));
+      }
+    }
+
     const enriched = filtered.map(f => ({
       ...f,
       assigned_to_name: f.assigned_to ? (employeeMap[f.assigned_to] || null) : null,
+      patient_phone: f.patient_id ? (patientMap[f.patient_id]?.phone || null) : null,
+      patient_email: f.patient_id ? (patientMap[f.patient_id]?.email || null) : null,
     }));
 
     return res.status(200).json(enriched);

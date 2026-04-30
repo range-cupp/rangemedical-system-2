@@ -8,6 +8,7 @@ import Link from 'next/link';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
 import { supabase } from '../../lib/supabase';
+import { formatPhone } from '../../lib/format-utils';
 
 // ── Type config ──
 const TYPE_CONFIG = {
@@ -78,6 +79,11 @@ export default function FollowUpsPage() {
   // Snooze state
   const [snoozeId, setSnoozeId] = useState(null);
   const [snoozeDate, setSnoozeDate] = useState('');
+
+  // Inline SMS compose state
+  const [smsId, setSmsId] = useState(null);
+  const [smsText, setSmsText] = useState('');
+  const [sendingSms, setSendingSms] = useState(false);
 
   // Create manual follow-up
   const [showCreate, setShowCreate] = useState(false);
@@ -210,6 +216,44 @@ export default function FollowUpsPage() {
     });
     showToast('Dismissed');
     fetchData();
+  };
+
+  // ── Send SMS from card ──
+  const sendQuickSms = async (followUp) => {
+    if (!smsText.trim() || !followUp.patient_phone) return;
+    setSendingSms(true);
+    try {
+      const res = await fetch('/api/twilio/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: followUp.patient_id,
+          patient_name: followUp.patient_name,
+          to: followUp.patient_phone,
+          message: smsText.trim(),
+          message_type: 'follow_up_sms',
+        }),
+      });
+      if (res.ok) {
+        showToast('Text sent');
+        setSmsId(null);
+        setSmsText('');
+        // Log the attempt as "texted"
+        await fetch('/api/admin/follow-ups', {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ action: 'log', follow_up_id: followUp.id, log_action: 'texted', notes: smsText.trim() }),
+        });
+        fetchData();
+      } else {
+        const err = await res.json();
+        showToast(`Failed: ${err.error || 'Unknown error'}`);
+      }
+    } catch (e) {
+      console.error('SMS send error:', e);
+      showToast('Failed to send text');
+    }
+    setSendingSms(false);
   };
 
   // ── Patient search for manual create ──
@@ -419,8 +463,10 @@ export default function FollowUpsPage() {
                         <div style={{ fontSize: 14, color: '#555', marginBottom: 6 }}>
                           {f.trigger_reason}
                         </div>
-                        {/* Meta line */}
-                        <div style={{ fontSize: 13, color: '#888', display: 'flex', gap: 16 }}>
+                        {/* Contact + meta line */}
+                        <div style={{ fontSize: 13, color: '#888', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                          {f.patient_phone && <span>{formatPhone(f.patient_phone)}</span>}
+                          {f.patient_email && <span>{f.patient_email}</span>}
                           <span>Due: {isOverdue ? <strong style={{ color: '#dc2626' }}>{formatDate(f.due_date)} (overdue)</strong> : formatDate(f.due_date)}</span>
                           {f.assigned_to_name && <span>Assigned: {f.assigned_to_name}</span>}
                           {f.status === 'in_progress' && <span style={{ color: '#2563eb', fontWeight: 500 }}>In Progress</span>}
@@ -429,6 +475,12 @@ export default function FollowUpsPage() {
 
                       {/* Action buttons */}
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                        {f.patient_phone && (
+                          <button
+                            onClick={() => { setSmsId(smsId === f.id ? null : f.id); setSmsText(''); }}
+                            style={{ ...sharedStyles.btnSmall, ...(smsId === f.id ? sharedStyles.btnPrimary : sharedStyles.btnSecondary) }}
+                          >Text</button>
+                        )}
                         <button
                           onClick={() => toggleExpand(f.id)}
                           style={{ ...sharedStyles.btnSmall, ...sharedStyles.btnSecondary }}
@@ -464,6 +516,29 @@ export default function FollowUpsPage() {
                           style={{ ...sharedStyles.btnSmall, color: '#999', background: 'none', border: 'none', fontSize: 13, cursor: 'pointer' }}>Dismiss</button>
                       </div>
                     </div>
+
+                    {/* Inline SMS compose */}
+                    {smsId === f.id && f.patient_phone && (
+                      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #eee', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12, fontWeight: 500, color: '#666', marginBottom: 4 }}>
+                            Text to {f.patient_name} ({formatPhone(f.patient_phone)})
+                          </div>
+                          <textarea
+                            value={smsText}
+                            onChange={e => setSmsText(e.target.value)}
+                            placeholder="Type your message..."
+                            rows={2}
+                            style={{ ...sharedStyles.input, resize: 'vertical', minHeight: 48, fontFamily: 'inherit' }}
+                          />
+                        </div>
+                        <button
+                          onClick={() => sendQuickSms(f)}
+                          disabled={!smsText.trim() || sendingSms}
+                          style={{ ...sharedStyles.btnSmall, ...sharedStyles.btnPrimary, opacity: smsText.trim() && !sendingSms ? 1 : 0.5, whiteSpace: 'nowrap' }}
+                        >{sendingSms ? 'Sending...' : 'Send'}</button>
+                      </div>
+                    )}
 
                     {/* Expanded: attempt log + new attempt form */}
                     {isExpanded && (

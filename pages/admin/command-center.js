@@ -1445,6 +1445,7 @@ export default function CommandCenter() {
     { value: 'L-Carnitine', label: 'L-Carnitine' },
     { value: 'Skinny + Injection', label: 'Skinny + Injection' },
     { value: 'Skinny Shot', label: 'Skinny Shot' },
+    { value: 'MIC Injection', label: 'MIC Injection' },
     { value: 'Taurine', label: 'Taurine' },
     { value: 'Toradol', label: 'Toradol' }
   ];

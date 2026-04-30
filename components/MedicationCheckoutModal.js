@@ -1508,6 +1508,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                   {[
                     { type: 'b12', label: 'B12 Injection' },
                     { type: 'lipo', label: 'Skinny + Injection' },
+                    { type: 'mic', label: 'MIC Injection' },
                   ].map(addon => {
                     const existing = wlAddons.find(a => a.type === addon.type);
                     const isActive = !!existing;

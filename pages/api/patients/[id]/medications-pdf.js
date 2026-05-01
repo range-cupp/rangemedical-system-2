@@ -51,7 +51,7 @@ export default async function handler(req, res) {
       patientName,
       dateOfBirth: patient.date_of_birth || null,
       medications: safeMeds,
-      provider: provider || 'Dr. Burgess, Range Medical',
+      provider: provider || 'Damien Burgess',
       issueDate,
     });
 

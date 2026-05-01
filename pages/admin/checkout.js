@@ -1450,18 +1450,27 @@ function CheckoutInner() {
       let desc = itemDiscountAmt > 0 ? `${itemName} (${discSuffix})` : itemName;
       if (description_suffix) desc = `${desc} ${description_suffix}`;
 
-      // For WL builder: determine fulfillment from groups
-      let wlFulfillment = fulfillmentMethod;
-      if (isWlBuilder) {
-        if (item.wlConfig.hasInClinic && !item.wlConfig.hasTakeHome) wlFulfillment = 'in_clinic_injections';
-        else if (item.wlConfig.hasTakeHome && !item.wlConfig.hasInClinic) wlFulfillment = 'in_clinic';
-        // Mixed: pass 'mixed' — backend handles per-group
-      }
-      // For Peptide builder: same pattern — in-clinic count drives fulfillment
-      if (isPeptideBuilder) {
-        if (item.peptideConfig.hasInClinic && !item.peptideConfig.hasTakeHome) wlFulfillment = 'in_clinic_injections';
-        else if (item.peptideConfig.hasTakeHome && !item.peptideConfig.hasInClinic) wlFulfillment = 'in_clinic';
-        // Mixed: peptideConfig carries the split — first N in clinic, rest take-home
+      // Per-item fulfillment resolution. The global FULFILLMENT selector at the
+      // payment step is weight-loss-only — peptide/HRT/vials items derive
+      // fulfillment from their builder config, defaulting to 'in_clinic'
+      // (picked up / take-home) when no builder is involved.
+      let wlFulfillment;
+      if (item.category === 'weight_loss') {
+        wlFulfillment = fulfillmentMethod;
+        if (isWlBuilder) {
+          if (item.wlConfig.hasInClinic && !item.wlConfig.hasTakeHome) wlFulfillment = 'in_clinic_injections';
+          else if (item.wlConfig.hasTakeHome && !item.wlConfig.hasInClinic) wlFulfillment = 'in_clinic';
+          // Mixed: pass 'mixed' — backend handles per-group
+        }
+      } else if (item.category === 'peptide') {
+        wlFulfillment = 'in_clinic';
+        if (isPeptideBuilder) {
+          if (item.peptideConfig.hasInClinic && !item.peptideConfig.hasTakeHome) wlFulfillment = 'in_clinic_injections';
+          else if (item.peptideConfig.hasTakeHome && !item.peptideConfig.hasInClinic) wlFulfillment = 'in_clinic';
+          // Mixed: peptideConfig carries the split — first N in clinic, rest take-home
+        }
+      } else if (['hrt', 'vials'].includes(item.category)) {
+        wlFulfillment = 'in_clinic';
       }
 
       const res = await fetch('/api/stripe/record-purchase', {
@@ -1480,7 +1489,7 @@ function CheckoutInner() {
           duration_days: isPeptideBuilder ? item.peptideConfig.durationDays : (item.duration_days || null),
           shipping: amount_override ? 0 : itemShipping,
           fulfillment_method: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) ? wlFulfillment : null,
-          tracking_number: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) && fulfillmentMethod === 'overnight' ? trackingNumber : null,
+          tracking_number: item.category === 'weight_loss' && fulfillmentMethod === 'overnight' ? trackingNumber : null,
           wl_frequency_days: item.category === 'weight_loss' ? (isWlBuilder ? item.wlConfig.frequency : wlFrequencyDays) : undefined,
           wl_config: isWlBuilder ? item.wlConfig : undefined,
           peptide_config: isPeptideBuilder ? item.peptideConfig : undefined,
@@ -5026,20 +5035,18 @@ function CheckoutInner() {
                 </div>
               </div>
 
-              {/* Fulfillment */}
-              {cartItems.some(i => ['peptide', 'weight_loss', 'hrt', 'vials'].includes(i.category)) && (
+              {/* Fulfillment — weight loss only. Peptide/HRT/vials items derive fulfillment from their own builder config. */}
+              {cartItems.some(i => i.category === 'weight_loss') && (
                 <div style={styles.paymentSection}>
-                  <div style={styles.paymentSectionLabel}>FULFILLMENT</div>
+                  <div style={styles.paymentSectionLabel}>FULFILLMENT (Weight Loss)</div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {cartItems.some(i => ['weight_loss', 'peptide'].includes(i.category)) && (
-                      <button
-                        onClick={() => setFulfillmentMethod('in_clinic_injections')}
-                        style={{
-                          ...styles.fulfillmentBtn,
-                          ...(fulfillmentMethod === 'in_clinic_injections' ? { border: '2px solid #7c3aed', background: '#f5f3ff', color: '#7c3aed' } : {}),
-                        }}
-                      >In-Clinic Injections</button>
-                    )}
+                    <button
+                      onClick={() => setFulfillmentMethod('in_clinic_injections')}
+                      style={{
+                        ...styles.fulfillmentBtn,
+                        ...(fulfillmentMethod === 'in_clinic_injections' ? { border: '2px solid #7c3aed', background: '#f5f3ff', color: '#7c3aed' } : {}),
+                      }}
+                    >In-Clinic Injections</button>
                     <button
                       onClick={() => setFulfillmentMethod('in_clinic')}
                       style={{
@@ -5070,7 +5077,7 @@ function CheckoutInner() {
               {/* Weight Loss Injection Frequency */}
               {cartItems.some(i => i.category === 'weight_loss') && (
                 <div style={styles.paymentSection}>
-                  <div style={styles.paymentSectionLabel}>INJECTION FREQUENCY</div>
+                  <div style={styles.paymentSectionLabel}>INJECTION FREQUENCY (Weight Loss)</div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button
                       onClick={() => setWlFrequencyDays(7)}

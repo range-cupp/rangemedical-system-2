@@ -9,9 +9,6 @@ import Head from 'next/head';
 import { useAuth } from './AuthProvider';
 import StaffChatPanel from './StaffChatPanel';
 import StaffMessagingPanel from './StaffMessagingPanel';
-import AdminCallBar from './AdminCallBar';
-import useVoiceCall from '../hooks/useVoiceCall';
-import { VoiceProvider } from './VoiceContext';
 
 // SMS notification sound — two-tone "ding-ding" (880Hz + 1100Hz)
 function playNotificationSound() {
@@ -771,8 +768,6 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
   const { purchaseCount, purchaseToast, dismissPurchaseToast } = useNewPurchaseNotifications(router);
   const { employee, loading: authLoading, signOut, hasPermission, isAuthenticated } = useAuth();
   const { taskCount, overdueCount, taskToast, dismissTaskToast } = useUnreadTasks(employee?.id, router);
-  // Browser softphone — only registers if this employee has voice_browser_enabled = true
-  const voice = useVoiceCall({ employeeId: employee?.id });
 
   // Redirect to login if not authenticated (after loading completes)
   useEffect(() => {
@@ -1072,9 +1067,7 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
 
           {/* Page content */}
           <main style={styles.main}>
-            <VoiceProvider value={voice}>
               {children}
-            </VoiceProvider>
           </main>
         </div>
       </div>
@@ -1302,17 +1295,6 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
         </div>
       )}
 
-      {/* Floating browser softphone — only renders when a call is active/ringing */}
-      <AdminCallBar
-        callState={voice.callState}
-        callInfo={voice.callInfo}
-        muted={voice.muted}
-        onHangUp={voice.hangUp}
-        onToggleMute={voice.toggleMute}
-        formatDuration={voice.formatDuration}
-        onAnswer={voice.answer}
-        onReject={voice.reject}
-      />
     </>
   );
 }

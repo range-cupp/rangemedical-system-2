@@ -104,6 +104,14 @@
     {
       "path": "/api/cron/daily-welcome",
       "schedule": "23 * * * *"
+    },
+    {
+      "path": "/api/cron/daily-tip",
+      "schedule": "7 13 * * *"
+    },
+    {
+      "path": "/api/cron/daily-tip",
+      "schedule": "7 14 * * *"
     }
   ]
 }

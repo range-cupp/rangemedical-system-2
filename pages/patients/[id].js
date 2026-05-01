@@ -517,6 +517,10 @@ export default function PatientProfile() {
   const [medEditMode, setMedEditMode] = useState('add'); // 'add' | 'edit'
   const [medEditForm, setMedEditForm] = useState({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: '', last_pickup_date: '', last_pickup_quantity: '', quantity_unit: 'pills', route: '', quick_category: '', quick_gender: '', quick_medication_key: '', quick_dose: '', quick_frequency: '' });
   const [medEditSaving, setMedEditSaving] = useState(false);
+  // Print medication list modal — captures editable Sig + dispense quantity per med
+  const [printRxModalOpen, setPrintRxModalOpen] = useState(false);
+  const [printRxRows, setPrintRxRows] = useState([]); // [{ id, medication_name, strength, form, sig, dispense, ...passthroughs }]
+  const [printRxGenerating, setPrintRxGenerating] = useState(false);
 
   const [pinnedNoteExpanded, setPinnedNoteExpanded] = useState(false);
   const [pinnedNoteOverflows, setPinnedNoteOverflows] = useState(false);
@@ -6414,28 +6418,21 @@ export default function PatientProfile() {
                     {allActiveMeds.length > 0 && (
                       <button
                         className="btn-secondary-sm"
-                        onClick={async () => {
-                          try {
-                            const res = await fetch(`/api/patients/${patient.id}/medications-pdf`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ medications: allActiveMeds }),
-                            });
-                            if (!res.ok) {
-                              const err = await res.json().catch(() => ({}));
-                              alert(err.error || 'Failed to generate medication list');
-                              return;
-                            }
-                            const blob = await res.blob();
-                            const url = URL.createObjectURL(blob);
-                            window.open(url, '_blank');
-                            setTimeout(() => URL.revokeObjectURL(url), 60000);
-                          } catch (e) {
-                            console.error(e);
-                            alert('Failed to generate medication list');
-                          }
+                        onClick={() => {
+                          setPrintRxRows(allActiveMeds.map(m => ({
+                            id: m.id,
+                            medication_name: m.medication_name || m.trade_name || m.generic_name || '',
+                            strength: m.strength || '',
+                            form: m.form || '',
+                            sig: m.sig || '',
+                            dispense: '',
+                            start_date: m.start_date || '',
+                            source: m.source || '',
+                            from_protocol: !!m.from_protocol,
+                          })));
+                          setPrintRxModalOpen(true);
                         }}
-                        title="Print active medications as a take-with-you list"
+                        title="Print active medications as a prescription list"
                       >
                         🖨️ Print
                       </button>
@@ -11694,6 +11691,103 @@ export default function PatientProfile() {
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => setEditInjectionModal(null)} className="btn-secondary">Cancel</button>
                   <button onClick={handleEditInjection} disabled={editInjectionSaving} className="btn-primary">{editInjectionSaving ? 'Saving...' : 'Save'}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Print Medication List — set Sig + Dispense quantity per med */}
+        {printRxModalOpen && (
+          <div className="modal-overlay" {...overlayClickProps(() => !printRxGenerating && setPrintRxModalOpen(false))}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 720 }}>
+              <div className="modal-header">
+                <h3>Print Medication List</h3>
+                <button onClick={() => !printRxGenerating && setPrintRxModalOpen(false)} className="modal-close">✕</button>
+              </div>
+              <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ fontSize: 12, color: '#475569' }}>
+                  Confirm the Sig and enter a dispense quantity for each medication. The dispense quantity is what we are giving the patient (e.g., <em>4 prefilled syringes</em>, <em>30 capsules</em>, <em>1 vial</em>).
+                </div>
+                {printRxRows.length === 0 && (
+                  <div style={{ fontSize: 13, color: '#6b7280' }}>No active medications to print.</div>
+                )}
+                {printRxRows.map((row, idx) => (
+                  <div key={row.id || idx} style={{
+                    padding: '12px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 0,
+                    display: 'flex', flexDirection: 'column', gap: 8,
+                  }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>
+                      {row.medication_name || 'Unnamed medication'}
+                      {row.strength && <span style={{ fontWeight: 400, color: '#475569' }}> · {row.strength}{row.form ? ` ${row.form}` : ''}</span>}
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#475569', marginBottom: 3 }}>Sig (instructions)</label>
+                      <input
+                        type="text"
+                        value={row.sig}
+                        onChange={e => {
+                          const v = e.target.value;
+                          setPrintRxRows(rows => rows.map((r, i) => i === idx ? { ...r, sig: v } : r));
+                        }}
+                        placeholder="e.g., Inject 0.25 mg subcutaneously once weekly"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, background: '#fff' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#475569', marginBottom: 3 }}>Dispense quantity</label>
+                      <input
+                        type="text"
+                        value={row.dispense}
+                        onChange={e => {
+                          const v = e.target.value;
+                          setPrintRxRows(rows => rows.map((r, i) => i === idx ? { ...r, dispense: v } : r));
+                        }}
+                        placeholder="e.g., 4 prefilled syringes"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, background: '#fff' }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 4 }}>
+                  <button
+                    onClick={() => setPrintRxModalOpen(false)}
+                    disabled={printRxGenerating}
+                    style={{ padding: '8px 16px', fontSize: 13, borderRadius: 0, background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', cursor: printRxGenerating ? 'not-allowed' : 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={printRxGenerating || printRxRows.length === 0}
+                    onClick={async () => {
+                      setPrintRxGenerating(true);
+                      try {
+                        const res = await fetch(`/api/patients/${patient.id}/medications-pdf`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ medications: printRxRows }),
+                        });
+                        if (!res.ok) {
+                          const err = await res.json().catch(() => ({}));
+                          alert(err.error || 'Failed to generate medication list');
+                          return;
+                        }
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+                        window.open(url, '_blank');
+                        setTimeout(() => URL.revokeObjectURL(url), 60000);
+                        setPrintRxModalOpen(false);
+                      } catch (e) {
+                        console.error(e);
+                        alert('Failed to generate medication list');
+                      } finally {
+                        setPrintRxGenerating(false);
+                      }
+                    }}
+                    style={{ padding: '8px 16px', fontSize: 13, borderRadius: 0, background: printRxGenerating ? '#9ca3af' : '#0f172a', color: '#fff', border: 'none', cursor: printRxGenerating ? 'not-allowed' : 'pointer', fontWeight: 600 }}
+                  >
+                    {printRxGenerating ? 'Generating…' : 'Generate PDF'}
+                  </button>
                 </div>
               </div>
             </div>

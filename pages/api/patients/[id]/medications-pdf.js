@@ -42,6 +42,7 @@ export default async function handler(req, res) {
       strength: m?.strength || '',
       form: m?.form || '',
       sig: m?.sig || '',
+      dispense: m?.dispense || '',
       start_date: m?.start_date || '',
       source: m?.source || '',
       from_protocol: !!m?.from_protocol,

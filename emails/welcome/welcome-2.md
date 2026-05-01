@@ -1,28 +1,20 @@
 ---
-subject: Why this exists (and what it's not)
+subject: The lab your doctor isn't running.
 ---
 
-Day two. Quick context.
+Yesterday I told you most guys in their 40s and 50s feel like garbage and their labs come back "normal." Here's why.
 
-I run a clinic in Newport Beach. The guys who walk in are mostly 45-55, run their own thing, used to be in great shape, and sometime in the last few years quietly stopped being that guy. They're not dying. They're declining. And they know it before anyone else does.
+Your standard physical checks total cholesterol, LDL, HDL, triglycerides, glucose, and a few other things. That panel was designed in the 1990s. It's outdated.
 
-They got the labs back. "Everything looks fine." Then they went home and woke up at 3am, again. Tied their shoes and got out of breath, again. Looked in the mirror and didn't quite recognize the guy in it.
+The lab that actually predicts whether you're going to drop dead of a heart attack at 58 isn't on it. It's called **ApoB**.
 
-The labs aren't wrong. The bar is wrong. "Are you actively dying" is a different bar than "are you actually well." Most GPs are running the first one.
+ApoB measures the actual *number* of bad-cholesterol particles in your blood — not the total amount of cholesterol, which is what LDL measures. You can have a "normal" LDL and a wrecked ApoB. Plenty of guys with so-called perfect cholesterol have ApoB numbers that look like a horror movie.
 
-Here's what this list is and isn't.
+Peter Attia screams about this in his book. Most concierge doctors in Newport still don't run it. Yours probably doesn't either.
 
-This list IS:
-– Small, specific, do-it-today things. Sleep, recovery, food, movement, hormones, the soft middle, the libido slide, the recovery after pickleball that now takes three days.
-– Written like a guy who runs a clinic, not a guy with a podcast.
-– Stuff I actually tell people in the chair. The free version of the conversation.
+So here's your tip for today: next time you get labs done, ask for ApoB. If your doctor says "we don't run that," find a new doctor or come see us. It's a single test. It costs about $40. It's the most underrated number in your bloodwork.
 
-This list is NOT:
-– A lecture about wine, steak, restaurants, or the rest of the life you actually like.
-– A 12-week program with an upsell sequence at the end.
-– Generic "drink water, lift weights, sleep 8 hours" garbage. You already know that. It's not the problem.
-– Medical advice. If something is genuinely wrong, see an actual doctor — ideally one who listens to the second sentence, not just the first.
-
-Tomorrow you get the third and last setup email. Then daily tips start.
+Tomorrow we get into sleep. Specifically, why you're up at 3am staring at the ceiling like a psychopath.
 
 — Chris
+"Head Janitor," Range Medical

@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   }
 
   const { id } = req.query;
-  const { payment_method_id } = req.body;
+  const { payment_method_id, amount_cents } = req.body;
 
   if (!payment_method_id) {
     return res.status(400).json({ error: 'payment_method_id is required' });
@@ -57,9 +57,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Patient has no Stripe customer on file' });
     }
 
+    const chargeAmount = amount_cents && amount_cents > 0 && amount_cents <= invoice.total_cents
+      ? amount_cents : invoice.total_cents;
+
     // Create and confirm PaymentIntent with the saved card
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: invoice.total_cents,
+      amount: chargeAmount,
       currency: 'usd',
       customer: patient.stripe_customer_id,
       payment_method: payment_method_id,

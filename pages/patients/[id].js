@@ -498,6 +498,12 @@ export default function PatientProfile() {
   const [refundType, setRefundType] = useState('full'); // 'full' or 'partial'
   const [refundLoading, setRefundLoading] = useState(false);
 
+  // Pay invoice modal state
+  const [payInvoice, setPayInvoice] = useState(null);
+  const [payInvoiceMethod, setPayInvoiceMethod] = useState('card'); // 'card', 'credit', 'split'
+  const [payInvoiceCard, setPayInvoiceCard] = useState('');
+  const [payInvoiceLoading, setPayInvoiceLoading] = useState(false);
+
   // Timeline state
   const [timeline, setTimeline] = useState([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
@@ -1280,6 +1286,111 @@ export default function PatientProfile() {
       alert('Error: ' + err.message);
     } finally {
       setRefundLoading(false);
+    }
+  };
+
+  const handlePayInvoice = async () => {
+    if (!payInvoice) return;
+    const totalCents = payInvoice.total_cents;
+
+    if (payInvoiceMethod === 'card') {
+      if (!payInvoiceCard) return alert('Select a card');
+      setPayInvoiceLoading(true);
+      try {
+        const res = await fetch(`/api/invoices/${payInvoice.id}/charge-card`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ payment_method_id: payInvoiceCard }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Charge failed');
+        setPayInvoice(null);
+        fetchPatient();
+        fetchCreditBalance();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        setPayInvoiceLoading(false);
+      }
+    } else if (payInvoiceMethod === 'credit') {
+      if (creditBalanceCents < totalCents) return alert('Insufficient credit balance');
+      setPayInvoiceLoading(true);
+      try {
+        const creditRes = await fetch('/api/credits/apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patient_id: id,
+            amount_cents: totalCents,
+            description: `Invoice payment`,
+            created_by: 'admin',
+          }),
+        });
+        const creditData = await creditRes.json();
+        if (!creditRes.ok) throw new Error(creditData.error || 'Credit apply failed');
+
+        const markRes = await fetch(`/api/invoices/${payInvoice.id}/mark-paid`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ payment_method: 'account_credit', notes: 'Paid with account credit' }),
+        });
+        const markData = await markRes.json();
+        if (!markRes.ok) throw new Error(markData.error || 'Mark paid failed');
+
+        setPayInvoice(null);
+        fetchPatient();
+        fetchCreditBalance();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        setPayInvoiceLoading(false);
+      }
+    } else if (payInvoiceMethod === 'split') {
+      if (!payInvoiceCard) return alert('Select a card for the remaining balance');
+      if (creditBalanceCents <= 0) return alert('No credit to apply');
+      const creditToApply = Math.min(creditBalanceCents, totalCents);
+      const cardAmount = totalCents - creditToApply;
+
+      setPayInvoiceLoading(true);
+      try {
+        const creditRes = await fetch('/api/credits/apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patient_id: id,
+            amount_cents: creditToApply,
+            description: `Invoice payment (partial credit)`,
+            created_by: 'admin',
+          }),
+        });
+        const creditData = await creditRes.json();
+        if (!creditRes.ok) throw new Error(creditData.error || 'Credit apply failed');
+
+        if (cardAmount > 0) {
+          const chargeRes = await fetch(`/api/invoices/${payInvoice.id}/charge-card`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_method_id: payInvoiceCard, amount_cents: cardAmount }),
+          });
+          const chargeData = await chargeRes.json();
+          if (!chargeRes.ok) throw new Error(chargeData.error || 'Card charge failed');
+        } else {
+          const markRes = await fetch(`/api/invoices/${payInvoice.id}/mark-paid`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_method: 'account_credit', notes: `$${(creditToApply / 100).toFixed(2)} credit applied (full amount)` }),
+          });
+          if (!markRes.ok) throw new Error('Mark paid failed');
+        }
+
+        setPayInvoice(null);
+        fetchPatient();
+        fetchCreditBalance();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        setPayInvoiceLoading(false);
+      }
     }
   };
 
@@ -10857,7 +10968,7 @@ export default function PatientProfile() {
               <div className="pay-tabs">
                 {[
                   { key: 'subscriptions', label: `Subscriptions${(() => { const count = stripeSubscriptions.length > 0 ? stripeSubscriptions.filter(s => s.status === 'active' || s.status === 'past_due' || (s.pause_collection && s.status === 'active')).length : subscriptions.filter(s => s.status === 'active' || s.status === 'past_due').length; return count > 0 ? ` (${count})` : ''; })()}` },
-                  { key: 'invoices', label: 'Invoices' },
+                  { key: 'invoices', label: `Invoices${(() => { const open = invoices.filter(i => i.status === 'pending' || i.status === 'sent' || i.status === 'overdue').length; return open > 0 ? ` (${open})` : ''; })()}` },
                   { key: 'purchases', label: 'Purchases' },
                   { key: 'cards', label: `Cards${savedCards.length > 0 ? ` (${savedCards.length})` : ''}` },
                 ].map(tab => (
@@ -11190,15 +11301,48 @@ export default function PatientProfile() {
                     <div className="pay-list">
                       {invoices.map(inv => {
                         const invStatus = (inv.status || 'pending').toLowerCase();
-                        const badgeClass = invStatus === 'paid' ? 'pay-badge-green' : invStatus === 'overdue' ? 'pay-badge-red' : invStatus === 'pending' || invStatus === 'sent' ? 'pay-badge-yellow' : 'pay-badge-gray';
+                        const isOpen = invStatus === 'pending' || invStatus === 'sent' || invStatus === 'overdue';
+                        const badgeClass = invStatus === 'paid' ? 'pay-badge-green' : invStatus === 'overdue' ? 'pay-badge-red' : isOpen ? 'pay-badge-yellow' : 'pay-badge-gray';
+                        const totalDollars = (inv.total_cents || 0) / 100;
+                        const items = inv.items || [];
+                        const itemSummary = items.length > 0
+                          ? items.map(it => it.display_name || it.name).join(', ')
+                          : (inv.description || 'Invoice');
                         return (
-                          <div key={inv.id} className="pay-item">
-                            <div className="pay-item-info">
-                              <div className="pay-item-title">{inv.description || inv.line_items?.[0]?.description || 'Invoice'}</div>
-                              <div className="pay-item-sub">{formatDate(inv.created_at)}</div>
+                          <div key={inv.id} style={{ padding: '12px 14px', borderBottom: '1px solid #f1f5f9' }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 600, fontSize: 14, color: '#1e293b', marginBottom: 2 }}>{itemSummary}</div>
+                                <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                                  {formatDate(inv.created_at)}
+                                  {inv.discount_cents > 0 && inv.discount_description && (
+                                    <span style={{ marginLeft: 8, color: '#059669' }}>{inv.discount_description} off</span>
+                                  )}
+                                </div>
+                                {items.length > 1 && (
+                                  <div style={{ marginTop: 6 }}>
+                                    {items.map((it, idx) => (
+                                      <div key={idx} style={{ fontSize: 12, color: '#64748b', display: 'flex', justifyContent: 'space-between', maxWidth: 320 }}>
+                                        <span>{it.display_name || it.name}{it.quantity > 1 ? ` x${it.quantity}` : ''}</span>
+                                        <span>${((it.price_cents * (it.quantity || 1)) / 100).toFixed(2)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                                <div style={{ fontSize: 15, fontWeight: 700, color: '#1e293b' }}>${totalDollars.toFixed(2)}</div>
+                                <span className={`pay-badge ${badgeClass}`}>{invStatus}</span>
+                                {isOpen && (
+                                  <button
+                                    onClick={() => { setPayInvoice(inv); setPayInvoiceMethod(savedCards.length > 0 ? 'card' : creditBalanceCents > 0 ? 'credit' : 'card'); setPayInvoiceCard(savedCards.length > 0 ? savedCards[0].id : ''); }}
+                                    style={{ padding: '5px 14px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 4, background: '#2563eb', color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                  >
+                                    Pay
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                            <div className="pay-item-amount">${(inv.total_amount || inv.amount || 0).toFixed(2)}</div>
-                            <span className={`pay-badge ${badgeClass}`}>{invStatus}</span>
                           </div>
                         );
                       })}
@@ -11570,6 +11714,145 @@ export default function PatientProfile() {
                   style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, border: 'none', borderRadius: 4, background: '#dc2626', color: '#fff', cursor: 'pointer', opacity: (refundLoading || (refundType === 'partial' && !refundAmount)) ? 0.5 : 1 }}
                 >
                   {refundLoading ? 'Processing...' : 'Issue Refund'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Pay Invoice Modal */}
+        {payInvoice && (
+          <div className="modal-overlay" {...overlayClickProps(() => { if (!payInvoiceLoading) setPayInvoice(null); })}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
+              <div className="modal-header">
+                <h3>Pay Invoice</h3>
+                <button onClick={() => setPayInvoice(null)} className="close-btn" disabled={payInvoiceLoading}>&times;</button>
+              </div>
+              <div className="modal-body">
+                {/* Invoice summary */}
+                <div style={{ marginBottom: 14, padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>{formatDate(payInvoice.created_at)}</div>
+                  {(payInvoice.items || []).map((it, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#334155', marginBottom: 2 }}>
+                      <span>{it.display_name || it.name}{it.quantity > 1 ? ` x${it.quantity}` : ''}</span>
+                      <span>${((it.price_cents * (it.quantity || 1)) / 100).toFixed(2)}</span>
+                    </div>
+                  ))}
+                  {payInvoice.discount_cents > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#059669', marginTop: 4 }}>
+                      <span>Discount{payInvoice.discount_description ? ` (${payInvoice.discount_description})` : ''}</span>
+                      <span>-${(payInvoice.discount_cents / 100).toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, color: '#1e293b', marginTop: 6, paddingTop: 6, borderTop: '1px solid #e2e8f0' }}>
+                    <span>Total</span>
+                    <span>${(payInvoice.total_cents / 100).toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* Payment method selector */}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ fontWeight: 600, fontSize: 13, marginBottom: 6, display: 'block' }}>Payment Method</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {savedCards.length > 0 && (
+                      <button
+                        onClick={() => { setPayInvoiceMethod('card'); setPayInvoiceCard(savedCards[0].id); }}
+                        style={{
+                          flex: 1, padding: '8px 10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', borderRadius: 4,
+                          border: payInvoiceMethod === 'card' ? '2px solid #2563eb' : '1px solid #d1d5db',
+                          background: payInvoiceMethod === 'card' ? '#eff6ff' : '#fff',
+                          color: payInvoiceMethod === 'card' ? '#2563eb' : '#374151',
+                        }}
+                      >
+                        Card on File
+                      </button>
+                    )}
+                    {creditBalanceCents > 0 && (
+                      <button
+                        onClick={() => setPayInvoiceMethod('credit')}
+                        style={{
+                          flex: 1, padding: '8px 10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', borderRadius: 4,
+                          border: payInvoiceMethod === 'credit' ? '2px solid #2563eb' : '1px solid #d1d5db',
+                          background: payInvoiceMethod === 'credit' ? '#eff6ff' : '#fff',
+                          color: payInvoiceMethod === 'credit' ? '#2563eb' : '#374151',
+                        }}
+                      >
+                        Account Credit
+                      </button>
+                    )}
+                    {savedCards.length > 0 && creditBalanceCents > 0 && (
+                      <button
+                        onClick={() => { setPayInvoiceMethod('split'); setPayInvoiceCard(savedCards[0].id); }}
+                        style={{
+                          flex: 1, padding: '8px 10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', borderRadius: 4,
+                          border: payInvoiceMethod === 'split' ? '2px solid #2563eb' : '1px solid #d1d5db',
+                          background: payInvoiceMethod === 'split' ? '#eff6ff' : '#fff',
+                          color: payInvoiceMethod === 'split' ? '#2563eb' : '#374151',
+                        }}
+                      >
+                        Split
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Card selector */}
+                {(payInvoiceMethod === 'card' || payInvoiceMethod === 'split') && savedCards.length > 0 && (
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ fontWeight: 600, fontSize: 13, marginBottom: 4, display: 'block' }}>Card</label>
+                    <select
+                      value={payInvoiceCard}
+                      onChange={e => setPayInvoiceCard(e.target.value)}
+                      style={{ width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 4, border: '1px solid #d1d5db' }}
+                    >
+                      {savedCards.map(c => (
+                        <option key={c.id} value={c.id}>{c.brand.toUpperCase()} ····{c.last4} (exp {c.exp_month}/{c.exp_year})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Payment breakdown */}
+                {payInvoiceMethod === 'credit' && (
+                  <div style={{ padding: '8px 12px', background: creditBalanceCents >= payInvoice.total_cents ? '#f0fdf4' : '#fef2f2', border: `1px solid ${creditBalanceCents >= payInvoice.total_cents ? '#bbf7d0' : '#fecaca'}`, borderRadius: 4, fontSize: 13 }}>
+                    {creditBalanceCents >= payInvoice.total_cents ? (
+                      <span style={{ color: '#166534' }}>
+                        ${(payInvoice.total_cents / 100).toFixed(2)} will be deducted from account credit (balance: ${(creditBalanceCents / 100).toFixed(2)})
+                      </span>
+                    ) : (
+                      <span style={{ color: '#991b1b' }}>
+                        Insufficient credit (${(creditBalanceCents / 100).toFixed(2)} available, ${(payInvoice.total_cents / 100).toFixed(2)} needed)
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {payInvoiceMethod === 'split' && (() => {
+                  const creditToApply = Math.min(creditBalanceCents, payInvoice.total_cents);
+                  const cardCharge = payInvoice.total_cents - creditToApply;
+                  return (
+                    <div style={{ padding: '8px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 4, fontSize: 13, color: '#166534' }}>
+                      <div>${(creditToApply / 100).toFixed(2)} from account credit</div>
+                      {cardCharge > 0 && <div>${(cardCharge / 100).toFixed(2)} charged to card</div>}
+                    </div>
+                  );
+                })()}
+
+                {/* No payment methods available */}
+                {savedCards.length === 0 && creditBalanceCents <= 0 && (
+                  <div style={{ padding: '10px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 4, fontSize: 13, color: '#991b1b' }}>
+                    No cards on file and no account credit. Add a card in the Cards tab first.
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <button onClick={() => setPayInvoice(null)} className="btn-secondary" disabled={payInvoiceLoading}>Cancel</button>
+                <button
+                  onClick={handlePayInvoice}
+                  disabled={payInvoiceLoading || (savedCards.length === 0 && creditBalanceCents <= 0) || (payInvoiceMethod === 'credit' && creditBalanceCents < payInvoice.total_cents)}
+                  style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, border: 'none', borderRadius: 4, background: '#059669', color: '#fff', cursor: 'pointer', opacity: (payInvoiceLoading || (savedCards.length === 0 && creditBalanceCents <= 0) || (payInvoiceMethod === 'credit' && creditBalanceCents < payInvoice.total_cents)) ? 0.5 : 1 }}
+                >
+                  {payInvoiceLoading ? 'Processing...' : `Pay $${(payInvoice.total_cents / 100).toFixed(2)}`}
                 </button>
               </div>
             </div>

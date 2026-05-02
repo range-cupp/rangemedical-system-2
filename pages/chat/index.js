@@ -452,6 +452,26 @@ export default function ChatApp() {
     }
   }, [router.isReady, router.query.c, employee, channels, openChannel]);
 
+  // ── Deep-link from URL: /chat?p=<patientId> (from a patient SMS push) ─────
+  // Fires once on cold start when the PWA opens from a tapped notification.
+  // Tries to use the loaded conversation list for nicer header info, but
+  // falls back to a stub so the thread opens immediately.
+  const initialPatientLinkRef = useRef(false);
+  useEffect(() => {
+    if (initialPatientLinkRef.current) return;
+    if (!router.isReady || !employee) return;
+    const p = router.query.p;
+    if (typeof p !== 'string' || !p) return;
+    initialPatientLinkRef.current = true;
+    const target = patientConvos.find((c) => c.patient_id === p);
+    const patient = target || { patient_id: p, recipient: null, patient_name: null };
+    setTab('patients');
+    setView('patient-chat');
+    openPatient(patient);
+    // Strip the query param so a refresh doesn't keep reopening this thread
+    router.replace('/chat', undefined, { shallow: true });
+  }, [router.isReady, router.query.p, employee, patientConvos, openPatient, router]);
+
   // Auto-scroll to bottom on new messages in chat view
   useEffect(() => {
     if (view === 'chat' && bottomRef.current) {

@@ -68,10 +68,8 @@ self.addEventListener('notificationclick', (event) => {
   let postMessageData = null;
 
   if (kind === 'patient_sms') {
-    targetUrl = data.patient_id
-      ? `/admin/communications?patient=${data.patient_id}`
-      : '/admin/communications';
-    preferredPath = '/admin/communications';
+    targetUrl = data.patient_id ? `/chat?p=${data.patient_id}` : '/chat';
+    preferredPath = '/chat';
     postMessageData = { type: 'open-patient-sms', patient_id: data.patient_id || null, recipient: data.recipient || null };
   } else {
     const channelId = data.channel_id;
@@ -82,7 +80,8 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil((async () => {
     const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    // Prefer an already-open admin/chat tab on the same path.
+    // Prefer an already-open /chat tab so notifications focus the standalone PWA
+    // rather than the desktop admin shell.
     for (const client of allClients) {
       try {
         const url = new URL(client.url);
@@ -92,19 +91,6 @@ self.addEventListener('notificationclick', (event) => {
           return;
         }
       } catch (_e) {}
-    }
-    // Fallback: focus any open admin tab so the panel can pick up the message.
-    if (kind === 'patient_sms') {
-      for (const client of allClients) {
-        try {
-          const url = new URL(client.url);
-          if (url.pathname.startsWith('/admin')) {
-            await client.focus();
-            if (postMessageData) client.postMessage(postMessageData);
-            return;
-          }
-        } catch (_e) {}
-      }
     }
     // Otherwise open a fresh window.
     if (self.clients.openWindow) {

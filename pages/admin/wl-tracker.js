@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
+import { useAuth } from '../../components/AuthProvider';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -67,6 +68,7 @@ function fmtRange(start, end) {
 }
 
 export default function WLTrackerPage() {
+  const { session } = useAuth();
   const [view, setView] = useState('daily'); // 'daily' | 'weekly'
   const [weekStart, setWeekStart] = useState(() => startOfWeek(todayPacificISO()));
   const [data, setData] = useState(null);
@@ -77,11 +79,17 @@ export default function WLTrackerPage() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [actionInProgress, setActionInProgress] = useState(false);
 
+  const authHeaders = useCallback(() => ({
+    Authorization: `Bearer ${session?.access_token}`,
+    'Content-Type': 'application/json',
+  }), [session]);
+
   const loadData = useCallback(async () => {
+    if (!session?.access_token) return;
     try {
       setLoading(true);
       setError(null);
-      const r = await fetch(`/api/admin/wl-tracker?week_start=${weekStart}`);
+      const r = await fetch(`/api/admin/wl-tracker?week_start=${weekStart}`, { headers: authHeaders() });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const json = await r.json();
       setData(json);
@@ -90,7 +98,7 @@ export default function WLTrackerPage() {
     } finally {
       setLoading(false);
     }
-  }, [weekStart]);
+  }, [weekStart, session, authHeaders]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -142,7 +150,7 @@ export default function WLTrackerPage() {
     try {
       const r = await fetch('/api/admin/wl-tracker', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ action, ...body }),
       });
       const json = await r.json();

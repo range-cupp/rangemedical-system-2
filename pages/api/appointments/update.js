@@ -38,6 +38,14 @@ export default async function handler(req, res) {
     const now = new Date().toISOString();
     const updates = { updated_at: now };
 
+    // Read prior status so we can detect a true transition into 'completed'
+    // (re-saving an already-completed appointment shouldn't fire the auto-logger)
+    let priorStatus = null;
+    if (status) {
+      const { data: prior } = await supabase.from(table).select('status').eq('id', id).single();
+      priorStatus = prior?.status || null;
+    }
+
     if (status) updates.status = status;
     if (notes !== undefined) updates.notes = notes;
     if (visit_reason !== undefined && table === 'appointments') updates.visit_reason = visit_reason;
@@ -131,8 +139,10 @@ export default async function handler(req, res) {
       }
     }
 
-    // Auto-log session when appointment is completed (HBOT, RLT, IV, injections)
-    if (status === 'completed') {
+    // Auto-log session when appointment TRANSITIONS to completed.
+    // Skip if it was already completed — re-saving the appointment to add a
+    // note shouldn't create a phantom service log on the edit date.
+    if (status === 'completed' && priorStatus !== 'completed') {
       try {
         const { data: apptForSession } = await supabase
           .from(table)

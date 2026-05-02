@@ -214,10 +214,13 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
       console.error('Encounter reminder task error:', err)
     );
 
-    // Auto-log session/injection in service_logs when appointment is completed
-    autoLogSessionFromAppointment(appointment).catch(err =>
-      console.error('Auto-session logging error:', err)
-    );
+    // Only auto-log when the appointment TRANSITIONS to completed —
+    // re-saving an already-completed appointment shouldn't create a phantom log.
+    if (oldStatus !== 'completed') {
+      autoLogSessionFromAppointment(appointment).catch(err =>
+        console.error('Auto-session logging error:', err)
+      );
+    }
 
     // Advance energy_workup: consult_booked → consult_completed (Evan's task)
     advanceEnergyWorkupOnCompletion(appointment).catch(err =>

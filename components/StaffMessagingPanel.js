@@ -301,6 +301,12 @@ export default function StaffMessagingPanel() {
   const [patientInput, setPatientInput] = useState('');
   const [patientSending, setPatientSending] = useState(false);
 
+  // New patient conversation search
+  const [patientSearchQ, setPatientSearchQ] = useState('');
+  const [patientSearchResults, setPatientSearchResults] = useState([]);
+  const [searchingPatients, setSearchingPatients] = useState(false);
+  const patientSearchTimeoutRef = useRef(null);
+
   // New message state
   const [employees, setEmployees] = useState([]);
   const [selectedMembers, setSelectedMembers] = useState([]);
@@ -453,6 +459,51 @@ export default function StaffMessagingPanel() {
   const handlePatientKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendPatientSms(); }
   };
+
+  const handlePatientSearchInput = useCallback((q) => {
+    setPatientSearchQ(q);
+    if (patientSearchTimeoutRef.current) clearTimeout(patientSearchTimeoutRef.current);
+    if (!q || q.trim().length < 2) {
+      setPatientSearchResults([]);
+      setSearchingPatients(false);
+      return;
+    }
+    setSearchingPatients(true);
+    patientSearchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/patients/search?q=${encodeURIComponent(q.trim())}`);
+        const data = await res.json();
+        setPatientSearchResults(data.patients || []);
+      } catch (err) {
+        console.error('Patient search error:', err);
+        setPatientSearchResults([]);
+      } finally {
+        setSearchingPatients(false);
+      }
+    }, 350);
+  }, []);
+
+  const handleStartPatientConversation = useCallback(async (p) => {
+    if (!p?.phone) {
+      setToast('This patient has no phone number on file.');
+      return;
+    }
+    const fullName = p.name || [p.first_name, p.last_name].filter(Boolean).join(' ').trim() || 'Patient';
+    const conversation = {
+      patient_id: p.id,
+      ghl_contact_id: p.ghl_contact_id || null,
+      patient_name: fullName,
+      recipient: p.phone,
+      last_message: null,
+      last_message_at: null,
+      last_direction: null,
+      unread_count: 0,
+      needs_response_count: 0,
+    };
+    setPatientSearchQ('');
+    setPatientSearchResults([]);
+    await handleOpenPatient(conversation);
+  }, [handleOpenPatient]);
 
   // Handle send message
   const handleSend = useCallback(async () => {
@@ -740,20 +791,21 @@ export default function StaffMessagingPanel() {
                       )}
                     </button>
                   </div>
-                  {tab === 'team' && (
-                    <button
-                      onClick={() => { setView('new'); fetchEmployees(); }}
-                      style={{
-                        background: '#000', color: '#fff', border: 'none',
-                        borderRadius: 0, padding: '7px 10px',
-                        fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <PlusIcon /> New
-                    </button>
-                  )}
+                  <button
+                    onClick={() => {
+                      if (tab === 'team') { setView('new'); fetchEmployees(); }
+                      else { setView('patient-new'); setPatientSearchQ(''); setPatientSearchResults([]); }
+                    }}
+                    style={{
+                      background: '#000', color: '#fff', border: 'none',
+                      borderRadius: 0, padding: '7px 10px',
+                      fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 4,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <PlusIcon /> New
+                  </button>
                 </div>
                 {/* Search */}
                 <div style={{ position: 'relative' }}>
@@ -1063,6 +1115,86 @@ export default function StaffMessagingPanel() {
                 >
                   <SendIcon color={patientInput.trim() && !patientSending && activePatientPhone ? '#fff' : '#9ca3af'} />
                 </button>
+              </div>
+            </>
+          )}
+
+          {/* ── NEW PATIENT SMS VIEW ─────────────────────────────────── */}
+          {view === 'patient-new' && (
+            <>
+              {/* Header */}
+              <div style={{
+                padding: '12px 16px',
+                borderBottom: '1px solid #e5e7eb',
+                display: 'flex', alignItems: 'center', gap: 10,
+                flexShrink: 0,
+              }}>
+                <button
+                  onClick={() => { setView('patients'); setPatientSearchQ(''); setPatientSearchResults([]); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#374151', display: 'flex' }}
+                >
+                  <ArrowLeftIcon />
+                </button>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>Text a patient</div>
+              </div>
+
+              {/* Search */}
+              <div style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6', flexShrink: 0 }}>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }}>
+                    <SearchIcon />
+                  </div>
+                  <input
+                    value={patientSearchQ}
+                    onChange={(e) => handlePatientSearchInput(e.target.value)}
+                    placeholder="Search patient name…"
+                    autoFocus
+                    style={{
+                      width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 0,
+                      padding: '7px 10px 7px 30px', fontSize: 13, background: '#f9fafb',
+                      color: '#111', outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Results */}
+              <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                {patientSearchQ.trim().length < 2 && (
+                  <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
+                    Type at least 2 characters to search.
+                  </div>
+                )}
+                {patientSearchQ.trim().length >= 2 && searchingPatients && (
+                  <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>Searching…</div>
+                )}
+                {patientSearchQ.trim().length >= 2 && !searchingPatients && patientSearchResults.length === 0 && (
+                  <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>No matches</div>
+                )}
+                {patientSearchResults.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => handleStartPatientConversation(p)}
+                    disabled={!p.phone}
+                    style={{
+                      width: '100%', padding: '10px 16px',
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      border: 'none', borderBottom: '1px solid #f3f4f6',
+                      background: '#fff',
+                      cursor: p.phone ? 'pointer' : 'default',
+                      textAlign: 'left',
+                      opacity: p.phone ? 1 : 0.5,
+                    }}
+                  >
+                    <Avatar name={p.name || 'Patient'} size={32} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 500, color: '#111' }}>{p.name || 'Unknown'}</div>
+                      <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 1 }}>
+                        {p.phone || 'No phone on file'}
+                      </div>
+                    </div>
+                  </button>
+                ))}
               </div>
             </>
           )}

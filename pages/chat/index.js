@@ -370,6 +370,12 @@ export default function ChatApp() {
   const [patientInput, setPatientInput] = useState('');
   const [patientSending, setPatientSending] = useState(false);
 
+  // New patient conversation search
+  const [patientSearchQ, setPatientSearchQ] = useState('');
+  const [patientSearchResults, setPatientSearchResults] = useState([]);
+  const [searchingPatients, setSearchingPatients] = useState(false);
+  const patientSearchTimeout = useRef(null);
+
   const [showInstallHint, setShowInstallHint] = useState(false);
   const [showNotifPrompt, setShowNotifPrompt] = useState(false);
   const [enablingNotif, setEnablingNotif] = useState(false);
@@ -536,6 +542,54 @@ export default function ChatApp() {
   const handlePatientKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendPatientSms(); }
   };
+
+  // Debounced patient name search for the "new patient SMS" view
+  const handlePatientSearchInput = useCallback((q) => {
+    setPatientSearchQ(q);
+    if (patientSearchTimeout.current) clearTimeout(patientSearchTimeout.current);
+    if (!q || q.trim().length < 2) {
+      setPatientSearchResults([]);
+      setSearchingPatients(false);
+      return;
+    }
+    setSearchingPatients(true);
+    patientSearchTimeout.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/patients/search?q=${encodeURIComponent(q.trim())}`);
+        const data = await res.json();
+        setPatientSearchResults(data.patients || []);
+      } catch (err) {
+        console.error('Patient search error:', err);
+        setPatientSearchResults([]);
+      } finally {
+        setSearchingPatients(false);
+      }
+    }, 350);
+  }, []);
+
+  // Open a fresh thread with a patient picked from search results
+  const handleStartPatientConversation = useCallback(async (p) => {
+    if (!p?.phone) {
+      alert('This patient has no phone number on file.');
+      return;
+    }
+    // Match the conversation shape the rest of the panel expects
+    const fullName = p.name || [p.first_name, p.last_name].filter(Boolean).join(' ').trim() || 'Patient';
+    const conversation = {
+      patient_id: p.id,
+      ghl_contact_id: p.ghl_contact_id || null,
+      patient_name: fullName,
+      recipient: p.phone,
+      last_message: null,
+      last_message_at: null,
+      last_direction: null,
+      unread_count: 0,
+      needs_response_count: 0,
+    };
+    setPatientSearchQ('');
+    setPatientSearchResults([]);
+    await handleOpenPatient(conversation);
+  }, [handleOpenPatient]);
 
   const handleSend = useCallback(async () => {
     if ((!input.trim() && !pendingFile) || sending || !activeChannelId) return;
@@ -894,21 +948,102 @@ export default function ChatApp() {
               )}
             </div>
 
-            {/* FAB to start new team conversation — only on Team tab */}
-            {tab === 'team' && (
+            {/* FAB to start a new conversation — Team or Patient depending on tab */}
+            <button
+              onClick={() => {
+                if (tab === 'team') { setView('new'); fetchEmployees(); }
+                else { setView('patient-new'); setPatientSearchQ(''); setPatientSearchResults([]); }
+              }}
+              aria-label={tab === 'team' ? 'New conversation' : 'Text a patient'}
+              style={{
+                position: 'fixed',
+                right: 20, bottom: 'calc(env(safe-area-inset-bottom) + 20px)',
+                width: 56, height: 56, borderRadius: '50%',
+                background: '#0f172a', color: '#fff', border: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 6px 16px rgba(0,0,0,0.18)', cursor: 'pointer',
+              }}
+            ><PlusIcon size={26} /></button>
+          </>
+        )}
+
+        {/* ─── NEW PATIENT SMS VIEW ─────────────────────────────────────── */}
+        {view === 'patient-new' && (
+          <>
+            <div style={{
+              padding: '10px 12px',
+              paddingTop: 'calc(env(safe-area-inset-top) + 10px)',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
+            }}>
               <button
-                onClick={() => { setView('new'); fetchEmployees(); }}
-                aria-label="New conversation"
-                style={{
-                  position: 'fixed',
-                  right: 20, bottom: 'calc(env(safe-area-inset-bottom) + 20px)',
-                  width: 56, height: 56, borderRadius: '50%',
-                  background: '#0f172a', color: '#fff', border: 'none',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 6px 16px rgba(0,0,0,0.18)', cursor: 'pointer',
-                }}
-              ><PlusIcon size={26} /></button>
-            )}
+                onClick={() => { setView('patients'); setPatientSearchQ(''); setPatientSearchResults([]); }}
+                aria-label="Back"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: '#0f172a', display: 'flex' }}
+              ><ArrowLeft /></button>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>Text a patient</div>
+            </div>
+
+            <div style={{ padding: '12px 16px 8px', borderBottom: '1px solid #f1f5f9', flexShrink: 0 }}>
+              <div style={{ position: 'relative' }}>
+                <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}>
+                  <SearchIcon />
+                </div>
+                <input
+                  value={patientSearchQ}
+                  onChange={(e) => handlePatientSearchInput(e.target.value)}
+                  placeholder="Search patient name…"
+                  autoFocus
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    border: '1.5px solid #e2e8f0', borderRadius: 10,
+                    padding: '10px 12px 10px 36px', fontSize: 15,
+                    background: '#f8fafc', outline: 'none',
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              {patientSearchQ.trim().length < 2 && (
+                <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>
+                  Type at least 2 characters to search.
+                </div>
+              )}
+              {patientSearchQ.trim().length >= 2 && searchingPatients && (
+                <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>Searching…</div>
+              )}
+              {patientSearchQ.trim().length >= 2 && !searchingPatients && patientSearchResults.length === 0 && (
+                <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>No matches</div>
+              )}
+              {patientSearchResults.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => handleStartPatientConversation(p)}
+                  disabled={!p.phone}
+                  style={{
+                    width: '100%', padding: '12px 16px',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    border: 'none', borderBottom: '1px solid #f1f5f9',
+                    background: '#fff',
+                    cursor: p.phone ? 'pointer' : 'default',
+                    textAlign: 'left',
+                    opacity: p.phone ? 1 : 0.5,
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  <Avatar name={p.name || 'Patient'} size={44} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#0f172a' }}>
+                      {p.name || 'Unknown'}
+                    </div>
+                    <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 2 }}>
+                      {p.phone || 'No phone on file'}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
           </>
         )}
 

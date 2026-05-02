@@ -8,6 +8,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../components/AuthProvider';
 import useStaffMessaging from '../../hooks/useStaffMessaging';
+import usePatientMessaging from '../../hooks/usePatientMessaging';
 import { supabase } from '../../lib/supabase';
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -338,7 +339,23 @@ export default function ChatApp() {
     sendMessage, uploadFile, createChannel, openDm, setMessages,
   } = useStaffMessaging(employee, session);
 
-  const [view, setView] = useState('channels'); // 'channels' | 'chat' | 'new'
+  const {
+    conversations: patientConvos,
+    activePatient,
+    messages: patientMessages,
+    loadingConversations: loadingPatients,
+    loadingMessages: loadingPatientMessages,
+    totalUnread: patientUnread,
+    totalNeedsResponse: patientNeedsResponse,
+    fetchConversations: fetchPatientConvos,
+    openPatient,
+    closePatient,
+    sendMessage: sendPatientSms,
+  } = usePatientMessaging(employee);
+
+  // 'channels' | 'chat' | 'new' | 'patients' | 'patient-chat'
+  const [view, setView] = useState('channels');
+  const [tab, setTab] = useState('team'); // 'team' | 'patients'
   const [search, setSearch] = useState('');
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -349,6 +366,10 @@ export default function ChatApp() {
   const [groupName, setGroupName] = useState('');
   const [empSearch, setEmpSearch] = useState('');
 
+  // Patient SMS compose
+  const [patientInput, setPatientInput] = useState('');
+  const [patientSending, setPatientSending] = useState(false);
+
   const [showInstallHint, setShowInstallHint] = useState(false);
   const [showNotifPrompt, setShowNotifPrompt] = useState(false);
   const [enablingNotif, setEnablingNotif] = useState(false);
@@ -358,6 +379,8 @@ export default function ChatApp() {
   const fileInputRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const initialDeepLinkRef = useRef(false);
+  const patientInputRef = useRef(null);
+  const patientBottomRef = useRef(null);
 
   // ── PWA install / notification UX detection ───────────────────────────────
   useEffect(() => {
@@ -394,13 +417,22 @@ export default function ChatApp() {
     const onMsg = (e) => {
       if (e.data?.type === 'open-channel' && e.data.channel_id) {
         const chId = e.data.channel_id;
+        setTab('team');
         setView('chat');
         openChannel(chId);
+      } else if (e.data?.type === 'open-patient-sms') {
+        const target = e.data.patient_id
+          ? patientConvos.find((c) => c.patient_id === e.data.patient_id)
+          : patientConvos.find((c) => c.recipient === e.data.recipient);
+        const patient = target || { patient_id: e.data.patient_id || null, recipient: e.data.recipient || null };
+        setTab('patients');
+        setView('patient-chat');
+        openPatient(patient);
       }
     };
     navigator.serviceWorker.addEventListener('message', onMsg);
     return () => navigator.serviceWorker.removeEventListener('message', onMsg);
-  }, [openChannel]);
+  }, [openChannel, openPatient, patientConvos]);
 
   // ── Deep-link from URL: /chat?c=<channelId> ───────────────────────────────
   useEffect(() => {
@@ -461,6 +493,49 @@ export default function ChatApp() {
     setView('chat');
     await openChannel(channelId);
   }, [openChannel]);
+
+  const handleOpenPatient = useCallback(async (patient) => {
+    setView('patient-chat');
+    await openPatient(patient);
+    setTimeout(() => patientInputRef.current?.focus(), 150);
+  }, [openPatient]);
+
+  const handleSwitchTab = useCallback((next) => {
+    setTab(next);
+    setSearch('');
+    if (next === 'patients') {
+      setView('patients');
+      fetchPatientConvos();
+    } else {
+      setView('channels');
+      fetchChannels();
+    }
+  }, [fetchChannels, fetchPatientConvos]);
+
+  // Auto-scroll patient thread on new messages
+  useEffect(() => {
+    if (view === 'patient-chat' && patientBottomRef.current) {
+      patientBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [patientMessages, view]);
+
+  const handleSendPatientSms = useCallback(async () => {
+    const text = patientInput.trim();
+    if (!text || patientSending || !activePatient) return;
+    setPatientSending(true);
+    setPatientInput('');
+    const result = await sendPatientSms(activePatient, text);
+    setPatientSending(false);
+    if (!result?.success) {
+      setPatientInput(text);
+      alert('Failed to send: ' + (result?.error || 'unknown error'));
+    }
+    setTimeout(() => patientInputRef.current?.focus(), 80);
+  }, [patientInput, patientSending, activePatient, sendPatientSms]);
+
+  const handlePatientKey = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendPatientSms(); }
+  };
 
   const handleSend = useCallback(async () => {
     if ((!input.trim() && !pendingFile) || sending || !activeChannelId) return;
@@ -554,6 +629,14 @@ export default function ChatApp() {
     if (!empSearch.trim()) return true;
     return e.name.toLowerCase().includes(empSearch.toLowerCase());
   });
+  const filteredPatientConvos = patientConvos.filter((c) => {
+    if (!search.trim()) return true;
+    const name = (c.patient_name || c.recipient || '').toLowerCase();
+    return name.includes(search.toLowerCase());
+  });
+
+  const activePatientName = activePatient?.patient_name || activePatient?.recipient || 'Patient';
+  const activePatientPhone = activePatient?.recipient || '';
 
   return (
     <>
@@ -565,8 +648,8 @@ export default function ChatApp() {
         WebkitTextSizeAdjust: '100%',
       }}>
 
-        {/* ─── CHANNEL LIST ─────────────────────────────────────────────── */}
-        {view === 'channels' && (
+        {/* ─── LIST VIEW (Team channels or Patient conversations) ────────── */}
+        {(view === 'channels' || view === 'patients') && (
           <>
             <div style={{
               padding: '12px 16px 8px',
@@ -583,6 +666,59 @@ export default function ChatApp() {
                   }}
                 >Sign out</button>
               </div>
+
+              {/* Tab switcher: Team / Patients */}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                <button
+                  onClick={() => handleSwitchTab('team')}
+                  style={{
+                    flex: 1, padding: '9px 12px',
+                    background: tab === 'team' ? '#0f172a' : '#f1f5f9',
+                    color: tab === 'team' ? '#fff' : '#475569',
+                    border: 'none', borderRadius: 10,
+                    fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  Team
+                  {totalUnread > 0 && (
+                    <span style={{
+                      background: tab === 'team' ? '#fff' : '#ef4444',
+                      color: tab === 'team' ? '#0f172a' : '#fff',
+                      borderRadius: 10, padding: '0 6px',
+                      fontSize: 11, fontWeight: 700, minWidth: 18, height: 16,
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    }}>{totalUnread > 99 ? '99+' : totalUnread}</span>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleSwitchTab('patients')}
+                  style={{
+                    flex: 1, padding: '9px 12px',
+                    background: tab === 'patients' ? '#0f172a' : '#f1f5f9',
+                    color: tab === 'patients' ? '#fff' : '#475569',
+                    border: 'none', borderRadius: 10,
+                    fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  Patients
+                  {(patientUnread > 0 || patientNeedsResponse > 0) && (
+                    <span style={{
+                      background: tab === 'patients'
+                        ? '#fff'
+                        : (patientNeedsResponse > 0 ? '#ea580c' : '#ef4444'),
+                      color: tab === 'patients' ? '#0f172a' : '#fff',
+                      borderRadius: 10, padding: '0 6px',
+                      fontSize: 11, fontWeight: 700, minWidth: 18, height: 16,
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    }}>{(patientUnread || patientNeedsResponse) > 99 ? '99+' : (patientUnread || patientNeedsResponse)}</span>
+                  )}
+                </button>
+              </div>
+
               <div style={{ position: 'relative' }}>
                 <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}>
                   <SearchIcon />
@@ -590,7 +726,7 @@ export default function ChatApp() {
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search conversations"
+                  placeholder={tab === 'patients' ? 'Search patients' : 'Search conversations'}
                   style={{
                     width: '100%', boxSizing: 'border-box',
                     border: '1.5px solid #e2e8f0', borderRadius: 10,
@@ -611,6 +747,85 @@ export default function ChatApp() {
             )}
 
             <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              {tab === 'patients' ? (
+                <>
+                  {loadingPatients && patientConvos.length === 0 && (
+                    <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>Loading…</div>
+                  )}
+                  {!loadingPatients && filteredPatientConvos.length === 0 && (
+                    <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>
+                      {search ? 'No matches' : 'No patient conversations yet.'}
+                    </div>
+                  )}
+                  {filteredPatientConvos.map((c) => {
+                    const key = c.patient_id || (c.ghl_contact_id ? `ghl_${c.ghl_contact_id}` : c.recipient || c.patient_name);
+                    const hasUnread = (c.unread_count || 0) > 0;
+                    const needsResponse = (c.needs_response_count || 0) > 0;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => handleOpenPatient(c)}
+                        style={{
+                          width: '100%', padding: '12px 16px',
+                          display: 'flex', alignItems: 'center', gap: 12,
+                          border: 'none', borderBottom: '1px solid #f1f5f9',
+                          borderLeft: needsResponse ? '4px solid #ea580c' : (hasUnread ? '4px solid #3b82f6' : '4px solid transparent'),
+                          background: needsResponse ? '#fff7ed' : (hasUnread ? '#f8fafc' : '#fff'),
+                          cursor: 'pointer', textAlign: 'left',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        <Avatar name={c.patient_name || c.recipient || '?'} size={44} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                            <div style={{
+                              fontSize: 15,
+                              fontWeight: hasUnread || needsResponse ? 700 : 500,
+                              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                              color: '#0f172a',
+                            }}>
+                              {c.patient_name || c.recipient || 'Unknown'}
+                            </div>
+                            <div style={{ fontSize: 12, color: '#94a3b8', flexShrink: 0 }}>
+                              {formatTime(c.last_message_at)}
+                            </div>
+                          </div>
+                          {c.last_message && (
+                            <div style={{
+                              fontSize: 13,
+                              color: hasUnread || needsResponse ? '#0f172a' : '#94a3b8',
+                              fontWeight: hasUnread || needsResponse ? 600 : 400,
+                              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                              marginTop: 2,
+                            }}>
+                              {c.last_direction === 'inbound' && (
+                                <span style={{ color: needsResponse ? '#ea580c' : '#3b82f6', fontSize: 9 }}>● </span>
+                              )}
+                              {(c.last_message || '').slice(0, 80)}
+                            </div>
+                          )}
+                        </div>
+                        {needsResponse ? (
+                          <span style={{
+                            background: '#ea580c', color: '#fff',
+                            borderRadius: 8, padding: '3px 8px',
+                            fontSize: 10, fontWeight: 700, letterSpacing: '0.3px',
+                            textTransform: 'uppercase', flexShrink: 0,
+                          }}>Reply</span>
+                        ) : hasUnread ? (
+                          <div style={{
+                            background: '#3b82f6', color: '#fff', borderRadius: 10,
+                            minWidth: 20, height: 20, fontSize: 11, fontWeight: 700,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            padding: '0 6px', flexShrink: 0,
+                          }}>{c.unread_count > 99 ? '99+' : c.unread_count}</div>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </>
+              ) : (
+                <>
               {loadingChannels && channels.length === 0 && (
                 <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>Loading…</div>
               )}
@@ -675,21 +890,139 @@ export default function ChatApp() {
                   </button>
                 );
               })}
+                </>
+              )}
             </div>
 
-            {/* FAB to start new conversation */}
-            <button
-              onClick={() => { setView('new'); fetchEmployees(); }}
-              aria-label="New conversation"
-              style={{
-                position: 'fixed',
-                right: 20, bottom: 'calc(env(safe-area-inset-bottom) + 20px)',
-                width: 56, height: 56, borderRadius: '50%',
-                background: '#0f172a', color: '#fff', border: 'none',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 6px 16px rgba(0,0,0,0.18)', cursor: 'pointer',
-              }}
-            ><PlusIcon size={26} /></button>
+            {/* FAB to start new team conversation — only on Team tab */}
+            {tab === 'team' && (
+              <button
+                onClick={() => { setView('new'); fetchEmployees(); }}
+                aria-label="New conversation"
+                style={{
+                  position: 'fixed',
+                  right: 20, bottom: 'calc(env(safe-area-inset-bottom) + 20px)',
+                  width: 56, height: 56, borderRadius: '50%',
+                  background: '#0f172a', color: '#fff', border: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 6px 16px rgba(0,0,0,0.18)', cursor: 'pointer',
+                }}
+              ><PlusIcon size={26} /></button>
+            )}
+          </>
+        )}
+
+        {/* ─── PATIENT SMS CHAT VIEW ─────────────────────────────────────── */}
+        {view === 'patient-chat' && activePatient && (
+          <>
+            <div style={{
+              padding: '10px 12px',
+              paddingTop: 'calc(env(safe-area-inset-top) + 10px)',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
+            }}>
+              <button
+                onClick={() => { closePatient(); setView('patients'); fetchPatientConvos(); }}
+                aria-label="Back"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: '#0f172a', display: 'flex' }}
+              ><ArrowLeft /></button>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {activePatientName}
+                </div>
+                {activePatientPhone && (
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>{activePatientPhone}</div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px', WebkitOverflowScrolling: 'touch' }}>
+              {loadingPatientMessages && patientMessages.length === 0 && (
+                <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Loading…</div>
+              )}
+              {!loadingPatientMessages && patientMessages.length === 0 && (
+                <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                  No messages yet. Send the first one below.
+                </div>
+              )}
+              {patientMessages.map((m, idx) => {
+                const isOutbound = m.direction === 'outbound';
+                const isError = m.status === 'error';
+                const isSending = m.status === 'sending';
+                const showTime = idx === patientMessages.length - 1 ||
+                  patientMessages[idx + 1]?.direction !== m.direction;
+                return (
+                  <div key={m.id} style={{ marginBottom: 4 }}>
+                    <div style={{ display: 'flex', justifyContent: isOutbound ? 'flex-end' : 'flex-start' }}>
+                      <div style={{
+                        maxWidth: '78%',
+                        background: isError ? '#fee2e2' : (isOutbound ? '#0f172a' : '#f1f5f9'),
+                        color: isError ? '#991b1b' : (isOutbound ? '#fff' : '#0f172a'),
+                        padding: '8px 13px',
+                        fontSize: 15, lineHeight: 1.45,
+                        whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                        borderRadius: 18,
+                        opacity: isSending ? 0.6 : 1,
+                      }}>
+                        {m.message}
+                      </div>
+                    </div>
+                    {showTime && (
+                      <div style={{
+                        textAlign: isOutbound ? 'right' : 'left',
+                        fontSize: 10, color: isError ? '#dc2626' : '#94a3b8',
+                        marginTop: 2,
+                      }}>
+                        {isError ? `Failed${m.error_message ? ': ' + m.error_message : ''}` : (isSending ? 'Sending…' : formatMessageTime(m.created_at))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              <div ref={patientBottomRef} />
+            </div>
+
+            <div style={{
+              borderTop: '1px solid #e2e8f0',
+              padding: '10px 12px',
+              paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)',
+              display: 'flex', gap: 8, alignItems: 'flex-end',
+              flexShrink: 0,
+            }}>
+              <textarea
+                ref={patientInputRef}
+                value={patientInput}
+                onChange={(e) => setPatientInput(e.target.value)}
+                onKeyDown={handlePatientKey}
+                placeholder={activePatientPhone ? `Text ${activePatientName.split(' ')[0]}…` : 'No phone on file'}
+                rows={1}
+                disabled={!activePatientPhone}
+                style={{
+                  flex: 1, border: '1.5px solid #e2e8f0', borderRadius: 18,
+                  padding: '10px 14px', fontSize: 15, lineHeight: 1.4,
+                  background: '#f8fafc', color: '#0f172a', resize: 'none',
+                  fontFamily: 'inherit', maxHeight: 120, overflowY: 'auto',
+                }}
+                onInput={(e) => {
+                  e.target.style.height = 'auto';
+                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                }}
+              />
+              <button
+                onClick={handleSendPatientSms}
+                disabled={!patientInput.trim() || patientSending || !activePatientPhone}
+                style={{
+                  width: 40, height: 40, borderRadius: '50%',
+                  background: patientInput.trim() && !patientSending && activePatientPhone ? '#0f172a' : '#e2e8f0',
+                  border: 'none',
+                  cursor: patientInput.trim() && !patientSending && activePatientPhone ? 'pointer' : 'default',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <SendIcon color={patientInput.trim() && !patientSending && activePatientPhone ? '#fff' : '#94a3b8'} />
+              </button>
+            </div>
           </>
         )}
 

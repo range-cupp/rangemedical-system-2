@@ -378,6 +378,22 @@ export default function InteractiveEncounterForm({ formType, vitals, currentProt
           next.infusion.vitamin_doses = doses;
         }
       }
+      if (sectionKey === 'infusion' && fieldKey === 'infusion_type') {
+        const HYDRATION_IV_TYPES = [
+          'High-Dose Vitamin C 25g', 'High-Dose Vitamin C 50g', 'High-Dose Vitamin C 75g',
+          'NAD+ IV 225mg', 'NAD+ IV 500mg', 'NAD+ IV 750mg', 'NAD+ IV 1000mg',
+          'Methylene Blue IV', 'MB + Vit C + Mag Combo',
+        ];
+        const hydrationText = 'Patient instructed to maintain hydration.';
+        const current = next.outcome?.post_care || [];
+        if (HYDRATION_IV_TYPES.includes(value)) {
+          if (!current.includes(hydrationText)) {
+            next.outcome = { ...next.outcome, post_care: [...current, hydrationText] };
+          }
+        } else {
+          next.outcome = { ...next.outcome, post_care: current.filter(o => o !== hydrationText) };
+        }
+      }
       return next;
     });
   };

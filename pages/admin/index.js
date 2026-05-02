@@ -118,8 +118,8 @@ export default function Dashboard() {
   const activeStages = LAB_STAGES.filter(s => s.id !== 'consult_complete');
 
   // Weekly schedule — group patients by scheduled day, segmented by category
-  const WEEK_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const DAY_LABELS = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat' };
+  const WEEK_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const DAY_LABELS = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };
   const SCHEDULE_TABS = [
     { id: 'weight_loss', label: 'Weight Loss' },
     { id: 'hrt', label: 'Testosterone' },
@@ -223,7 +223,7 @@ export default function Dashboard() {
     setExpandedDays(prev => ({ ...prev, [day]: !prev?.[day] }));
   };
 
-  const DAY_FULL_LABELS = { monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday' };
+  const DAY_FULL_LABELS = { monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday' };
 
   const startEditNote = (protocol) => {
     setEditingNote(protocol.id);

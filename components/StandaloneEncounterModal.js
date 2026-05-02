@@ -69,9 +69,23 @@ function getEffectiveType(serviceType) {
 
 // ── Markdown ↔ HTML helpers ───────────────────────────────────────────────────
 
-// Convert **bold** markdown + newlines → HTML for contentEditable display
+function isHtmlNote(text) {
+  return !!text && /<(strong|b|i|em|u|span|mark|font|br|div|ul|ol|li|p)\b/i.test(text);
+}
+
+function sanitizeNoteHtml(html) {
+  if (!html) return '';
+  return html
+    .replace(/<\/?(script|style|iframe|object|embed|link|meta)\b[^>]*>/gi, '')
+    .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+    .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+    .replace(/\son\w+\s*=\s*[^\s>]+/gi, '')
+    .replace(/javascript:/gi, '');
+}
+
 function mdToHtml(text) {
   if (!text) return '';
+  if (isHtmlNote(text)) return sanitizeNoteHtml(text);
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -80,22 +94,20 @@ function mdToHtml(text) {
     .replace(/\n/g, '<br>');
 }
 
-// Convert contentEditable HTML back to **bold** markdown for storage
 function htmlToMd(html) {
   if (!html) return '';
-  return html
-    .replace(/<strong>([\s\S]*?)<\/strong>/gi, (_, inner) => `**${inner.replace(/<[^>]*>/g, '')}**`)
-    .replace(/<b>([\s\S]*?)<\/b>/gi, (_, inner) => `**${inner.replace(/<[^>]*>/g, '')}**`)
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<div><br\s*\/?><\/div>/gi, '\n')
-    .replace(/<div>([\s\S]*?)<\/div>/gi, '\n$1')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/<[^>]*>/g, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+  const cleaned = sanitizeNoteHtml(html);
+  if (!isHtmlNote(cleaned)) {
+    return cleaned
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .trim();
+  }
+  return cleaned.trim();
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────

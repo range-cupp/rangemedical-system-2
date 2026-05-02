@@ -335,9 +335,11 @@ export default async function handler(req, res) {
         }
       }
 
-      // Alert Tara via SMS that a Cal.com booking needs visit reason updated
+      // Alert Tara via SMS that a Cal.com booking needs visit reason updated.
+      // Skip backdated appointments \u2014 past visits don't need prep alerts.
       const taraPhone = process.env.TARA_PHONE;
-      if (taraPhone) {
+      const isBackdated = startTime && new Date(startTime).getTime() < Date.now() - 60 * 1000;
+      if (taraPhone && !isBackdated) {
         const apptDateDisplay = startTime
           ? new Date(startTime).toLocaleString('en-US', {
               weekday: 'short', month: 'short', day: 'numeric',

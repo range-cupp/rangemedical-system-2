@@ -133,7 +133,7 @@ export default async function handler(req, res) {
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 500,
       system: `You are a staff briefing assistant for Range Medical, a regenerative medicine clinic. Generate a concise patient synopsis that helps any staff member quickly understand this patient's current status and context.
 

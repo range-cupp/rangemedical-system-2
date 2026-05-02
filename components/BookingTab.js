@@ -91,7 +91,7 @@ const INJECTION_TIERS = [
 
 const INJECTION_TYPES_BY_TIER = {
   'Standard ($35)': [
-    'B12 (Methylcobalamin)', 'B-Complex', 'Vitamin D3', 'Biotin',
+    'B12 (Methylcobalamin)', 'B-Complex', 'B-12 / B-Complex', 'Vitamin D3', 'Biotin',
     'Amino Blend', 'NAC', 'BCAA',
   ],
   'Premium ($50)': [

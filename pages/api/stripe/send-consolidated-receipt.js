@@ -165,6 +165,7 @@ export default async function handler(req, res) {
       channel: 'email',
       messageType: 'receipt',
       message: `Receipt for ${totalLabel} — ${itemNames}`,
+      htmlBody: html,
       source: 'send-consolidated-receipt',
       patientId,
       patientName: patient.name,

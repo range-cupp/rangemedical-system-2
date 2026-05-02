@@ -219,7 +219,7 @@ async function handleGet(req, res) {
         frequency, checkin_cadence_days, injection_day, start_date, end_date,
         delivery_method, total_sessions, sessions_used,
         checkin_reminder_enabled, reminder_opt_out, reminder_opt_out_reason,
-        patients!inner ( id, name, first_name, last_name, phone, ghl_contact_id, photo_url )
+        patients!inner ( id, name, first_name, last_name, phone, ghl_contact_id )
       `)
       .eq('status', 'active')
       .ilike('program_type', 'weight_loss%')
@@ -340,7 +340,6 @@ async function handleGet(req, res) {
         name: patient.name,
         first_name: patient.first_name,
         initials: getInitials(patient.name),
-        photo_url: patient.photo_url,
         phone: patient.phone,
         ghl_contact_id: patient.ghl_contact_id,
 

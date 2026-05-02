@@ -218,6 +218,9 @@ export default async function handler(req, res) {
       updated_at: new Date().toISOString(),
     };
     if (newDosePerInj != null) updatePayload.dose_per_injection = newDosePerInj;
+    if (current.sig && current.selected_dose && current.sig.includes(current.selected_dose)) {
+      updatePayload.sig = current.sig.replace(current.selected_dose, selected_dose);
+    }
 
     const { data: updated, error: updateErr } = await supabase
       .from('protocols')

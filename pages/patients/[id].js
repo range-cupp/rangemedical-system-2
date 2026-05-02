@@ -597,6 +597,18 @@ export default function PatientProfile() {
   const [showIntakeModal, setShowIntakeModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [generatingChart, setGeneratingChart] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printSections, setPrintSections] = useState({
+    demographics: true,
+    history: true,
+    medications: true,
+    completedProtocols: true,
+    labs: true,
+    prescriptions: true,
+    notes: true,
+    visits: true,
+    consents: true,
+  });
   const [showQuickView, setShowQuickView] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletePreview, setDeletePreview] = useState(null);
@@ -4565,24 +4577,10 @@ export default function PatientProfile() {
             <div className="toolbar-group">
               <button onClick={() => { setShowSendFormsModal(true); setSendFormsSelected(new Set()); setSendGuidesSelected(new Set()); setSendFormsResult(null); setSendFormsTab('forms'); setSendGuidesCategory('all'); }} className="toolbar-btn" title="Send forms">📋 <span className="toolbar-label">Forms</span></button>
               <button
-                onClick={async () => {
-                  setGeneratingChart(true);
-                  try {
-                    const res = await fetch(`/api/patients/${patient.id}/chart-pdf`);
-                    if (!res.ok) throw new Error('Failed to generate chart');
-                    const blob = await res.blob();
-                    const url = URL.createObjectURL(blob);
-                    window.open(url, '_blank');
-                  } catch (err) {
-                    console.error('Chart PDF error:', err);
-                    alert('Failed to generate chart PDF');
-                  } finally {
-                    setGeneratingChart(false);
-                  }
-                }}
+                onClick={() => setShowPrintModal(true)}
                 disabled={generatingChart}
                 className="toolbar-btn toolbar-btn-dark"
-                title="Print full patient chart"
+                title="Print patient chart"
               >
                 🖨️ <span className="toolbar-label">{generatingChart ? 'Generating...' : 'Print'}</span>
               </button>
@@ -14756,6 +14754,97 @@ export default function PatientProfile() {
             onClose={() => setShowStandaloneEncounterModal(false)}
             onRefresh={fetchPatient}
           />
+        )}
+
+        {/* Print Chart Modal — pick which sections to include */}
+        {showPrintModal && (
+          <div
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => !generatingChart && setShowPrintModal(false)}
+          >
+            <div
+              style={{ background: '#fff', borderRadius: 0, padding: '28px', width: '460px', maxWidth: '90vw', maxHeight: '90vh', overflowY: 'auto' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: '700' }}>Print Patient Chart</h3>
+              <p style={{ fontSize: '13px', color: '#666', margin: '0 0 16px' }}>
+                Select the sections to include in the printed chart.
+              </p>
+
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPrintSections(Object.fromEntries(Object.keys(printSections).map(k => [k, true])))}
+                  style={{ padding: '6px 12px', border: '1px solid #ddd', background: '#fff', fontSize: '12px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}
+                >Select All</button>
+                <button
+                  type="button"
+                  onClick={() => setPrintSections(Object.fromEntries(Object.keys(printSections).map(k => [k, false])))}
+                  style={{ padding: '6px 12px', border: '1px solid #ddd', background: '#fff', fontSize: '12px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}
+                >Clear All</button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                {[
+                  { key: 'demographics', label: 'Patient Demographics' },
+                  { key: 'history', label: 'Medical History (Intake)' },
+                  { key: 'medications', label: 'Active Medications' },
+                  { key: 'completedProtocols', label: 'Completed Protocols' },
+                  { key: 'labs', label: 'Lab Results' },
+                  { key: 'prescriptions', label: 'Prescriptions' },
+                  { key: 'notes', label: 'Clinical Notes (Encounters)' },
+                  { key: 'visits', label: 'Visit History' },
+                  { key: 'consents', label: 'Consent Forms' },
+                ].map(({ key, label }) => (
+                  <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', border: '1px solid #eee', cursor: 'pointer', fontSize: '14px' }}>
+                    <input
+                      type="checkbox"
+                      checked={!!printSections[key]}
+                      onChange={e => setPrintSections(s => ({ ...s, [key]: e.target.checked }))}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setShowPrintModal(false)}
+                  disabled={generatingChart}
+                  style={{ padding: '8px 16px', border: '1px solid #ddd', background: '#fff', fontSize: '13px', fontWeight: '500', cursor: generatingChart ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+                >Cancel</button>
+                <button
+                  onClick={async () => {
+                    const selected = Object.keys(printSections).filter(k => printSections[k]);
+                    if (selected.length === 0) {
+                      alert('Select at least one section to print.');
+                      return;
+                    }
+                    setGeneratingChart(true);
+                    try {
+                      const qs = `?sections=${encodeURIComponent(selected.join(','))}`;
+                      const res = await fetch(`/api/patients/${patient.id}/chart-pdf${qs}`);
+                      if (!res.ok) throw new Error('Failed to generate chart');
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(blob);
+                      window.open(url, '_blank');
+                      setShowPrintModal(false);
+                    } catch (err) {
+                      console.error('Chart PDF error:', err);
+                      alert('Failed to generate chart PDF');
+                    } finally {
+                      setGeneratingChart(false);
+                    }
+                  }}
+                  disabled={generatingChart}
+                  style={{ padding: '8px 16px', border: 'none', background: '#000', color: '#fff', fontSize: '13px', fontWeight: '500', cursor: generatingChart ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: generatingChart ? 0.6 : 1 }}
+                >
+                  {generatingChart ? 'Generating...' : 'Generate PDF'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Treatment Plan Modal — build patient-facing PDF from encounter note */}

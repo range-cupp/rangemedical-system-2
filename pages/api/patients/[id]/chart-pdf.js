@@ -14,10 +14,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { id } = req.query;
+  const { id, sections: sectionsParam } = req.query;
   if (!id) {
     return res.status(400).json({ error: 'Patient ID is required' });
   }
+
+  // Parse comma-separated section keys; absent param = include everything
+  const sections = sectionsParam
+    ? Object.fromEntries(String(sectionsParam).split(',').filter(Boolean).map(k => [k.trim(), true]))
+    : null;
 
   try {
     // Fetch all patient data in parallel
@@ -71,6 +76,7 @@ export default async function handler(req, res) {
       serviceLogs: serviceLogs || [],
       consents: consents || [],
       prescriptions: prescriptions || [],
+      sections,
     });
 
     const patientName = `${patient.first_name || ''}_${patient.last_name || ''}`.trim().replace(/\s+/g, '_') || 'Patient';

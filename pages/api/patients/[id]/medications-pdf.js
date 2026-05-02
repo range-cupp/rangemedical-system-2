@@ -56,6 +56,44 @@ export default async function handler(req, res) {
       issueDate,
     });
 
+    // Save a copy to the patient's Documents tab. Wrapped so a storage hiccup
+    // doesn't block the user from getting their PDF.
+    try {
+      const buffer = Buffer.from(pdfBytes);
+      const timestamp = Date.now();
+      const dateStamp = issueDate.replace(/-/g, '');
+      const filePath = `${id}/${timestamp}-medication-list-${dateStamp}.pdf`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from('patient-documents')
+        .upload(filePath, buffer, { contentType: 'application/pdf', upsert: false });
+
+      if (uploadErr) {
+        console.error('Medication list upload error:', uploadErr.message);
+      } else {
+        const { data: urlData } = await supabase.storage
+          .from('patient-documents')
+          .createSignedUrl(filePath, 60 * 60 * 24 * 30);
+
+        const issueObj = new Date(issueDate + 'T00:00:00');
+        const dateStr = issueObj.toLocaleDateString('en-US', {
+          month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles',
+        });
+
+        await supabase.from('medical_documents').insert({
+          patient_id: id,
+          document_name: `Medication List — ${dateStr}`,
+          document_url: urlData?.signedUrl || null,
+          document_type: 'Medication List',
+          file_path: filePath,
+          file_size: buffer.length,
+          uploaded_by: provider || 'Damien Burgess',
+        });
+      }
+    } catch (saveErr) {
+      console.error('Medication list archive error:', saveErr.message);
+    }
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'inline; filename="medication-list.pdf"');
     res.setHeader('Cache-Control', 'no-store');

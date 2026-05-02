@@ -33,41 +33,78 @@ self.addEventListener('push', (event) => {
 
   const title = payload.title || 'Range Chat';
   const body = payload.body || '';
-  const channelId = payload.data?.channel_id;
-  const tag = channelId ? `chat-${channelId}` : 'chat';
+  const data = payload.data || {};
+  const kind = data.kind;
+
+  let tag;
+  if (kind === 'patient_sms') {
+    tag = data.patient_id ? `patient-sms-${data.patient_id}` : `patient-sms-${data.recipient || 'unknown'}`;
+  } else {
+    const channelId = data.channel_id;
+    tag = channelId ? `chat-${channelId}` : 'chat';
+  }
 
   const options = {
     body,
-    tag,                 // collapse multiple messages from the same channel
-    renotify: true,      // still buzz on a new message in same channel
+    tag,                 // collapse repeat notifications from the same source
+    renotify: true,      // still buzz on a new message
     icon: '/android-chrome-192x192.png',
     badge: '/android-chrome-192x192.png',
-    data: payload.data || {},
+    data,
     requireInteraction: false,
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// Click: focus an existing /chat tab or open a new one, deep-linking the channel.
+// Click: focus an existing tab or open a new one, deep-linking to the right view.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const channelId = event.notification.data?.channel_id;
-  const targetUrl = channelId ? `/chat?c=${channelId}` : '/chat';
+  const data = event.notification.data || {};
+  const kind = data.kind;
+
+  let targetUrl;
+  let preferredPath;
+  let postMessageData = null;
+
+  if (kind === 'patient_sms') {
+    targetUrl = data.patient_id
+      ? `/admin/communications?patient=${data.patient_id}`
+      : '/admin/communications';
+    preferredPath = '/admin/communications';
+    postMessageData = { type: 'open-patient-sms', patient_id: data.patient_id || null, recipient: data.recipient || null };
+  } else {
+    const channelId = data.channel_id;
+    targetUrl = channelId ? `/chat?c=${channelId}` : '/chat';
+    preferredPath = '/chat';
+    postMessageData = { type: 'open-channel', channel_id: channelId || null };
+  }
 
   event.waitUntil((async () => {
     const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    // Prefer an already-open chat tab.
+    // Prefer an already-open admin/chat tab on the same path.
     for (const client of allClients) {
       try {
         const url = new URL(client.url);
-        if (url.pathname.startsWith('/chat')) {
+        if (url.pathname.startsWith(preferredPath)) {
           await client.focus();
-          // Tell the page which channel was tapped so it can deep-link.
-          client.postMessage({ type: 'open-channel', channel_id: channelId || null });
+          if (postMessageData) client.postMessage(postMessageData);
           return;
         }
       } catch (_e) {}
+    }
+    // Fallback: focus any open admin tab so the panel can pick up the message.
+    if (kind === 'patient_sms') {
+      for (const client of allClients) {
+        try {
+          const url = new URL(client.url);
+          if (url.pathname.startsWith('/admin')) {
+            await client.focus();
+            if (postMessageData) client.postMessage(postMessageData);
+            return;
+          }
+        } catch (_e) {}
+      }
     }
     // Otherwise open a fresh window.
     if (self.clients.openWindow) {

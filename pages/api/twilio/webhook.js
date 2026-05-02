@@ -9,6 +9,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { sendSMS } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
+import { pushAllEmployees } from '../../../lib/web-push';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -107,6 +108,26 @@ export default async function handler(req, res) {
 
     if (insertError) {
       console.error('Error storing inbound SMS:', insertError);
+    }
+
+    // Web push to all employees with notifications enabled — best-effort, non-blocking.
+    try {
+      const previewBody = (Body || '').slice(0, 140);
+      const titleName = patient
+        ? (patient.first_name && patient.last_name ? `${patient.first_name} ${patient.last_name}` : (patient.name || From))
+        : From;
+      pushAllEmployees({
+        title: titleName,
+        body: previewBody || 'New SMS',
+        data: {
+          kind: 'patient_sms',
+          patient_id: patient?.id || null,
+          patient_name: titleName,
+          recipient: From,
+        },
+      }).catch((err) => console.warn('[twilio webhook] push failed:', err?.message || err));
+    } catch (pushErr) {
+      console.warn('[twilio webhook] push error (non-fatal):', pushErr?.message || pushErr);
     }
 
     // ================================================================

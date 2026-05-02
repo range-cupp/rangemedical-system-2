@@ -9,6 +9,7 @@ import { sendBlooioMessage } from '../../../lib/blooio';
 import { identifyStaff, handleStaffMessage } from '../../../lib/staff-bot';
 import { shouldAutoReply, generateReply } from '../../../lib/patient-bot';
 import { logComm } from '../../../lib/comms-log';
+import { pushAllEmployees } from '../../../lib/web-push';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -274,6 +275,27 @@ async function handleInboundMessage(body) {
     } else {
       console.error('Error storing inbound message:', insertError);
     }
+  }
+
+  // Web push to all employees with notifications enabled — best-effort, non-blocking.
+  // Fired for real inbound patient SMS only; staff-bot inbound returns earlier in the flow.
+  try {
+    const previewBody = (messageText || (mediaUrlJson ? '📷 Image' : '')).slice(0, 140);
+    const titleName = patient
+      ? (patient.first_name && patient.last_name ? `${patient.first_name} ${patient.last_name}` : (patient.name || senderPhone))
+      : senderPhone;
+    pushAllEmployees({
+      title: titleName,
+      body: previewBody || 'New SMS',
+      data: {
+        kind: 'patient_sms',
+        patient_id: patient?.id || null,
+        patient_name: titleName,
+        recipient: senderPhone,
+      },
+    }).catch((err) => console.warn('[blooio webhook] push failed:', err?.message || err));
+  } catch (pushErr) {
+    console.warn('[blooio webhook] push error (non-fatal):', pushErr?.message || pushErr);
   }
 
   // Auto-send any pending link messages (forms/guides queued during Blooio two-step opt-in)

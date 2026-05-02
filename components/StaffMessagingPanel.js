@@ -6,7 +6,66 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from './AuthProvider';
 import useStaffMessaging from '../hooks/useStaffMessaging';
+import usePatientMessaging from '../hooks/usePatientMessaging';
 import { supabase } from '../lib/supabase';
+
+// ── Push subscription helper ─────────────────────────────────────────────────
+// Mirrors the flow used by /pages/chat/index.js so staff who open the panel
+// (without ever visiting /chat) can still receive patient SMS push notifications.
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = window.atob(base64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; ++i) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+async function ensurePushSubscriptionFromPanel(accessToken) {
+  if (typeof window === 'undefined') return { ok: false, reason: 'ssr' };
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    return { ok: false, reason: 'unsupported' };
+  }
+  const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (!vapidKey) return { ok: false, reason: 'no-vapid' };
+
+  let reg;
+  try {
+    reg = await navigator.serviceWorker.register('/chat-sw.js', { scope: '/chat' });
+    await navigator.serviceWorker.ready;
+  } catch (e) {
+    return { ok: false, reason: 'sw-failed' };
+  }
+
+  if (Notification.permission === 'default') {
+    const result = await Notification.requestPermission();
+    if (result !== 'granted') return { ok: false, reason: 'permission-denied' };
+  } else if (Notification.permission === 'denied') {
+    return { ok: false, reason: 'permission-denied' };
+  }
+
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    try {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+      });
+    } catch (e) {
+      return { ok: false, reason: 'subscribe-failed' };
+    }
+  }
+
+  try {
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ subscription: sub.toJSON() }),
+    });
+  } catch (_) {}
+  return { ok: true };
+}
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 
@@ -209,8 +268,26 @@ export default function StaffMessagingPanel() {
     sendMessage, uploadFile, createChannel, openDm, setMessages,
   } = useStaffMessaging(employee, session);
 
+  const {
+    conversations: patientConvos,
+    activePatient,
+    messages: patientMessages,
+    loadingConversations: loadingPatients,
+    loadingMessages: loadingPatientMessages,
+    totalUnread: patientUnread,
+    totalNeedsResponse: patientNeedsResponse,
+    fetchConversations: fetchPatientConvos,
+    openPatient,
+    closePatient,
+    sendMessage: sendPatientSms,
+    dismissNeedsResponse,
+  } = usePatientMessaging(employee);
+
   const [open, setOpen] = useState(false);
-  const [view, setView] = useState('channels'); // 'channels' | 'chat' | 'new'
+  // 'channels' | 'chat' | 'new' | 'patients' | 'patient-chat'
+  const [view, setView] = useState('channels');
+  // 'team' | 'patients' — controls which list shows in the list view
+  const [tab, setTab] = useState('team');
   const [search, setSearch] = useState('');
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -219,6 +296,10 @@ export default function StaffMessagingPanel() {
   const [toast, setToast] = useState(null);
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Patient SMS compose
+  const [patientInput, setPatientInput] = useState('');
+  const [patientSending, setPatientSending] = useState(false);
 
   // New message state
   const [employees, setEmployees] = useState([]);
@@ -230,6 +311,8 @@ export default function StaffMessagingPanel() {
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const patientInputRef = useRef(null);
+  const patientBottomRef = useRef(null);
 
   // Detect mobile
   useEffect(() => {
@@ -271,15 +354,105 @@ export default function StaffMessagingPanel() {
   // Handle open panel
   const handleOpen = useCallback(() => {
     setOpen(true);
-    setView('channels');
-    fetchChannels();
-  }, [fetchChannels]);
+    setView(tab === 'patients' ? 'patients' : 'channels');
+    if (tab === 'patients') fetchPatientConvos(); else fetchChannels();
+  }, [fetchChannels, fetchPatientConvos, tab]);
 
   // Handle open channel
   const handleOpenChannel = useCallback(async (channelId) => {
     setView('chat');
     await openChannel(channelId);
   }, [openChannel]);
+
+  // Open a patient SMS thread
+  const handleOpenPatient = useCallback(async (patient) => {
+    setView('patient-chat');
+    await openPatient(patient);
+    setTimeout(() => patientInputRef.current?.focus(), 150);
+  }, [openPatient]);
+
+  // Tab switch (Team / Patients) within the list view
+  const handleSwitchTab = useCallback((next) => {
+    setTab(next);
+    setSearch('');
+    if (next === 'patients') {
+      setView('patients');
+      fetchPatientConvos();
+    } else {
+      setView('channels');
+      fetchChannels();
+    }
+  }, [fetchChannels, fetchPatientConvos]);
+
+  // Auto-scroll patient thread on new messages
+  useEffect(() => {
+    if (view === 'patient-chat' && patientBottomRef.current) {
+      patientBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [patientMessages, view]);
+
+  // Try to ensure push subscription whenever the panel opens. Silent on
+  // unsupported / denied / unauthenticated — only prompts if browser permission
+  // is still 'default'. This way staff who use the panel without ever visiting
+  // /chat still get patient SMS pushes.
+  const pushTriedRef = useRef(false);
+  useEffect(() => {
+    if (!open) return;
+    if (pushTriedRef.current) return;
+    if (!session?.access_token) return;
+    if (typeof window === 'undefined') return;
+    if (!('Notification' in window)) return;
+    // Only try silently if already granted; let /chat handle the explicit prompt
+    // for staff who haven't decided yet.
+    if (Notification.permission !== 'granted') return;
+    pushTriedRef.current = true;
+    ensurePushSubscriptionFromPanel(session.access_token).catch(() => {});
+  }, [open, session?.access_token]);
+
+  // Listen for service-worker click messages — tapping a patient SMS push
+  // should jump straight to that conversation.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+    const onMsg = (e) => {
+      if (e.data?.type === 'open-patient-sms') {
+        const target = e.data.patient_id
+          ? patientConvos.find(c => c.patient_id === e.data.patient_id)
+          : patientConvos.find(c => c.recipient === e.data.recipient);
+        if (target) {
+          setOpen(true);
+          setTab('patients');
+          handleOpenPatient(target);
+        } else if (e.data.patient_id) {
+          // Conversation not yet in cache — open a minimal stub
+          setOpen(true);
+          setTab('patients');
+          handleOpenPatient({ patient_id: e.data.patient_id, recipient: e.data.recipient || null });
+        }
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', onMsg);
+    return () => navigator.serviceWorker.removeEventListener('message', onMsg);
+  }, [patientConvos, handleOpenPatient]);
+
+  // Send patient SMS from the panel
+  const handleSendPatientSms = useCallback(async () => {
+    const text = patientInput.trim();
+    if (!text || patientSending || !activePatient) return;
+    setPatientSending(true);
+    setPatientInput('');
+    const result = await sendPatientSms(activePatient, text);
+    setPatientSending(false);
+    if (!result?.success) {
+      // Restore the text so the user can retry
+      setPatientInput(text);
+      setToast(result?.error || 'Failed to send');
+    }
+    setTimeout(() => patientInputRef.current?.focus(), 80);
+  }, [patientInput, patientSending, activePatient, sendPatientSms]);
+
+  const handlePatientKey = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendPatientSms(); }
+  };
 
   // Handle send message
   const handleSend = useCallback(async () => {
@@ -390,6 +563,20 @@ export default function StaffMessagingPanel() {
     return e.name.toLowerCase().includes(empSearch.toLowerCase());
   });
 
+  // Filter patient conversations by search
+  const filteredPatientConvos = patientConvos.filter((c) => {
+    if (!search.trim()) return true;
+    const name = (c.patient_name || c.recipient || '').toLowerCase();
+    return name.includes(search.toLowerCase());
+  });
+
+  // Combined unread badge (team + patient inbound)
+  const combinedUnread = (totalUnread || 0) + (patientUnread || 0);
+
+  // Active patient display
+  const activePatientName = activePatient?.patient_name || activePatient?.recipient || 'Patient';
+  const activePatientPhone = activePatient?.recipient || '';
+
   // ── Panel styles ───────────────────────────────────────────────────────────
 
   const panelStyle = isMobile && open ? {
@@ -462,8 +649,8 @@ export default function StaffMessagingPanel() {
       >
         {open ? <XIcon size={20} /> : <UsersIcon size={22} color="#fff" />}
 
-        {/* Unread badge */}
-        {totalUnread > 0 && !open && (
+        {/* Unread badge — combines team chat unread + patient SMS unread */}
+        {combinedUnread > 0 && !open && (
           <div style={{
             position: 'absolute', top: 0, right: 0,
             background: '#ef4444', color: '#fff',
@@ -472,7 +659,7 @@ export default function StaffMessagingPanel() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             border: '2px solid #fff',
           }}>
-            {totalUnread > 99 ? '99+' : totalUnread}
+            {combinedUnread > 99 ? '99+' : combinedUnread}
           </div>
         )}
       </button>
@@ -490,8 +677,8 @@ export default function StaffMessagingPanel() {
       {open && (
         <div style={panelStyle}>
 
-          {/* ── CHANNEL LIST VIEW ─────────────────────────────────────── */}
-          {view === 'channels' && (
+          {/* ── LIST VIEW (Team channels or Patient conversations) ──────── */}
+          {(view === 'channels' || view === 'patients') && (
             <>
               {/* Header */}
               <div style={{
@@ -499,19 +686,74 @@ export default function StaffMessagingPanel() {
                 borderBottom: '1px solid #e5e7eb',
                 flexShrink: 0,
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#111' }}>Team Chat</div>
-                  <button
-                    onClick={() => { setView('new'); fetchEmployees(); }}
-                    style={{
-                      background: '#000', color: '#fff', border: 'none',
-                      borderRadius: 0, padding: '6px 12px',
-                      fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: 4,
-                    }}
-                  >
-                    <PlusIcon /> New
-                  </button>
+                {/* Tab switcher: Team | Patients */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 4, flex: 1 }}>
+                    <button
+                      onClick={() => handleSwitchTab('team')}
+                      style={{
+                        flex: 1,
+                        padding: '7px 10px',
+                        background: tab === 'team' ? '#000' : '#fff',
+                        color: tab === 'team' ? '#fff' : '#374151',
+                        border: '1px solid ' + (tab === 'team' ? '#000' : '#e5e7eb'),
+                        borderRadius: 0,
+                        fontSize: 12, fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      }}
+                    >
+                      Team
+                      {totalUnread > 0 && (
+                        <span style={{
+                          background: tab === 'team' ? '#fff' : '#ef4444',
+                          color: tab === 'team' ? '#000' : '#fff',
+                          borderRadius: 8, padding: '0 5px',
+                          fontSize: 10, fontWeight: 700, minWidth: 16, height: 14,
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        }}>{totalUnread > 99 ? '99+' : totalUnread}</span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleSwitchTab('patients')}
+                      style={{
+                        flex: 1,
+                        padding: '7px 10px',
+                        background: tab === 'patients' ? '#000' : '#fff',
+                        color: tab === 'patients' ? '#fff' : '#374151',
+                        border: '1px solid ' + (tab === 'patients' ? '#000' : '#e5e7eb'),
+                        borderRadius: 0,
+                        fontSize: 12, fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      }}
+                    >
+                      Patients
+                      {(patientUnread > 0 || patientNeedsResponse > 0) && (
+                        <span style={{
+                          background: tab === 'patients' ? '#fff' : (patientNeedsResponse > 0 ? '#ea580c' : '#ef4444'),
+                          color: tab === 'patients' ? '#000' : '#fff',
+                          borderRadius: 8, padding: '0 5px',
+                          fontSize: 10, fontWeight: 700, minWidth: 16, height: 14,
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        }}>{(patientUnread || patientNeedsResponse) > 99 ? '99+' : (patientUnread || patientNeedsResponse)}</span>
+                      )}
+                    </button>
+                  </div>
+                  {tab === 'team' && (
+                    <button
+                      onClick={() => { setView('new'); fetchEmployees(); }}
+                      style={{
+                        background: '#000', color: '#fff', border: 'none',
+                        borderRadius: 0, padding: '7px 10px',
+                        fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <PlusIcon /> New
+                    </button>
+                  )}
                 </div>
                 {/* Search */}
                 <div style={{ position: 'relative' }}>
@@ -521,7 +763,7 @@ export default function StaffMessagingPanel() {
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search conversations..."
+                    placeholder={tab === 'patients' ? 'Search patients...' : 'Search conversations...'}
                     style={{
                       width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 0,
                       padding: '7px 10px 7px 30px', fontSize: 13,
@@ -532,8 +774,89 @@ export default function StaffMessagingPanel() {
                 </div>
               </div>
 
-              {/* Channel list */}
+              {/* List body — channels OR patient conversations depending on tab */}
               <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                {tab === 'patients' ? (
+                  <>
+                    {loadingPatients && patientConvos.length === 0 && (
+                      <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>Loading...</div>
+                    )}
+                    {!loadingPatients && filteredPatientConvos.length === 0 && (
+                      <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
+                        {search ? 'No matches' : 'No patient conversations yet.'}
+                      </div>
+                    )}
+                    {filteredPatientConvos.map((c) => {
+                      const key = c.patient_id || (c.ghl_contact_id ? `ghl_${c.ghl_contact_id}` : c.recipient || c.patient_name);
+                      const hasUnread = (c.unread_count || 0) > 0;
+                      const needsResponse = (c.needs_response_count || 0) > 0;
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => handleOpenPatient(c)}
+                          style={{
+                            width: '100%', padding: '12px 16px',
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            border: 'none', borderBottom: '1px solid #f3f4f6',
+                            borderLeft: needsResponse ? '3px solid #ea580c' : (hasUnread ? '3px solid #3b82f6' : 'none'),
+                            background: needsResponse ? '#fff7ed' : (hasUnread ? '#f0f7ff' : '#fff'),
+                            cursor: 'pointer', textAlign: 'left',
+                          }}
+                        >
+                          <Avatar name={c.patient_name || c.recipient || '?'} size={36} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{
+                                fontSize: 14, fontWeight: hasUnread || needsResponse ? 700 : 500,
+                                color: '#111', whiteSpace: 'nowrap', overflow: 'hidden',
+                                textOverflow: 'ellipsis', maxWidth: 180,
+                              }}>
+                                {c.patient_name || c.recipient || 'Unknown'}
+                              </div>
+                              <div style={{ fontSize: 11, color: '#9ca3af', flexShrink: 0, marginLeft: 8 }}>
+                                {formatTime(c.last_message_at)}
+                              </div>
+                            </div>
+                            {c.last_message && (
+                              <div style={{
+                                fontSize: 12,
+                                color: needsResponse || hasUnread ? '#111' : '#9ca3af',
+                                fontWeight: needsResponse || hasUnread ? 600 : 400,
+                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                marginTop: 2,
+                              }}>
+                                {c.last_direction === 'inbound' && (
+                                  <span style={{ color: needsResponse ? '#ea580c' : '#3b82f6', fontSize: 8 }}>● </span>
+                                )}
+                                {(c.last_message || '').slice(0, 80)}
+                              </div>
+                            )}
+                          </div>
+                          {needsResponse ? (
+                            <span style={{
+                              background: '#ea580c', color: '#fff',
+                              borderRadius: 0, padding: '3px 7px',
+                              fontSize: 9, fontWeight: 700, letterSpacing: '0.3px',
+                              textTransform: 'uppercase', flexShrink: 0,
+                            }}>
+                              Reply
+                            </span>
+                          ) : hasUnread ? (
+                            <div style={{
+                              background: '#3b82f6', color: '#fff', borderRadius: 10,
+                              minWidth: 18, height: 18, fontSize: 11, fontWeight: 700,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              padding: '0 5px', flexShrink: 0,
+                            }}>
+                              {c.unread_count > 99 ? '99+' : c.unread_count}
+                            </div>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </>
+                ) : (
+                  <>
                 {loadingChannels && channels.length === 0 && (
                   <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>Loading...</div>
                 )}
@@ -605,6 +928,141 @@ export default function StaffMessagingPanel() {
                     </button>
                   );
                 })}
+                  </>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ── PATIENT SMS CHAT VIEW ─────────────────────────────────── */}
+          {view === 'patient-chat' && activePatient && (
+            <>
+              {/* Header */}
+              <div style={{
+                padding: '12px 16px',
+                borderBottom: '1px solid #e5e7eb',
+                display: 'flex', alignItems: 'center', gap: 10,
+                flexShrink: 0,
+              }}>
+                <button
+                  onClick={() => { closePatient(); setView('patients'); fetchPatientConvos(); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#374151', display: 'flex' }}
+                >
+                  <ArrowLeftIcon />
+                </button>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {activePatientName}
+                  </div>
+                  {activePatientPhone && (
+                    <div style={{ fontSize: 11, color: '#9ca3af' }}>{activePatientPhone}</div>
+                  )}
+                </div>
+                {activePatient.patient_id && (
+                  <a
+                    href={`/admin/communications?patient=${activePatient.patient_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      fontSize: 11, color: '#6b7280', textDecoration: 'none',
+                      border: '1px solid #e5e7eb', padding: '4px 8px',
+                      borderRadius: 0, background: '#fff',
+                      flexShrink: 0,
+                    }}
+                    title="Open in full Communications view"
+                  >
+                    Open ↗
+                  </a>
+                )}
+              </div>
+
+              {/* Messages */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px', WebkitOverflowScrolling: 'touch' }}>
+                {loadingPatientMessages && patientMessages.length === 0 && (
+                  <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>Loading...</div>
+                )}
+                {!loadingPatientMessages && patientMessages.length === 0 && (
+                  <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
+                    No messages yet. Send the first one below.
+                  </div>
+                )}
+                {patientMessages.map((m, idx) => {
+                  const isOutbound = m.direction === 'outbound';
+                  const isError = m.status === 'error';
+                  const isSending = m.status === 'sending';
+                  const showTime = idx === patientMessages.length - 1 ||
+                    patientMessages[idx + 1]?.direction !== m.direction;
+                  return (
+                    <div key={m.id} style={{ marginBottom: 4 }}>
+                      <div style={{ display: 'flex', justifyContent: isOutbound ? 'flex-end' : 'flex-start' }}>
+                        <div style={{
+                          maxWidth: '80%',
+                          background: isError ? '#fee2e2' : (isOutbound ? '#000' : '#f3f4f6'),
+                          color: isError ? '#991b1b' : (isOutbound ? '#fff' : '#111'),
+                          padding: '7px 12px',
+                          fontSize: 14, lineHeight: 1.45,
+                          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                          borderRadius: 0,
+                          opacity: isSending ? 0.6 : 1,
+                        }}>
+                          {m.message}
+                        </div>
+                      </div>
+                      {showTime && (
+                        <div style={{
+                          textAlign: isOutbound ? 'right' : 'left',
+                          fontSize: 10, color: isError ? '#dc2626' : '#9ca3af',
+                          marginTop: 2,
+                        }}>
+                          {isError ? `Failed${m.error_message ? ': ' + m.error_message : ''}` : (isSending ? 'Sending...' : formatMessageTime(m.created_at))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <div ref={patientBottomRef} />
+              </div>
+
+              {/* Compose */}
+              <div style={{
+                borderTop: '1px solid #e5e7eb',
+                padding: '10px 12px',
+                display: 'flex', gap: 8, alignItems: 'flex-end',
+                flexShrink: 0,
+              }}>
+                <textarea
+                  ref={patientInputRef}
+                  value={patientInput}
+                  onChange={(e) => setPatientInput(e.target.value)}
+                  onKeyDown={handlePatientKey}
+                  placeholder={activePatientPhone ? `Text ${activePatientName.split(' ')[0]}…` : 'No phone on file'}
+                  rows={1}
+                  disabled={!activePatientPhone}
+                  style={{
+                    flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 0,
+                    padding: '8px 13px', fontSize: 14, lineHeight: 1.4,
+                    background: '#f9fafb', color: '#111', resize: 'none',
+                    fontFamily: 'inherit', maxHeight: 96, overflowY: 'auto',
+                  }}
+                  onInput={(e) => {
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 96) + 'px';
+                  }}
+                />
+                <button
+                  onClick={handleSendPatientSms}
+                  disabled={!patientInput.trim() || patientSending || !activePatientPhone}
+                  style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    background: patientInput.trim() && !patientSending && activePatientPhone ? '#000' : '#e5e7eb',
+                    border: 'none',
+                    cursor: patientInput.trim() && !patientSending && activePatientPhone ? 'pointer' : 'default',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, transition: 'background 0.15s',
+                  }}
+                >
+                  <SendIcon color={patientInput.trim() && !patientSending && activePatientPhone ? '#fff' : '#9ca3af'} />
+                </button>
               </div>
             </>
           )}

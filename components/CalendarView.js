@@ -110,6 +110,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [selectedProviders, setSelectedProviders] = useState({});   // multi-service: { serviceName → providerObj }
   const [selectedLocation, setSelectedLocation] = useState(DEFAULT_LOCATION);
   const [apptDate, setApptDate] = useState('');
+  const [additionalDates, setAdditionalDates] = useState([]); // multi-day booking
   const [apptTime, setApptTime] = useState('');
   const [apptNotes, setApptNotes] = useState('');
   const [visitReason, setVisitReason] = useState('');
@@ -768,11 +769,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const createAppointment = async () => {
     setCreating(true);
     try {
-      const startDT = new Date(`${apptDate}T${apptTime}`);
-      // Multi-service: sum durations; single-service: use service duration
+      const allDates = [apptDate, ...additionalDates];
       const allServices = selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : []);
       const duration = allServices.reduce((sum, s) => sum + (s.duration || 0), 0) || selectedService?.duration || 30;
-      const endDT = new Date(startDT.getTime() + duration * 60000);
       const patientName = isWalkIn ? walkInName : selectedPatient?.name;
       const patientPhone = isWalkIn ? walkInPhone : selectedPatient?.phone;
       // Multi-service: display name is joined; single: use service name
@@ -792,189 +791,77 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         ? (selectedProviders[allServices[0].name]?.label || selectedProviders[allServices[0].name]?.name || null)
         : (selectedProvider?.name || null);
 
-      let res;
+      const results = [];
+      const errors = [];
 
-      if (allServices.length > 1 && selectedPatient?.id && !useCustomTime && !isBackdated) {
-        // ── Multi-service: book each service in Cal.com at its staggered start time ──
-        // Each provider's calendar gets blocked separately; one DB record ties them together.
-        const detailedServices = [];
-        let offsetMins = 0;
-        for (const svc of allServices) {
-          const svcStart = new Date(startDT.getTime() + offsetMins * 60000);
-          const svcProvider = selectedProviders[svc.name];
-          let calcomBookingId = null;
+      for (const bookDate of allDates) {
+        const startDT = new Date(`${bookDate}T${apptTime}`);
+        const endDT = new Date(startDT.getTime() + duration * 60000);
+        let res;
 
-          if (svc.calcomSlug) {
-            const et = resolveEventType(svc.calcomSlug);
-            if (et) {
-              const hostInfo = et.hosts?.find(h => h.username === svcProvider?.calcomUsername);
-              try {
-                const calRes = await fetch('/api/bookings/create', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    eventTypeId: et.id,
-                    start: svcStart.toISOString(),
-                    patientId: selectedPatient.id,
-                    patientName,
-                    patientEmail: selectedPatient.email || null,
-                    patientPhone: patientPhone || null,
-                    serviceName: svc.name,
-                    serviceSlug: et.slug || svc.calcomSlug,
-                    durationMinutes: svc.duration,
-                    notes: apptNotes || null,
-                    hostUserId: hostInfo?.userId || null,
-                    hostName: svcProvider?.label || svcProvider?.name || null,
-                  }),
-                });
-                if (calRes.ok) {
-                  const calData = await calRes.json();
-                  calcomBookingId = String(calData.calcom?.id || calData.booking?.calcom_booking_id || '');
-                } else {
-                  console.error(`Cal.com booking failed for ${svc.name}:`, await calRes.text());
+        if (allServices.length > 1 && selectedPatient?.id && !useCustomTime && !isBackdated) {
+          const detailedServices = [];
+          let offsetMins = 0;
+          for (const svc of allServices) {
+            const svcStart = new Date(startDT.getTime() + offsetMins * 60000);
+            const svcProvider = selectedProviders[svc.name];
+            let calcomBookingId = null;
+
+            if (svc.calcomSlug) {
+              const et = resolveEventType(svc.calcomSlug);
+              if (et) {
+                const hostInfo = et.hosts?.find(h => h.username === svcProvider?.calcomUsername);
+                try {
+                  const calRes = await fetch('/api/bookings/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      eventTypeId: et.id,
+                      start: svcStart.toISOString(),
+                      patientId: selectedPatient.id,
+                      patientName,
+                      patientEmail: selectedPatient.email || null,
+                      patientPhone: patientPhone || null,
+                      serviceName: svc.name,
+                      serviceSlug: et.slug || svc.calcomSlug,
+                      durationMinutes: svc.duration,
+                      notes: apptNotes || null,
+                      hostUserId: hostInfo?.userId || null,
+                      hostName: svcProvider?.label || svcProvider?.name || null,
+                    }),
+                  });
+                  if (calRes.ok) {
+                    const calData = await calRes.json();
+                    calcomBookingId = String(calData.calcom?.id || calData.booking?.calcom_booking_id || '');
+                  } else {
+                    console.error(`Cal.com booking failed for ${svc.name}:`, await calRes.text());
+                  }
+                } catch (err) {
+                  console.error(`Cal.com booking error for ${svc.name}:`, err);
                 }
-              } catch (err) {
-                console.error(`Cal.com booking error for ${svc.name}:`, err);
               }
             }
-          }
 
-          detailedServices.push({
-            name: svc.name,
-            category: svc.category,
-            duration: svc.duration,
-            provider: svcProvider?.label || svcProvider?.name || null,
-            start_time: svcStart.toISOString(),
-            calcom_booking_id: calcomBookingId,
-          });
-          offsetMins += svc.duration || 0;
-        }
-
-        // One DB appointment record covering the full multi-service block
-        res = await fetch('/api/appointments/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            patient_id: selectedPatient.id,
-            patient_name: patientName,
-            patient_phone: patientPhone,
-            service_name: displayServiceName,
-            service_category: allServices[0].category,
-            provider: primaryProviderName,
-            start_time: startDT.toISOString(),
-            end_time: endDT.toISOString(),
-            duration_minutes: duration,
-            location: selectedLocation?.label || DEFAULT_LOCATION.label,
-            notes: apptNotes || null,
-            created_by: employee?.name || session?.user?.email || 'Staff',
-            visit_reason: visitReason.trim(),
-            modality,
-            send_notification: sendNotification,
-            source: 'cal_com',
-            services: detailedServices,
-          }),
-        });
-
-      } else if (allServices.length === 1) {
-        // ── Single-service: original Cal.com or manual path ──
-        const calcomSlug = selectedService?.calcomSlug || null;
-        const eventType = calcomSlug ? resolveEventType(calcomSlug) : null;
-
-        if (eventType && selectedPatient?.id && !useCustomTime && !isBackdated) {
-          const hostInfo = eventType.hosts?.find(h => h.username === selectedProvider?.calcomUsername);
-          const serviceDetails = {};
-          if (panelType) serviceDetails.panelType = panelType;
-
-          const body = {
-            eventTypeId: eventType.id,
-            start: startDT.toISOString(),
-            patientId: selectedPatient.id,
-            patientName,
-            patientEmail: selectedPatient.email || null,
-            patientPhone: patientPhone || null,
-            serviceName: selectedService.name,
-            serviceSlug: eventType?.slug || calcomSlug,
-            durationMinutes: duration,
-            notes: apptNotes || null,
-            hostUserId: hostInfo?.userId || null,
-            hostName: selectedProvider?.label || selectedProvider?.name || null,
-            serviceDetails: Object.keys(serviceDetails).length > 0 ? serviceDetails : null,
-          };
-
-          const calBookingRes = await fetch('/api/bookings/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-          });
-
-          // If Cal.com rejected the time (minimum booking notice / scheduling
-          // window), don't block the staff — fall through and create a manual
-          // appointment (no cal_com_booking_id). The schedule still shows it;
-          // the Cal.com provider calendar just won't be linked.
-          let schedulingWindowError = false;
-          let calBookingData = null;
-          if (calBookingRes.ok) {
-            calBookingData = await calBookingRes.json();
-          } else {
-            try {
-              const errPayload = await calBookingRes.json();
-              schedulingWindowError = !!errPayload?.schedulingWindowError;
-            } catch {}
-          }
-
-          if (calBookingRes.ok || schedulingWindowError) {
-            // Write the native appointments row. This — not /api/bookings/create —
-            // is what /admin/schedule reads from. Capture the response as `res`
-            // so the downstream round-trip notes check sees the ACTUAL saved row,
-            // and any insert failure is surfaced to staff rather than swallowed.
-            const calBookingId = calBookingData
-              ? String(calBookingData.calcom?.id || calBookingData.booking?.calcom_booking_id || '')
-              : '';
-            res = await fetch('/api/appointments/create', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                patient_id: selectedPatient.id,
-                patient_name: patientName,
-                patient_phone: patientPhone,
-                service_name: displayServiceName,
-                service_category: selectedService.category,
-                provider: primaryProviderName,
-                start_time: startDT.toISOString(),
-                end_time: endDT.toISOString(),
-                duration_minutes: duration,
-                location: selectedLocation?.label || DEFAULT_LOCATION.label,
-                notes: apptNotes || null,
-                created_by: employee?.name || session?.user?.email || 'Staff',
-                visit_reason: visitReason.trim(),
-                modality,
-                send_notification: sendNotification,
-                cal_com_booking_id: calBookingId || null,
-                source: schedulingWindowError ? 'manual' : 'cal_com',
-                service_details: Object.keys(serviceDetails).length > 0 ? serviceDetails : null,
-                services: servicesPayload,
-              }),
+            detailedServices.push({
+              name: svc.name,
+              category: svc.category,
+              duration: svc.duration,
+              provider: svcProvider?.label || svcProvider?.name || null,
+              start_time: svcStart.toISOString(),
+              calcom_booking_id: calcomBookingId,
             });
-            if (schedulingWindowError) {
-              console.warn('[booking] Cal.com rejected scheduling window; booked as manual appointment');
-            }
-          } else {
-            res = calBookingRes;
+            offsetMins += svc.duration || 0;
           }
-        } else {
-          // Fallback: manual booking (no Cal.com, walk-in, or custom time)
-          const fallbackDetails = {};
-          if (panelType) fallbackDetails.panelType = panelType;
+
           res = await fetch('/api/appointments/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              patient_id: selectedPatient?.id || null,
+              patient_id: selectedPatient.id,
               patient_name: patientName,
               patient_phone: patientPhone,
               service_name: displayServiceName,
-              service_category: selectedService.category,
-              service_slug: selectedService.calcomSlug || null,
+              service_category: allServices[0].category,
               provider: primaryProviderName,
               start_time: startDT.toISOString(),
               end_time: endDT.toISOString(),
@@ -985,81 +872,178 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               visit_reason: visitReason.trim(),
               modality,
               send_notification: sendNotification,
-              service_details: Object.keys(fallbackDetails).length > 0 ? fallbackDetails : null,
+              source: 'cal_com',
+              services: detailedServices,
+            }),
+          });
+
+        } else if (allServices.length === 1) {
+          const calcomSlug = selectedService?.calcomSlug || null;
+          const eventType = calcomSlug ? resolveEventType(calcomSlug) : null;
+
+          if (eventType && selectedPatient?.id && !useCustomTime && !isBackdated) {
+            const hostInfo = eventType.hosts?.find(h => h.username === selectedProvider?.calcomUsername);
+            const serviceDetails = {};
+            if (panelType) serviceDetails.panelType = panelType;
+
+            const body = {
+              eventTypeId: eventType.id,
+              start: startDT.toISOString(),
+              patientId: selectedPatient.id,
+              patientName,
+              patientEmail: selectedPatient.email || null,
+              patientPhone: patientPhone || null,
+              serviceName: selectedService.name,
+              serviceSlug: eventType?.slug || calcomSlug,
+              durationMinutes: duration,
+              notes: apptNotes || null,
+              hostUserId: hostInfo?.userId || null,
+              hostName: selectedProvider?.label || selectedProvider?.name || null,
+              serviceDetails: Object.keys(serviceDetails).length > 0 ? serviceDetails : null,
+            };
+
+            const calBookingRes = await fetch('/api/bookings/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            });
+
+            let schedulingWindowError = false;
+            let calBookingData = null;
+            if (calBookingRes.ok) {
+              calBookingData = await calBookingRes.json();
+            } else {
+              try {
+                const errPayload = await calBookingRes.json();
+                schedulingWindowError = !!errPayload?.schedulingWindowError;
+              } catch {}
+            }
+
+            if (calBookingRes.ok || schedulingWindowError) {
+              const calBookingId = calBookingData
+                ? String(calBookingData.calcom?.id || calBookingData.booking?.calcom_booking_id || '')
+                : '';
+              res = await fetch('/api/appointments/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  patient_id: selectedPatient.id,
+                  patient_name: patientName,
+                  patient_phone: patientPhone,
+                  service_name: displayServiceName,
+                  service_category: selectedService.category,
+                  provider: primaryProviderName,
+                  start_time: startDT.toISOString(),
+                  end_time: endDT.toISOString(),
+                  duration_minutes: duration,
+                  location: selectedLocation?.label || DEFAULT_LOCATION.label,
+                  notes: apptNotes || null,
+                  created_by: employee?.name || session?.user?.email || 'Staff',
+                  visit_reason: visitReason.trim(),
+                  modality,
+                  send_notification: sendNotification,
+                  cal_com_booking_id: calBookingId || null,
+                  source: schedulingWindowError ? 'manual' : 'cal_com',
+                  service_details: Object.keys(serviceDetails).length > 0 ? serviceDetails : null,
+                  services: servicesPayload,
+                }),
+              });
+              if (schedulingWindowError) {
+                console.warn('[booking] Cal.com rejected scheduling window; booked as manual appointment');
+              }
+            } else {
+              res = calBookingRes;
+            }
+          } else {
+            const fallbackDetails = {};
+            if (panelType) fallbackDetails.panelType = panelType;
+            res = await fetch('/api/appointments/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                patient_id: selectedPatient?.id || null,
+                patient_name: patientName,
+                patient_phone: patientPhone,
+                service_name: displayServiceName,
+                service_category: selectedService.category,
+                service_slug: selectedService.calcomSlug || null,
+                provider: primaryProviderName,
+                start_time: startDT.toISOString(),
+                end_time: endDT.toISOString(),
+                duration_minutes: duration,
+                location: selectedLocation?.label || DEFAULT_LOCATION.label,
+                notes: apptNotes || null,
+                created_by: employee?.name || session?.user?.email || 'Staff',
+                visit_reason: visitReason.trim(),
+                modality,
+                send_notification: sendNotification,
+                service_details: Object.keys(fallbackDetails).length > 0 ? fallbackDetails : null,
+                services: servicesPayload,
+              }),
+            });
+          }
+        } else {
+          res = await fetch('/api/appointments/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              patient_id: selectedPatient?.id || null,
+              patient_name: patientName,
+              patient_phone: patientPhone,
+              service_name: displayServiceName,
+              service_category: selectedService?.category || 'other',
+              service_slug: selectedService?.calcomSlug || null,
+              provider: primaryProviderName,
+              start_time: startDT.toISOString(),
+              end_time: endDT.toISOString(),
+              duration_minutes: duration,
+              location: selectedLocation?.label || DEFAULT_LOCATION.label,
+              notes: apptNotes || null,
+              created_by: employee?.name || session?.user?.email || 'Staff',
+              visit_reason: visitReason.trim(),
+              modality,
+              send_notification: sendNotification,
               services: servicesPayload,
             }),
           });
         }
-      } else {
-        // Walk-in, multi-service backdated, or no services edge case — manual fallback
-        res = await fetch('/api/appointments/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            patient_id: selectedPatient?.id || null,
-            patient_name: patientName,
-            patient_phone: patientPhone,
-            service_name: displayServiceName,
-            service_category: selectedService?.category || 'other',
-            service_slug: selectedService?.calcomSlug || null,
-            provider: primaryProviderName,
-            start_time: startDT.toISOString(),
-            end_time: endDT.toISOString(),
-            duration_minutes: duration,
-            location: selectedLocation?.label || DEFAULT_LOCATION.label,
-            notes: apptNotes || null,
-            created_by: employee?.name || session?.user?.email || 'Staff',
-            visit_reason: visitReason.trim(),
-            modality,
-            send_notification: sendNotification,
-            services: servicesPayload,
-          }),
-        });
+
+        if (res.ok) {
+          results.push({ date: bookDate, ok: true });
+        } else {
+          const err = await res.json().catch(() => ({}));
+          errors.push({ date: bookDate, error: err.error || 'Could not create appointment' });
+        }
       }
 
-      if (res.ok) {
-        // Snapshot details for the confirmation screen BEFORE resetting.
-        // Round-trip verify: fetch the saved row back and compare notes, so staff
-        // see the actual DB value, not what the browser thinks it sent.
+      if (results.length > 0) {
         const allSvcs = selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : []);
-        let savedNotes = null;
-        let notesMismatch = false;
-        try {
-          const payload = await res.json();
-          const saved = payload.appointment || (payload.appointments && payload.appointments[0]) || null;
-          savedNotes = saved?.notes ?? null;
-          const typed = (apptNotes || '').trim();
-          notesMismatch = !!typed && (savedNotes || '').trim() !== typed;
-          if (notesMismatch) {
-            console.error('[booking] notes round-trip mismatch', {
-              typed_len: typed.length, saved_len: (savedNotes || '').length,
-              saved_id: saved?.id,
-            });
-          }
-        } catch {}
+        const bookedDates = results.map(r =>
+          new Date(r.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })
+        );
 
         setBookingConfirmed({
           patientName: isWalkIn ? walkInName : selectedPatient?.name,
           services: allSvcs,
           providers: selectedServices.length > 1 ? selectedProviders : { [selectedService?.name]: selectedProvider },
           location: selectedLocation?.short || 'Newport Beach',
-          date: new Date(apptDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' }),
+          date: bookedDates.length === 1
+            ? new Date(apptDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })
+            : null,
+          dates: bookedDates.length > 1 ? bookedDates : null,
           time: formatTimeLabel(apptTime),
           duration: allSvcs.reduce((s, x) => s + (x.duration || 0), 0) || selectedService?.duration,
           notificationSent: sendNotification,
-          typedNotes: apptNotes || '',
-          savedNotes,
-          notesMismatch,
           visitReason,
+          failedDates: errors.length > 0 ? errors : null,
         });
         if (!wizardOnly) {
-          setCurrentDate(startDT);
+          setCurrentDate(new Date(`${apptDate}T${apptTime}`));
           setViewMode('day');
         }
         fetchAppointments();
       } else {
-        const err = await res.json();
-        alert('Error: ' + (err.error || 'Could not create appointment'));
+        alert('Error: ' + (errors[0]?.error || 'Could not create appointments'));
       }
     } catch (err) {
       console.error('Booking error:', err);
@@ -1086,6 +1070,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     setServiceSearch('');
     setSelectedLocation(DEFAULT_LOCATION);
     setApptDate('');
+    setAdditionalDates([]);
     setApptTime('');
     setApptNotes('');
     setVisitReason('');
@@ -3142,7 +3127,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       {bookingConfirmed ? (
         <div style={{ textAlign: 'center', padding: '12px 0' }}>
           <div style={{ fontSize: '48px', marginBottom: '12px' }}>✅</div>
-          <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#166534', margin: '0 0 4px' }}>Appointment Confirmed</h3>
+          <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#166534', margin: '0 0 4px' }}>
+            {bookingConfirmed.dates ? `${bookingConfirmed.dates.length} Appointments Confirmed` : 'Appointment Confirmed'}
+          </h3>
           <p style={{ fontSize: '13px', color: '#888', margin: '0 0 20px' }}>
             {bookingConfirmed.notificationSent ? 'Confirmation sent to patient.' : 'No notification sent.'}
           </p>
@@ -3166,12 +3153,18 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #dcfce7' }}>
-              <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Date</span>
-              <span style={{ fontSize: '13px', color: '#111' }}>{bookingConfirmed.date}</span>
+              <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {bookingConfirmed.dates ? 'Dates' : 'Date'}
+              </span>
+              <span style={{ fontSize: '13px', color: '#111', textAlign: 'right' }}>
+                {bookingConfirmed.dates
+                  ? bookingConfirmed.dates.map((d, i) => <span key={i} style={{ display: 'block' }}>{d}</span>)
+                  : bookingConfirmed.date}
+              </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #dcfce7' }}>
               <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Time</span>
-              <span style={{ fontSize: '13px', color: '#111' }}>{bookingConfirmed.time}</span>
+              <span style={{ fontSize: '13px', color: '#111' }}>{bookingConfirmed.time}{bookingConfirmed.dates ? ' (each day)' : ''}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #dcfce7' }}>
               <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Location</span>
@@ -3184,16 +3177,22 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
-              <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Notes</span>
-              <span style={{ fontSize: '13px', color: bookingConfirmed.savedNotes ? '#111' : '#9ca3af', fontStyle: bookingConfirmed.savedNotes ? 'normal' : 'italic', textAlign: 'right', maxWidth: '60%' }}>
-                {bookingConfirmed.savedNotes || '(none saved)'}
-              </span>
+              <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Duration</span>
+              <span style={{ fontSize: '13px', color: '#111' }}>{bookingConfirmed.duration} min</span>
             </div>
           </div>
 
           {bookingConfirmed.notesMismatch && (
             <div style={{ marginTop: '12px', padding: '10px 12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: '12.5px', lineHeight: '1.5' }}>
               <strong>Warning:</strong> the notes you typed didn't save to the appointment. Open the card and use the ✏️ button to add them.
+            </div>
+          )}
+          {bookingConfirmed.failedDates && (
+            <div style={{ marginTop: '12px', padding: '10px 12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: '12.5px', lineHeight: '1.5' }}>
+              <strong>Some dates failed:</strong>
+              {bookingConfirmed.failedDates.map(f => (
+                <div key={f.date}>{new Date(f.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })} — {f.error}</div>
+              ))}
             </div>
           )}
 
@@ -3818,6 +3817,49 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 </div>
               )}
 
+              {/* Multi-day booking */}
+              {apptDate && apptTime && (
+                <div style={{ marginTop: '16px', marginBottom: '12px', padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: additionalDates.length > 0 ? '10px' : '0' }}>
+                    <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Book on additional days
+                    </label>
+                    <button
+                      onClick={() => setAdditionalDates([...additionalDates, ''])}
+                      style={{ background: 'none', border: '1px solid #d1d5db', padding: '4px 10px', fontSize: '12px', cursor: 'pointer', color: '#374151', fontWeight: '500' }}
+                    >
+                      + Add Day
+                    </button>
+                  </div>
+                  {additionalDates.map((d, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
+                      <input
+                        type="date"
+                        value={d}
+                        min={apptDate}
+                        onChange={e => {
+                          const updated = [...additionalDates];
+                          updated[idx] = e.target.value;
+                          setAdditionalDates(updated);
+                        }}
+                        style={{ ...styles.input, flex: 1, marginBottom: 0 }}
+                      />
+                      <button
+                        onClick={() => setAdditionalDates(additionalDates.filter((_, i) => i !== idx))}
+                        style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#dc2626', padding: '4px 8px' }}
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  ))}
+                  {additionalDates.length > 0 && (
+                    <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '6px' }}>
+                      Same time ({formatTimeLabel(apptTime)}) on each day &middot; {1 + additionalDates.filter(d => d).length} appointment{additionalDates.filter(d => d).length > 0 ? 's' : ''} total
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Visit reason — required */}
               <div style={{ marginTop: '12px' }}>
                 <label style={styles.fieldLabel}>Visit reason — why is this patient coming in? <span style={{ color: '#dc2626' }}>*</span></label>
@@ -3882,8 +3924,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                 <button
                   onClick={() => setWizardStep(5)}
-                  disabled={!apptDate || !apptTime || !visitReason.trim() || !modality}
-                  style={{ ...styles.primaryBtn, opacity: (apptDate && apptTime && visitReason.trim() && modality) ? 1 : 0.5 }}
+                  disabled={!apptDate || !apptTime || !visitReason.trim() || !modality || additionalDates.some(d => !d)}
+                  style={{ ...styles.primaryBtn, opacity: (apptDate && apptTime && visitReason.trim() && modality && !additionalDates.some(d => !d)) ? 1 : 0.5 }}
                 >
                   Next →
                 </button>
@@ -4147,6 +4189,49 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </div>
             )}
 
+            {/* Multi-day booking */}
+            {apptDate && apptTime && (
+              <div style={{ marginTop: '16px', marginBottom: '12px', padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: additionalDates.length > 0 ? '10px' : '0' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Book on additional days
+                  </label>
+                  <button
+                    onClick={() => setAdditionalDates([...additionalDates, ''])}
+                    style={{ background: 'none', border: '1px solid #d1d5db', padding: '4px 10px', fontSize: '12px', cursor: 'pointer', color: '#374151', fontWeight: '500' }}
+                  >
+                    + Add Day
+                  </button>
+                </div>
+                {additionalDates.map((d, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
+                    <input
+                      type="date"
+                      value={d}
+                      min={apptDate}
+                      onChange={e => {
+                        const updated = [...additionalDates];
+                        updated[idx] = e.target.value;
+                        setAdditionalDates(updated);
+                      }}
+                      style={{ ...styles.input, flex: 1, marginBottom: 0 }}
+                    />
+                    <button
+                      onClick={() => setAdditionalDates(additionalDates.filter((_, i) => i !== idx))}
+                      style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#dc2626', padding: '4px 8px' }}
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ))}
+                {additionalDates.length > 0 && (
+                  <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '6px' }}>
+                    Same time ({formatTimeLabel(apptTime)}) on each day &middot; {1 + additionalDates.filter(d => d).length} appointment{additionalDates.filter(d => d).length > 0 ? 's' : ''} total
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Visit reason — required */}
             <div style={{ marginBottom: '12px', marginTop: '12px' }}>
               <label style={styles.fieldLabel}>Visit reason — why is this patient coming in? <span style={{ color: '#dc2626' }}>*</span></label>
@@ -4208,8 +4293,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={() => setWizardStep(5)}
-                disabled={!apptDate || !apptTime || !visitReason.trim() || !modality || (hasCalcom && !selectedProvider)}
-                style={{ ...styles.primaryBtn, opacity: (apptDate && apptTime && visitReason.trim() && modality && (!hasCalcom || selectedProvider)) ? 1 : 0.5 }}
+                disabled={!apptDate || !apptTime || !visitReason.trim() || !modality || (hasCalcom && !selectedProvider) || additionalDates.some(d => !d)}
+                style={{ ...styles.primaryBtn, opacity: (apptDate && apptTime && visitReason.trim() && modality && (!hasCalcom || selectedProvider) && !additionalDates.some(d => !d)) ? 1 : 0.5 }}
               >
                 Next
               </button>
@@ -4282,12 +4367,18 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               <span>📍 {selectedLocation?.short || 'Newport Beach'}</span>
             </div>
             <div style={styles.confirmRow}>
-              <span style={styles.confirmLabel}>Date</span>
-              <span>{new Date(apptDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' })}</span>
+              <span style={styles.confirmLabel}>Date{additionalDates.length > 0 ? 's' : ''}</span>
+              <span style={{ textAlign: 'right' }}>
+                {[apptDate, ...additionalDates].map((d, i) => (
+                  <span key={d} style={{ display: 'block', fontSize: i === 0 ? '14px' : '13px', color: i === 0 ? '#111' : '#555' }}>
+                    {new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })}
+                  </span>
+                ))}
+              </span>
             </div>
             <div style={styles.confirmRow}>
               <span style={styles.confirmLabel}>Time</span>
-              <span>{formatTimeLabel(apptTime)}</span>
+              <span>{formatTimeLabel(apptTime)}{additionalDates.length > 0 ? ' (each day)' : ''}</span>
             </div>
             <div style={styles.confirmRow}>
               <span style={styles.confirmLabel}>Visit Reason</span>
@@ -4328,7 +4419,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               disabled={creating}
               style={{ ...styles.primaryBtn, background: '#16A34A', opacity: creating ? 0.7 : 1 }}
             >
-              {creating ? 'Creating...' : 'Book Appointment'}
+              {creating ? 'Creating...' : additionalDates.length > 0 ? `Book ${1 + additionalDates.length} Appointments` : 'Book Appointment'}
             </button>
             <button onClick={() => setWizardStep(4)} style={styles.linkBtn}>← Back</button>
           </div>

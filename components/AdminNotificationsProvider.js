@@ -285,17 +285,16 @@ export function AdminNotificationsProvider({ children }) {
         updateAndBroadcastCounts({ unreadCount: data.needsResponseCount || 0 });
 
         if (prev >= 0 && newCount > prev && data.latest) {
+          // OS-level browser notification is handled by Web Push from the
+          // Twilio/Blooio webhook (see lib/web-push.js + chat-sw.js). Pass
+          // notif=null here so polling only fires the in-app toast + sound,
+          // not a duplicate browser notification.
           fireToast('toast', {
             patientName: data.latest.patientName || 'Unknown',
             message: data.latest.message || '',
             patientId: data.latest.patientId || null,
             time: nowTimeLabel(),
-          }, {
-            title: 'New SMS — Range Medical',
-            body: `${data.latest.patientName}: ${data.latest.message}`,
-            tag: 'range-sms',
-            href: '/admin/communications',
-          });
+          }, null);
         }
         trackers.smsLastCount = newCount;
       } catch {}

@@ -1,7 +1,9 @@
 // pages/api/shop/create-payment-intent.js
-// Creates a Stripe PaymentIntent for the vial shop checkout.
+// Creates a Stripe PaymentIntent for the shop checkout.
 // Total is computed server-side from items + shipping method — never trust the client amount.
-// Stripe sees ONLY a generic "Peptide Therapy" descriptor; itemized detail goes to the patient receipt.
+// Stripe sees only a category-themed protocol descriptor (Recovery Therapy, Wellness Protocol,
+// Longevity Protocol, Cognitive Therapy, Immune Support, etc.) — never the word "vial".
+// Itemized detail with the actual product names goes to the patient receipt only.
 
 import Stripe from 'stripe';
 import jwt from 'jsonwebtoken';
@@ -9,6 +11,33 @@ import { getVialById, getShippingOption } from '../../../lib/vial-catalog';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const JWT_SECRET = process.env.SHOP_JWT_SECRET || process.env.CRON_SECRET;
+
+// What Stripe sees for each category. Pick generic, protocol-flavored language.
+// Suffix appears on bank statements as "RANGE MEDICAL* SUFFIX" — keep ≤10 chars.
+const STRIPE_CATEGORY_MAP = {
+  recovery:        { description: 'Recovery Therapy',   suffix: 'RECOVERY' },
+  growth_hormone:  { description: 'Wellness Protocol',  suffix: 'WELLNESS' },
+  longevity:       { description: 'Longevity Protocol', suffix: 'VITALITY' },
+  neuro:           { description: 'Cognitive Therapy',  suffix: 'FOCUS' },
+  immune:          { description: 'Immune Support',     suffix: 'IMMUNE' },
+  sexual_health:   { description: 'Wellness Therapy',   suffix: 'WELLNESS' },
+};
+const STRIPE_DEFAULT = { description: 'Wellness Therapy', suffix: 'WELLNESS' };
+
+// Single-category cart → category-specific descriptor.
+// Mixed-category cart → generic default.
+function getStripeDescriptor(items) {
+  const cats = new Set();
+  for (const item of items) {
+    const vial = getVialById(item.peptideId);
+    if (vial) cats.add(vial.category);
+  }
+  if (cats.size === 1) {
+    const cat = [...cats][0];
+    return STRIPE_CATEGORY_MAP[cat] || STRIPE_DEFAULT;
+  }
+  return STRIPE_DEFAULT;
+}
 
 function verifyToken(req) {
   const auth = req.headers.authorization;
@@ -46,14 +75,17 @@ export default async function handler(req, res) {
     const totalCents = subtotalCents + shippingCents;
     if (totalCents < 100) return res.status(400).json({ error: 'Order total too low' });
 
+    const descriptor = getStripeDescriptor(items);
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: totalCents,
       currency: 'usd',
-      description: 'Peptide Therapy',
-      statement_descriptor_suffix: 'PEPTIDE',
+      description: descriptor.description,
+      statement_descriptor_suffix: descriptor.suffix,
       automatic_payment_methods: { enabled: true },
       metadata: {
-        source: 'vial_shop',
+        source: 'shop_order',
+        protocol_category: descriptor.description,
         patient_id: decoded.patientId,
       },
     });

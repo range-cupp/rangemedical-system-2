@@ -4,8 +4,13 @@
 // Range Medical
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
+
+// Lazy-load the booking flow — it's a heavy component pulling provider lists,
+// service catalogs, etc. Only mount it when the user opens the booking modal.
+const BookingTab = dynamic(() => import('../../components/BookingTab'), { ssr: false });
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -83,6 +88,7 @@ export default function WLTrackerPage() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [bookingPatient, setBookingPatient] = useState(null);  // when set, shows the inline booking modal
   const [actionInProgress, setActionInProgress] = useState(false);
 
   const authHeaders = useCallback(() => ({
@@ -309,6 +315,7 @@ export default function WLTrackerPage() {
             today={today}
             onSelect={setSelectedPatient}
             onAction={handleAction}
+            onSchedule={setBookingPatient}
             actionInProgress={actionInProgress}
           />
         )}
@@ -340,10 +347,70 @@ export default function WLTrackerPage() {
             onClose={() => setSelectedPatient(null)}
             onAction={handleAction}
             actionInProgress={actionInProgress}
+            onSchedule={() => setBookingPatient(selectedPatient)}
+          />
+        )}
+
+        {/* Centered booking modal — keeps you inside the tracker */}
+        {bookingPatient && (
+          <BookingModal
+            patient={bookingPatient}
+            onClose={() => { setBookingPatient(null); loadData(); }}
           />
         )}
       </div>
     </AdminLayout>
+  );
+}
+
+// ───────────────────── Booking Modal ─────────────────────
+
+function BookingModal({ patient, onClose }) {
+  // Lock body scroll while the modal is open so the page behind doesn't scroll
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  return (
+    <div onClick={onClose}
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', zIndex: 1000, padding: '24px',
+      }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{
+          background: '#fff', width: '100%', maxWidth: '1200px',
+          maxHeight: '92vh', overflow: 'auto',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+        }}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '16px 24px', borderBottom: '1px solid #e5e5e5',
+          position: 'sticky', top: 0, background: '#fff', zIndex: 1,
+        }}>
+          <div>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>📅 Book appointment</h3>
+            <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
+              for <strong>{patient.name}</strong> · {patient.medication}{patient.selected_dose ? ` ${patient.selected_dose}` : ''}
+            </div>
+          </div>
+          <button onClick={onClose}
+            style={{ background: 'none', border: 'none', fontSize: '26px', cursor: 'pointer', color: '#666', lineHeight: 1 }}>
+            ×
+          </button>
+        </div>
+        <div style={{ padding: '20px 24px' }}>
+          <BookingTab preselectedPatient={{
+            id: patient.patient_id,
+            name: patient.name,
+            phone: patient.phone,
+          }} />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -502,7 +569,7 @@ function AutomationBanner() {
 
 // ───────────────────── Daily View ─────────────────────
 
-function DailyView({ mode, buckets, todayDayName, today, onSelect, onAction, actionInProgress }) {
+function DailyView({ mode, buckets, todayDayName, today, onSelect, onAction, onSchedule, actionInProgress }) {
   const sections = mode === 'in_clinic' ? [
     {
       key: 'needsAttention',
@@ -601,13 +668,13 @@ function DailyView({ mode, buckets, todayDayName, today, onSelect, onAction, act
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
       {sections.map(s => (
         <DailySection key={s.key} section={s} today={today} mode={mode}
-          onSelect={onSelect} onAction={onAction} actionInProgress={actionInProgress} />
+          onSelect={onSelect} onAction={onAction} onSchedule={onSchedule} actionInProgress={actionInProgress} />
       ))}
     </div>
   );
 }
 
-function DailySection({ section, today, mode, onSelect, onAction, actionInProgress }) {
+function DailySection({ section, today, mode, onSelect, onAction, onSchedule, actionInProgress }) {
   const [expanded, setExpanded] = useState(!section.collapsedByDefault);
   const empty = section.list.length === 0;
   if (empty && section.key !== 'needsAttention') return null;
@@ -644,7 +711,7 @@ function DailySection({ section, today, mode, onSelect, onAction, actionInProgre
               {section.list.map(p => (
                 mode === 'in_clinic'
                   ? <InClinicRow key={p.protocol_id} patient={p} sectionKey={section.key}
-                      onSelect={onSelect} onAction={onAction} actionInProgress={actionInProgress} />
+                      onSelect={onSelect} onAction={onAction} onSchedule={onSchedule} actionInProgress={actionInProgress} />
                   : <DailyRow key={p.protocol_id} patient={p} today={today} sectionKey={section.key}
                       onSelect={onSelect} onAction={onAction} actionInProgress={actionInProgress} />
               ))}
@@ -718,7 +785,7 @@ function DailyRow({ patient, sectionKey, onSelect, onAction, actionInProgress })
   );
 }
 
-function InClinicRow({ patient, sectionKey, onSelect, onAction, actionInProgress }) {
+function InClinicRow({ patient, sectionKey, onSelect, onAction, onSchedule, actionInProgress }) {
   const isAttention = sectionKey === 'needsAttention';
   const v = patient.visit || {};
   // Booking-related statuses get the explicit Schedule + SMS buttons since the
@@ -762,11 +829,11 @@ function InClinicRow({ patient, sectionKey, onSelect, onAction, actionInProgress
       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         {needsBooking ? (
           <>
-            <a href={`/patients/${patient.patient_id}?book=1`} target="_blank" rel="noreferrer"
-              title="Open patient chart with the booking modal pre-opened"
-              style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall, textDecoration: 'none' }}>
+            <button onClick={() => onSchedule(patient)}
+              title="Open the booking flow inline — no leaving the tracker"
+              style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall }}>
               📅 Schedule
-            </a>
+            </button>
             <button disabled={actionInProgress || !patient.phone} onClick={sendBookingSMS}
               title={patient.phone ? `Text ${patient.phone}` : 'No phone on file'}
               style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}>
@@ -780,10 +847,10 @@ function InClinicRow({ patient, sectionKey, onSelect, onAction, actionInProgress
           </>
         ) : (
           <>
-            <a href={`/admin/patient/${patient.patient_id}`} target="_blank" rel="noreferrer"
-              style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall, textDecoration: 'none' }}>
-              Open chart
-            </a>
+            <button onClick={() => onSchedule(patient)}
+              style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall }}>
+              📅 Book
+            </button>
             <button disabled={actionInProgress}
               onClick={() => onSelect(patient)}
               style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}>
@@ -1128,7 +1195,7 @@ function RosterTable({ mode, patients, onSelect, onAction, actionInProgress }) {
 
 // ───────────────────── Patient Side Panel ─────────────────────
 
-function PatientPanel({ patient, onClose, onAction, actionInProgress }) {
+function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule }) {
   const [logWeight, setLogWeight] = useState(patient.last_weight ? String(patient.last_weight) : '');
   const [logNotes, setLogNotes] = useState('');
   const [optOutReason, setOptOutReason] = useState(patient.reminder_opt_out_reason || '');
@@ -1177,6 +1244,18 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress }) {
         <WeightProgressBlock patient={patient} />
 
         <ProtocolSummaryBlock patient={patient} />
+
+        {onSchedule && (
+          <Section title="Schedule">
+            <button onClick={() => onSchedule(patient)}
+              style={{ ...sharedStyles.btnPrimary, width: '100%' }}>
+              📅 Book a visit for {patient.first_name || patient.name.split(' ')[0]}
+            </button>
+            <div style={{ fontSize: '11px', color: '#888', marginTop: '6px', textAlign: 'center' }}>
+              Opens the booking flow inline — no leaving the tracker
+            </div>
+          </Section>
+        )}
 
         <Section title="Manual SMS (one-off)">
           <div style={{

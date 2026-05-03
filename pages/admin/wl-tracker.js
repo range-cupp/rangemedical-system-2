@@ -963,7 +963,10 @@ function RosterTable({ mode, patients, onSelect, onAction, actionInProgress }) {
           <tbody>
             {patients.map(p => {
               const nextAppt = p.visit?.upcoming?.[0];
-              const lastVisit = p.visit?.last_visit;
+              // Prefer the last WL appointment+note; fall back to any encounter
+              // so a new patient with only consults still shows a real last-seen date.
+              const lastVisitDate = p.visit?.last_visit?.date || p.last_seen_in_clinic?.date || null;
+              const lastVisitLabel = p.visit?.last_visit?.service_name || p.last_seen_in_clinic?.label || null;
               return (
               <tr key={p.protocol_id} style={{ cursor: 'pointer' }}
                 onClick={(e) => { if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') onSelect(p); }}>
@@ -1008,10 +1011,10 @@ function RosterTable({ mode, patients, onSelect, onAction, actionInProgress }) {
                 </td>
                 <td style={sharedStyles.td}>
                   {inClinic ? (
-                    lastVisit ? (
+                    lastVisitDate ? (
                       <>
-                        <div style={{ fontSize: '13px' }}>{fmtDate(lastVisit.date)}</div>
-                        {p.last_weight && <div style={{ fontSize: '12px', color: '#888' }}>{p.last_weight} lb</div>}
+                        <div style={{ fontSize: '13px' }}>{fmtDate(lastVisitDate)}</div>
+                        {lastVisitLabel && <div style={{ fontSize: '11px', color: '#888' }}>{lastVisitLabel}</div>}
                       </>
                     ) : <span style={{ color: '#999' }}>—</span>
                   ) : (
@@ -1119,6 +1122,10 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress }) {
           <DispensePill dispense={patient.dispense} />
           <PaymentPill payment={patient.payment} />
         </div>
+
+        <WeightProgressBlock patient={patient} />
+
+        <ProtocolSummaryBlock patient={patient} />
 
         <Section title="Manual SMS (one-off)">
           <div style={{
@@ -1252,25 +1259,179 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress }) {
           )}
         </Section>
 
-        <Section title="Recent activity">
-          <div style={{ fontSize: '13px', color: '#666' }}>
-            <div>Last check-in: <strong style={{ color: '#000' }}>{fmtDate(patient.last_checkin_date) || 'never'}</strong></div>
-            {patient.last_weight && <div>Last weight: <strong style={{ color: '#000' }}>{patient.last_weight} lb</strong></div>}
-            <div>4-week completion: <strong style={{ color: '#000' }}>
-              {patient.four_week_rate != null ? `${patient.four_week_rate}% (${patient.four_week_completed}/${patient.four_week_originals})` : 'no data'}
-            </strong></div>
-            <div>Payment: <strong style={{ color: '#000' }}>{patient.payment.label}</strong></div>
-            <div>Dispense: <strong style={{ color: '#000' }}>{patient.dispense.label}</strong>{patient.dispense.total > 0 ? ` — ${patient.dispense.used}/${patient.dispense.total} of last block` : ''}</div>
-            <div>Last block sent: <strong style={{ color: '#000' }}>{fmtDate(patient.last_purchase_date) || 'never'}</strong></div>
-          </div>
-          <div style={{ marginTop: '10px' }}>
-            <a href={`/admin/patient/${patient.patient_id}`}
-              style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall, textDecoration: 'none' }}>
-              Open full patient chart →
-            </a>
-          </div>
-        </Section>
       </div>
+    </div>
+  );
+}
+
+// ───────────────────── Side-panel info blocks ─────────────────────
+
+function WeightProgressBlock({ patient }) {
+  const ws = patient.weight_stats || {};
+  const history = patient.weight_history || [];
+  const { starting_weight, current_weight, goal_weight, total_loss_lb, to_goal_lb } = ws;
+  const progressPct = (() => {
+    if (starting_weight == null || current_weight == null || goal_weight == null) return null;
+    const totalToLose = starting_weight - goal_weight;
+    if (totalToLose <= 0) return null;
+    const lostSoFar = starting_weight - current_weight;
+    return Math.max(0, Math.min(100, Math.round((lostSoFar / totalToLose) * 100)));
+  })();
+
+  return (
+    <Section title="Weight progress">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
+        <Tile label="Starting" value={starting_weight} unit="lb" />
+        <Tile label="Current" value={current_weight} unit="lb" emphasis />
+        <Tile label="Goal" value={goal_weight} unit="lb" />
+      </div>
+
+      {(total_loss_lb != null || to_goal_lb != null) && (
+        <div style={{ fontSize: '13px', color: '#444', marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
+          <span>
+            {total_loss_lb != null && (
+              <>Down <strong style={{ color: total_loss_lb >= 0 ? '#166534' : '#991b1b' }}>{total_loss_lb} lb</strong> from start</>
+            )}
+          </span>
+          <span>
+            {to_goal_lb != null && to_goal_lb > 0 && <><strong>{to_goal_lb} lb</strong> to goal</>}
+            {to_goal_lb != null && to_goal_lb <= 0 && <strong style={{ color: '#166534' }}>Goal reached 🎉</strong>}
+          </span>
+        </div>
+      )}
+
+      {progressPct != null && (
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ height: '8px', background: '#f0f0f0', position: 'relative', overflow: 'hidden' }}>
+            <div style={{
+              position: 'absolute', top: 0, left: 0, bottom: 0,
+              width: `${progressPct}%`,
+              background: progressPct >= 75 ? '#166534' : progressPct >= 25 ? '#92400e' : '#1e40af',
+            }} />
+          </div>
+          <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>{progressPct}% to goal</div>
+        </div>
+      )}
+
+      {history.length >= 2 ? (
+        <WeightSparkline history={history} startingWeight={starting_weight} goalWeight={goal_weight} />
+      ) : (
+        <div style={{ fontSize: '12px', color: '#999', fontStyle: 'italic' }}>
+          {history.length === 0 ? 'No weight data logged yet' : 'Need 2+ check-ins to chart trend'}
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function Tile({ label, value, unit, emphasis }) {
+  return (
+    <div style={{
+      padding: '10px 12px', background: emphasis ? '#000' : '#f5f5f5',
+      color: emphasis ? '#fff' : '#000',
+    }}>
+      <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px',
+        color: emphasis ? '#bbb' : '#666', fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: '20px', fontWeight: 700, marginTop: '2px' }}>
+        {value != null ? value : <span style={{ color: emphasis ? '#666' : '#bbb' }}>—</span>}
+        {value != null && <span style={{ fontSize: '11px', fontWeight: 500, marginLeft: '3px',
+          color: emphasis ? '#bbb' : '#666' }}>{unit}</span>}
+      </div>
+    </div>
+  );
+}
+
+function WeightSparkline({ history, startingWeight, goalWeight }) {
+  const W = 432, H = 80, pad = 6;
+  const weights = history.map(h => h.weight);
+  const ref = [...weights];
+  if (startingWeight != null) ref.push(startingWeight);
+  if (goalWeight != null) ref.push(goalWeight);
+  const min = Math.min(...ref);
+  const max = Math.max(...ref);
+  const range = Math.max(1, max - min);
+  const yFor = w => pad + (1 - (w - min) / range) * (H - pad * 2);
+  const points = history.map((h, i) => {
+    const x = pad + (i / Math.max(1, history.length - 1)) * (W - pad * 2);
+    return [x, yFor(h.weight)];
+  });
+  const path = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ');
+  const last = points[points.length - 1];
+
+  return (
+    <div style={{ background: '#fafafa', padding: '8px', border: '1px solid #f0f0f0' }}>
+      <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+        {goalWeight != null && (
+          <line x1={0} x2={W} y1={yFor(goalWeight)} y2={yFor(goalWeight)}
+            stroke="#22c55e" strokeWidth="1" strokeDasharray="3 3" />
+        )}
+        {startingWeight != null && (
+          <line x1={0} x2={W} y1={yFor(startingWeight)} y2={yFor(startingWeight)}
+            stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3 3" />
+        )}
+        <path d={path} fill="none" stroke="#000" strokeWidth="1.5" />
+        {points.map(([x, y], i) => (
+          <circle key={i} cx={x} cy={y} r="2.5" fill="#000" />
+        ))}
+        {last && (
+          <text x={last[0] - 4} y={last[1] - 8} fontSize="10" fontWeight="700" textAnchor="end" fill="#000">
+            {history[history.length - 1].weight} lb
+          </text>
+        )}
+      </svg>
+      <div style={{ fontSize: '10px', color: '#888', marginTop: '4px', display: 'flex', justifyContent: 'space-between' }}>
+        <span>{fmtDate(history[0].date)}</span>
+        <span>{history.length} entries · {fmtDate(history[history.length - 1].date)}</span>
+      </div>
+    </div>
+  );
+}
+
+function ProtocolSummaryBlock({ patient }) {
+  const ps = patient.protocol_summary || {};
+  const purchase = patient.purchase_summary;
+  const lastSeen = patient.last_seen_in_clinic;
+  const daysOnProtocol = ps.start_date
+    ? Math.floor((Date.now() - new Date(ps.start_date + 'T12:00:00').getTime()) / 86400000)
+    : null;
+
+  return (
+    <Section title="Protocol & history">
+      <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#333' }}>
+        <Row k="Protocol" v={`${ps.medication || '—'}${ps.dose ? ' · ' + ps.dose : ''}${ps.frequency ? ' · ' + ps.frequency : ''}`} />
+        <Row k="Started" v={ps.start_date ? `${fmtDate(ps.start_date)} (${daysOnProtocol}d ago)` : '—'} />
+        <Row k="Delivery" v={ps.delivery_method ? ps.delivery_method.replace(/_/g, ' ') : '—'} />
+        <Row k="Last seen in clinic" v={
+          lastSeen
+            ? <span>{fmtDate(lastSeen.date)} <span style={{ color: '#888', fontSize: '12px' }}>({lastSeen.label})</span></span>
+            : <span style={{ color: '#888' }}>no encounters logged</span>
+        } />
+        <Row k="4-wk SMS rate" v={
+          patient.four_week_rate != null
+            ? `${patient.four_week_rate}% (${patient.four_week_completed}/${patient.four_week_originals})`
+            : 'no data'
+        } />
+        {purchase && (
+          <Row k="Lifetime spend" v={`$${Math.round(purchase.total_spent)} across ${purchase.count} purchase${purchase.count === 1 ? '' : 's'}`} />
+        )}
+        <Row k="Dispense" v={`${patient.dispense.label}${patient.dispense.total > 0 ? ` (${patient.dispense.used}/${patient.dispense.total} of last block)` : ''}`} />
+      </div>
+      <div style={{ marginTop: '12px' }}>
+        <a href={`/admin/patient/${patient.patient_id}`}
+          style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall, textDecoration: 'none' }}>
+          Open full patient chart →
+        </a>
+      </div>
+    </Section>
+  );
+}
+
+function Row({ k, v }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px',
+      padding: '4px 0', borderBottom: '1px dotted #f0f0f0' }}>
+      <span style={{ color: '#888', flexShrink: 0 }}>{k}</span>
+      <span style={{ textAlign: 'right', fontWeight: 500 }}>{v}</span>
     </div>
   );
 }

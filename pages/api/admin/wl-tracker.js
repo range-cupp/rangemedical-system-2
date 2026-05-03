@@ -449,6 +449,7 @@ async function handleGet(req, res) {
         id, patient_id, program_name, program_type, medication, selected_dose,
         frequency, checkin_cadence_days, injection_day, start_date, end_date,
         delivery_method, total_sessions, sessions_used,
+        starting_weight, goal_weight,
         checkin_reminder_enabled, reminder_opt_out, reminder_opt_out_reason,
         patients!inner ( id, name, first_name, last_name, phone, ghl_contact_id )
       `)
@@ -495,16 +496,60 @@ async function handleGet(req, res) {
       .gte('entry_date', fourWeeksAgo)
       .order('entry_date', { ascending: false });
 
-    // 4. Pull most recent WL purchase per patient (for comp detection)
+    // 4. Pull all WL purchases per patient (for comp detection + spend summary)
     const { data: purchasesRaw } = await supabase
       .from('purchases')
-      .select('patient_id, purchase_date, amount_paid, quantity')
+      .select('patient_id, purchase_date, amount_paid, quantity, item_name')
       .in('patient_id', patientIds)
       .eq('category', 'weight_loss')
       .order('purchase_date', { ascending: false });
     const lastPurchaseByPatient = {};
+    const purchaseSummaryByPatient = {};
     for (const p of (purchasesRaw || [])) {
       if (!lastPurchaseByPatient[p.patient_id]) lastPurchaseByPatient[p.patient_id] = p;
+      const sum = purchaseSummaryByPatient[p.patient_id] ||= { total_spent: 0, count: 0, first_purchase: null };
+      sum.total_spent += Number(p.amount_paid) || 0;
+      sum.count += 1;
+      sum.first_purchase = p.purchase_date; // last one wins as we iterate desc → ends up earliest
+    }
+
+    // 4a. All-time WL weight history (any entry with weight populated). Used
+    // for the side-panel sparkline and the start/current weight tiles.
+    const { data: weightRowsRaw } = await supabase
+      .from('service_logs')
+      .select('patient_id, entry_date, weight, entry_type')
+      .in('patient_id', patientIds)
+      .eq('category', 'weight_loss')
+      .not('weight', 'is', null)
+      .order('entry_date', { ascending: true });
+    const weightHistoryByPatient = {};
+    for (const w of (weightRowsRaw || [])) {
+      (weightHistoryByPatient[w.patient_id] ||= []).push({
+        date: w.entry_date,
+        weight: Number(w.weight),
+        entry_type: w.entry_type,
+      });
+    }
+
+    // 4c. Most recent encounter note (any service) per patient. Used so the
+    // in-clinic "Last Visit" reflects when the patient was actually seen in
+    // the clinic — not just their last WL injection. A new patient like Philip
+    // who has only consults + labs logged should still show those as visits.
+    const { data: encounterRows } = await supabase
+      .from('patient_notes')
+      .select('patient_id, note_date, encounter_service, status')
+      .in('patient_id', patientIds)
+      .order('note_date', { ascending: false });
+    const lastEncounterByPatient = {};
+    for (const n of (encounterRows || [])) {
+      if (!lastEncounterByPatient[n.patient_id]) {
+        const utc = new Date(n.note_date);
+        lastEncounterByPatient[n.patient_id] = {
+          date: formatPacificDate(utc),
+          service: n.encounter_service || 'Encounter',
+          status: n.status,
+        };
+      }
     }
 
     // 4b. In-clinic mode: pull WL appointments + their encounter notes for the
@@ -662,6 +707,35 @@ async function handleGet(req, res) {
       const paymentStatus = computePaymentStatus(lastPurchase);
       const dispenseStatus = computeDispenseStatus(cadenceDays, lastPurchase, todayISO);
 
+      // Weight history (sorted oldest → newest) + derived stats
+      const weightHistory = weightHistoryByPatient[patient.id] || [];
+      const startWeight = protocol.starting_weight != null
+        ? Number(protocol.starting_weight)
+        : (weightHistory[0]?.weight || null);
+      const currentWeight = weightHistory.length > 0
+        ? weightHistory[weightHistory.length - 1].weight
+        : null;
+      const goalWeight = protocol.goal_weight != null ? Number(protocol.goal_weight) : null;
+      const totalLoss = (startWeight != null && currentWeight != null)
+        ? Math.round((startWeight - currentWeight) * 10) / 10
+        : null;
+      const toGoal = (currentWeight != null && goalWeight != null)
+        ? Math.round((currentWeight - goalWeight) * 10) / 10
+        : null;
+
+      // For in-clinic "Last Visit" we prefer most recent appointment+note (strict
+      // WL visit), falling back to the most recent encounter of any kind so a
+      // new patient's last consult still surfaces.
+      const lastEncounter = lastEncounterByPatient[patient.id] || null;
+      const lastSeenInClinic = (() => {
+        const candidates = [];
+        if (visit?.last_visit?.date) candidates.push({ date: visit.last_visit.date, source: 'wl_visit', label: 'WL Visit' });
+        if (lastEncounter?.date) candidates.push({ date: lastEncounter.date, source: 'encounter', label: lastEncounter.service });
+        return candidates.sort((a, b) => (a.date < b.date ? 1 : -1))[0] || null;
+      })();
+
+      const purchaseSummary = purchaseSummaryByPatient[patient.id] || null;
+
       return {
         protocol_id: protocol.id,
         patient_id: patient.id,
@@ -698,6 +772,27 @@ async function handleGet(req, res) {
         payment: paymentStatus,
         dispense: dispenseStatus,
         last_purchase_date: lastPurchase?.purchase_date || null,
+
+        // Side-panel detail: weight progress, protocol summary, last clinic visit
+        weight_history: weightHistory,
+        weight_stats: {
+          starting_weight: startWeight,
+          current_weight: currentWeight,
+          goal_weight: goalWeight,
+          total_loss_lb: totalLoss,
+          to_goal_lb: toGoal,
+        },
+        protocol_summary: {
+          name: protocol.program_name,
+          medication: protocol.medication,
+          dose: protocol.selected_dose,
+          frequency: protocol.frequency,
+          start_date: protocol.start_date,
+          end_date: protocol.end_date,
+          delivery_method: protocol.delivery_method,
+        },
+        purchase_summary: purchaseSummary,
+        last_seen_in_clinic: lastSeenInClinic,
       };
     });
 

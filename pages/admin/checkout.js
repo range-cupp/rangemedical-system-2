@@ -37,8 +37,19 @@ import {
   resolveDoseList,
   buildSig,
 } from '../../lib/protocol-config';
+import { VIAL_CATALOG, VIAL_CATEGORIES } from '../../lib/vial-catalog';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+
+const VIAL_FREQUENCY_OPTIONS = [
+  { value: 'daily', label: 'Daily' },
+  { value: 'eod', label: 'Every Other Day' },
+  { value: '5on2off', label: '5 on / 2 off' },
+  { value: '2x_week', label: '2x per week' },
+  { value: '3x_week', label: '3x per week' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'as_needed', label: 'As Needed' },
+];
 
 // ── Service category segments (mirrors the public services page) ──
 const SERVICE_SEGMENTS = [
@@ -261,6 +272,13 @@ function CheckoutInner() {
   const [peptidePhase, setPeptidePhase] = useState(0); // 0 = not applicable
   const [peptideInClinicCount, setPeptideInClinicCount] = useState(0);
   const [peptideInjectionCount, setPeptideInjectionCount] = useState(0); // Custom count for phase-based peptides (0 = use full phase package)
+
+  // ── Vial Builder (clinic-side single-vial sales w/ dose + frequency) ──
+  const [vialSelectedId, setVialSelectedId] = useState('');
+  const [vialNumVials, setVialNumVials] = useState(1);
+  const [vialDose, setVialDose] = useState('');
+  const [vialFrequency, setVialFrequency] = useState('daily');
+  const [vialInjectionsPerVial, setVialInjectionsPerVial] = useState(20);
 
   // ── HRT Builder (modal triggered when adding HRT Membership / Single Month) ──
   // Operator picks medication / dose / frequency / supply type instead of using
@@ -937,6 +955,80 @@ function CheckoutInner() {
     setPeptidePhase(0);
     setPeptideInClinicCount(0);
     setPeptideInjectionCount(0);
+  }
+
+  // ── Vial Builder helpers ──
+  function getVialDurationDays(numVials, injPerVial, frequency) {
+    const totalInj = numVials * injPerVial;
+    switch (frequency) {
+      case 'daily': return totalInj;
+      case 'eod': return totalInj * 2;
+      case '5on2off': return Math.ceil(totalInj / 5) * 7;
+      case '2x_week': return Math.ceil(totalInj / 2) * 7;
+      case '3x_week': return Math.ceil(totalInj / 3) * 7;
+      case 'weekly': return totalInj * 7;
+      case 'as_needed': return null;
+      default: return totalInj;
+    }
+  }
+
+  function selectVial(vial) {
+    setVialSelectedId(vial.id);
+    setVialNumVials(1);
+    setVialDose(vial.dosage || '');
+    setVialFrequency('daily');
+    const inj = typeof vial.injectionsPerVial === 'number'
+      ? vial.injectionsPerVial
+      : (parseInt(String(vial.injectionsPerVial)) || 20);
+    setVialInjectionsPerVial(inj);
+  }
+
+  function addVialBuilderToCart() {
+    const vial = VIAL_CATALOG.find(v => v.id === vialSelectedId);
+    if (!vial) return;
+    const numVials = Math.max(1, vialNumVials);
+    const injPerVial = Math.max(1, vialInjectionsPerVial);
+    const totalInj = numVials * injPerVial;
+    const durationDays = getVialDurationDays(numVials, injPerVial, vialFrequency);
+    const totalCents = vial.clinicPriceCents * numVials;
+    const freqLabel = VIAL_FREQUENCY_OPTIONS.find(f => f.value === vialFrequency)?.label || vialFrequency;
+    const subtitleStr = vial.subtitle ? ` (${vial.subtitle})` : '';
+
+    const cartItem = {
+      id: 'vial-builder-' + Date.now(),
+      name: `${vial.name}${subtitleStr} — ${numVials} vial${numVials > 1 ? 's' : ''}`,
+      category: 'peptide_vial',
+      sub_category: VIAL_CATEGORIES.find(c => c.id === vial.category)?.label || 'Vial',
+      price: totalCents,
+      quantity: 1,
+      delivery_method: 'take_home',
+      duration_days: durationDays,
+      itemDiscountType: 'none',
+      itemDiscountValue: '',
+      vialConfig: {
+        vialId: vial.id,
+        vialName: vial.name,
+        vialSubtitle: vial.subtitle,
+        vialSize: vial.vialSize,
+        numVials,
+        dose: vialDose,
+        frequency: vialFrequency,
+        frequencyLabel: freqLabel,
+        injectionsPerVial: injPerVial,
+        totalInjections: totalInj,
+        durationDays,
+      },
+    };
+
+    setCartItems(prev => [...prev, cartItem]);
+    setCartOpen(true);
+
+    // Reset
+    setVialSelectedId('');
+    setVialNumVials(1);
+    setVialDose('');
+    setVialFrequency('daily');
+    setVialInjectionsPerVial(20);
   }
 
   // ── HRT Builder helpers ──
@@ -4083,6 +4175,141 @@ function CheckoutInner() {
                         </div>
                       );
                     })()
+                  ) : activeSubCategory === 'vials' ? (
+                    /* ── Vial Builder (single-vial sales w/ dose + frequency + duration) ── */
+                    <div style={{ marginTop: '16px' }}>
+                      <div style={{ background: '#fff', border: '1px solid #e0e0e0', padding: '24px' }}>
+                        <div style={{ marginBottom: '16px', fontSize: '13px', color: '#666' }}>
+                          Click a vial to set dose, frequency, and supply duration. Prices shown are clinic retail.
+                        </div>
+                        {VIAL_CATEGORIES.map(cat => {
+                          const catVials = VIAL_CATALOG.filter(v => v.category === cat.id);
+                          if (catVials.length === 0) return null;
+                          return (
+                            <div key={cat.id} style={{ marginBottom: '24px' }}>
+                              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', color: '#888', marginBottom: '8px', textTransform: 'uppercase' }}>{cat.label}</div>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '8px' }}>
+                                {catVials.map(vial => {
+                                  const selected = vialSelectedId === vial.id;
+                                  return (
+                                    <button
+                                      key={vial.id}
+                                      onClick={() => selected ? setVialSelectedId('') : selectVial(vial)}
+                                      style={{
+                                        padding: '12px 14px',
+                                        fontSize: '13px',
+                                        textAlign: 'left',
+                                        border: '1px solid #ddd',
+                                        background: '#fff',
+                                        cursor: 'pointer',
+                                        ...(selected ? { border: '2px solid #10b981', background: '#f0fdf4' } : {}),
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
+                                        <div style={{ fontWeight: 600, color: '#1a1a1a' }}>{vial.name}</div>
+                                        <div style={{ fontWeight: 700, color: '#1a1a1a', whiteSpace: 'nowrap' }}>{formatPrice(vial.clinicPriceCents)}</div>
+                                      </div>
+                                      <div style={{ fontSize: '11px', color: '#888', marginTop: '3px' }}>
+                                        {vial.subtitle ? `${vial.subtitle} · ` : ''}{vial.vialSize}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {vialSelectedId && (() => {
+                          const vial = VIAL_CATALOG.find(v => v.id === vialSelectedId);
+                          if (!vial) return null;
+                          const numVials = Math.max(1, vialNumVials);
+                          const injPerVial = Math.max(1, vialInjectionsPerVial);
+                          const totalInj = numVials * injPerVial;
+                          const durationDays = getVialDurationDays(numVials, injPerVial, vialFrequency);
+                          const totalCents = vial.clinicPriceCents * numVials;
+                          return (
+                            <div style={{ marginTop: '16px', padding: '20px', background: '#f9fafb', border: '1px solid #e5e5e5' }}>
+                              <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a1a', marginBottom: '4px' }}>
+                                Configure Protocol — {vial.name}
+                              </div>
+                              <div style={{ fontSize: '12px', color: '#888', marginBottom: '14px' }}>
+                                {vial.vialSize}{vial.subtitle ? ` · ${vial.subtitle}` : ''}
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                                <div>
+                                  <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '6px' }}># OF VIALS</label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max="20"
+                                    value={vialNumVials}
+                                    onChange={e => setVialNumVials(Math.max(1, parseInt(e.target.value) || 1))}
+                                    style={{ width: '100%', padding: '10px', border: '1px solid #ddd', fontSize: '14px', fontWeight: 600 }}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '6px' }}>DOSE PER INJECTION</label>
+                                  <input
+                                    type="text"
+                                    value={vialDose}
+                                    onChange={e => setVialDose(e.target.value)}
+                                    placeholder="e.g. 500mcg"
+                                    style={{ width: '100%', padding: '10px', border: '1px solid #ddd', fontSize: '14px' }}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '6px' }}>FREQUENCY</label>
+                                  <select
+                                    value={vialFrequency}
+                                    onChange={e => setVialFrequency(e.target.value)}
+                                    style={{ width: '100%', padding: '10px', border: '1px solid #ddd', fontSize: '14px', background: '#fff' }}
+                                  >
+                                    {VIAL_FREQUENCY_OPTIONS.map(o => (
+                                      <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '6px' }}>INJECTIONS / VIAL</label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    value={vialInjectionsPerVial}
+                                    onChange={e => setVialInjectionsPerVial(Math.max(1, parseInt(e.target.value) || 1))}
+                                    style={{ width: '100%', padding: '10px', border: '1px solid #ddd', fontSize: '14px', fontWeight: 600 }}
+                                  />
+                                </div>
+                              </div>
+
+                              <div style={{ borderTop: '1px solid #e5e5e5', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                <div style={{ fontSize: '13px', color: '#666' }}>
+                                  <strong style={{ color: '#1a1a1a' }}>{totalInj}</strong> injection{totalInj !== 1 ? 's' : ''}
+                                  {durationDays != null
+                                    ? <> · <strong style={{ color: '#1a1a1a' }}>{durationDays}</strong> day supply</>
+                                    : <> · as needed</>}
+                                </div>
+                                <div style={{ fontSize: '20px', fontWeight: 800, color: '#1a1a1a' }}>{formatPrice(totalCents)}</div>
+                              </div>
+
+                              <button
+                                onClick={addVialBuilderToCart}
+                                style={{
+                                  ...styles.primaryBtn,
+                                  width: '100%',
+                                  padding: '14px',
+                                  fontSize: '15px',
+                                  fontWeight: 700,
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.05em',
+                                }}
+                              >Add to Cart — {vial.name} ({formatPrice(totalCents)})</button>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
                   ) : activeSubCategory === 'weight_loss' ? (
                     /* ── WL Injection Builder ── */
                     <div style={{ marginTop: '16px' }}>

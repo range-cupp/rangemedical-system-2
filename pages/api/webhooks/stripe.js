@@ -13,6 +13,7 @@ import { logComm } from '../../../lib/comms-log';
 import { autoCreateOrExtendProtocol } from '../../../lib/auto-protocol';
 import { createProtocol } from '../../../lib/create-protocol';
 import { todayPacific } from '../../../lib/date-utils';
+import { sendMetaCapiEvent } from '../../../lib/meta-capi';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -886,6 +887,51 @@ export default async function handler(req, res) {
       }
     } catch (err) {
       console.error('Stripe payment-failed pipeline update error:', err.message);
+    }
+  }
+
+  // Meta Conversions API — fire server-side Purchase for the $197 Range Assessment.
+  // The browser pixel also fires Purchase with the same event_id; Meta dedupes them.
+  // We send from the webhook (not the user's browser) so iOS/ad-block users still
+  // get attributed.
+  if (event.type === 'payment_intent.succeeded') {
+    const pi = event.data.object;
+    const md = pi.metadata || {};
+
+    // Only assessment payments — other one-off PaymentIntents are out of scope.
+    if (md.assessment_path) {
+      try {
+        const result = await sendMetaCapiEvent({
+          eventName: 'Purchase',
+          eventId: md.meta_event_id,
+          eventSourceUrl: 'https://range-medical.com/assessment',
+          user: {
+            email: md.patient_email,
+            phone: md.patient_phone,
+            firstName: md.patient_first_name,
+            lastName: md.patient_last_name,
+            fbp: md.meta_fbp,
+            fbc: md.meta_fbc,
+            clientIp: md.meta_client_ip,
+            clientUserAgent: md.meta_client_user_agent,
+          },
+          custom: {
+            value: (pi.amount_received || pi.amount || 0) / 100,
+            currency: (pi.currency || 'usd').toUpperCase(),
+            content_name: 'Range Assessment',
+            content_category: md.assessment_path,
+          },
+        });
+        if (result.skipped) {
+          console.log(`Meta CAPI Purchase skipped (${pi.id}): ${result.skipped}`);
+        } else if (result.ok) {
+          console.log(`Meta CAPI Purchase sent for ${pi.id} (event_id=${md.meta_event_id})`);
+        } else {
+          console.error(`Meta CAPI Purchase failed for ${pi.id}: ${result.error}`);
+        }
+      } catch (err) {
+        console.error('Meta CAPI Purchase threw:', err.message);
+      }
     }
   }
 

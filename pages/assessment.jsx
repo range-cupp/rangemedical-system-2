@@ -467,6 +467,7 @@ export default function Assessment() {
   const [clientSecret, setClientSecret] = useState(null);
   const [paymentReady, setPaymentReady] = useState(false);
   const [paymentIntentId, setPaymentIntentId] = useState(null);
+  const [metaEventId, setMetaEventId] = useState(null);
 
   // Scheduling
   const [selectedDate, setSelectedDate] = useState(null);
@@ -610,6 +611,15 @@ export default function Assessment() {
 
     const initPayment = async () => {
       try {
+        // Read Meta Pixel attribution cookies — used server-side for CAPI dedup/match.
+        // _fbp is set on every visit (Meta Pixel); _fbc is only set when the user
+        // landed via an ad (with an fbclid in the URL).
+        const readCookie = (name) => {
+          if (typeof document === 'undefined') return '';
+          const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+          return match ? decodeURIComponent(match[1]) : '';
+        };
+
         const res = await fetch('/api/assessment/payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -619,6 +629,10 @@ export default function Assessment() {
             firstName: firstName.trim(),
             lastName: lastName.trim(),
             phone: phone.trim(),
+            meta: {
+              fbp: readCookie('_fbp'),
+              fbc: readCookie('_fbc'),
+            },
           }),
         });
 
@@ -627,6 +641,7 @@ export default function Assessment() {
 
         setClientSecret(data.clientSecret);
         setPaymentIntentId(data.paymentIntentId);
+        setMetaEventId(data.metaEventId || null);
       } catch (err) {
         console.error('Payment init error:', err);
         setError('Could not initialize payment. Please refresh and try again.');
@@ -744,9 +759,15 @@ export default function Assessment() {
       // Push /assessment/confirmed for Google Ads conversion tracking
       window.history.pushState({}, '', '/assessment/confirmed');
 
-      // Fire Meta Pixel Purchase event
+      // Fire Meta Pixel Purchase event — `eventID` matches the server-side CAPI
+      // event sent from the Stripe webhook so Meta dedupes them.
       if (typeof window !== 'undefined' && window.fbq) {
-        window.fbq('track', 'Purchase', { value: 197.00, currency: 'USD' });
+        window.fbq(
+          'track',
+          'Purchase',
+          { value: 197.00, currency: 'USD' },
+          metaEventId ? { eventID: metaEventId } : undefined,
+        );
       }
     } catch (err) {
       console.error('Confirm error:', err);

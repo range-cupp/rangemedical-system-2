@@ -1,7 +1,7 @@
 import Head from 'next/head';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import { Check, ChevronDown, ClipboardList, Clock, UserCheck } from 'lucide-react';
+import { Plus, Minus } from 'lucide-react';
 
 export default function AssessmentLandingPage() {
   const router = useRouter();
@@ -16,6 +16,39 @@ export default function AssessmentLandingPage() {
     }
     router.push('/assessment?path=energy');
   }
+
+  const whoFor = [
+    "You're over 40 and your energy, focus, or drive isn't what it used to be",
+    "You've been told your labs are \"normal\" but you still feel off",
+    "You're on weight-loss shots, peptides, or hormones with little or no baseline labs",
+    "You're tired of guessing and want a clear, data-driven answer",
+    "You want a provider who takes time to explain things in plain language",
+  ];
+
+  const whatYouGet = [
+    {
+      title: 'Symptoms review',
+      desc: 'A short questionnaire so your provider walks in already knowing your story, history, and goals.',
+    },
+    {
+      title: '30-minute 1-on-1 visit',
+      desc: 'Unhurried time with a provider who actually listens — no rushed appointments, no feeling like a number.',
+    },
+    {
+      title: 'Personalized written plan',
+      desc: 'You walk out with a real plan built for you — what is going on, what to do next, and which labs or treatments your provider recommends.',
+    },
+    {
+      title: '$197 credited back',
+      desc: 'Your full $197 is applied as credit toward your first treatment or lab package — so the assessment is essentially free if you move forward.',
+    },
+  ];
+
+  const howItWorks = [
+    { num: '01', title: 'Book and pay $197', desc: 'Pick a time that works for you and reserve your spot. The $197 is credited back toward your first treatment or lab package.' },
+    { num: '02', title: 'Complete a quick intake', desc: 'We text you a short medical intake form — history, meds, allergies, photo ID. Takes about 5 minutes from your phone.' },
+    { num: '03', title: 'Come in and get your plan', desc: 'Sit down 1-on-1 with your provider for 30 focused minutes. Walk out the same visit with your personalized written plan.' },
+  ];
 
   const faqs = [
     {
@@ -58,112 +91,101 @@ export default function AssessmentLandingPage() {
         <meta property="og:description" content="Over 40 in Orange County and still don't feel like yourself? 30 minutes, 1-on-1 with a real provider, and a plan you take home." />
         <meta property="og:type" content="website" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </Head>
 
-      <div style={styles.page}>
+      <div style={s.page}>
         {/* Header */}
-        <header style={styles.header}>
-          <img src="/brand/range_logo_transparent_black.png" alt="Range Medical" style={styles.logo} />
+        <header style={s.header}>
+          <img
+            src="/brand/range_logo_transparent_black.png"
+            alt="Range Medical"
+            style={s.logo}
+          />
         </header>
 
-        <main style={styles.container}>
+        <main style={s.container}>
           {/* ─── HERO ─── */}
-          <section style={styles.hero}>
-            <p style={styles.label}>RANGE MEDICAL &middot; ORANGE COUNTY</p>
-            <h1 style={styles.headline}>
-              Over 40 and still don't feel like yourself?
+          <section style={s.heroSection}>
+            <div style={s.label}>
+              <span style={s.dot} />
+              RANGE ASSESSMENT &nbsp;·&nbsp; ORANGE COUNTY
+            </div>
+            <h1 style={s.headline}>
+              Over 40 and still don&apos;t feel like yourself?
             </h1>
-            <p style={styles.subheadline}>
-              The Range Assessment is a 30-minute 1-on-1 with a Range Medical provider — symptoms review, lab recommendations, and a personalized written plan you take home. $197, credited back toward your first treatment.
+            <p style={s.headlineSub}>
+              The Range Assessment is a 30-minute 1-on-1 with a Range Medical provider — symptoms review, lab recommendations, and a personalized written plan you take home.
             </p>
-            <button style={styles.ctaBtn} onClick={startAssessment}>
+
+            <div style={s.priceBox}>
+              <strong style={s.priceStrong}>$197</strong> — applied as credit toward your first treatment or lab package
+            </div>
+
+            <button style={s.btn} onClick={startAssessment}>
               Book Your Range Assessment
             </button>
-            <div style={styles.trustRow}>
-              <span style={styles.trustItem}>
-                <Check size={16} color="#2E6B35" /> 30 minutes, 1-on-1
-              </span>
-              <span style={styles.trustItem}>
-                <Check size={16} color="#2E6B35" /> Personalized written plan
-              </span>
-              <span style={styles.trustItem}>
-                <Check size={16} color="#2E6B35" /> $197 credited to treatment
-              </span>
+
+            <div style={s.trustRow}>
+              <span style={s.trustItem}>30 minutes, 1-on-1</span>
+              <span style={s.trustDivider} />
+              <span style={s.trustItem}>Personalized plan</span>
+              <span style={s.trustDivider} />
+              <span style={s.trustItem}>$197 credited back</span>
             </div>
           </section>
 
           {/* ─── WHO THIS IS FOR ─── */}
-          <section style={styles.section}>
-            <h2 style={styles.sectionTitle}>Who this is for</h2>
-            <div style={styles.bulletList}>
-              {[
-                "You're over 40 and your energy, focus, or drive isn't what it used to be",
-                "You've been told your labs are \"normal\" but you still feel off",
-                "You're on weight-loss shots, peptides, or hormones with little or no baseline labs",
-                "You're tired of guessing and want a clear, data-driven answer",
-                "You want a provider who takes time to explain things in plain language",
-              ].map((text, i) => (
-                <div key={i} style={styles.bulletItem}>
-                  <span style={styles.bulletDot} />
-                  <span>{text}</span>
+          <section style={s.section}>
+            <div style={s.sectionLabel}>
+              <span style={s.dot} />
+              WHO THIS IS FOR
+            </div>
+            <div style={s.sectionRule} />
+            <div style={s.bulletList}>
+              {whoFor.map((text, i) => (
+                <div key={i} style={s.bulletItem}>
+                  <span style={s.bulletNum}>{String(i + 1).padStart(2, '0')}</span>
+                  <span style={s.bulletText}>{text}</span>
                 </div>
               ))}
             </div>
           </section>
 
           {/* ─── WHAT YOU GET ─── */}
-          <section style={styles.section}>
-            <h2 style={styles.sectionTitle}>What you get</h2>
-            <div style={styles.cardGrid}>
-              {[
-                {
-                  icon: <UserCheck size={22} />,
-                  title: 'Symptoms review',
-                  desc: 'A short questionnaire so your provider walks in already knowing your story, history, and goals.',
-                },
-                {
-                  icon: <Clock size={22} />,
-                  title: '30-minute 1-on-1 visit',
-                  desc: 'Unhurried time with a provider who actually listens — no rushed appointments, no feeling like a number.',
-                },
-                {
-                  icon: <ClipboardList size={22} />,
-                  title: 'Personalized written plan',
-                  desc: 'You walk out with a real plan built for you — what is going on, what to do next, and which labs or treatments your provider recommends.',
-                },
-                {
-                  icon: <Check size={22} />,
-                  title: '$197 credited back',
-                  desc: 'Your full $197 is applied as credit toward your first treatment or lab package — so the assessment is essentially free if you move forward.',
-                },
-              ].map((card, i) => (
-                <div key={i} style={styles.card}>
-                  <div style={styles.cardIcon}>{card.icon}</div>
-                  <h3 style={styles.cardTitle}>{card.title}</h3>
-                  <p style={styles.cardDesc}>{card.desc}</p>
+          <section style={s.section}>
+            <div style={s.sectionLabel}>
+              <span style={s.dot} />
+              WHAT YOU GET
+            </div>
+            <div style={s.sectionRule} />
+            <div style={s.editorialList}>
+              {whatYouGet.map((item, i) => (
+                <div key={i} style={s.editorialItem}>
+                  <span style={s.editorialNum}>{String(i + 1).padStart(2, '0')}</span>
+                  <div>
+                    <h3 style={s.editorialTitle}>{item.title}</h3>
+                    <p style={s.editorialDesc}>{item.desc}</p>
+                  </div>
                 </div>
               ))}
             </div>
           </section>
 
           {/* ─── HOW IT WORKS ─── */}
-          <section style={styles.section}>
-            <h2 style={styles.sectionTitle}>How it works</h2>
-            <div style={styles.steps}>
-              {[
-                { num: '1', title: 'Book and pay $197', desc: 'Pick a time that works for you and reserve your spot. The $197 is credited back toward your first treatment or lab package.' },
-                { num: '2', title: 'Complete a quick intake', desc: 'We text you a short medical intake form — history, meds, allergies, photo ID. Takes about 5 minutes from your phone.' },
-                { num: '3', title: 'Come in and get your plan', desc: 'Sit down 1-on-1 with your provider for 30 focused minutes. Walk out the same visit with your personalized written plan.' },
-              ].map((step, i) => (
-                <div key={i}>
-                  {i > 0 && <div style={styles.stepLine} />}
-                  <div style={styles.step}>
-                    <div style={styles.stepNum}>{step.num}</div>
-                    <div>
-                      <h3 style={styles.stepTitle}>{step.title}</h3>
-                      <p style={styles.stepDesc}>{step.desc}</p>
-                    </div>
+          <section style={s.section}>
+            <div style={s.sectionLabel}>
+              <span style={s.dot} />
+              HOW IT WORKS
+            </div>
+            <div style={s.sectionRule} />
+            <div style={s.editorialList}>
+              {howItWorks.map((step, i) => (
+                <div key={i} style={s.editorialItem}>
+                  <span style={s.editorialNum}>{step.num}</span>
+                  <div>
+                    <h3 style={s.editorialTitle}>{step.title}</h3>
+                    <p style={s.editorialDesc}>{step.desc}</p>
                   </div>
                 </div>
               ))}
@@ -171,69 +193,83 @@ export default function AssessmentLandingPage() {
           </section>
 
           {/* ─── FAQ ─── */}
-          <section style={styles.section}>
-            <h2 style={styles.sectionTitle}>Common questions</h2>
-            <div style={styles.faqList}>
-              {faqs.map((faq, i) => (
-                <div key={i} style={styles.faqItem}>
-                  <button
-                    style={styles.faqQuestion}
-                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    aria-expanded={openFaq === i}
-                  >
-                    <span>{faq.q}</span>
-                    <ChevronDown
-                      size={18}
-                      style={{
-                        color: '#888',
-                        transition: 'transform 0.2s',
-                        flexShrink: 0,
-                        transform: openFaq === i ? 'rotate(180deg)' : 'rotate(0)',
-                      }}
-                    />
-                  </button>
-                  {openFaq === i && <p style={styles.faqAnswer}>{faq.a}</p>}
-                </div>
-              ))}
+          <section style={s.section}>
+            <div style={s.sectionLabel}>
+              <span style={s.dot} />
+              COMMON QUESTIONS
+            </div>
+            <div style={s.sectionRule} />
+            <div>
+              {faqs.map((faq, i) => {
+                const open = openFaq === i;
+                return (
+                  <div key={i} style={s.faqItem}>
+                    <button
+                      style={s.faqButton}
+                      onClick={() => setOpenFaq(open ? null : i)}
+                      aria-expanded={open}
+                    >
+                      <span style={s.faqQ}>{faq.q}</span>
+                      <span style={s.faqIcon}>
+                        {open ? <Minus size={16} /> : <Plus size={16} />}
+                      </span>
+                    </button>
+                    {open && <p style={s.faqA}>{faq.a}</p>}
+                  </div>
+                );
+              })}
             </div>
           </section>
 
           {/* ─── FINAL CTA ─── */}
-          <section style={styles.finalCta}>
-            <h2 style={styles.finalTitle}>Ready to stop guessing?</h2>
-            <p style={styles.finalSub}>
-              30 minutes, 1-on-1 with a provider, and a written plan you take home. $197 — credited back if you move forward.
+          <section style={s.finalSection}>
+            <div style={s.sectionLabel}>
+              <span style={s.dot} />
+              READY?
+            </div>
+            <div style={s.sectionRule} />
+            <h2 style={s.finalTitle}>
+              Stop guessing. Get a real plan.
+            </h2>
+            <p style={s.finalSub}>
+              30 minutes, 1-on-1 with a Range Medical provider, and a written plan you take home. $197 — credited back if you move forward.
             </p>
-            <button style={styles.ctaBtn} onClick={startAssessment}>
+            <div style={s.priceBox}>
+              <strong style={s.priceStrong}>$197</strong> — applied as credit toward your first treatment or lab package
+            </div>
+            <button style={s.btn} onClick={startAssessment}>
               Book Your Range Assessment
             </button>
-          </section>
-
-          {/* ─── BOTTOM CTA ─── */}
-          <section style={styles.bottomCta}>
-            <button style={{ ...styles.ctaBtn, width: '100%' }} onClick={startAssessment}>
-              Start Your Range Assessment
-            </button>
-            <p style={styles.formNote}>
-              $197 — credited toward your first treatment or lab package.
-            </p>
           </section>
         </main>
 
         {/* Footer */}
-        <footer style={styles.footer}>
-          <p style={styles.footerText}>
-            Range Medical &middot; 1901 Westcliff Dr, Suite 10, Newport Beach, CA &middot; (949) 997-3988
-          </p>
+        <footer style={s.footer}>
+          <div style={s.footerInner}>
+            <div style={s.footerCol}>
+              <p style={s.footerLabel}>RANGE MEDICAL</p>
+              <p style={s.footerText}>
+                1901 Westcliff Drive, Suite 10<br />
+                Newport Beach, CA 92660
+              </p>
+            </div>
+            <div style={s.footerCol}>
+              <p style={s.footerLabel}>CONTACT</p>
+              <p style={s.footerText}>
+                (949) 997-3988<br />
+                range-medical.com
+              </p>
+            </div>
+          </div>
         </footer>
       </div>
     </>
   );
 }
 
-// ─── STYLES ────────────────────────────────────────────────────────────────────
+// ─── v2 STYLES ────────────────────────────────────────────────────────────────
 
-const styles = {
+const s = {
   page: {
     minHeight: '100vh',
     background: '#ffffff',
@@ -243,265 +279,284 @@ const styles = {
   },
   header: {
     borderBottom: '1px solid #e8e8e8',
-    padding: '0 1.5rem',
-    height: 60,
+    padding: '0 2.5rem',
+    height: 64,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
   logo: {
-    height: 40,
+    height: 48,
     display: 'block',
   },
   container: {
     maxWidth: 640,
     margin: '0 auto',
-    padding: '0 1.25rem 4rem',
+    padding: '0 2rem 80px',
   },
 
-  // Hero
-  hero: {
-    paddingTop: '3.5rem',
-    paddingBottom: '3rem',
-    borderBottom: '1px solid #eaeaea',
+  // ── Hero ──
+  heroSection: {
+    padding: '5rem 0 3.5rem',
   },
   label: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
     fontSize: 11,
     fontWeight: 700,
-    letterSpacing: '0.12em',
-    color: '#888',
+    letterSpacing: '0.14em',
+    color: '#737373',
     textTransform: 'uppercase',
-    margin: '0 0 18px',
+    marginBottom: 24,
+  },
+  dot: {
+    display: 'inline-block',
+    width: 8,
+    height: 8,
+    background: '#808080',
   },
   headline: {
-    fontSize: 'clamp(1.75rem, 5vw, 2.5rem)',
+    fontSize: 'clamp(2rem, 5vw, 2.75rem)',
     fontWeight: 900,
-    lineHeight: 1.15,
-    letterSpacing: '-0.02em',
     color: '#1a1a1a',
-    margin: '0 0 18px',
+    lineHeight: 0.95,
+    letterSpacing: '-0.02em',
+    margin: '0 0 20px',
     textTransform: 'none',
   },
-  subheadline: {
-    fontSize: 16,
-    lineHeight: 1.7,
-    color: '#555',
-    margin: '0 0 32px',
+  headlineSub: {
+    fontSize: 17,
+    lineHeight: 1.75,
+    color: '#737373',
+    margin: '0 0 28px',
     maxWidth: 520,
   },
-  ctaBtn: {
-    display: 'inline-block',
-    padding: '16px 36px',
+  priceBox: {
+    fontSize: 15,
+    color: '#1a1a1a',
+    fontWeight: 500,
+    marginBottom: 28,
+    background: '#fafafa',
+    padding: '16px 20px',
+    borderLeft: '3px solid #1a1a1a',
+    lineHeight: 1.5,
+  },
+  priceStrong: {
+    fontWeight: 800,
+  },
+  btn: {
+    display: 'block',
+    width: '100%',
+    padding: '18px 32px',
     background: '#1a1a1a',
     color: '#ffffff',
-    fontSize: 14,
-    fontWeight: 700,
-    letterSpacing: '0.03em',
+    fontSize: 11,
+    fontWeight: 800,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
     border: 'none',
-    borderRadius: 4,
     cursor: 'pointer',
-    textAlign: 'center',
+    transition: 'background 0.2s',
+    fontFamily: 'inherit',
   },
   trustRow: {
     display: 'flex',
     flexWrap: 'wrap',
-    gap: '12px 24px',
+    alignItems: 'center',
+    gap: '12px 14px',
     marginTop: 28,
+    paddingTop: 24,
+    borderTop: '1px solid #e0e0e0',
   },
   trustItem: {
+    fontSize: 12,
+    fontWeight: 600,
+    letterSpacing: '0.06em',
+    color: '#737373',
+    textTransform: 'uppercase',
+  },
+  trustDivider: {
+    display: 'inline-block',
+    width: 4,
+    height: 4,
+    background: '#d0d0d0',
+    borderRadius: 0,
+  },
+
+  // ── Section frame ──
+  section: {
+    paddingTop: '4rem',
+    paddingBottom: 0,
+  },
+  sectionLabel: {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
-    fontSize: 14,
-    color: '#444',
+    gap: 10,
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: '0.14em',
+    color: '#737373',
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  sectionRule: {
+    width: '100%',
+    height: 1,
+    background: '#e0e0e0',
+    marginBottom: 28,
   },
 
-  // Section
-  section: {
-    paddingTop: '2.75rem',
-    paddingBottom: '2.75rem',
-    borderBottom: '1px solid #eaeaea',
-  },
-  sectionTitle: {
-    fontSize: 21,
-    fontWeight: 900,
-    letterSpacing: '-0.01em',
-    color: '#1a1a1a',
-    margin: '0 0 22px',
-    textTransform: 'none',
-  },
-
-  // Bullet list
+  // ── Bullet list (Who this is for) ──
   bulletList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 14,
+    borderTop: '1px solid #e0e0e0',
   },
   bulletItem: {
     display: 'flex',
     alignItems: 'flex-start',
-    gap: 14,
-    fontSize: 15,
-    lineHeight: 1.6,
-    color: '#333',
+    gap: 20,
+    padding: '20px 0',
+    borderBottom: '1px solid #e0e0e0',
   },
-  bulletDot: {
-    display: 'inline-block',
-    width: 6,
-    height: 6,
-    borderRadius: '50%',
-    background: '#1a1a1a',
-    marginTop: 9,
+  bulletNum: {
+    fontSize: 12,
+    fontWeight: 600,
+    color: '#808080',
+    letterSpacing: '0.05em',
     flexShrink: 0,
+    paddingTop: 2,
+    minWidth: 28,
   },
-
-  // Cards
-  cardGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-    gap: 16,
-  },
-  card: {
-    padding: '22px 24px',
-    border: '1px solid #eaeaea',
-    borderRadius: 8,
-  },
-  cardIcon: {
-    marginBottom: 10,
-    color: '#1a1a1a',
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: 700,
-    margin: '0 0 6px',
-    color: '#1a1a1a',
-    textTransform: 'none',
-  },
-  cardDesc: {
-    fontSize: 14,
+  bulletText: {
+    fontSize: 16,
     lineHeight: 1.6,
-    color: '#555',
-    margin: 0,
+    color: '#1a1a1a',
   },
 
-  // Steps
-  steps: {
-    display: 'flex',
-    flexDirection: 'column',
+  // ── Editorial list (What you get / How it works) ──
+  editorialList: {
+    borderTop: '1px solid #e0e0e0',
   },
-  step: {
+  editorialItem: {
     display: 'flex',
     alignItems: 'flex-start',
-    gap: 16,
+    gap: 20,
+    padding: '24px 0',
+    borderBottom: '1px solid #e0e0e0',
   },
-  stepNum: {
-    width: 36,
-    height: 36,
-    borderRadius: '50%',
-    background: '#1a1a1a',
-    color: '#fff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 14,
-    fontWeight: 700,
+  editorialNum: {
+    fontSize: 12,
+    fontWeight: 600,
+    color: '#808080',
+    letterSpacing: '0.05em',
     flexShrink: 0,
+    paddingTop: 4,
+    minWidth: 28,
   },
-  stepTitle: {
-    fontSize: 16,
-    fontWeight: 700,
-    margin: '0 0 4px',
+  editorialTitle: {
+    fontSize: 18,
+    fontWeight: 900,
+    lineHeight: 1.1,
+    letterSpacing: '-0.01em',
     color: '#1a1a1a',
+    margin: '0 0 8px',
     textTransform: 'none',
   },
-  stepDesc: {
-    fontSize: 14,
-    lineHeight: 1.6,
-    color: '#555',
+  editorialDesc: {
+    fontSize: 15,
+    lineHeight: 1.7,
+    color: '#737373',
     margin: 0,
   },
-  stepLine: {
-    width: 2,
-    height: 20,
-    background: '#e0e0e0',
-    marginLeft: 17,
-  },
 
-  // FAQ
-  faqList: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
+  // ── FAQ ──
   faqItem: {
-    borderBottom: '1px solid #eaeaea',
+    borderBottom: '1px solid #e0e0e0',
   },
-  faqQuestion: {
+  faqButton: {
     width: '100%',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '16px 0',
+    padding: '20px 0',
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    fontSize: 15,
-    fontWeight: 600,
-    color: '#1a1a1a',
     textAlign: 'left',
-    gap: 16,
     fontFamily: 'inherit',
+    gap: 16,
   },
-  faqAnswer: {
+  faqQ: {
+    fontSize: 16,
+    fontWeight: 700,
+    color: '#1a1a1a',
+    letterSpacing: '-0.005em',
+    lineHeight: 1.3,
+  },
+  faqIcon: {
+    color: '#737373',
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+  },
+  faqA: {
     fontSize: 15,
-    lineHeight: 1.7,
-    color: '#555',
-    margin: '0 0 16px',
+    lineHeight: 1.75,
+    color: '#737373',
+    margin: '0 0 22px',
     paddingRight: 32,
   },
 
-  // Final CTA
-  finalCta: {
-    paddingTop: '3rem',
-    paddingBottom: '3rem',
-    textAlign: 'center',
-    borderBottom: '1px solid #eaeaea',
+  // ── Final CTA ──
+  finalSection: {
+    paddingTop: '4rem',
   },
   finalTitle: {
-    fontSize: 22,
+    fontSize: 'clamp(1.75rem, 4.5vw, 2.25rem)',
     fontWeight: 900,
     color: '#1a1a1a',
-    margin: '0 0 10px',
+    lineHeight: 1,
+    letterSpacing: '-0.02em',
+    margin: '0 0 18px',
     textTransform: 'none',
   },
   finalSub: {
-    fontSize: 15,
-    lineHeight: 1.7,
-    color: '#555',
-    margin: '0 auto 24px',
-    maxWidth: 400,
+    fontSize: 16,
+    lineHeight: 1.75,
+    color: '#737373',
+    margin: '0 0 28px',
+    maxWidth: 520,
   },
 
-  // Bottom CTA
-  bottomCta: {
-    paddingTop: '2.5rem',
-    paddingBottom: '2.5rem',
-    textAlign: 'center',
-  },
-  formNote: {
-    fontSize: 13,
-    color: '#888',
-    textAlign: 'center',
-    margin: '12px 0 0',
-  },
-  // Footer
+  // ── Footer ──
   footer: {
-    borderTop: '1px solid #eaeaea',
-    padding: '20px 1.5rem',
-    textAlign: 'center',
+    borderTop: '1px solid #e0e0e0',
+    padding: '40px 2rem',
+    background: '#fafafa',
+  },
+  footerInner: {
+    maxWidth: 640,
+    margin: '0 auto',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '32px 64px',
+    justifyContent: 'space-between',
+  },
+  footerCol: {
+    minWidth: 180,
+  },
+  footerLabel: {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: '0.14em',
+    color: '#737373',
+    textTransform: 'uppercase',
+    margin: '0 0 10px',
   },
   footerText: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: 14,
+    lineHeight: 1.7,
+    color: '#1a1a1a',
     margin: 0,
   },
 };

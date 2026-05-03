@@ -69,12 +69,17 @@ export default async function handler(req, res) {
         .insert({ patient_id: patientId, username, password_hash: passwordHash });
     }
 
-    const shopUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://rangemedical.com'}/shop`;
+    const shopUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://range-medical.com'}/shop`;
+
+    const delivery = {
+      email: { attempted: !!patient.email, sent: false, error: patient.email ? null : 'No email on file' },
+      sms:   { attempted: !!patient.phone, sent: false, error: patient.phone ? null : 'No phone on file' },
+    };
 
     // Send credentials via email if available
     if (patient.email) {
       try {
-        await resend.emails.send({
+        const result = await resend.emails.send({
           from: 'Range Medical <noreply@range-medical.com>',
           to: patient.email,
           subject: 'Your Range Medical Peptide Shop Access',
@@ -94,8 +99,15 @@ export default async function handler(req, res) {
             </div>
           `,
         });
+        if (result?.error) {
+          delivery.email.error = result.error.message || JSON.stringify(result.error);
+          console.error('Shop credential email error:', result.error);
+        } else {
+          delivery.email.sent = true;
+        }
       } catch (emailErr) {
-        console.error('Shop credential email error:', emailErr);
+        delivery.email.error = emailErr.message || String(emailErr);
+        console.error('Shop credential email exception:', emailErr);
       }
     }
 
@@ -103,7 +115,7 @@ export default async function handler(req, res) {
     if (patient.phone) {
       try {
         const { sendSMS } = require('../../../lib/send-sms');
-        await sendSMS({
+        const result = await sendSMS({
           to: patient.phone,
           message: `Range Medical Peptide Shop\n\nYour login:\nURL: ${shopUrl}\nUsername: ${username}\nPassword: ${plainPassword}\n\nQuestions? (949) 997-3988`,
           log: {
@@ -112,8 +124,15 @@ export default async function handler(req, res) {
             patientId: patientId,
           },
         });
+        if (result?.success) {
+          delivery.sms.sent = true;
+        } else {
+          delivery.sms.error = result?.error || 'Unknown SMS failure';
+          console.error('Shop credential SMS failure:', result);
+        }
       } catch (smsErr) {
-        console.error('Shop credential SMS error:', smsErr);
+        delivery.sms.error = smsErr.message || String(smsErr);
+        console.error('Shop credential SMS exception:', smsErr);
       }
     }
 
@@ -123,11 +142,11 @@ export default async function handler(req, res) {
       action: 'create_shop_account',
       resourceType: 'patient',
       resourceId: patientId,
-      details: { username, patientName: patient.name, sentEmail: !!patient.email, sentSMS: !!patient.phone },
+      details: { username, patientName: patient.name, emailSent: delivery.email.sent, smsSent: delivery.sms.sent, emailError: delivery.email.error, smsError: delivery.sms.error },
       req,
     });
 
-    return res.status(200).json({ success: true, username, password: plainPassword });
+    return res.status(200).json({ success: true, username, password: plainPassword, delivery });
   }
 
   if (req.method === 'GET') {

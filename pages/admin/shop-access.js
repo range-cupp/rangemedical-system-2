@@ -217,25 +217,48 @@ export default function ShopAccessAdmin() {
             )}
 
             {/* Result panel */}
-            {lastIssued && (
-              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '16px 20px', marginTop: 20 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#15803d', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
-                  Credentials Issued
+            {lastIssued && (() => {
+              const emailDelivery = lastIssued.delivery?.email;
+              const smsDelivery = lastIssued.delivery?.sms;
+              const anyFailure = (emailDelivery?.attempted && !emailDelivery.sent) || (smsDelivery?.attempted && !smsDelivery.sent);
+              const headerColor = anyFailure ? '#b45309' : '#15803d';
+              const bgColor = anyFailure ? '#fffbeb' : '#f0fdf4';
+              const borderColor = anyFailure ? '#fcd34d' : '#bbf7d0';
+              const headerLabel = anyFailure ? 'Credentials Generated — Delivery Issue' : 'Credentials Issued';
+
+              const statusLine = (label, d) => {
+                if (!d) return null;
+                if (!d.attempted) return <div key={label} style={{ fontSize: 13, color: '#666' }}>{label}: not attempted ({d.error})</div>;
+                if (d.sent) return <div key={label} style={{ fontSize: 13, color: '#15803d' }}>✓ {label} sent successfully</div>;
+                return <div key={label} style={{ fontSize: 13, color: '#b91c1c' }}>✗ {label} failed: <code style={{ fontSize: 12 }}>{d.error || 'Unknown error'}</code></div>;
+              };
+
+              return (
+                <div style={{ background: bgColor, border: `1px solid ${borderColor}`, padding: '16px 20px', marginTop: 20 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: headerColor, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
+                    {headerLabel}
+                  </div>
+                  <div style={{ fontSize: 14, color: '#333', marginBottom: 12 }}>
+                    For <strong>{lastIssued.patient.name}</strong>
+                    {lastIssued.patient.email && <> · {lastIssued.patient.email}</>}
+                    {lastIssued.patient.phone && <> · {lastIssued.patient.phone}</>}.
+                  </div>
+                  <div style={{ background: '#fff', padding: '12px 16px', fontSize: 14, fontFamily: 'ui-monospace, SFMono-Regular, monospace', marginBottom: 12 }}>
+                    <div><strong>Username:</strong> {lastIssued.username}</div>
+                    <div><strong>Password:</strong> {lastIssued.password}</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 10 }}>
+                    {statusLine('Email', emailDelivery)}
+                    {statusLine('SMS', smsDelivery)}
+                  </div>
+                  <p style={{ fontSize: 12, color: '#666', margin: 0 }}>
+                    {anyFailure
+                      ? 'Delivery failed for at least one channel — copy the credentials above and share them manually, or fix the error and Reset to retry.'
+                      : 'This password is shown only once. If you need to share it again, reset it.'}
+                  </p>
                 </div>
-                <div style={{ fontSize: 14, color: '#333', marginBottom: 12 }}>
-                  Sent to <strong>{lastIssued.patient.name}</strong>
-                  {lastIssued.patient.email && <> at {lastIssued.patient.email}</>}
-                  {lastIssued.patient.phone && <> and {lastIssued.patient.phone}</>}.
-                </div>
-                <div style={{ background: '#fff', padding: '12px 16px', fontSize: 14, fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
-                  <div><strong>Username:</strong> {lastIssued.username}</div>
-                  <div><strong>Password:</strong> {lastIssued.password}</div>
-                </div>
-                <p style={{ fontSize: 12, color: '#666', marginTop: 10, marginBottom: 0 }}>
-                  This password is shown only once. If you need to share it again, reset it.
-                </p>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
 

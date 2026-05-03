@@ -355,7 +355,7 @@ function AddCardForm({ patientId, onCardSaved }) {
 
 export default function PatientProfile() {
   const router = useRouter();
-  const { id } = router.query || {};
+  const { id, book } = router.query || {};
   const { session, employee } = useAuth();
   const voice = useVoice(); // browser softphone (null if not in AdminLayout)
 
@@ -602,6 +602,12 @@ export default function PatientProfile() {
   const [showSymptomsModal, setShowSymptomsModal] = useState(false);
   const [showIntakeModal, setShowIntakeModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
+
+  // Deep-link from WL Tracker (and elsewhere): /patients/[id]?book=1 auto-opens
+  // the booking modal so a "Schedule visit" button is one click instead of two.
+  useEffect(() => {
+    if (router.isReady && book === '1') setShowBookingModal(true);
+  }, [router.isReady, book]);
   const [generatingChart, setGeneratingChart] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [printSections, setPrintSections] = useState({

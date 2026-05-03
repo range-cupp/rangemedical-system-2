@@ -952,6 +952,7 @@ async function handlePost(req, res, employee) {
       case 'toggle_reminder':    return await actionToggleReminder(req, res, protocol, employee);
       case 'set_opt_out':        return await actionSetOptOut(req, res, protocol, employee);
       case 'update_injection_day': return await actionUpdateInjectionDay(req, res, protocol, employee);
+      case 'send_booking_sms':   return await actionSendBookingSMS(req, res, protocol, employee);
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }
@@ -1140,4 +1141,41 @@ async function actionUpdateInjectionDay(req, res, protocol, employee) {
   });
 
   return res.status(200).json({ success: true });
+}
+
+// Sends a "let's get your next visit on the calendar" SMS to the patient.
+// Used from the in-clinic tracker when a patient's missed_cadence /
+// needs_booking_soon and we want a one-click outreach instead of going to
+// the patient chart, dialing them, etc.
+async function actionSendBookingSMS(req, res, protocol, employee) {
+  const patient = protocol.patients;
+  const phone = normalizePhone(patient.phone);
+  if (!phone) return res.status(400).json({ error: 'No phone number on file' });
+
+  const firstName = patient.first_name || patient.name?.split(' ')[0] || 'there';
+  const message =
+    `Hi ${firstName}! It's time to get your next weight loss injection on the calendar. ` +
+    `Reply with a few times that work for you, or call us at (949) 997-3988 and we'll get you booked.\n\n` +
+    `- Range Medical`;
+
+  const smsResult = await sendSMS({ to: phone, message });
+
+  await logComm({
+    channel: 'sms', messageType: 'wl_booking_outreach', message,
+    source: 'admin-wl-tracker', patientId: patient.id, protocolId: protocol.id,
+    ghlContactId: patient.ghl_contact_id, patientName: patient.name, recipient: phone,
+    twilioMessageSid: smsResult.messageSid,
+    status: smsResult.success ? undefined : 'error',
+    errorMessage: smsResult.success ? undefined : smsResult.error,
+    provider: smsResult.provider || null, direction: 'outbound',
+  });
+
+  await logAction({
+    employee, action_type: 'wl_tracker_send_booking_sms',
+    description: `Sent booking outreach SMS to ${patient.name}`,
+    target_type: 'protocol', target_id: protocol.id,
+  });
+
+  if (!smsResult.success) return res.status(500).json({ error: smsResult.error });
+  return res.status(200).json({ success: true, message: 'Booking SMS sent' });
 }

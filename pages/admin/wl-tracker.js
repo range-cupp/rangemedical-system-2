@@ -644,7 +644,7 @@ function DailySection({ section, today, mode, onSelect, onAction, actionInProgre
               {section.list.map(p => (
                 mode === 'in_clinic'
                   ? <InClinicRow key={p.protocol_id} patient={p} sectionKey={section.key}
-                      onSelect={onSelect} actionInProgress={actionInProgress} />
+                      onSelect={onSelect} onAction={onAction} actionInProgress={actionInProgress} />
                   : <DailyRow key={p.protocol_id} patient={p} today={today} sectionKey={section.key}
                       onSelect={onSelect} onAction={onAction} actionInProgress={actionInProgress} />
               ))}
@@ -718,13 +718,24 @@ function DailyRow({ patient, sectionKey, onSelect, onAction, actionInProgress })
   );
 }
 
-function InClinicRow({ patient, sectionKey, onSelect, actionInProgress }) {
+function InClinicRow({ patient, sectionKey, onSelect, onAction, actionInProgress }) {
   const isAttention = sectionKey === 'needsAttention';
   const v = patient.visit || {};
+  // Booking-related statuses get the explicit Schedule + SMS buttons since the
+  // remediation is "get this on the calendar." For everything else, stick with
+  // Open chart + Details.
+  const needsBooking = v.today_action === 'missed_cadence' || v.today_action === 'needs_booking_soon';
+
+  const sendBookingSMS = () => {
+    const firstName = patient.first_name || patient.name?.split(' ')[0] || 'them';
+    if (!confirm(`Send a booking outreach SMS to ${patient.name} (${patient.phone || 'no phone'})?\n\nThe text asks ${firstName} to reply with times that work, or call (949) 997-3988.`)) return;
+    onAction('send_booking_sms', { protocol_id: patient.protocol_id });
+  };
+
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '40px 1.4fr 1fr 0.9fr 0.9fr 130px',
+      gridTemplateColumns: '40px 1.4fr 1fr 0.9fr 0.9fr 200px',
       gap: '12px', alignItems: 'center',
       padding: '12px 18px', borderBottom: '1px solid #f0f0f0',
       background: isAttention ? '#fef9f3' : '#fff',
@@ -748,16 +759,38 @@ function InClinicRow({ patient, sectionKey, onSelect, actionInProgress }) {
         <div style={{ fontSize: '11px', color: '#999' }}>{fmtDate(patient.last_checkin_date) || fmtDate(v.last_visit?.date) || '—'}</div>
       </div>
       <StatusStack payment={patient.payment} dispense={patient.dispense} />
-      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-        <a href={`/admin/patient/${patient.patient_id}`} target="_blank" rel="noreferrer"
-          style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall, textDecoration: 'none' }}>
-          Open chart
-        </a>
-        <button disabled={actionInProgress}
-          onClick={() => onSelect(patient)}
-          style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}>
-          Details
-        </button>
+      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        {needsBooking ? (
+          <>
+            <a href={`/patients/${patient.patient_id}?book=1`} target="_blank" rel="noreferrer"
+              title="Open patient chart with the booking modal pre-opened"
+              style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall, textDecoration: 'none' }}>
+              📅 Schedule
+            </a>
+            <button disabled={actionInProgress || !patient.phone} onClick={sendBookingSMS}
+              title={patient.phone ? `Text ${patient.phone}` : 'No phone on file'}
+              style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}>
+              💬 SMS
+            </button>
+            <button disabled={actionInProgress}
+              onClick={() => onSelect(patient)}
+              style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}>
+              Details
+            </button>
+          </>
+        ) : (
+          <>
+            <a href={`/admin/patient/${patient.patient_id}`} target="_blank" rel="noreferrer"
+              style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall, textDecoration: 'none' }}>
+              Open chart
+            </a>
+            <button disabled={actionInProgress}
+              onClick={() => onSelect(patient)}
+              style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}>
+              Details
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

@@ -2,9 +2,10 @@
 // Issue or reset peptide vial shop credentials for a patient.
 // Calls the existing /api/admin/shop-account endpoint, which auto-emails + SMSes the credentials.
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
+import { useAuth } from '../../components/AuthProvider';
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -13,6 +14,7 @@ function formatDate(iso) {
 }
 
 export default function ShopAccessAdmin() {
+  const { session } = useAuth();
   const [accounts, setAccounts] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
 
@@ -26,10 +28,16 @@ export default function ShopAccessAdmin() {
   const [issueError, setIssueError] = useState(null);
   const [lastIssued, setLastIssued] = useState(null); // { username, password, patient }
 
-  const loadAccounts = async () => {
+  const authHeaders = useCallback(() => ({
+    Authorization: `Bearer ${session?.access_token}`,
+    'Content-Type': 'application/json',
+  }), [session]);
+
+  const loadAccounts = useCallback(async () => {
+    if (!session?.access_token) return;
     setLoadingList(true);
     try {
-      const res = await fetch('/api/admin/shop-account');
+      const res = await fetch('/api/admin/shop-account', { headers: authHeaders() });
       const data = await res.json();
       setAccounts(data.accounts || []);
     } catch (err) {
@@ -37,9 +45,9 @@ export default function ShopAccessAdmin() {
     } finally {
       setLoadingList(false);
     }
-  };
+  }, [session, authHeaders]);
 
-  useEffect(() => { loadAccounts(); }, []);
+  useEffect(() => { loadAccounts(); }, [loadAccounts]);
 
   // Debounced patient search
   useEffect(() => {
@@ -70,7 +78,7 @@ export default function ShopAccessAdmin() {
     try {
       const res = await fetch('/api/admin/shop-account', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ patientId: selectedPatient.id }),
       });
       const data = await res.json();

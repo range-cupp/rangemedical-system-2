@@ -101,38 +101,72 @@ function computeExpectedDateInWeek(protocol, weekStartISO, weekEndISO, lastOrigi
   return null;
 }
 
-function computePaymentStatus(protocol, cadenceDays, lastPurchaseAmountPaid) {
-  // total_sessions = injections paid for in the current period
-  // sessions_used  = injections logged via service_log
-  const total = Number(protocol.total_sessions || 0);
-  const used = Number(protocol.sessions_used || 0);
-  const remaining = Math.max(0, total - used);
+// Parse a WL purchase into the number of injections it covers. The qty field
+// is reliable for itemized buys ("5x 8mg" qty=5), but monthly/4-week-supply
+// items come through as qty=1 with the count buried in the item_name.
+function injectionsFromPurchase(purchase) {
+  if (!purchase) return 0;
+  const itemName = String(purchase.item_name || '').toLowerCase();
+  const qty = Number(purchase.quantity || 1) || 1;
 
-  if (lastPurchaseAmountPaid === 0 && total > 0) {
-    return { state: 'comp', label: 'Comp', sessions_remaining: remaining, total, used, days_until_due: null };
+  // Itemized multi-buys: "5x 8mg" qty=5, "4x 2.5mg" qty=4 → trust qty
+  if (qty >= 2) return qty;
+
+  // "4 week supply" / "12 week supply" / "8 weeks" → use the number
+  const weekMatch = itemName.match(/(\d+)\s*week/);
+  if (weekMatch) {
+    const n = parseInt(weekMatch[1], 10);
+    if (n > 0) return n;
   }
 
-  if (total === 0) {
-    return { state: 'unknown', label: 'No plan', sessions_remaining: 0, total, used, days_until_due: null };
+  // "Monthly" line items = ~4 weekly injections
+  if (/monthly|month/.test(itemName)) return 4;
+
+  // Fallback: a single injection
+  return 1;
+}
+
+// Payment coverage is computed from the most recent purchase rather than the
+// denormalized protocol.total_sessions counter, which doesn't reliably bump
+// when a new block is bought (Blake Modersitzki paid 5/1 for 5 injections but
+// his protocol still showed 22/22 used → "Renewal due"). Purchases are the
+// true source of truth.
+function computePaymentStatus(protocol, cadenceDays, lastPurchase, todayISO) {
+  if (!lastPurchase) {
+    return { state: 'unknown', label: 'No purchases on file',
+             sessions_remaining: 0, total: 0, used: 0, days_until_due: null,
+             last_purchase_date: null };
   }
 
-  if (used >= total) {
-    return { state: 'overdue', label: 'Renewal due', sessions_remaining: 0, total, used, days_until_due: 0 };
+  const isComp = Number(lastPurchase.amount_paid) === 0;
+  const injectionsCovered = injectionsFromPurchase(lastPurchase);
+  const coverageDays = injectionsCovered * cadenceDays;
+  const daysSincePurchase = Math.max(0, daysBetween(lastPurchase.purchase_date, todayISO));
+  const daysRemaining = coverageDays - daysSincePurchase;
+
+  const baseFields = {
+    sessions_remaining: Math.max(0, injectionsCovered - Math.floor(daysSincePurchase / cadenceDays)),
+    total: injectionsCovered,
+    used: Math.min(injectionsCovered, Math.floor(daysSincePurchase / cadenceDays)),
+    days_until_due: Math.max(0, daysRemaining),
+    last_purchase_date: lastPurchase.purchase_date,
+    coverage_days: coverageDays,
+  };
+
+  if (isComp && injectionsCovered > 0 && daysRemaining > 0) {
+    return { state: 'comp', label: 'Comp', ...baseFields };
   }
 
-  const days_until_due = remaining * cadenceDays;
-  let state, label;
-  if (days_until_due <= 7) {
-    state = 'due_now';
-    label = `Due in ${days_until_due}d — reach out`;
-  } else if (days_until_due <= 14) {
-    state = 'due_soon';
-    label = `Due in ${days_until_due}d`;
-  } else {
-    state = 'paid';
-    label = `Covered ${days_until_due}d`;
+  if (daysRemaining <= 0) {
+    return { state: 'overdue', label: 'Renewal due', ...baseFields, days_until_due: 0 };
   }
-  return { state, label, sessions_remaining: remaining, total, used, days_until_due };
+  if (daysRemaining <= 7) {
+    return { state: 'due_now', label: `Due in ${daysRemaining}d — reach out`, ...baseFields };
+  }
+  if (daysRemaining <= 14) {
+    return { state: 'due_soon', label: `Due in ${daysRemaining}d`, ...baseFields };
+  }
+  return { state: 'paid', label: `Covered ${daysRemaining}d`, ...baseFields };
 }
 
 // Inspect the current/most-recent cycle and return the per-event sent times
@@ -608,10 +642,7 @@ async function handleGet(req, res) {
         : null;
 
       const lastPurchase = lastPurchaseByPatient[patient.id];
-      const paymentStatus = computePaymentStatus(
-        protocol, cadenceDays,
-        lastPurchase ? Number(lastPurchase.amount_paid) : null,
-      );
+      const paymentStatus = computePaymentStatus(protocol, cadenceDays, lastPurchase, todayISO);
 
       return {
         protocol_id: protocol.id,

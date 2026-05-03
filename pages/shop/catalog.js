@@ -163,8 +163,8 @@ export default function ShopCatalog() {
   }, 0);
 
   const filteredVials = activeCategory
-    ? VIAL_CATALOG.filter(v => v.category === activeCategory)
-    : VIAL_CATALOG;
+    ? VIAL_CATALOG.filter(v => v.category === activeCategory && !v.shopHidden)
+    : VIAL_CATALOG.filter(v => !v.shopHidden);
 
   if (!patient) return null;
 
@@ -229,7 +229,7 @@ export default function ShopCatalog() {
             ))
           ) : (
             VIAL_CATEGORIES.map(cat => {
-              const catVials = VIAL_CATALOG.filter(v => v.category === cat.id);
+              const catVials = VIAL_CATALOG.filter(v => v.category === cat.id && !v.shopHidden);
               if (catVials.length === 0) return null;
               return (
                 <div key={cat.id} style={{ marginBottom: 28 }}>

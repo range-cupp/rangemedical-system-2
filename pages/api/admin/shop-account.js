@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { requireAuth, logAction } from '../../../lib/auth';
 import { Resend } from 'resend';
+import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -77,27 +78,30 @@ export default async function handler(req, res) {
     };
 
     // Send credentials via email if available
+    const emailSubject = 'Your Range Medical Peptide Shop Access';
+    const emailHtml = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; color: #1a1a1a;">
+        <div style="border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 24px;">
+          <h1 style="font-size: 18px; margin: 0; letter-spacing: 1px;">RANGE MEDICAL</h1>
+        </div>
+        <p style="font-size: 14px;">Hi ${patient.name.split(' ')[0]},</p>
+        <p style="font-size: 14px;">Your peptide shop account is ready. Use the credentials below to log in and place orders:</p>
+        <div style="background: #f8f8f8; padding: 20px; margin: 20px 0;">
+          <p style="margin: 0 0 8px; font-size: 14px;"><strong>Shop URL:</strong> <a href="${shopUrl}" style="color: #171717;">${shopUrl}</a></p>
+          <p style="margin: 0 0 8px; font-size: 14px;"><strong>Username:</strong> ${username}</p>
+          <p style="margin: 0; font-size: 14px;"><strong>Password:</strong> ${plainPassword}</p>
+        </div>
+        <p style="font-size: 13px; color: #666;">Questions? Call or text (949) 997-3988</p>
+      </div>
+    `;
+
     if (patient.email) {
       try {
         const result = await resend.emails.send({
           from: 'Range Medical <noreply@range-medical.com>',
           to: patient.email,
-          subject: 'Your Range Medical Peptide Shop Access',
-          html: `
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; color: #1a1a1a;">
-              <div style="border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 24px;">
-                <h1 style="font-size: 18px; margin: 0; letter-spacing: 1px;">RANGE MEDICAL</h1>
-              </div>
-              <p style="font-size: 14px;">Hi ${patient.name.split(' ')[0]},</p>
-              <p style="font-size: 14px;">Your peptide shop account is ready. Use the credentials below to log in and place orders:</p>
-              <div style="background: #f8f8f8; padding: 20px; margin: 20px 0;">
-                <p style="margin: 0 0 8px; font-size: 14px;"><strong>Shop URL:</strong> <a href="${shopUrl}" style="color: #171717;">${shopUrl}</a></p>
-                <p style="margin: 0 0 8px; font-size: 14px;"><strong>Username:</strong> ${username}</p>
-                <p style="margin: 0; font-size: 14px;"><strong>Password:</strong> ${plainPassword}</p>
-              </div>
-              <p style="font-size: 13px; color: #666;">Questions? Call or text (949) 997-3988</p>
-            </div>
-          `,
+          subject: emailSubject,
+          html: emailHtml,
         });
         if (result?.error) {
           delivery.email.error = result.error.message || JSON.stringify(result.error);
@@ -109,6 +113,24 @@ export default async function handler(req, res) {
         delivery.email.error = emailErr.message || String(emailErr);
         console.error('Shop credential email exception:', emailErr);
       }
+
+      // Log to comms_log so the email appears in the patient's communications view
+      await logComm({
+        channel: 'email',
+        messageType: 'shop_account_credentials',
+        source: 'admin-shop-account',
+        patientId,
+        patientName: patient.name,
+        recipient: patient.email,
+        subject: emailSubject,
+        message: `Shop credentials issued — username: ${username}`,
+        htmlBody: emailHtml,
+        status: delivery.email.sent ? 'sent' : 'error',
+        errorMessage: delivery.email.error,
+        direction: 'outbound',
+        sentByEmployeeId: employee.id,
+        sentByEmployeeName: employee.name,
+      });
     }
 
     // Send via SMS if phone available

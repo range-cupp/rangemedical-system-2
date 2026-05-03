@@ -272,16 +272,19 @@ function computeCycleEvents({ expectedDateISO, todayISO, cadenceDays, reminderLo
 }
 
 // In-clinic patients are tracked off appointments + encounter notes, not SMS.
-// Returns { today_action, today_appt, recent_unlogged, no_shows, upcoming, last_visit }.
+// Returns { today_action, today_appt, recent_unlogged, no_shows, upcoming,
+// last_visit, days_overdue, expected_next_date }.
 //
-// today_action values (in-clinic):
+// today_action values (in-clinic), in priority order top to bottom:
 //   - 'visit_today_logged'    appointment today, encounter note exists
-//   - 'visit_today_pending'   appointment today, no note yet (in progress / upcoming)
-//   - 'visit_unlogged_recent' visit happened in past 14 days, no encounter note (manual attention)
-//   - 'no_show_recent'        no-show in past 14 days needs reschedule
+//   - 'visit_today_pending'   appointment today, no note yet
+//   - 'visit_unlogged_recent' recent visit in past 14d, no encounter note
+//   - 'no_show_recent'        no-show in past 14d needs reschedule
+//   - 'missed_cadence'        last visit > cadence ago AND nothing booked next
+//   - 'needs_booking_soon'    next due within 3d AND nothing booked
 //   - 'upcoming_this_week'    visit scheduled later this week
 //   - 'idle'                  no recent or upcoming visits in window
-function computeVisitStatus({ appointments, todayISO }) {
+function computeVisitStatus({ appointments, todayISO, cadenceDays }) {
   const today = appointments.filter(a => a.date === todayISO);
   const past = appointments.filter(a => a.date < todayISO);
   const future = appointments.filter(a => a.date > todayISO);
@@ -317,6 +320,16 @@ function computeVisitStatus({ appointments, todayISO }) {
   const upcomingThisWeek = future.slice(0, 5);
   const todayAppt = today[0] || null;
 
+  // Compute cadence-based overdue / needs-booking detection. Uses last LOGGED
+  // visit (not just last appointment) because a no-show or unlogged appointment
+  // doesn't actually reset the injection clock.
+  let expected_next_date = null;
+  let days_overdue = null;
+  if (lastLoggedDate && cadenceDays) {
+    expected_next_date = addDaysISO(lastLoggedDate, cadenceDays);
+    days_overdue = daysBetween(expected_next_date, todayISO); // positive = overdue, negative = upcoming
+  }
+
   let today_action = 'idle';
   if (todayAppt) {
     today_action = todayAppt.has_note ? 'visit_today_logged' : 'visit_today_pending';
@@ -324,6 +337,21 @@ function computeVisitStatus({ appointments, todayISO }) {
     today_action = 'visit_unlogged_recent';
   } else if (recentNoShows.length > 0) {
     today_action = 'no_show_recent';
+  } else if (
+    days_overdue != null && days_overdue >= 1 &&
+    future.length === 0
+  ) {
+    // Last visit was > cadence days ago AND nothing booked → this patient
+    // missed their expected cycle (e.g., Gordon Gray: visit Apr 20, weekly
+    // cadence, today May 3, no booking → 6 days overdue).
+    today_action = 'missed_cadence';
+  } else if (
+    days_overdue != null && days_overdue >= -3 && days_overdue < 1 &&
+    future.length === 0
+  ) {
+    // Within 3 days of being due and nothing booked → preventative warning
+    // so we can call the patient to schedule before they slip.
+    today_action = 'needs_booking_soon';
   } else if (upcomingThisWeek.length > 0) {
     today_action = 'upcoming_this_week';
   }
@@ -335,6 +363,8 @@ function computeVisitStatus({ appointments, todayISO }) {
     no_shows: recentNoShows,
     upcoming: upcomingThisWeek,
     last_visit: lastVisit,
+    expected_next_date,
+    days_overdue,
   };
 }
 
@@ -684,7 +714,7 @@ async function handleGet(req, res) {
       // In-clinic specific: appointment-anchored status + streak
       const appointments = appointmentsByPatient[patient.id] || [];
       const visit = mode === 'in_clinic'
-        ? computeVisitStatus({ appointments, todayISO })
+        ? computeVisitStatus({ appointments, todayISO, cadenceDays })
         : null;
       const streak = mode === 'in_clinic'
         ? computeStreak(injectionsByPatient[patient.id] || [], cadenceDays)

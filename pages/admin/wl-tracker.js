@@ -142,6 +142,8 @@ export default function WLTrackerPage() {
         switch (a) {
           case 'visit_unlogged_recent':
           case 'no_show_recent':
+          case 'missed_cadence':
+          case 'needs_booking_soon':
             needsAttention.push(p); break;
           case 'visit_today_logged':    visitedToday.push(p); break;
           case 'visit_today_pending':   scheduledToday.push(p); break;
@@ -793,6 +795,22 @@ function visitDescription(visit) {
     case 'no_show_recent': {
       const ns = visit.no_shows?.[0];
       return <span style={{ color: '#9a3412' }}>❌ No-show on <strong>{fmtDate(ns?.date)}</strong> — needs reschedule</span>;
+    }
+    case 'missed_cadence':
+      return (
+        <span style={{ color: '#991b1b' }}>
+          ❌ <strong>Missed cycle</strong> — was due {visit.days_overdue}d ago, no next visit booked
+        </span>
+      );
+    case 'needs_booking_soon': {
+      const due = visit.days_overdue;
+      // due range here is -3..0 (positive overdue is missed_cadence)
+      const label = due >= 0 ? 'due today' : `due in ${Math.abs(due)}d`;
+      return (
+        <span style={{ color: '#92400e' }}>
+          📅 <strong>Book next visit</strong> — {label}, nothing on calendar
+        </span>
+      );
     }
     case 'upcoming_this_week': {
       const u = visit.upcoming?.[0];

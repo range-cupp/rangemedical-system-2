@@ -28,10 +28,17 @@ const supabase = createClient(
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+// Returns YYYY-MM-DD for a given UTC Date as observed in Pacific time.
+// 'en-CA' locale conveniently formats as YYYY-MM-DD.
+function formatPacificDate(utcDate) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(utcDate);
+}
+
 function todayPacificISO() {
-  const pst = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-  pst.setHours(0, 0, 0, 0);
-  return pst.toISOString().split('T')[0];
+  return formatPacificDate(new Date());
 }
 
 function startOfWeek(dateISO) {
@@ -146,8 +153,11 @@ function computePaymentStatus(protocol, cadenceDays, lastPurchaseAmountPaid) {
 //   - 'missed'                cycle expired without a check-in
 //   - 'idle'                  upcoming this week, nothing to do today
 function computeCycleEvents({ expectedDateISO, todayISO, cadenceDays, reminderLogs, checkinLogs, protocol }) {
-  // Get current PT hour to decide will_send vs cron_skipped
-  const ptHour = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })).getHours();
+  // Current LA hour, formatted directly from the UTC instant to avoid the
+  // toLocaleString/new Date roundtrip bug that bit us with sent_time.
+  const ptHour = parseInt(new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles', hour: 'numeric', hour12: false,
+  }).format(new Date()), 10);
   const cronShouldHaveRun = ptHour >= 10;
 
   // Reminder + opt-out gates first — they trump cycle math
@@ -355,18 +365,17 @@ async function handleGet(req, res) {
     for (const r of (reminderLogsRaw || [])) {
       const key = r.protocol_id;
       if (!reminderByProtocol[key]) reminderByProtocol[key] = [];
-      // Convert sent_at (UTC tz) to Pacific date + time for cycle math + display
-      const pstDate = new Date(new Date(r.sent_at).toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-      const pstMidnight = new Date(pstDate);
-      pstMidnight.setHours(0, 0, 0, 0);
-      const sentTimeStr = pstDate.toLocaleTimeString('en-US', {
-        hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles',
+      // Format the UTC timestamp directly into Pacific date + time. Don't
+      // round-trip through new Date(toLocaleString) — on a UTC server (Vercel)
+      // that re-parses the LA-formatted string as UTC and shifts everything
+      // 7-8 hours, which is how 9:20 AM PT was rendering as 2:20 AM.
+      const utc = new Date(r.sent_at);
+      const sent_date = formatPacificDate(utc);   // YYYY-MM-DD in LA
+      const sent_time = utc.toLocaleTimeString('en-US', {
+        hour: 'numeric', minute: '2-digit', hour12: true,
+        timeZone: 'America/Los_Angeles',
       });
-      reminderByProtocol[key].push({
-        ...r,
-        sent_date: pstMidnight.toISOString().split('T')[0],
-        sent_time: sentTimeStr,
-      });
+      reminderByProtocol[key].push({ ...r, sent_date, sent_time });
     }
     const checkinByPatient = {};
     for (const c of (checkinLogsRaw || [])) {
@@ -538,14 +547,12 @@ function compute4WeekTrend(protocols, reminderLogsRaw, checkinLogsRaw, currentWe
         : parseFrequencyDays(protocol.frequency);
       const originals = (reminderLogsRaw || []).filter(r => {
         if (r.protocol_id !== protocol.id || r.nudge_level !== 0) return false;
-        const pstDate = new Date(new Date(r.sent_at).toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }))
-          .toISOString().split('T')[0];
+        const pstDate = formatPacificDate(new Date(r.sent_at));
         return pstDate >= wkStart && pstDate <= wkEnd;
       });
       sent += originals.length;
       for (const orig of originals) {
-        const origDate = new Date(new Date(orig.sent_at).toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }))
-          .toISOString().split('T')[0];
+        const origDate = formatPacificDate(new Date(orig.sent_at));
         const cycleEnd = addDaysISO(origDate, cadenceDays - 1);
         const hasCheckin = (checkinLogsRaw || []).some(c =>
           c.patient_id === protocol.patient_id &&

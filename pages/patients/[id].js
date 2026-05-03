@@ -8309,13 +8309,76 @@ export default function PatientProfile() {
                               })()}
 
                               {/* ===== Check-in Responses ===== */}
-                              {(() => {
+                              {/* For WL protocols, the patient's form submissions land in service_logs
+                                  (already loaded as wlLogs). Parse the notes field and render them
+                                  here so what the patient texted in actually appears on the protocol. */}
+                              {protocol.category === 'weight_loss' && (() => {
+                                const parseWlNotes = (n) => {
+                                  if (!n || !/Patient self-reported/i.test(n)) return null;
+                                  const sideMatch = n.match(/Side effects:\s*([^|]+?)(?=\s*\||$)/i);
+                                  const noteMatch = n.match(/Notes:\s*([\s\S]+?)$/i);
+                                  const sideRaw = sideMatch ? sideMatch[1].trim() : '';
+                                  const sideHas = sideRaw && sideRaw.toLowerCase() !== 'none';
+                                  return {
+                                    sideEffects: sideHas ? sideRaw : null,
+                                    notes: noteMatch ? noteMatch[1].trim() : null,
+                                  };
+                                };
+                                const wlResponses = (wlLogs || [])
+                                  .map(l => {
+                                    const parsed = parseWlNotes(l.notes);
+                                    if (!parsed) return null;
+                                    return { id: l.id, entry_date: l.entry_date, weight: l.weight, ...parsed };
+                                  })
+                                  .filter(Boolean)
+                                  .sort((a, b) => new Date(b.entry_date) - new Date(a.entry_date));
+
+                                if (wlResponses.length === 0) return null;
+
+                                return (
+                                  <div style={{ marginTop: 14 }}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                                      Check-in Responses ({wlResponses.length})
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                      {wlResponses.map(r => (
+                                        <div key={r.id} style={{ padding: '10px 12px', background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: 0 }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, gap: 8, flexWrap: 'wrap' }}>
+                                            <span style={{ fontSize: 12, fontWeight: 600, color: '#1f2937' }}>
+                                              {new Date(r.entry_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })}
+                                            </span>
+                                            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                                              {r.weight && (
+                                                <span style={{ fontSize: 11, padding: '2px 8px', background: '#eff6ff', color: '#1e40af', fontWeight: 600 }}>
+                                                  Weight: {r.weight} lbs
+                                                </span>
+                                              )}
+                                              <span style={{ fontSize: 11, padding: '2px 8px', background: r.sideEffects ? '#fef2f2' : '#f0fdf4', color: r.sideEffects ? '#dc2626' : '#16a34a', fontWeight: 600 }}>
+                                                Side effects: {r.sideEffects || 'None'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          {r.notes && (
+                                            <div style={{ marginTop: 4, fontSize: 12, color: '#1f2937' }}>
+                                              <span style={{ fontWeight: 600, marginRight: 6, color: '#6b7280', textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em' }}>Patient note</span>
+                                              <span style={{ fontStyle: 'italic' }}>&ldquo;{r.notes}&rdquo;</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+
+                              {/* Non-WL: symptom-score check-ins from the check_ins table */}
+                              {protocol.category !== 'weight_loss' && (() => {
                                 const protocolCheckIns = checkIns.filter(c => {
                                   const cDate = new Date(c.check_in_date + 'T12:00:00');
                                   const pStart = protocol.start_date ? new Date(protocol.start_date + 'T00:00:00') : null;
                                   const pEnd = protocol.end_date ? new Date(protocol.end_date + 'T23:59:59') : null;
                                   if (pStart && cDate < pStart) return false;
-                                  if (pEnd && protocol.category !== 'weight_loss' && cDate > pEnd) return false;
+                                  if (pEnd && cDate > pEnd) return false;
                                   return true;
                                 }).sort((a, b) => new Date(b.check_in_date) - new Date(a.check_in_date));
 

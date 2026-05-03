@@ -19,24 +19,28 @@ export default function AssessmentLandingPage() {
 
   const faqs = [
     {
-      q: 'How long does the assessment take?',
-      a: 'About 30 minutes total. The lab draw is quick, and your provider review is a focused 1-on-1 conversation — not a rushed appointment.',
+      q: 'How much does the Range Assessment cost?',
+      a: 'It is $197, and the full $197 is credited toward your first treatment or lab package. So if you decide to move forward, the assessment is essentially free.',
+    },
+    {
+      q: 'How long does the visit take?',
+      a: 'A focused 30 minutes, 1-on-1 with your provider. No rushed appointments, no waiting room shuffle.',
+    },
+    {
+      q: 'What do I actually leave with?',
+      a: 'A personalized written plan built for you — not a generic handout. It covers what is going on, what to do next, and which labs or treatments your provider recommends.',
+    },
+    {
+      q: 'Do you take insurance?',
+      a: 'No. We are a cash-pay clinic so visits stay simple and focused on you — no referrals, no prior auths, no waiting. The $197 you pay up front is credited back toward your treatment.',
+    },
+    {
+      q: 'Are labs included in the $197?',
+      a: 'No. Labs are an optional add-on your provider may recommend during the visit (Essential panel from $350, Elite panel from $750). Your $197 can be applied toward either one.',
     },
     {
       q: 'Do I need to stop my medications?',
       a: 'No. Keep taking everything as normal. We want to see how your body is actually doing right now.',
-    },
-    {
-      q: 'Do you work with my insurance?',
-      a: 'We are a cash-pay clinic. This keeps visits simple, private, and focused on you — no referrals, no prior auths, no waiting.',
-    },
-    {
-      q: 'What labs are included?',
-      a: 'A targeted panel covering hormones, thyroid, vitamin D, metabolic markers, and inflammation. Your provider may add markers based on your symptoms.',
-    },
-    {
-      q: 'What if my labs come back normal?',
-      a: 'We look at optimal ranges, not just "normal." Many people feel terrible inside the standard range. We will explain exactly where you stand and what to do about it.',
     },
     {
       q: 'Where are you located?',
@@ -47,11 +51,11 @@ export default function AssessmentLandingPage() {
   return (
     <>
       <Head>
-        <title>Range Assessment — Labs + Plan | Range Medical Orange County</title>
-        <meta name="description" content="Targeted labs, symptoms review, and a written plan from a real provider. For adults 40+ in Orange County who want answers, not guessing." />
+        <title>Range Assessment — 30 Minutes, 1-on-1 With a Provider | Range Medical Orange County</title>
+        <meta name="description" content="A 30-minute 1-on-1 with a Range Medical provider. Symptoms review, recommended labs, and a personalized written plan. $197 — credited toward your first treatment." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta property="og:title" content="Range Assessment — Range Medical" />
-        <meta property="og:description" content="Over 40 in Orange County and still don't feel like yourself? Get real labs, a provider who listens, and a plan that makes sense." />
+        <meta property="og:description" content="Over 40 in Orange County and still don't feel like yourself? 30 minutes, 1-on-1 with a real provider, and a plan you take home." />
         <meta property="og:type" content="website" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
@@ -71,20 +75,20 @@ export default function AssessmentLandingPage() {
               Over 40 and still don't feel like yourself?
             </h1>
             <p style={styles.subheadline}>
-              The Range Assessment gives you real labs, a symptoms review, and a written plan from a provider who actually listens — so you stop guessing and start feeling better.
+              The Range Assessment is a 30-minute 1-on-1 with a Range Medical provider — symptoms review, lab recommendations, and a personalized written plan you take home. $197, credited back toward your first treatment.
             </p>
             <button style={styles.ctaBtn} onClick={startAssessment}>
               Book Your Range Assessment
             </button>
             <div style={styles.trustRow}>
               <span style={styles.trustItem}>
-                <Check size={16} color="#2E6B35" /> Targeted lab panel
+                <Check size={16} color="#2E6B35" /> 30 minutes, 1-on-1
               </span>
               <span style={styles.trustItem}>
-                <Check size={16} color="#2E6B35" /> 1-on-1 provider review
+                <Check size={16} color="#2E6B35" /> Personalized written plan
               </span>
               <span style={styles.trustItem}>
-                <Check size={16} color="#2E6B35" /> Written plan you take home
+                <Check size={16} color="#2E6B35" /> $197 credited to treatment
               </span>
             </div>
           </section>
@@ -114,24 +118,24 @@ export default function AssessmentLandingPage() {
             <div style={styles.cardGrid}>
               {[
                 {
-                  icon: <ClipboardList size={22} />,
-                  title: 'Targeted lab panel',
-                  desc: 'Hormones, thyroid, vitamin D, metabolic markers — the tests that actually matter for how you feel.',
-                },
-                {
                   icon: <UserCheck size={22} />,
                   title: 'Symptoms review',
-                  desc: 'A short questionnaire so your provider sees the full picture before your visit.',
+                  desc: 'A short questionnaire so your provider walks in already knowing your story, history, and goals.',
                 },
                 {
                   icon: <Clock size={22} />,
-                  title: '1-on-1 provider time',
-                  desc: 'Unhurried face time with a provider who explains your results in plain language.',
+                  title: '30-minute 1-on-1 visit',
+                  desc: 'Unhurried time with a provider who actually listens — no rushed appointments, no feeling like a number.',
+                },
+                {
+                  icon: <ClipboardList size={22} />,
+                  title: 'Personalized written plan',
+                  desc: 'You walk out with a real plan built for you — what is going on, what to do next, and which labs or treatments your provider recommends.',
                 },
                 {
                   icon: <Check size={22} />,
-                  title: 'Written plan',
-                  desc: "A clear, printed summary you take home — what’s off, why it matters, and what to do next.",
+                  title: '$197 credited back',
+                  desc: 'Your full $197 is applied as credit toward your first treatment or lab package — so the assessment is essentially free if you move forward.',
                 },
               ].map((card, i) => (
                 <div key={i} style={styles.card}>
@@ -148,9 +152,9 @@ export default function AssessmentLandingPage() {
             <h2 style={styles.sectionTitle}>How it works</h2>
             <div style={styles.steps}>
               {[
-                { num: '1', title: 'Book your time', desc: 'Pick a day and time that works for you. Takes 30 seconds.' },
-                { num: '2', title: 'Get your labs and visit', desc: 'Quick lab draw at our Newport Beach clinic. Your provider reviews everything with you the same visit.' },
-                { num: '3', title: 'Walk out with your plan', desc: "You leave with a written summary: what's off, what's optimal, and what to do about it." },
+                { num: '1', title: 'Book and pay $197', desc: 'Pick a time that works for you and reserve your spot. The $197 is credited back toward your first treatment or lab package.' },
+                { num: '2', title: 'Complete a quick intake', desc: 'We text you a short medical intake form — history, meds, allergies, photo ID. Takes about 5 minutes from your phone.' },
+                { num: '3', title: 'Come in and get your plan', desc: 'Sit down 1-on-1 with your provider for 30 focused minutes. Walk out the same visit with your personalized written plan.' },
               ].map((step, i) => (
                 <div key={i}>
                   {i > 0 && <div style={styles.stepLine} />}
@@ -198,7 +202,7 @@ export default function AssessmentLandingPage() {
           <section style={styles.finalCta}>
             <h2 style={styles.finalTitle}>Ready to stop guessing?</h2>
             <p style={styles.finalSub}>
-              Get real labs, a provider who listens, and a plan that makes sense.
+              30 minutes, 1-on-1 with a provider, and a written plan you take home. $197 — credited back if you move forward.
             </p>
             <button style={styles.ctaBtn} onClick={startAssessment}>
               Book Your Range Assessment
@@ -211,7 +215,7 @@ export default function AssessmentLandingPage() {
               Start Your Range Assessment
             </button>
             <p style={styles.formNote}>
-              Takes about 2 minutes. No credit card needed.
+              $197 — credited toward your first treatment or lab package.
             </p>
           </section>
         </main>

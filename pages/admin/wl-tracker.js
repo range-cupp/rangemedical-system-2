@@ -69,6 +69,7 @@ function fmtRange(start, end) {
 
 export default function WLTrackerPage() {
   const { session } = useAuth();
+  const [mode, setMode] = useState('take_home'); // 'take_home' | 'in_clinic'
   const [view, setView] = useState('daily'); // 'daily' | 'weekly'
   const [weekStart, setWeekStart] = useState(() => startOfWeek(todayPacificISO()));
   const [data, setData] = useState(null);
@@ -89,7 +90,7 @@ export default function WLTrackerPage() {
     try {
       setLoading(true);
       setError(null);
-      const r = await fetch(`/api/admin/wl-tracker?week_start=${weekStart}`, { headers: authHeaders() });
+      const r = await fetch(`/api/admin/wl-tracker?mode=${mode}&week_start=${weekStart}`, { headers: authHeaders() });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const json = await r.json();
       setData(json);
@@ -98,7 +99,7 @@ export default function WLTrackerPage() {
     } finally {
       setLoading(false);
     }
-  }, [weekStart, session, authHeaders]);
+  }, [mode, weekStart, session, authHeaders]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -121,17 +122,39 @@ export default function WLTrackerPage() {
     });
   }, [patients, search, filterStatus]);
 
-  // Bucket patients by what the system did or needs from a human today.
-  // Order matters: "Needs manual attention" first because it's the only bucket
-  // a staff member must act on. Auto-* buckets are informational only.
+  // Bucket patients differently based on mode. Take-home is SMS-cycle driven;
+  // in-clinic is appointment-driven. Both put "Needs manual attention" first
+  // since that's the only section a human must act on.
   const dailyBuckets = useMemo(() => {
-    const needsAttention = [];   // human action required
-    const completedToday = [];    // patient logged today
-    const autoSentToday = [];     // cron sent original today
-    const autoNudgedToday = [];   // cron sent 1st nudge today
-    const autoFinalToday = [];    // cron sent final nudge today
-    const willSendToday = [];     // cron will send today (before 10 AM PT)
-    const waiting = [];           // sent earlier in cycle, no auto-action today
+    if (mode === 'in_clinic') {
+      const needsAttention = [];
+      const visitedToday = [];
+      const scheduledToday = [];
+      const upcomingThisWeek = [];
+
+      for (const p of patients) {
+        const a = p.visit?.today_action;
+        switch (a) {
+          case 'visit_unlogged_recent':
+          case 'no_show_recent':
+            needsAttention.push(p); break;
+          case 'visit_today_logged':    visitedToday.push(p); break;
+          case 'visit_today_pending':   scheduledToday.push(p); break;
+          case 'upcoming_this_week':    upcomingThisWeek.push(p); break;
+          // 'idle' hidden from daily view (still in roster)
+        }
+      }
+      return { needsAttention, visitedToday, scheduledToday, upcomingThisWeek };
+    }
+
+    // take_home (default)
+    const needsAttention = [];
+    const completedToday = [];
+    const autoSentToday = [];
+    const autoNudgedToday = [];
+    const autoFinalToday = [];
+    const willSendToday = [];
+    const waiting = [];
 
     for (const p of patients) {
       const a = p.cycle?.today_action;
@@ -146,8 +169,6 @@ export default function WLTrackerPage() {
         case 'auto_final_today':      autoFinalToday.push(p); break;
         case 'will_send_today':       willSendToday.push(p); break;
         case 'waiting':               waiting.push(p); break;
-        // 'reminders_off', 'opted_out', 'idle' are intentionally hidden from
-        // the daily view — they show up in the roster table at the bottom.
       }
     }
 
@@ -156,7 +177,7 @@ export default function WLTrackerPage() {
       autoSentToday, autoNudgedToday, autoFinalToday,
       willSendToday, waiting,
     };
-  }, [patients]);
+  }, [patients, mode]);
 
   const handleAction = async (action, body) => {
     setActionInProgress(true);
@@ -195,8 +216,33 @@ export default function WLTrackerPage() {
           </div>
         )}
 
-        {/* Automation banner — explains what the cron does so staff don't double-send */}
-        <AutomationBanner />
+        {/* Mode toggle: Take-home vs In-clinic. Takes precedence as the primary nav. */}
+        <div style={{ display: 'flex', gap: '0', marginBottom: '20px', borderBottom: '2px solid #e5e5e5' }}>
+          {[
+            { value: 'take_home', label: '🏠 Take-home', sub: 'SMS check-ins' },
+            { value: 'in_clinic', label: '🏥 In-clinic', sub: 'Appointment-based' },
+          ].map(m => {
+            const active = mode === m.value;
+            return (
+              <button key={m.value} onClick={() => setMode(m.value)}
+                style={{
+                  padding: '12px 24px', border: 'none', cursor: 'pointer',
+                  background: 'transparent',
+                  borderBottom: active ? '3px solid #000' : '3px solid transparent',
+                  marginBottom: '-2px',
+                  fontSize: '15px', fontWeight: 600,
+                  color: active ? '#000' : '#888',
+                  display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px',
+                }}>
+                <span>{m.label}</span>
+                <span style={{ fontSize: '11px', color: active ? '#666' : '#aaa', fontWeight: 500 }}>{m.sub}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Mode-specific banner */}
+        {mode === 'take_home' ? <AutomationBanner /> : <InClinicBanner />}
 
         {/* Stats bar */}
         {data && <StatsBar stats={data.stats} trend={data.trend} weekStart={data.week_start} weekEnd={data.week_end} />}
@@ -250,6 +296,7 @@ export default function WLTrackerPage() {
         {/* Main view */}
         {data && view === 'daily' && (
           <DailyView
+            mode={mode}
             buckets={dailyBuckets}
             todayDayName={todayDayName}
             today={today}
@@ -384,6 +431,36 @@ function WeekNav({ weekStart, weekEnd, setWeekStart, today }) {
   );
 }
 
+// ───────────────────── In-clinic banner ─────────────────────
+
+function InClinicBanner() {
+  const [collapsed, setCollapsed] = useState(false);
+  return (
+    <div style={{
+      marginBottom: '20px', padding: '14px 18px',
+      background: '#f0fdf4', border: '1px solid #bbf7d0',
+      display: 'flex', gap: '12px', alignItems: 'flex-start',
+    }}>
+      <div style={{ fontSize: '20px', lineHeight: 1 }}>🏥</div>
+      <div style={{ flex: 1, fontSize: '13px', color: '#14532d', lineHeight: 1.5 }}>
+        <strong>In-clinic patients are tracked through their appointments.</strong> The system doesn&rsquo;t SMS them — Lily logs weight + side effects directly in the encounter note during the visit.
+        {!collapsed && (
+          <ul style={{ margin: '8px 0 0', paddingLeft: '18px' }}>
+            <li>Sections below show what&rsquo;s on the calendar today and what&rsquo;s missing documentation</li>
+            <li><strong>&ldquo;Needs manual attention&rdquo;</strong> = recent visits with no encounter note, or no-shows that need rescheduling</li>
+            <li>The <strong>Open chart</strong> button takes you straight to the patient page where you can log the encounter</li>
+            <li>Hybrid patients show in <em>both</em> tabs since they alternate between in-clinic and take-home weeks</li>
+          </ul>
+        )}
+      </div>
+      <button onClick={() => setCollapsed(c => !c)}
+        style={{ background: 'transparent', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
+        {collapsed ? 'Show details' : 'Hide'}
+      </button>
+    </div>
+  );
+}
+
 // ───────────────────── Automation banner ─────────────────────
 
 function AutomationBanner() {
@@ -417,9 +494,42 @@ function AutomationBanner() {
 
 // ───────────────────── Daily View ─────────────────────
 
-function DailyView({ buckets, todayDayName, today, onSelect, onAction, actionInProgress }) {
-  // Order by what a human cares about. Manual attention always at top.
-  const sections = [
+function DailyView({ mode, buckets, todayDayName, today, onSelect, onAction, actionInProgress }) {
+  const sections = mode === 'in_clinic' ? [
+    {
+      key: 'needsAttention',
+      title: '⚠️ Needs manual attention',
+      subtitle: 'Recent visits with no encounter note · no-shows to reschedule',
+      list: buckets.needsAttention,
+      accent: '#dc2626',
+      tone: 'warn',
+    },
+    {
+      key: 'scheduledToday',
+      title: `📅 Scheduled today (${todayDayName})`,
+      subtitle: 'Open the patient chart to log the encounter when they arrive',
+      list: buckets.scheduledToday,
+      accent: '#1e40af',
+      tone: 'info',
+    },
+    {
+      key: 'visitedToday',
+      title: '✅ Visited & encounter logged today',
+      subtitle: 'No action needed',
+      list: buckets.visitedToday,
+      accent: '#166534',
+      tone: 'good',
+    },
+    {
+      key: 'upcomingThisWeek',
+      title: '📅 Coming this week',
+      subtitle: 'Upcoming WL visits within the next 7 days',
+      list: buckets.upcomingThisWeek,
+      accent: '#666',
+      tone: 'idle',
+      collapsedByDefault: true,
+    },
+  ] : [
     {
       key: 'needsAttention',
       title: '⚠️ Needs manual attention',
@@ -482,18 +592,16 @@ function DailyView({ buckets, todayDayName, today, onSelect, onAction, actionInP
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
       {sections.map(s => (
-        <DailySection key={s.key} section={s} today={today}
+        <DailySection key={s.key} section={s} today={today} mode={mode}
           onSelect={onSelect} onAction={onAction} actionInProgress={actionInProgress} />
       ))}
     </div>
   );
 }
 
-function DailySection({ section, today, onSelect, onAction, actionInProgress }) {
+function DailySection({ section, today, mode, onSelect, onAction, actionInProgress }) {
   const [expanded, setExpanded] = useState(!section.collapsedByDefault);
   const empty = section.list.length === 0;
-  // Hide empty sections except the priority "Needs manual attention" so it
-  // can confirm the all-clear state.
   if (empty && section.key !== 'needsAttention') return null;
 
   return (
@@ -523,11 +631,14 @@ function DailySection({ section, today, onSelect, onAction, actionInProgress }) 
           </div>
         ) : (
           <>
-            <ColumnHeader sectionKey={section.key} />
+            <ColumnHeader sectionKey={section.key} mode={mode} />
             <div>
               {section.list.map(p => (
-                <DailyRow key={p.protocol_id} patient={p} today={today} sectionKey={section.key}
-                  onSelect={onSelect} onAction={onAction} actionInProgress={actionInProgress} />
+                mode === 'in_clinic'
+                  ? <InClinicRow key={p.protocol_id} patient={p} sectionKey={section.key}
+                      onSelect={onSelect} actionInProgress={actionInProgress} />
+                  : <DailyRow key={p.protocol_id} patient={p} today={today} sectionKey={section.key}
+                      onSelect={onSelect} onAction={onAction} actionInProgress={actionInProgress} />
               ))}
             </div>
           </>
@@ -537,12 +648,16 @@ function DailySection({ section, today, onSelect, onAction, actionInProgress }) 
   );
 }
 
-function ColumnHeader({ sectionKey }) {
-  const reasonLabel = sectionKey === 'needsAttention' ? 'WHY' : 'WHAT HAPPENED';
+function ColumnHeader({ sectionKey, mode }) {
+  const isAttention = sectionKey === 'needsAttention';
+  const reasonLabel = mode === 'in_clinic'
+    ? (isAttention ? 'WHY' : 'APPOINTMENT')
+    : (isAttention ? 'WHY' : 'WHAT HAPPENED');
+  const lastLabel = mode === 'in_clinic' ? 'Last visit' : 'Last check-in';
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '40px 1.4fr 1fr 0.9fr 0.9fr 110px',
+      gridTemplateColumns: '40px 1.4fr 1fr 0.9fr 0.9fr 130px',
       gap: '12px', padding: '8px 18px',
       background: '#fafafa', borderBottom: '1px solid #f0f0f0',
       fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px',
@@ -551,7 +666,7 @@ function ColumnHeader({ sectionKey }) {
       <div></div>
       <div>Patient</div>
       <div>{reasonLabel}</div>
-      <div>Last check-in</div>
+      <div>{lastLabel}</div>
       <div>Payment</div>
       <div style={{ textAlign: 'right' }}>Action</div>
     </div>
@@ -563,7 +678,7 @@ function DailyRow({ patient, sectionKey, onSelect, onAction, actionInProgress })
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '40px 1.4fr 1fr 0.9fr 0.9fr 110px',
+      gridTemplateColumns: '40px 1.4fr 1fr 0.9fr 0.9fr 130px',
       gap: '12px', alignItems: 'center',
       padding: '12px 18px', borderBottom: '1px solid #f0f0f0',
       background: isAttention ? '#fef9f3' : '#fff',
@@ -593,6 +708,93 @@ function DailyRow({ patient, sectionKey, onSelect, onAction, actionInProgress })
       </div>
     </div>
   );
+}
+
+function InClinicRow({ patient, sectionKey, onSelect, actionInProgress }) {
+  const isAttention = sectionKey === 'needsAttention';
+  const v = patient.visit || {};
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '40px 1.4fr 1fr 0.9fr 0.9fr 130px',
+      gap: '12px', alignItems: 'center',
+      padding: '12px 18px', borderBottom: '1px solid #f0f0f0',
+      background: isAttention ? '#fef9f3' : '#fff',
+    }}>
+      <Avatar initials={patient.initials} />
+      <div>
+        <div style={{ fontWeight: 600, fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+          onClick={() => onSelect(patient)}>
+          {patient.name}
+          <StreakBadge streak={patient.streak} />
+        </div>
+        <div style={{ fontSize: '12px', color: '#888' }}>
+          {patient.medication}{patient.selected_dose ? ` ${patient.selected_dose}` : ''} · {patient.cadence_days}d cadence
+        </div>
+      </div>
+      <div style={{ fontSize: '13px', color: '#333' }}>
+        {visitDescription(v)}
+      </div>
+      <div style={{ fontSize: '13px' }}>
+        {patient.last_weight ? <strong>{patient.last_weight} lb</strong> : <span style={{ color: '#bbb' }}>none</span>}
+        <div style={{ fontSize: '11px', color: '#999' }}>{fmtDate(patient.last_checkin_date) || fmtDate(v.last_visit?.date) || '—'}</div>
+      </div>
+      <PaymentPill payment={patient.payment} />
+      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+        <a href={`/admin/patient/${patient.patient_id}`} target="_blank" rel="noreferrer"
+          style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall, textDecoration: 'none' }}>
+          Open chart
+        </a>
+        <button disabled={actionInProgress}
+          onClick={() => onSelect(patient)}
+          style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}>
+          Details
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StreakBadge({ streak }) {
+  if (!streak || streak < 2) return null;
+  const onFire = streak >= 4;
+  return (
+    <span title={`${streak} consecutive injections`}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: '2px',
+        padding: '2px 6px',
+        background: onFire ? '#fef3c7' : '#f5f5f5',
+        color: onFire ? '#92400e' : '#666',
+        fontSize: '11px', fontWeight: 600,
+      }}>
+      {onFire ? '🔥' : '✓'} {streak}
+    </span>
+  );
+}
+
+function visitDescription(visit) {
+  const a = visit?.today_action;
+  const today = visit?.today_appt;
+  switch (a) {
+    case 'visit_today_logged':
+      return <span>✅ Visited at <strong>{today?.time || 'today'}</strong> — encounter logged</span>;
+    case 'visit_today_pending':
+      return <span>📅 On schedule for <strong>{today?.time || 'today'}</strong> — log encounter when done</span>;
+    case 'visit_unlogged_recent': {
+      const u = visit.recent_unlogged?.[0];
+      return <span style={{ color: '#9a3412' }}>⚠️ Visit on <strong>{fmtDate(u?.date)}</strong> — no encounter note</span>;
+    }
+    case 'no_show_recent': {
+      const ns = visit.no_shows?.[0];
+      return <span style={{ color: '#9a3412' }}>❌ No-show on <strong>{fmtDate(ns?.date)}</strong> — needs reschedule</span>;
+    }
+    case 'upcoming_this_week': {
+      const u = visit.upcoming?.[0];
+      return <span style={{ color: '#666' }}>📅 Next visit <strong>{fmtDate(u?.date)} at {u?.time}</strong></span>;
+    }
+    default:
+      return <span style={{ color: '#bbb' }}>—</span>;
+  }
 }
 
 // Plain-English description of what happened (or didn't) for this patient today.
@@ -755,7 +957,10 @@ function RosterTable({ patients, onSelect, onAction, actionInProgress }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <Avatar initials={p.initials} small />
                     <div>
-                      <div style={{ fontWeight: 600 }}>{p.name}</div>
+                      <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {p.name}
+                        <StreakBadge streak={p.streak} />
+                      </div>
                       {p.reminder_opt_out && (
                         <div style={{ fontSize: '11px', color: '#991b1b' }}>OPTED OUT{p.reminder_opt_out_reason ? ` — ${p.reminder_opt_out_reason}` : ''}</div>
                       )}

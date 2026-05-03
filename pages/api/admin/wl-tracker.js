@@ -220,6 +220,72 @@ function computeCycleEvents({ expectedDateISO, todayISO, cadenceDays, reminderLo
   return { today_action: 'idle', original, nudge1, nudge2 };
 }
 
+// In-clinic patients are tracked off appointments + encounter notes, not SMS.
+// Returns { today_action, today_appt, recent_unlogged, no_shows, upcoming, last_visit }.
+//
+// today_action values (in-clinic):
+//   - 'visit_today_logged'    appointment today, encounter note exists
+//   - 'visit_today_pending'   appointment today, no note yet (in progress / upcoming)
+//   - 'visit_unlogged_recent' visit happened in past 14 days, no encounter note (manual attention)
+//   - 'no_show_recent'        no-show in past 14 days needs reschedule
+//   - 'upcoming_this_week'    visit scheduled later this week
+//   - 'idle'                  no recent or upcoming visits in window
+function computeVisitStatus({ appointments, todayISO }) {
+  const today = appointments.filter(a => a.date === todayISO);
+  const past = appointments.filter(a => a.date < todayISO);
+  const future = appointments.filter(a => a.date > todayISO);
+  const cutoff14 = (() => {
+    const d = new Date(todayISO + 'T12:00:00');
+    d.setDate(d.getDate() - 14);
+    return d.toISOString().split('T')[0];
+  })();
+
+  const recentUnlogged = past.filter(a =>
+    a.date >= cutoff14 &&
+    !a.has_note &&
+    !['cancelled', 'no_show', 'rescheduled'].includes(a.status)
+  );
+  const recentNoShows = past.filter(a => a.date >= cutoff14 && a.status === 'no_show');
+  const lastVisit = past.find(a => a.has_note) || null;
+  const upcomingThisWeek = future.slice(0, 5);
+  const todayAppt = today[0] || null;
+
+  let today_action = 'idle';
+  if (todayAppt) {
+    today_action = todayAppt.has_note ? 'visit_today_logged' : 'visit_today_pending';
+  } else if (recentUnlogged.length > 0) {
+    today_action = 'visit_unlogged_recent';
+  } else if (recentNoShows.length > 0) {
+    today_action = 'no_show_recent';
+  } else if (upcomingThisWeek.length > 0) {
+    today_action = 'upcoming_this_week';
+  }
+
+  return {
+    today_action,
+    today_appt: todayAppt,
+    recent_unlogged: recentUnlogged,
+    no_shows: recentNoShows,
+    upcoming: upcomingThisWeek,
+    last_visit: lastVisit,
+  };
+}
+
+// Walk a list of injection dates (DESC) and count how many consecutive
+// injections fall within 2× the cadence of each other. The "2x" tolerance
+// allows for normal scheduling slack (1 week off for a holiday, etc.).
+function computeStreak(injectionDatesDesc, cadenceDays) {
+  if (!injectionDatesDesc || injectionDatesDesc.length === 0) return 0;
+  const tolerance = Math.max(cadenceDays * 2, 14);
+  let streak = 1;
+  for (let i = 1; i < injectionDatesDesc.length; i++) {
+    const gap = daysBetween(injectionDatesDesc[i], injectionDatesDesc[i - 1]);
+    if (gap <= tolerance) streak++;
+    else break;
+  }
+  return streak;
+}
+
 // Compute display status for a given expected date within the week.
 function computeCellStatus({
   expectedDateISO, todayISO, cadenceDays, reminderLogs, checkinLogs,
@@ -299,12 +365,18 @@ async function handleGet(req, res) {
   const weekStart = startOfWeek(requestedWeekStart);
   const weekEnd = addDaysISO(weekStart, 6);
 
+  // mode: 'take_home' (default, SMS reminders) or 'in_clinic' (appointment-based).
+  // Hybrid patients show in BOTH tabs since they alternate between flows.
+  const mode = req.query.mode === 'in_clinic' ? 'in_clinic' : 'take_home';
+
   // For 4-week trend
   const fourWeeksAgo = addDaysISO(weekStart, -28);
 
   try {
-    // 1. Pull all active take-home WL protocols
-    const { data: protocols, error: protoErr } = await supabase
+    // 1. Pull active WL protocols matching the mode.
+    //   take_home: delivery_method != 'in_clinic' (includes hybrid + nulls)
+    //   in_clinic: delivery_method in ('in_clinic', 'hybrid')
+    let protocolQuery = supabase
       .from('protocols')
       .select(`
         id, patient_id, program_name, program_type, medication, selected_dose,
@@ -315,8 +387,15 @@ async function handleGet(req, res) {
       `)
       .eq('status', 'active')
       .ilike('program_type', 'weight_loss%')
-      .or('delivery_method.neq.in_clinic,delivery_method.is.null')
       .order('start_date', { ascending: false });
+
+    if (mode === 'in_clinic') {
+      protocolQuery = protocolQuery.in('delivery_method', ['in_clinic', 'hybrid']);
+    } else {
+      protocolQuery = protocolQuery.or('delivery_method.neq.in_clinic,delivery_method.is.null');
+    }
+
+    const { data: protocols, error: protoErr } = await protocolQuery;
 
     if (protoErr) throw new Error('Protocols query: ' + protoErr.message);
 
@@ -324,6 +403,7 @@ async function handleGet(req, res) {
 
     if (patientIds.length === 0) {
       return res.status(200).json({
+        mode,
         week_start: weekStart, week_end: weekEnd, today: todayISO,
         patients: [], stats: emptyStats(), trend: [],
       });
@@ -358,6 +438,74 @@ async function handleGet(req, res) {
     const lastPurchaseByPatient = {};
     for (const p of (purchasesRaw || [])) {
       if (!lastPurchaseByPatient[p.patient_id]) lastPurchaseByPatient[p.patient_id] = p;
+    }
+
+    // 4b. In-clinic mode: pull WL appointments + their encounter notes for the
+    // current week ± a 7-day buffer so we can show "needs encounter logged" and
+    // "no-show needs reschedule" for the recent past as well as upcoming.
+    let appointmentsByPatient = {};
+    let injectionsByPatient = {};   // for streak computation
+    if (mode === 'in_clinic') {
+      const apptStart = addDaysISO(weekStart, -14);  // 14 days back so we can flag stale unlogged visits
+      const apptEnd = addDaysISO(weekEnd, 14);       // 14 days forward for "coming up"
+
+      const { data: appts } = await supabase
+        .from('appointments')
+        .select('id, patient_id, service_name, service_category, provider, start_time, end_time, status, visit_group_id')
+        .in('patient_id', patientIds)
+        .gte('start_time', apptStart + 'T00:00:00Z')
+        .lte('start_time', apptEnd + 'T23:59:59Z')
+        .order('start_time', { ascending: true });
+
+      // Filter to WL-flavored appointments. service_category is canonical;
+      // service_name fallback catches older rows where category wasn't set.
+      const wlAppts = (appts || []).filter(a =>
+        a.service_category === 'weight_loss' ||
+        (a.service_name || '').toLowerCase().includes('weight loss')
+      );
+
+      // Pull encounter notes for those appointments so we can flag visits that
+      // happened but Lily didn't document yet.
+      const apptIds = wlAppts.map(a => a.id);
+      let notedAppointmentIds = new Set();
+      if (apptIds.length > 0) {
+        const { data: notes } = await supabase
+          .from('patient_notes')
+          .select('appointment_id')
+          .in('appointment_id', apptIds);
+        notedAppointmentIds = new Set((notes || []).map(n => n.appointment_id));
+      }
+
+      for (const a of wlAppts) {
+        if (!appointmentsByPatient[a.patient_id]) appointmentsByPatient[a.patient_id] = [];
+        const utc = new Date(a.start_time);
+        appointmentsByPatient[a.patient_id].push({
+          id: a.id,
+          date: formatPacificDate(utc),
+          time: utc.toLocaleTimeString('en-US', {
+            hour: 'numeric', minute: '2-digit', hour12: true,
+            timeZone: 'America/Los_Angeles',
+          }),
+          service_name: a.service_name,
+          provider: a.provider,
+          status: a.status,
+          has_note: notedAppointmentIds.has(a.id),
+        });
+      }
+
+      // Pull all WL injection service_logs for streak math.
+      const { data: injectionRows } = await supabase
+        .from('service_logs')
+        .select('patient_id, entry_date')
+        .in('patient_id', patientIds)
+        .eq('category', 'weight_loss')
+        .eq('entry_type', 'injection')
+        .order('entry_date', { ascending: false });
+
+      for (const row of (injectionRows || [])) {
+        if (!injectionsByPatient[row.patient_id]) injectionsByPatient[row.patient_id] = [];
+        injectionsByPatient[row.patient_id].push(row.entry_date);
+      }
     }
 
     // Index logs by protocol/patient for fast lookup
@@ -421,6 +569,15 @@ async function handleGet(req, res) {
         protocol,
       });
 
+      // In-clinic specific: appointment-anchored status + streak
+      const appointments = appointmentsByPatient[patient.id] || [];
+      const visit = mode === 'in_clinic'
+        ? computeVisitStatus({ appointments, todayISO })
+        : null;
+      const streak = mode === 'in_clinic'
+        ? computeStreak(injectionsByPatient[patient.id] || [], cadenceDays)
+        : null;
+
       // Last check-in overall (for roster display)
       const mostRecentCheckin = checkinLogs[0];
 
@@ -462,6 +619,8 @@ async function handleGet(req, res) {
         expected_date_this_week: expectedDate,
         cell_status: cellStatus,
         cycle: cycleEvents,
+        visit,    // in-clinic only: today/recent appointment status
+        streak,   // in-clinic only: consecutive injections (no big gaps)
 
         last_checkin_date: mostRecentCheckin?.entry_date || null,
         last_weight: mostRecentCheckin?.weight || null,
@@ -483,6 +642,7 @@ async function handleGet(req, res) {
     const trend = compute4WeekTrend(protocols, reminderLogsRaw, checkinLogsRaw, weekStart);
 
     return res.status(200).json({
+      mode,
       week_start: weekStart, week_end: weekEnd, today: todayISO,
       patients, stats, trend,
     });

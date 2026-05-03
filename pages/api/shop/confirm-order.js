@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { Resend } from 'resend';
 import { getVialById, getShippingOption } from '../../../lib/vial-catalog';
 import { todayPacific } from '../../../lib/date-utils';
+import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -250,7 +251,7 @@ export default async function handler(req, res) {
     const itemSummary = orderItems.map(i => `${i.quantity}x ${i.name}`).join(', ');
     await sendSMS({
       to: '+19496900339',
-      message: `Vial Shop Order ${orderNumber}\n${patient.name}\n${itemSummary}\nTotal: $${(totalCents / 100).toFixed(2)}\n${isPickup ? 'Pickup' : 'Ship to: ' + addressData?.city + ', ' + addressData?.state}`,
+      message: `Shop Order ${orderNumber}\n${patient.name}\n${itemSummary}\nTotal: $${(totalCents / 100).toFixed(2)}\n${isPickup ? 'Pickup' : 'Ship to: ' + addressData?.city + ', ' + addressData?.state}`,
       log: {
         messageType: 'shop_order_notification',
         source: 'shop-confirm-order',
@@ -259,6 +260,55 @@ export default async function handler(req, res) {
     });
   } catch (smsErr) {
     console.error('SMS notify error:', smsErr);
+  }
+
+  // Fulfillment tasks for Damon Durante and Chris Cupp (each task auto-fires an SMS via notifyTaskAssignee)
+  try {
+    const [damonRes, chrisRes] = await Promise.all([
+      supabase.from('employees').select('id').ilike('name', '%Damon Durante%').limit(1).maybeSingle(),
+      supabase.from('employees').select('id').ilike('name', '%Chris Cupp%').limit(1).maybeSingle(),
+    ]);
+    const assigneeIds = [damonRes?.data?.id, chrisRes?.data?.id].filter(Boolean);
+
+    if (assigneeIds.length > 0) {
+      const itemSummary = orderItems.map(i => `${i.quantity}x ${i.name}`).join(', ');
+      const fulfillmentLine = isPickup
+        ? `Pickup — ${shippingOption?.label || shippingMethod}`
+        : `Ship to: ${addressData?.name || patient.name}, ${addressData?.street || ''}${addressData?.street2 ? ', ' + addressData.street2 : ''}, ${addressData?.city || ''}, ${addressData?.state || ''} ${addressData?.zip || ''}`;
+      const taskTitle = `Shop order ${orderNumber} — ${patient.name}`;
+      const taskDescription = `${itemSummary}\nTotal: $${(totalCents / 100).toFixed(2)}\n${fulfillmentLine}`;
+
+      const taskRows = assigneeIds.map(empId => ({
+        title: taskTitle,
+        description: taskDescription,
+        assigned_to: empId,
+        assigned_by: empId,
+        patient_id: patient.id,
+        patient_name: patient.name,
+        priority: 'high',
+        status: 'pending',
+        task_category: 'business',
+      }));
+
+      const { data: createdTasks, error: taskInsertErr } = await supabase
+        .from('tasks')
+        .insert(taskRows)
+        .select();
+
+      if (taskInsertErr) {
+        console.error('Shop task insert error:', taskInsertErr);
+      } else {
+        for (const t of createdTasks || []) {
+          notifyTaskAssignee(t.assigned_to, {
+            assignerName: 'Range Shop',
+            taskTitle,
+            priority: 'high',
+          }).catch(err => console.error('Shop task SMS error:', err));
+        }
+      }
+    }
+  } catch (taskErr) {
+    console.error('Shop order task workflow error:', taskErr);
   }
 
   res.status(200).json({

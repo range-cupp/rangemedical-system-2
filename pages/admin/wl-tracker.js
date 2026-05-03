@@ -24,12 +24,17 @@ const STATUS_CONFIG = {
 };
 
 const PAYMENT_CONFIG = {
-  paid:     { icon: '🟢', bg: '#dcfce7', color: '#166534' },
-  due_soon: { icon: '🟡', bg: '#fef3c7', color: '#92400e' },
-  due_now:  { icon: '🟠', bg: '#fed7aa', color: '#9a3412' },
-  overdue:  { icon: '🔴', bg: '#fee2e2', color: '#991b1b' },
+  paid:     { icon: '💳', bg: '#dcfce7', color: '#166534' },
   comp:     { icon: '🆓', bg: '#e0e7ff', color: '#3730a3' },
   unknown:  { icon: '❔', bg: '#f5f5f5', color: '#666' },
+};
+
+const DISPENSE_CONFIG = {
+  active:   { icon: '✅', bg: '#dcfce7', color: '#166534' },
+  due_soon: { icon: '🟡', bg: '#fef3c7', color: '#92400e' },
+  due_now:  { icon: '🟠', bg: '#fed7aa', color: '#9a3412' },
+  send_now: { icon: '📦', bg: '#fee2e2', color: '#991b1b' },
+  never:    { icon: '➖', bg: '#f5f5f5', color: '#666' },
 };
 
 function todayPacificISO() {
@@ -116,7 +121,7 @@ export default function WLTrackerPage() {
       if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (filterStatus === 'reminders_off' && p.reminder_enabled) return false;
       if (filterStatus === 'opted_out' && !p.reminder_opt_out) return false;
-      if (filterStatus === 'payment_due' && !['due_now', 'due_soon', 'overdue'].includes(p.payment.state)) return false;
+      if (filterStatus === 'dispatch_due' && !['send_now', 'due_now', 'due_soon'].includes(p.dispense.state)) return false;
       if (filterStatus === 'missed' && p.cell_status.status !== 'missed') return false;
       return true;
     });
@@ -206,7 +211,7 @@ export default function WLTrackerPage() {
         <div style={sharedStyles.pageHeader}>
           <h1 style={sharedStyles.pageTitle}>Weight Loss Tracker</h1>
           <p style={sharedStyles.pageSubtitle}>
-            Take-home patient check-ins, nudges, and payment timing
+            Take-home patient check-ins, nudges, dispatch timing, and payment status
           </p>
         </div>
 
@@ -285,7 +290,7 @@ export default function WLTrackerPage() {
           >
             <option value="all">All statuses</option>
             <option value="missed">Missed this week</option>
-            <option value="payment_due">Payment due soon</option>
+            <option value="dispatch_due">Needs dispatch soon</option>
             <option value="reminders_off">Reminders off</option>
             <option value="opted_out">Opted out</option>
           </select>
@@ -369,10 +374,10 @@ function StatsBar({ stats, trend, weekStart, weekEnd }) {
         </div>
       </div>
       <StatBlock
-        label="Payment outreach now"
-        value={stats.payment_due_now}
-        sub={`+${stats.payment_due_soon} due soon`}
-        accent={stats.payment_due_now > 0 ? '#9a3412' : null}
+        label="Dispatch needed now"
+        value={stats.dispatch_due_now}
+        sub={`+${stats.dispatch_due_soon} due soon`}
+        accent={stats.dispatch_due_now > 0 ? '#9a3412' : null}
       />
       <StatBlock
         label="Missed this week"
@@ -668,7 +673,7 @@ function ColumnHeader({ sectionKey, mode }) {
       <div>Patient</div>
       <div>{reasonLabel}</div>
       <div>{lastLabel}</div>
-      <div>Payment</div>
+      <div>Status</div>
       <div style={{ textAlign: 'right' }}>Action</div>
     </div>
   );
@@ -699,7 +704,7 @@ function DailyRow({ patient, sectionKey, onSelect, onAction, actionInProgress })
         {patient.last_weight ? <strong>{patient.last_weight} lb</strong> : <span style={{ color: '#bbb' }}>none</span>}
         <div style={{ fontSize: '11px', color: '#999' }}>{fmtDate(patient.last_checkin_date) || '—'}</div>
       </div>
-      <PaymentPill payment={patient.payment} />
+      <StatusStack payment={patient.payment} dispense={patient.dispense} />
       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
         <button disabled={actionInProgress}
           onClick={() => onSelect(patient)}
@@ -740,7 +745,7 @@ function InClinicRow({ patient, sectionKey, onSelect, actionInProgress }) {
         {patient.last_weight ? <strong>{patient.last_weight} lb</strong> : <span style={{ color: '#bbb' }}>none</span>}
         <div style={{ fontSize: '11px', color: '#999' }}>{fmtDate(patient.last_checkin_date) || fmtDate(v.last_visit?.date) || '—'}</div>
       </div>
-      <PaymentPill payment={patient.payment} />
+      <StatusStack payment={patient.payment} dispense={patient.dispense} />
       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
         <a href={`/admin/patient/${patient.patient_id}`} target="_blank" rel="noreferrer"
           style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall, textDecoration: 'none' }}>
@@ -902,6 +907,7 @@ function GridCard({ patient, onSelect }) {
   const cs = patient.cell_status;
   const sc = STATUS_CONFIG[cs.status] || STATUS_CONFIG.upcoming;
   const pc = PAYMENT_CONFIG[patient.payment.state] || PAYMENT_CONFIG.unknown;
+  const dc = DISPENSE_CONFIG[patient.dispense.state] || DISPENSE_CONFIG.never;
 
   return (
     <div onClick={() => onSelect(patient)}
@@ -913,7 +919,10 @@ function GridCard({ patient, onSelect }) {
         <span style={{ fontWeight: 600, color: sc.color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {sc.icon} {patient.name}
         </span>
-        <span title={patient.payment.label} style={{ fontSize: '11px' }}>{pc.icon}</span>
+        <span style={{ fontSize: '11px', display: 'inline-flex', gap: '2px' }}>
+          <span title={`Dispense: ${patient.dispense.label}`}>{dc.icon}</span>
+          <span title={`Payment: ${patient.payment.label}`}>{pc.icon}</span>
+        </span>
       </div>
       <div style={{ color: '#666', fontSize: '11px', marginTop: '2px' }}>
         {patient.medication}{patient.selected_dose ? ` ${patient.selected_dose}` : ''}
@@ -946,7 +955,7 @@ function RosterTable({ mode, patients, onSelect, onAction, actionInProgress }) {
               <th style={sharedStyles.th}>Cadence</th>
               <th style={sharedStyles.th}>{inClinic ? 'Last Visit' : 'Last Check-in'}</th>
               <th style={sharedStyles.th}>{inClinic ? 'Streak' : '4-wk Rate'}</th>
-              <th style={sharedStyles.th}>Payment</th>
+              <th style={sharedStyles.th}>Status</th>
               {!inClinic && <th style={sharedStyles.th}>Reminders</th>}
               <th style={sharedStyles.th} />
             </tr>
@@ -1032,7 +1041,7 @@ function RosterTable({ mode, patients, onSelect, onAction, actionInProgress }) {
                   )}
                 </td>
                 <td style={sharedStyles.td}>
-                  <PaymentPill payment={p.payment} />
+                  <StatusStack payment={p.payment} dispense={p.dispense} />
                 </td>
                 {!inClinic && (
                   <td style={sharedStyles.td}>
@@ -1076,7 +1085,6 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress }) {
 
   const cs = patient.cell_status;
   const sc = STATUS_CONFIG[cs.status] || STATUS_CONFIG.upcoming;
-  const pc = PAYMENT_CONFIG[patient.payment.state] || PAYMENT_CONFIG.unknown;
 
   const log = async () => {
     if (!logWeight) { alert('Enter a weight'); return; }
@@ -1105,9 +1113,10 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress }) {
       </div>
 
       <div style={{ padding: '20px 24px' }}>
-        {/* Status + payment */}
+        {/* Status + payment + dispense */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
           <Badge bg={sc.bg} color={sc.color} icon={sc.icon} text={sc.label} />
+          <DispensePill dispense={patient.dispense} />
           <PaymentPill payment={patient.payment} />
         </div>
 
@@ -1250,8 +1259,9 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress }) {
             <div>4-week completion: <strong style={{ color: '#000' }}>
               {patient.four_week_rate != null ? `${patient.four_week_rate}% (${patient.four_week_completed}/${patient.four_week_originals})` : 'no data'}
             </strong></div>
-            <div>Payment: <strong style={{ color: '#000' }}>{patient.payment.label}</strong> — {patient.payment.used}/{patient.payment.total} used</div>
-            <div>Last purchase: <strong style={{ color: '#000' }}>{fmtDate(patient.last_purchase_date) || 'none'}</strong></div>
+            <div>Payment: <strong style={{ color: '#000' }}>{patient.payment.label}</strong></div>
+            <div>Dispense: <strong style={{ color: '#000' }}>{patient.dispense.label}</strong>{patient.dispense.total > 0 ? ` — ${patient.dispense.used}/${patient.dispense.total} of last block` : ''}</div>
+            <div>Last block sent: <strong style={{ color: '#000' }}>{fmtDate(patient.last_purchase_date) || 'never'}</strong></div>
           </div>
           <div style={{ marginTop: '10px' }}>
             <a href={`/admin/patient/${patient.patient_id}`}
@@ -1308,14 +1318,45 @@ function Badge({ bg, color, icon, text }) {
 
 function PaymentPill({ payment }) {
   const pc = PAYMENT_CONFIG[payment.state] || PAYMENT_CONFIG.unknown;
+  const title = payment.last_purchase_date
+    ? `Last purchase: ${payment.last_purchase_date}`
+    : 'No purchases on file';
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '4px',
       padding: '4px 10px', background: pc.bg, color: pc.color,
       fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap',
-    }} title={`${payment.used}/${payment.total} used`}>
+    }} title={title}>
       {pc.icon} {payment.label}
     </span>
+  );
+}
+
+function DispensePill({ dispense }) {
+  const dc = DISPENSE_CONFIG[dispense.state] || DISPENSE_CONFIG.never;
+  const title = dispense.last_dispensed_date
+    ? `Last block: ${dispense.last_dispensed_date} · ${dispense.used}/${dispense.total} used`
+    : 'No injections dispatched yet';
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      padding: '4px 10px', background: dc.bg, color: dc.color,
+      fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap',
+    }} title={title}>
+      {dc.icon} {dispense.label}
+    </span>
+  );
+}
+
+// Stack the two badges vertically. Dispense (action-oriented) on top,
+// Payment (informational) on the bottom — staff scan the top one to decide
+// "ship today?" and the bottom for "did they pay?"
+function StatusStack({ payment, dispense }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+      <DispensePill dispense={dispense} />
+      <PaymentPill payment={payment} />
+    </div>
   );
 }
 

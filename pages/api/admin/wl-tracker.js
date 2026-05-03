@@ -126,19 +126,40 @@ function injectionsFromPurchase(purchase) {
   return 1;
 }
 
-// Payment coverage is computed from the most recent purchase rather than the
-// denormalized protocol.total_sessions counter, which doesn't reliably bump
-// when a new block is bought (Blake Modersitzki paid 5/1 for 5 injections but
-// his protocol still showed 22/22 used → "Renewal due"). Purchases are the
-// true source of truth.
-function computePaymentStatus(protocol, cadenceDays, lastPurchase, todayISO) {
+// Payment status — strictly "did money change hands?" Doesn't care about
+// coverage runout; that's the dispense badge's job. Comp patients always show
+// "Comp" here, even after their block is exhausted, so staff can tell at a
+// glance "this patient has never paid" vs "this patient paid for a block that
+// just ran out."
+function computePaymentStatus(lastPurchase) {
   if (!lastPurchase) {
-    return { state: 'unknown', label: 'No purchases on file',
-             sessions_remaining: 0, total: 0, used: 0, days_until_due: null,
-             last_purchase_date: null };
+    return { state: 'unknown', label: 'No purchases', last_purchase_date: null, amount_paid: null };
+  }
+  const amount = Number(lastPurchase.amount_paid) || 0;
+  if (amount === 0) {
+    return { state: 'comp', label: 'Comp', last_purchase_date: lastPurchase.purchase_date, amount_paid: 0 };
+  }
+  return {
+    state: 'paid',
+    label: `Paid $${amount.toFixed(0)}`,
+    last_purchase_date: lastPurchase.purchase_date,
+    amount_paid: amount,
+  };
+}
+
+// Dispense status — "do I need to send out the next block of injections?"
+// Computed from the most recent purchase (paid or comp): each block of
+// injections covers `injections × cadence` days. When that runs out, the
+// patient needs the next block dispatched. Independent of payment state.
+function computeDispenseStatus(cadenceDays, lastPurchase, todayISO) {
+  if (!lastPurchase) {
+    return {
+      state: 'never', label: 'Never sent',
+      sessions_remaining: 0, total: 0, used: 0, days_until_due: null,
+      last_dispensed_date: null, coverage_days: 0,
+    };
   }
 
-  const isComp = Number(lastPurchase.amount_paid) === 0;
   const injectionsCovered = injectionsFromPurchase(lastPurchase);
   const coverageDays = injectionsCovered * cadenceDays;
   const daysSincePurchase = Math.max(0, daysBetween(lastPurchase.purchase_date, todayISO));
@@ -149,24 +170,20 @@ function computePaymentStatus(protocol, cadenceDays, lastPurchase, todayISO) {
     total: injectionsCovered,
     used: Math.min(injectionsCovered, Math.floor(daysSincePurchase / cadenceDays)),
     days_until_due: Math.max(0, daysRemaining),
-    last_purchase_date: lastPurchase.purchase_date,
+    last_dispensed_date: lastPurchase.purchase_date,
     coverage_days: coverageDays,
   };
 
-  if (isComp && injectionsCovered > 0 && daysRemaining > 0) {
-    return { state: 'comp', label: 'Comp', ...baseFields };
-  }
-
   if (daysRemaining <= 0) {
-    return { state: 'overdue', label: 'Renewal due', ...baseFields, days_until_due: 0 };
+    return { state: 'send_now', label: 'Send next block', ...baseFields, days_until_due: 0 };
   }
   if (daysRemaining <= 7) {
-    return { state: 'due_now', label: `Due in ${daysRemaining}d — reach out`, ...baseFields };
+    return { state: 'due_now', label: `Send in ${daysRemaining}d`, ...baseFields };
   }
   if (daysRemaining <= 14) {
-    return { state: 'due_soon', label: `Due in ${daysRemaining}d`, ...baseFields };
+    return { state: 'due_soon', label: `Send in ${daysRemaining}d`, ...baseFields };
   }
-  return { state: 'paid', label: `Covered ${daysRemaining}d`, ...baseFields };
+  return { state: 'active', label: `${daysRemaining}d supply`, ...baseFields };
 }
 
 // Inspect the current/most-recent cycle and return the per-event sent times
@@ -642,7 +659,8 @@ async function handleGet(req, res) {
         : null;
 
       const lastPurchase = lastPurchaseByPatient[patient.id];
-      const paymentStatus = computePaymentStatus(protocol, cadenceDays, lastPurchase, todayISO);
+      const paymentStatus = computePaymentStatus(lastPurchase);
+      const dispenseStatus = computeDispenseStatus(cadenceDays, lastPurchase, todayISO);
 
       return {
         protocol_id: protocol.id,
@@ -678,6 +696,7 @@ async function handleGet(req, res) {
         four_week_completed: fourWkCompletedCycles,
 
         payment: paymentStatus,
+        dispense: dispenseStatus,
         last_purchase_date: lastPurchase?.purchase_date || null,
       };
     });
@@ -703,14 +722,14 @@ function emptyStats() {
   return {
     total_patients: 0, sent_this_week: 0, completed_this_week: 0,
     missed_this_week: 0, completion_pct: 0,
-    payment_due_now: 0, payment_due_soon: 0,
+    dispatch_due_now: 0, dispatch_due_soon: 0,
     reminders_disabled: 0, opt_outs: 0,
   };
 }
 
 function computeWeekStats(patients, weekStart, weekEnd, todayISO) {
   let sent = 0, completed = 0, missed = 0;
-  let dueNow = 0, dueSoon = 0;
+  let dispatchDueNow = 0, dispatchDueSoon = 0;
   let disabled = 0, optOuts = 0;
 
   for (const p of patients) {
@@ -721,8 +740,10 @@ function computeWeekStats(patients, weekStart, weekEnd, todayISO) {
     if (cs.status === 'completed' || cs.status === 'late') completed++;
     if (cs.status === 'missed') missed++;
 
-    if (p.payment.state === 'due_now') dueNow++;
-    if (p.payment.state === 'due_soon') dueSoon++;
+    // "Dispatch needed now" = next block is overdue or due in <= 7 days.
+    // Comp and paid both count — the question is "do I need to ship injections?"
+    if (p.dispense.state === 'send_now' || p.dispense.state === 'due_now') dispatchDueNow++;
+    if (p.dispense.state === 'due_soon') dispatchDueSoon++;
 
     if (!p.reminder_enabled && !p.reminder_opt_out) disabled++;
     if (p.reminder_opt_out) optOuts++;
@@ -734,8 +755,8 @@ function computeWeekStats(patients, weekStart, weekEnd, todayISO) {
     completed_this_week: completed,
     missed_this_week: missed,
     completion_pct: sent > 0 ? Math.round((completed / sent) * 100) : 0,
-    payment_due_now: dueNow,
-    payment_due_soon: dueSoon,
+    dispatch_due_now: dispatchDueNow,
+    dispatch_due_soon: dispatchDueSoon,
     reminders_disabled: disabled,
     opt_outs: optOuts,
   };

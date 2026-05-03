@@ -6,7 +6,7 @@ import { useRouter } from 'next/router';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { VIAL_CATALOG, SHIPPING_OPTIONS, getShopAddOns } from '../../lib/vial-catalog';
-import { ArrowLeft, X } from 'lucide-react';
+import { ArrowLeft, X, Plus, Minus } from 'lucide-react';
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -149,24 +149,22 @@ export default function ShopCheckout() {
 
   const addOns = useMemo(() => getShopAddOns(), []);
 
-  function updateAddOn(id, qty) {
-    const next = qty <= 0
+  function updateQuantity(id, qty) {
+    const clamped = Math.min(100, Math.max(0, qty));
+    const next = clamped <= 0
       ? Object.fromEntries(Object.entries(cart).filter(([k]) => k !== id))
-      : { ...cart, [id]: qty };
+      : { ...cart, [id]: clamped };
     setCart(next);
     localStorage.setItem('shop_cart', JSON.stringify(next));
-  }
-
-  function removeCartItem(id) {
-    const next = Object.fromEntries(Object.entries(cart).filter(([k]) => k !== id));
-    setCart(next);
-    localStorage.setItem('shop_cart', JSON.stringify(next));
-    // Re-create the payment intent next time they click continue
+    // Cart total changed — invalidate any payment intent so it gets recreated with the new total
     if (step === 'payment') {
       setClientSecret(null);
       setStep('shipping');
     }
   }
+
+  const removeCartItem = (id) => updateQuantity(id, 0);
+  const updateAddOn = (id, qty) => updateQuantity(id, qty);
 
   // Bounce back to catalog if cart becomes empty mid-checkout
   useEffect(() => {
@@ -276,9 +274,26 @@ export default function ShopCheckout() {
           <div style={{ background: '#fff', border: '1px solid #e5e5e5', padding: '16px 20px', marginBottom: 20 }}>
             <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: '#999', margin: '0 0 12px' }}>Order Summary</h3>
             {cartItems.map(item => (
-              <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', fontSize: 14, gap: 8 }}>
-                <span style={{ flex: 1 }}>{item.quantity}x {item.name}</span>
-                <span style={{ fontWeight: 600 }}>${((item.priceCents * item.quantity) / 100).toFixed(2)}</span>
+              <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', fontSize: 14, gap: 8, borderBottom: '1px solid #f5f5f5' }}>
+                <span style={{ flex: 1, minWidth: 0 }}>{item.name}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <button
+                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                    aria-label={`Decrease ${item.name}`}
+                    style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d1d1d1', background: '#fff', cursor: 'pointer', borderRadius: 0 }}
+                  >
+                    <Minus size={12} />
+                  </button>
+                  <span style={{ fontSize: 13, fontWeight: 700, minWidth: 18, textAlign: 'center' }}>{item.quantity}</span>
+                  <button
+                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                    aria-label={`Increase ${item.name}`}
+                    style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #171717', background: '#171717', color: '#fff', cursor: 'pointer', borderRadius: 0 }}
+                  >
+                    <Plus size={12} />
+                  </button>
+                </div>
+                <span style={{ fontWeight: 600, minWidth: 64, textAlign: 'right' }}>${((item.priceCents * item.quantity) / 100).toFixed(2)}</span>
                 <button
                   onClick={() => removeCartItem(item.id)}
                   aria-label={`Remove ${item.name}`}

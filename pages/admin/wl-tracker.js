@@ -318,6 +318,7 @@ export default function WLTrackerPage() {
         {/* Roster table */}
         {data && (
           <RosterTable
+            mode={mode}
             patients={filteredPatients}
             onSelect={setSelectedPatient}
             onAction={handleAction}
@@ -928,7 +929,8 @@ function GridCard({ patient, onSelect }) {
 
 // ───────────────────── Roster Table ─────────────────────
 
-function RosterTable({ patients, onSelect, onAction, actionInProgress }) {
+function RosterTable({ mode, patients, onSelect, onAction, actionInProgress }) {
+  const inClinic = mode === 'in_clinic';
   return (
     <div style={sharedStyles.card}>
       <div style={sharedStyles.cardHeader}>
@@ -939,18 +941,21 @@ function RosterTable({ patients, onSelect, onAction, actionInProgress }) {
           <thead>
             <tr>
               <th style={sharedStyles.th}>Patient</th>
-              <th style={sharedStyles.th}>Inj Day</th>
+              <th style={sharedStyles.th}>{inClinic ? 'Next Visit' : 'Inj Day'}</th>
               <th style={sharedStyles.th}>Med / Dose</th>
               <th style={sharedStyles.th}>Cadence</th>
-              <th style={sharedStyles.th}>Last Check-in</th>
-              <th style={sharedStyles.th}>4-wk Rate</th>
+              <th style={sharedStyles.th}>{inClinic ? 'Last Visit' : 'Last Check-in'}</th>
+              <th style={sharedStyles.th}>{inClinic ? 'Streak' : '4-wk Rate'}</th>
               <th style={sharedStyles.th}>Payment</th>
-              <th style={sharedStyles.th}>Reminders</th>
+              {!inClinic && <th style={sharedStyles.th}>Reminders</th>}
               <th style={sharedStyles.th} />
             </tr>
           </thead>
           <tbody>
-            {patients.map(p => (
+            {patients.map(p => {
+              const nextAppt = p.visit?.upcoming?.[0];
+              const lastVisit = p.visit?.last_visit;
+              return (
               <tr key={p.protocol_id} style={{ cursor: 'pointer' }}
                 onClick={(e) => { if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') onSelect(p); }}>
                 <td style={sharedStyles.td}>
@@ -961,17 +966,28 @@ function RosterTable({ patients, onSelect, onAction, actionInProgress }) {
                         {p.name}
                         <StreakBadge streak={p.streak} />
                       </div>
-                      {p.reminder_opt_out && (
+                      {p.reminder_opt_out && !inClinic && (
                         <div style={{ fontSize: '11px', color: '#991b1b' }}>OPTED OUT{p.reminder_opt_out_reason ? ` — ${p.reminder_opt_out_reason}` : ''}</div>
                       )}
                     </div>
                   </div>
                 </td>
                 <td style={sharedStyles.td}>
-                  {p.injection_day ? (
-                    <span style={{ fontSize: '13px' }}>{p.injection_day}</span>
+                  {inClinic ? (
+                    nextAppt ? (
+                      <>
+                        <div style={{ fontSize: '13px', fontWeight: 600 }}>{fmtDate(nextAppt.date)}</div>
+                        <div style={{ fontSize: '11px', color: '#888' }}>{nextAppt.time}</div>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: '12px', color: '#991b1b', fontWeight: 600 }}>NONE BOOKED</span>
+                    )
                   ) : (
-                    <span style={{ fontSize: '12px', color: '#991b1b', fontWeight: 600 }}>NOT SET</span>
+                    p.injection_day ? (
+                      <span style={{ fontSize: '13px' }}>{p.injection_day}</span>
+                    ) : (
+                      <span style={{ fontSize: '12px', color: '#991b1b', fontWeight: 600 }}>NOT SET</span>
+                    )
                   )}
                 </td>
                 <td style={sharedStyles.td}>
@@ -982,33 +998,52 @@ function RosterTable({ patients, onSelect, onAction, actionInProgress }) {
                   <span style={{ fontSize: '13px' }}>{p.cadence_days}d</span>
                 </td>
                 <td style={sharedStyles.td}>
-                  {p.last_checkin_date ? (
-                    <>
-                      <div style={{ fontSize: '13px' }}>{fmtDate(p.last_checkin_date)}</div>
-                      {p.last_weight && <div style={{ fontSize: '12px', color: '#888' }}>{p.last_weight} lb</div>}
-                    </>
-                  ) : <span style={{ color: '#999' }}>—</span>}
+                  {inClinic ? (
+                    lastVisit ? (
+                      <>
+                        <div style={{ fontSize: '13px' }}>{fmtDate(lastVisit.date)}</div>
+                        {p.last_weight && <div style={{ fontSize: '12px', color: '#888' }}>{p.last_weight} lb</div>}
+                      </>
+                    ) : <span style={{ color: '#999' }}>—</span>
+                  ) : (
+                    p.last_checkin_date ? (
+                      <>
+                        <div style={{ fontSize: '13px' }}>{fmtDate(p.last_checkin_date)}</div>
+                        {p.last_weight && <div style={{ fontSize: '12px', color: '#888' }}>{p.last_weight} lb</div>}
+                      </>
+                    ) : <span style={{ color: '#999' }}>—</span>
+                  )}
                 </td>
                 <td style={sharedStyles.td}>
-                  {p.four_week_rate != null ? (
-                    <span style={{
-                      fontWeight: 600,
-                      color: p.four_week_rate >= 75 ? '#166534' : p.four_week_rate >= 40 ? '#92400e' : '#991b1b',
-                    }}>{p.four_week_rate}%</span>
-                  ) : <span style={{ color: '#999' }}>—</span>}
-                  <div style={{ fontSize: '11px', color: '#888' }}>{p.four_week_completed}/{p.four_week_originals}</div>
+                  {inClinic ? (
+                    p.streak && p.streak > 0 ? (
+                      <StreakBadge streak={p.streak} />
+                    ) : <span style={{ color: '#999' }}>—</span>
+                  ) : (
+                    <>
+                      {p.four_week_rate != null ? (
+                        <span style={{
+                          fontWeight: 600,
+                          color: p.four_week_rate >= 75 ? '#166534' : p.four_week_rate >= 40 ? '#92400e' : '#991b1b',
+                        }}>{p.four_week_rate}%</span>
+                      ) : <span style={{ color: '#999' }}>—</span>}
+                      <div style={{ fontSize: '11px', color: '#888' }}>{p.four_week_completed}/{p.four_week_originals}</div>
+                    </>
+                  )}
                 </td>
                 <td style={sharedStyles.td}>
                   <PaymentPill payment={p.payment} />
                 </td>
-                <td style={sharedStyles.td}>
-                  <ReminderToggle
-                    enabled={p.reminder_enabled}
-                    optOut={p.reminder_opt_out}
-                    disabled={actionInProgress}
-                    onChange={(enabled) => onAction('toggle_reminder', { protocol_id: p.protocol_id, enabled })}
-                  />
-                </td>
+                {!inClinic && (
+                  <td style={sharedStyles.td}>
+                    <ReminderToggle
+                      enabled={p.reminder_enabled}
+                      optOut={p.reminder_opt_out}
+                      disabled={actionInProgress}
+                      onChange={(enabled) => onAction('toggle_reminder', { protocol_id: p.protocol_id, enabled })}
+                    />
+                  </td>
+                )}
                 <td style={sharedStyles.td}>
                   <button onClick={(e) => { e.stopPropagation(); onSelect(p); }}
                     style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}>
@@ -1016,9 +1051,10 @@ function RosterTable({ patients, onSelect, onAction, actionInProgress }) {
                   </button>
                 </td>
               </tr>
-            ))}
+            );
+            })}
             {patients.length === 0 && (
-              <tr><td colSpan={9} style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No patients match the current filter</td></tr>
+              <tr><td colSpan={inClinic ? 8 : 9} style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No patients match the current filter</td></tr>
             )}
           </tbody>
         </table>

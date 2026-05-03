@@ -43,7 +43,21 @@ function VialCard({ vial, quantity, onAdd, onRemove }) {
           </div>
           <p style={{ fontSize: 13, color: '#666', margin: '2px 0 0' }}>{vial.subtitle}</p>
           <p style={{ fontSize: 12, color: '#999', margin: '3px 0 0' }}>{vial.vialSize}</p>
-          <p style={{ fontSize: 14, fontWeight: 600, margin: '6px 0 0' }}>${(vial.priceCents / 100).toFixed(2)}</p>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', margin: '6px 0 0' }}>
+            {vial.clinicPriceCents > vial.priceCents && (
+              <span style={{ fontSize: 13, color: '#999', textDecoration: 'line-through' }}>
+                ${(vial.clinicPriceCents / 100).toFixed(2)}
+              </span>
+            )}
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>
+              ${(vial.priceCents / 100).toFixed(2)}
+            </span>
+            {vial.clinicPriceCents > vial.priceCents && (
+              <span style={{ fontSize: 11, color: '#15803d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Save ${((vial.clinicPriceCents - vial.priceCents) / 100).toFixed(2)}
+              </span>
+            )}
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -199,7 +213,14 @@ export default function ShopCatalog() {
 
         <div style={{ maxWidth: 640, margin: '0 auto', padding: 20 }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>Peptide Vials</h2>
-          <p style={{ fontSize: 14, color: '#666', margin: '0 0 20px' }}>Select vials to add to your order. Each vial includes reconstitution instructions.</p>
+          <p style={{ fontSize: 14, color: '#666', margin: '0 0 14px' }}>Select vials to add to your order. Each vial includes reconstitution instructions.</p>
+
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '12px 16px', marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#15803d', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Member Pricing</div>
+            <div style={{ fontSize: 13, color: '#166534', lineHeight: 1.5 }}>
+              You're seeing significant savings off our clinic walk-in rates. Stock up at your member price.
+            </div>
+          </div>
 
           <SourcingCard />
 

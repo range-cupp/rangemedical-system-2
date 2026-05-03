@@ -240,12 +240,28 @@ function computeVisitStatus({ appointments, todayISO }) {
     return d.toISOString().split('T')[0];
   })();
 
+  // Most recent visit that DID get a note attached. If it's newer than an
+  // unlogged visit, that older gap is stale — the provider is clearly caught
+  // up — so we don't keep nagging about it.
+  const lastLoggedDate = past
+    .filter(a => a.has_note)
+    .map(a => a.date)
+    .sort()
+    .pop() || null;
+
   const recentUnlogged = past.filter(a =>
     a.date >= cutoff14 &&
     !a.has_note &&
-    !['cancelled', 'no_show', 'rescheduled'].includes(a.status)
+    !['cancelled', 'no_show', 'rescheduled'].includes(a.status) &&
+    (!lastLoggedDate || a.date > lastLoggedDate)
   );
-  const recentNoShows = past.filter(a => a.date >= cutoff14 && a.status === 'no_show');
+  // Same suppression rule for no-shows: if there's a more recent logged visit,
+  // the patient already came back, no reschedule needed.
+  const recentNoShows = past.filter(a =>
+    a.date >= cutoff14 &&
+    a.status === 'no_show' &&
+    (!lastLoggedDate || a.date > lastLoggedDate)
+  );
   const lastVisit = past.find(a => a.has_note) || null;
   const upcomingThisWeek = future.slice(0, 5);
   const todayAppt = today[0] || null;

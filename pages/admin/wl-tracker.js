@@ -121,29 +121,42 @@ export default function WLTrackerPage() {
     });
   }, [patients, search, filterStatus]);
 
-  // Daily view: bucket today's patients
+  // Bucket patients by what the system did or needs from a human today.
+  // Order matters: "Needs manual attention" first because it's the only bucket
+  // a staff member must act on. Auto-* buckets are informational only.
   const dailyBuckets = useMemo(() => {
-    const reminders = []; // patients whose injection day is today
-    const nudges1 = [];   // status === 'sent' (i.e. cron sent original yesterday OR earlier in cycle)
-    const nudgesFinal = []; // status === 'nudged' or final_nudged but not yet completed
-    const completedToday = [];
-    const overdueToday = [];
+    const needsAttention = [];   // human action required
+    const completedToday = [];    // patient logged today
+    const autoSentToday = [];     // cron sent original today
+    const autoNudgedToday = [];   // cron sent 1st nudge today
+    const autoFinalToday = [];    // cron sent final nudge today
+    const willSendToday = [];     // cron will send today (before 10 AM PT)
+    const waiting = [];           // sent earlier in cycle, no auto-action today
 
     for (const p of patients) {
-      if (!p.reminder_enabled || p.reminder_opt_out) continue;
-      const cs = p.cell_status;
-
-      if (cs.status === 'due_today') reminders.push(p);
-      else if (cs.status === 'overdue_send') overdueToday.push(p);
-      else if (cs.status === 'sent') nudges1.push(p);
-      else if (cs.status === 'nudged' || cs.status === 'final_nudged') nudgesFinal.push(p);
-      else if ((cs.status === 'completed' || cs.status === 'late') && cs.checkin_date === today) {
-        completedToday.push(p);
+      const a = p.cycle?.today_action;
+      switch (a) {
+        case 'needs_setup':
+        case 'cron_skipped_today':
+        case 'missed':
+          needsAttention.push(p); break;
+        case 'completed_today':       completedToday.push(p); break;
+        case 'auto_sent_today':       autoSentToday.push(p); break;
+        case 'auto_nudged_today':     autoNudgedToday.push(p); break;
+        case 'auto_final_today':      autoFinalToday.push(p); break;
+        case 'will_send_today':       willSendToday.push(p); break;
+        case 'waiting':               waiting.push(p); break;
+        // 'reminders_off', 'opted_out', 'idle' are intentionally hidden from
+        // the daily view — they show up in the roster table at the bottom.
       }
     }
 
-    return { reminders, nudges1, nudgesFinal, completedToday, overdueToday };
-  }, [patients, today]);
+    return {
+      needsAttention, completedToday,
+      autoSentToday, autoNudgedToday, autoFinalToday,
+      willSendToday, waiting,
+    };
+  }, [patients]);
 
   const handleAction = async (action, body) => {
     setActionInProgress(true);
@@ -181,6 +194,9 @@ export default function WLTrackerPage() {
             {error}
           </div>
         )}
+
+        {/* Automation banner — explains what the cron does so staff don't double-send */}
+        <AutomationBanner />
 
         {/* Stats bar */}
         {data && <StatsBar stats={data.stats} trend={data.trend} weekStart={data.week_start} weekEnd={data.week_end} />}
@@ -368,83 +384,247 @@ function WeekNav({ weekStart, weekEnd, setWeekStart, today }) {
   );
 }
 
+// ───────────────────── Automation banner ─────────────────────
+
+function AutomationBanner() {
+  const [collapsed, setCollapsed] = useState(false);
+  return (
+    <div style={{
+      marginBottom: '20px', padding: '14px 18px',
+      background: '#eff6ff', border: '1px solid #bfdbfe',
+      display: 'flex', gap: '12px', alignItems: 'flex-start',
+    }}>
+      <div style={{ fontSize: '20px', lineHeight: 1 }}>🤖</div>
+      <div style={{ flex: 1, fontSize: '13px', color: '#1e3a8a', lineHeight: 1.5 }}>
+        <strong>This system runs automatically every morning at 9 AM PT.</strong> No one needs to click anything for the standard flow.
+        {!collapsed && (
+          <ul style={{ margin: '8px 0 0', paddingLeft: '18px' }}>
+            <li><strong>Day 0</strong> — original check-in SMS goes out on each patient&rsquo;s injection day</li>
+            <li><strong>Day +1</strong> — if no check-in, a 1st nudge auto-sends the next morning</li>
+            <li><strong>Day +3</strong> — if still no check-in, a final nudge auto-sends</li>
+            <li>Sections below show <em>what already happened today</em> — no action needed unless a row is in <strong>&ldquo;Needs manual attention.&rdquo;</strong></li>
+            <li>The <strong>Send now</strong> button inside Details is for one-offs only (patient lost the link, etc.) — don&rsquo;t use it on a row that already shows &ldquo;Auto-sent today.&rdquo;</li>
+          </ul>
+        )}
+      </div>
+      <button onClick={() => setCollapsed(c => !c)}
+        style={{ background: 'transparent', border: 'none', color: '#1e40af', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
+        {collapsed ? 'Show details' : 'Hide'}
+      </button>
+    </div>
+  );
+}
+
 // ───────────────────── Daily View ─────────────────────
 
 function DailyView({ buckets, todayDayName, today, onSelect, onAction, actionInProgress }) {
+  // Order by what a human cares about. Manual attention always at top.
   const sections = [
-    { key: 'reminders', title: `📤 Reminders going out today (${todayDayName})`, list: buckets.reminders, accent: '#1e40af' },
-    { key: 'overdueToday', title: `⚠️ Overdue to send today`, list: buckets.overdueToday, accent: '#92400e' },
-    { key: 'nudges1', title: `🔔 1st nudges due today`, list: buckets.nudges1, accent: '#92400e' },
-    { key: 'nudgesFinal', title: `🚨 Final nudges due today`, list: buckets.nudgesFinal, accent: '#9a3412' },
-    { key: 'completedToday', title: `✅ Completed today`, list: buckets.completedToday, accent: '#166534' },
+    {
+      key: 'needsAttention',
+      title: '⚠️ Needs manual attention',
+      subtitle: 'These rows the cron can’t handle on its own',
+      list: buckets.needsAttention,
+      accent: '#dc2626',
+      tone: 'warn',
+    },
+    {
+      key: 'completedToday',
+      title: '✅ Completed by patient today',
+      subtitle: 'No action needed',
+      list: buckets.completedToday,
+      accent: '#166534',
+      tone: 'good',
+    },
+    {
+      key: 'willSendToday',
+      title: `⏰ Auto-reminders queued for today (${todayDayName})`,
+      subtitle: 'Cron runs at 9 AM PT — no action needed',
+      list: buckets.willSendToday,
+      accent: '#1e40af',
+      tone: 'info',
+    },
+    {
+      key: 'autoSentToday',
+      title: '📤 Auto-sent this morning',
+      subtitle: 'Original reminder went out — waiting on patient',
+      list: buckets.autoSentToday,
+      accent: '#1e40af',
+      tone: 'info',
+    },
+    {
+      key: 'autoNudgedToday',
+      title: '🔔 Auto-nudged this morning',
+      subtitle: '1st nudge sent — patient missed yesterday’s reminder',
+      list: buckets.autoNudgedToday,
+      accent: '#92400e',
+      tone: 'warn',
+    },
+    {
+      key: 'autoFinalToday',
+      title: '🚨 Final auto-nudge sent this morning',
+      subtitle: 'Last attempt — if no response, will mark missed in 4 days',
+      list: buckets.autoFinalToday,
+      accent: '#9a3412',
+      tone: 'warn',
+    },
+    {
+      key: 'waiting',
+      title: '⏳ In cycle, waiting for response',
+      subtitle: 'Reminder went out earlier this week — nothing scheduled today',
+      list: buckets.waiting,
+      accent: '#666',
+      tone: 'idle',
+      collapsedByDefault: true,
+    },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
       {sections.map(s => (
-        <div key={s.key} style={sharedStyles.card}>
-          <div style={{ ...sharedStyles.cardHeader, borderLeft: `4px solid ${s.accent}` }}>
-            <h3 style={{ ...sharedStyles.cardTitle, fontSize: '16px' }}>
-              {s.title} <span style={{ color: '#888', marginLeft: '8px' }}>({s.list.length})</span>
-            </h3>
-          </div>
-          {s.list.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#999', fontSize: '14px' }}>None</div>
-          ) : (
-            <div>
-              {s.list.map(p => (
-                <DailyRow key={p.protocol_id} patient={p} today={today}
-                  onSelect={onSelect} onAction={onAction} actionInProgress={actionInProgress} />
-              ))}
-            </div>
-          )}
-        </div>
+        <DailySection key={s.key} section={s} today={today}
+          onSelect={onSelect} onAction={onAction} actionInProgress={actionInProgress} />
       ))}
     </div>
   );
 }
 
-function DailyRow({ patient, today, onSelect, onAction, actionInProgress }) {
-  const cs = patient.cell_status;
-  const sc = STATUS_CONFIG[cs.status] || STATUS_CONFIG.upcoming;
-  const pc = PAYMENT_CONFIG[patient.payment.state] || PAYMENT_CONFIG.unknown;
+function DailySection({ section, today, onSelect, onAction, actionInProgress }) {
+  const [expanded, setExpanded] = useState(!section.collapsedByDefault);
+  const empty = section.list.length === 0;
+  // Hide empty sections except the priority "Needs manual attention" so it
+  // can confirm the all-clear state.
+  if (empty && section.key !== 'needsAttention') return null;
 
+  return (
+    <div style={sharedStyles.card}>
+      <div style={{
+        ...sharedStyles.cardHeader, borderLeft: `4px solid ${section.accent}`,
+        cursor: section.collapsedByDefault ? 'pointer' : 'default',
+      }}
+        onClick={() => section.collapsedByDefault && setExpanded(e => !e)}>
+        <div>
+          <h3 style={{ ...sharedStyles.cardTitle, fontSize: '16px' }}>
+            {section.title} <span style={{ color: '#888', marginLeft: '6px', fontWeight: 500 }}>({section.list.length})</span>
+          </h3>
+          {section.subtitle && (
+            <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>{section.subtitle}</div>
+          )}
+        </div>
+        {section.collapsedByDefault && (
+          <span style={{ fontSize: '12px', color: '#888' }}>{expanded ? 'Hide' : 'Show'}</span>
+        )}
+      </div>
+
+      {expanded && (
+        empty ? (
+          <div style={{ padding: '20px 24px', color: section.tone === 'warn' ? '#166534' : '#999', fontSize: '14px' }}>
+            {section.key === 'needsAttention' ? '✓ All clear — nothing needs a human right now.' : 'None'}
+          </div>
+        ) : (
+          <>
+            <ColumnHeader sectionKey={section.key} />
+            <div>
+              {section.list.map(p => (
+                <DailyRow key={p.protocol_id} patient={p} today={today} sectionKey={section.key}
+                  onSelect={onSelect} onAction={onAction} actionInProgress={actionInProgress} />
+              ))}
+            </div>
+          </>
+        )
+      )}
+    </div>
+  );
+}
+
+function ColumnHeader({ sectionKey }) {
+  const reasonLabel = sectionKey === 'needsAttention' ? 'WHY' : 'WHAT HAPPENED';
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '40px 1fr 160px 140px 180px 220px',
+      gridTemplateColumns: '40px 1.4fr 1fr 0.9fr 0.9fr 110px',
+      gap: '12px', padding: '8px 18px',
+      background: '#fafafa', borderBottom: '1px solid #f0f0f0',
+      fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px',
+      color: '#666', fontWeight: 600,
+    }}>
+      <div></div>
+      <div>Patient</div>
+      <div>{reasonLabel}</div>
+      <div>Last check-in</div>
+      <div>Payment</div>
+      <div style={{ textAlign: 'right' }}>Action</div>
+    </div>
+  );
+}
+
+function DailyRow({ patient, sectionKey, onSelect, onAction, actionInProgress }) {
+  const isAttention = sectionKey === 'needsAttention';
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '40px 1.4fr 1fr 0.9fr 0.9fr 110px',
       gap: '12px', alignItems: 'center',
       padding: '12px 18px', borderBottom: '1px solid #f0f0f0',
+      background: isAttention ? '#fef9f3' : '#fff',
     }}>
       <Avatar initials={patient.initials} />
       <div>
         <div style={{ fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
           onClick={() => onSelect(patient)}>{patient.name}</div>
         <div style={{ fontSize: '12px', color: '#888' }}>
-          {patient.medication}{patient.selected_dose ? ` ${patient.selected_dose}` : ''} • {patient.frequency}
+          {patient.medication}{patient.selected_dose ? ` ${patient.selected_dose}` : ''} · {patient.injection_day || 'no day set'} · {patient.cadence_days}d
         </div>
       </div>
+      <div style={{ fontSize: '13px', color: '#333' }}>
+        {todayActionDescription(patient)}
+      </div>
       <div style={{ fontSize: '13px' }}>
-        <div style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Last weight</div>
-        <div>{patient.last_weight ? `${patient.last_weight} lb` : '—'}</div>
+        {patient.last_weight ? <strong>{patient.last_weight} lb</strong> : <span style={{ color: '#bbb' }}>none</span>}
         <div style={{ fontSize: '11px', color: '#999' }}>{fmtDate(patient.last_checkin_date) || '—'}</div>
       </div>
-      <Badge bg={sc.bg} color={sc.color} icon={sc.icon} text={sc.label} />
       <PaymentPill payment={patient.payment} />
       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
         <button disabled={actionInProgress}
-          onClick={() => onAction('send_now', { protocol_id: patient.protocol_id })}
-          style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall }}>
-          Send now
-        </button>
-        <button disabled={actionInProgress}
           onClick={() => onSelect(patient)}
           style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}>
-          Details
+          {isAttention ? 'Fix' : 'Details'}
         </button>
       </div>
     </div>
   );
+}
+
+// Plain-English description of what happened (or didn't) for this patient today.
+function todayActionDescription(patient) {
+  const c = patient.cycle || {};
+  const a = c.today_action;
+  switch (a) {
+    case 'auto_sent_today':
+      return <span>📤 Auto-sent at <strong>{c.original?.sent_time || 'today'}</strong></span>;
+    case 'auto_nudged_today':
+      return <span>🔔 1st nudge sent at <strong>{c.nudge1?.sent_time || 'today'}</strong></span>;
+    case 'auto_final_today':
+      return <span>🚨 Final nudge sent at <strong>{c.nudge2?.sent_time || 'today'}</strong></span>;
+    case 'completed_today':
+      return <span>✅ Patient logged today</span>;
+    case 'will_send_today':
+      return <span>⏰ Cron will send today (~9 AM PT)</span>;
+    case 'waiting':
+      return <span style={{ color: '#666' }}>Reminder sent {c.original?.sent_time ? `at ${c.original.sent_time} on ${fmtDate(c.original.sent_date)}` : ''}</span>;
+    case 'cron_skipped_today':
+      return <span style={{ color: '#9a3412' }}>⚠️ Cron should have sent today, didn&rsquo;t — investigate</span>;
+    case 'needs_setup':
+      return <span style={{ color: '#9a3412' }}>⚠️ No injection day set — reminders can&rsquo;t fire</span>;
+    case 'missed':
+      return <span style={{ color: '#9a3412' }}>❌ Cycle missed — no response after final nudge</span>;
+    case 'reminders_off':
+      return <span style={{ color: '#888' }}>Reminders OFF</span>;
+    case 'opted_out':
+      return <span style={{ color: '#888' }}>Patient opted out</span>;
+    default:
+      return <span style={{ color: '#bbb' }}>—</span>;
+  }
 }
 
 // ───────────────────── Weekly Grid ─────────────────────
@@ -690,10 +870,21 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress }) {
           <PaymentPill payment={patient.payment} />
         </div>
 
-        <Section title="Send check-in SMS now">
-          <button disabled={actionInProgress} onClick={() => onAction('send_now', { protocol_id: patient.protocol_id })}
-            style={{ ...sharedStyles.btnPrimary, width: '100%' }}>
-            📱 Send check-in to {patient.first_name || patient.name.split(' ')[0]} ({patient.phone || 'no phone'})
+        <Section title="Manual SMS (one-off)">
+          <div style={{
+            padding: '10px 12px', background: '#fef9f3', border: '1px solid #fde68a',
+            fontSize: '12px', color: '#92400e', marginBottom: '10px', lineHeight: 1.5,
+          }}>
+            ⚠️ <strong>Only use this for one-off cases</strong> (patient lost the link, asked for a fresh one, etc.).
+            The system already auto-sends originals + nudges on schedule —
+            clicking this when something already went out today will <strong>double-text the patient.</strong>
+          </div>
+          <button disabled={actionInProgress} onClick={() => {
+            if (!confirm(`Send a manual check-in SMS to ${patient.name}? This will text the patient now even if the system already sent one today.`)) return;
+            onAction('send_now', { protocol_id: patient.protocol_id });
+          }}
+            style={{ ...sharedStyles.btnSecondary, width: '100%' }}>
+            📱 Send manual check-in to {patient.first_name || patient.name.split(' ')[0]} ({patient.phone || 'no phone'})
           </button>
         </Section>
 

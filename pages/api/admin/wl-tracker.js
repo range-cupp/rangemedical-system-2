@@ -128,6 +128,88 @@ function computePaymentStatus(protocol, cadenceDays, lastPurchaseAmountPaid) {
   return { state, label, sessions_remaining: remaining, total, used, days_until_due };
 }
 
+// Inspect the current/most-recent cycle and return the per-event sent times
+// plus a `today_action` enum that tells the dashboard what the cron did today
+// (or what still needs human attention).
+//
+// today_action values:
+//   - 'auto_sent_today'       cron sent the original today
+//   - 'auto_nudged_today'     cron sent the 1st nudge today
+//   - 'auto_final_today'      cron sent the final nudge today
+//   - 'completed_today'       patient logged a check-in today
+//   - 'waiting'               sent earlier in cycle, no auto-action today, no response yet
+//   - 'will_send_today'       today is the injection day, cron hasn't run yet (before ~10am PT)
+//   - 'cron_skipped_today'    today is the injection day, cron should have run, didn't
+//   - 'needs_setup'           reminders enabled but no injection_day set
+//   - 'reminders_off'         reminders disabled (intentionally or not)
+//   - 'opted_out'             patient explicitly declined SMS
+//   - 'missed'                cycle expired without a check-in
+//   - 'idle'                  upcoming this week, nothing to do today
+function computeCycleEvents({ expectedDateISO, todayISO, cadenceDays, reminderLogs, checkinLogs, protocol }) {
+  // Get current PT hour to decide will_send vs cron_skipped
+  const ptHour = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })).getHours();
+  const cronShouldHaveRun = ptHour >= 10;
+
+  // Reminder + opt-out gates first — they trump cycle math
+  if (protocol.reminder_opt_out) {
+    return { today_action: 'opted_out', original: null, nudge1: null, nudge2: null };
+  }
+  if (!protocol.checkin_reminder_enabled) {
+    return { today_action: 'reminders_off', original: null, nudge1: null, nudge2: null };
+  }
+  if (!protocol.injection_day && !expectedDateISO) {
+    return { today_action: 'needs_setup', original: null, nudge1: null, nudge2: null };
+  }
+
+  if (!expectedDateISO) {
+    return { today_action: 'idle', original: null, nudge1: null, nudge2: null };
+  }
+
+  // Logs scoped to current cycle
+  const cycleEndISO = addDaysISO(expectedDateISO, cadenceDays - 1);
+  const cycleLogs = reminderLogs.filter(r => r.sent_date >= expectedDateISO && r.sent_date <= cycleEndISO);
+  const original = cycleLogs.find(l => l.nudge_level === 0) || null;
+  const nudge1 = cycleLogs.find(l => l.nudge_level === 1) || null;
+  const nudge2 = cycleLogs.find(l => l.nudge_level === 2) || null;
+  const cycleCheckin = checkinLogs.find(c => c.entry_date >= expectedDateISO && c.entry_date <= cycleEndISO) || null;
+
+  // Patient logged today → trumps everything
+  if (cycleCheckin && cycleCheckin.entry_date === todayISO) {
+    return { today_action: 'completed_today', original, nudge1, nudge2, checkin: cycleCheckin };
+  }
+
+  // Cron sent something today
+  if (nudge2 && nudge2.sent_date === todayISO) {
+    return { today_action: 'auto_final_today', original, nudge1, nudge2 };
+  }
+  if (nudge1 && nudge1.sent_date === todayISO) {
+    return { today_action: 'auto_nudged_today', original, nudge1, nudge2 };
+  }
+  if (original && original.sent_date === todayISO) {
+    return { today_action: 'auto_sent_today', original, nudge1, nudge2 };
+  }
+
+  // Original was due today but didn't fire
+  if (expectedDateISO === todayISO && !original) {
+    return {
+      today_action: cronShouldHaveRun ? 'cron_skipped_today' : 'will_send_today',
+      original, nudge1, nudge2,
+    };
+  }
+
+  // Past final nudge with no response = missed
+  if (todayISO > cycleEndISO && !cycleCheckin) {
+    return { today_action: 'missed', original, nudge1, nudge2 };
+  }
+
+  // Sent earlier this cycle, in flight, nothing happening today
+  if (original) {
+    return { today_action: 'waiting', original, nudge1, nudge2, checkin: cycleCheckin };
+  }
+
+  return { today_action: 'idle', original, nudge1, nudge2 };
+}
+
 // Compute display status for a given expected date within the week.
 function computeCellStatus({
   expectedDateISO, todayISO, cadenceDays, reminderLogs, checkinLogs,
@@ -273,12 +355,17 @@ async function handleGet(req, res) {
     for (const r of (reminderLogsRaw || [])) {
       const key = r.protocol_id;
       if (!reminderByProtocol[key]) reminderByProtocol[key] = [];
-      // Convert sent_at (UTC tz) to a Pacific date for cycle math
-      const pst = new Date(new Date(r.sent_at).toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-      pst.setHours(0, 0, 0, 0);
+      // Convert sent_at (UTC tz) to Pacific date + time for cycle math + display
+      const pstDate = new Date(new Date(r.sent_at).toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+      const pstMidnight = new Date(pstDate);
+      pstMidnight.setHours(0, 0, 0, 0);
+      const sentTimeStr = pstDate.toLocaleTimeString('en-US', {
+        hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles',
+      });
       reminderByProtocol[key].push({
         ...r,
-        sent_date: pst.toISOString().split('T')[0],
+        sent_date: pstMidnight.toISOString().split('T')[0],
+        sent_time: sentTimeStr,
       });
     }
     const checkinByPatient = {};
@@ -313,6 +400,16 @@ async function handleGet(req, res) {
         cadenceDays,
         reminderLogs,
         checkinLogs,
+      });
+
+      // Per-cycle send timestamps + what (if anything) the cron is doing today
+      const cycleEvents = computeCycleEvents({
+        expectedDateISO: expectedDate,
+        todayISO,
+        cadenceDays,
+        reminderLogs,
+        checkinLogs,
+        protocol,
       });
 
       // Last check-in overall (for roster display)
@@ -355,6 +452,7 @@ async function handleGet(req, res) {
 
         expected_date_this_week: expectedDate,
         cell_status: cellStatus,
+        cycle: cycleEvents,
 
         last_checkin_date: mostRecentCheckin?.entry_date || null,
         last_weight: mostRecentCheckin?.weight || null,

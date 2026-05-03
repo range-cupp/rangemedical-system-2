@@ -3,7 +3,7 @@ import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { VIAL_CATALOG, VIAL_CATEGORIES } from '../../lib/vial-catalog';
-import { ShoppingCart, Plus, Minus, LogOut, ChevronDown, ChevronUp, Info, ShieldCheck } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, LogOut, ChevronDown, ChevronUp, Info, ShieldCheck, X } from 'lucide-react';
 
 function useAuth() {
   const router = useRouter();
@@ -145,6 +145,7 @@ export default function ShopCatalog() {
   const router = useRouter();
   const [cart, setCart] = useState({});
   const [activeCategory, setActiveCategory] = useState(null);
+  const [cartOpen, setCartOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('shop_cart');
@@ -152,9 +153,7 @@ export default function ShopCatalog() {
   }, []);
 
   useEffect(() => {
-    if (Object.keys(cart).length > 0) {
-      localStorage.setItem('shop_cart', JSON.stringify(cart));
-    }
+    localStorage.setItem('shop_cart', JSON.stringify(cart));
   }, [cart]);
 
   const addToCart = (vialId) => {
@@ -170,6 +169,19 @@ export default function ShopCatalog() {
     });
   };
 
+  const removeItemFully = (vialId) => {
+    setCart(prev => {
+      const next = { ...prev };
+      delete next[vialId];
+      return next;
+    });
+  };
+
+  const clearCart = () => {
+    setCart({});
+    setCartOpen(false);
+  };
+
   const cartCount = Object.values(cart).reduce((sum, q) => sum + q, 0);
   const cartTotal = Object.entries(cart).reduce((sum, [id, qty]) => {
     const vial = VIAL_CATALOG.find(v => v.id === id);
@@ -177,8 +189,8 @@ export default function ShopCatalog() {
   }, 0);
 
   const filteredVials = activeCategory
-    ? VIAL_CATALOG.filter(v => v.category === activeCategory && !v.shopHidden)
-    : VIAL_CATALOG.filter(v => !v.shopHidden);
+    ? VIAL_CATALOG.filter(v => v.category === activeCategory && !v.shopHidden && !v.isAddOn)
+    : VIAL_CATALOG.filter(v => !v.shopHidden && !v.isAddOn);
 
   if (!patient) return null;
 
@@ -211,7 +223,7 @@ export default function ShopCatalog() {
           </div>
         </div>
 
-        <div style={{ maxWidth: 640, margin: '0 auto', padding: 20 }}>
+        <div style={{ maxWidth: 640, margin: '0 auto', padding: '20px 20px 110px' }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>Peptide Vials</h2>
           <p style={{ fontSize: 14, color: '#666', margin: '0 0 14px' }}>Select vials to add to your order. Each vial includes reconstitution instructions.</p>
 
@@ -250,7 +262,7 @@ export default function ShopCatalog() {
             ))
           ) : (
             VIAL_CATEGORIES.map(cat => {
-              const catVials = VIAL_CATALOG.filter(v => v.category === cat.id && !v.shopHidden);
+              const catVials = VIAL_CATALOG.filter(v => v.category === cat.id && !v.shopHidden && !v.isAddOn);
               if (catVials.length === 0) return null;
               return (
                 <div key={cat.id} style={{ marginBottom: 28 }}>
@@ -266,17 +278,111 @@ export default function ShopCatalog() {
 
         {/* Floating cart bar */}
         {cartCount > 0 && (
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#171717', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 100 }}>
-            <div style={{ color: '#fff' }}>
-              <span style={{ fontSize: 14, fontWeight: 600 }}>{cartCount} item{cartCount !== 1 ? 's' : ''}</span>
-              <span style={{ fontSize: 14, color: '#aaa', marginLeft: 8 }}>${(cartTotal / 100).toFixed(2)}</span>
-            </div>
+          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#171717', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 100, gap: 12 }}>
+            <button
+              onClick={() => setCartOpen(true)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#fff', padding: 0, display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'inherit', textAlign: 'left' }}
+            >
+              <ShoppingCart size={18} />
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{cartCount} item{cartCount !== 1 ? 's' : ''} · ${(cartTotal / 100).toFixed(2)}</div>
+                <div style={{ fontSize: 11, color: '#aaa', marginTop: 1 }}>Tap to view cart</div>
+              </div>
+            </button>
             <button
               onClick={() => router.push('/shop/checkout')}
               style={{ padding: '10px 24px', background: '#fff', color: '#171717', border: 'none', borderRadius: 0, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
             >
               Checkout
             </button>
+          </div>
+        )}
+
+        {/* Cart drawer (slides up from bottom) */}
+        {cartOpen && (
+          <div
+            onClick={() => setCartOpen(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{ background: '#fff', width: '100%', maxWidth: 640, maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
+            >
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e5e5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Your Cart</h2>
+                  <p style={{ fontSize: 12, color: '#666', margin: '2px 0 0' }}>{cartCount} item{cartCount !== 1 ? 's' : ''}</p>
+                </div>
+                <button onClick={() => setCartOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: '#666' }}>
+                  <X size={22} />
+                </button>
+              </div>
+
+              <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px' }}>
+                {cartCount === 0 ? (
+                  <p style={{ fontSize: 14, color: '#666', padding: '32px 0', textAlign: 'center' }}>Your cart is empty.</p>
+                ) : (
+                  Object.entries(cart).map(([id, qty]) => {
+                    const vial = VIAL_CATALOG.find(v => v.id === id);
+                    if (!vial) return null;
+                    return (
+                      <div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 0', borderBottom: '1px solid #f0f0f0', gap: 12 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{vial.name}</div>
+                          {vial.subtitle && <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>{vial.subtitle}</div>}
+                          <div style={{ fontSize: 13, color: '#444', marginTop: 6 }}>
+                            <strong>${((vial.priceCents * qty) / 100).toFixed(2)}</strong>
+                            <span style={{ color: '#999', marginLeft: 6 }}>(${(vial.priceCents / 100).toFixed(2)} ea)</span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <button onClick={() => removeFromCart(id)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d1d1d1', background: '#fff', cursor: 'pointer', borderRadius: 0 }}>
+                              <Minus size={12} />
+                            </button>
+                            <span style={{ fontSize: 14, fontWeight: 700, minWidth: 20, textAlign: 'center' }}>{qty}</span>
+                            <button onClick={() => addToCart(id)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #171717', background: '#171717', color: '#fff', cursor: 'pointer', borderRadius: 0 }}>
+                              <Plus size={12} />
+                            </button>
+                          </div>
+                          <button
+                            onClick={() => removeItemFully(id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, padding: 0, fontFamily: 'inherit' }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <div style={{ borderTop: '1px solid #e5e5e5', padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {cartCount > 0 && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 14, color: '#666' }}>Subtotal</span>
+                      <span style={{ fontSize: 18, fontWeight: 700 }}>${(cartTotal / 100).toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={clearCart}
+                        style={{ flex: 1, padding: '12px', background: '#fff', color: '#b91c1c', border: '1px solid #fecaca', cursor: 'pointer', fontSize: 13, fontWeight: 700, borderRadius: 0, fontFamily: 'inherit' }}
+                      >
+                        Clear Cart
+                      </button>
+                      <button
+                        onClick={() => { setCartOpen(false); router.push('/shop/checkout'); }}
+                        style={{ flex: 2, padding: '12px', background: '#171717', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, borderRadius: 0, fontFamily: 'inherit' }}
+                      >
+                        Checkout
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>

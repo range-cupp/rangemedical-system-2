@@ -5,8 +5,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { VIAL_CATALOG, SHIPPING_OPTIONS } from '../../lib/vial-catalog';
-import { ArrowLeft } from 'lucide-react';
+import { VIAL_CATALOG, SHIPPING_OPTIONS, getShopAddOns } from '../../lib/vial-catalog';
+import { ArrowLeft, X } from 'lucide-react';
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -147,6 +147,34 @@ export default function ShopCheckout() {
     }).filter(Boolean),
   [cart]);
 
+  const addOns = useMemo(() => getShopAddOns(), []);
+
+  function updateAddOn(id, qty) {
+    const next = qty <= 0
+      ? Object.fromEntries(Object.entries(cart).filter(([k]) => k !== id))
+      : { ...cart, [id]: qty };
+    setCart(next);
+    localStorage.setItem('shop_cart', JSON.stringify(next));
+  }
+
+  function removeCartItem(id) {
+    const next = Object.fromEntries(Object.entries(cart).filter(([k]) => k !== id));
+    setCart(next);
+    localStorage.setItem('shop_cart', JSON.stringify(next));
+    // Re-create the payment intent next time they click continue
+    if (step === 'payment') {
+      setClientSecret(null);
+      setStep('shipping');
+    }
+  }
+
+  // Bounce back to catalog if cart becomes empty mid-checkout
+  useEffect(() => {
+    if (patient && cartItems.length === 0) {
+      router.replace('/shop/catalog');
+    }
+  }, [patient, cartItems.length, router]);
+
   const subtotalCents = cartItems.reduce((sum, item) => sum + item.priceCents * item.quantity, 0);
   const shippingOption = SHIPPING_OPTIONS.find(s => s.id === shippingMethod);
   const shippingCents = shippingOption ? shippingOption.price : 0;
@@ -248,9 +276,16 @@ export default function ShopCheckout() {
           <div style={{ background: '#fff', border: '1px solid #e5e5e5', padding: '16px 20px', marginBottom: 20 }}>
             <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: '#999', margin: '0 0 12px' }}>Order Summary</h3>
             {cartItems.map(item => (
-              <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 14 }}>
-                <span>{item.quantity}x {item.name}</span>
+              <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', fontSize: 14, gap: 8 }}>
+                <span style={{ flex: 1 }}>{item.quantity}x {item.name}</span>
                 <span style={{ fontWeight: 600 }}>${((item.priceCents * item.quantity) / 100).toFixed(2)}</span>
+                <button
+                  onClick={() => removeCartItem(item.id)}
+                  aria-label={`Remove ${item.name}`}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: '#999' }}
+                >
+                  <X size={16} />
+                </button>
               </div>
             ))}
             <div style={{ borderTop: '1px solid #f0f0f0', marginTop: 8, paddingTop: 8 }}>
@@ -268,6 +303,41 @@ export default function ShopCheckout() {
               </div>
             </div>
           </div>
+
+          {/* Add-Ons (BAC water, etc.) — shipping step only so we re-create the payment intent if added */}
+          {step === 'shipping' && addOns.length > 0 && (
+            <div style={{ background: '#fff', border: '1px solid #e5e5e5', padding: '16px 20px', marginBottom: 20 }}>
+              <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: '#999', margin: '0 0 12px' }}>Add On</h3>
+              {addOns.map(addon => {
+                const qty = cart[addon.id] || 0;
+                return (
+                  <div key={addon.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '4px 0', gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{addon.name}</div>
+                      <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
+                        {addon.manufacturer ? `${addon.manufacturer} · ` : ''}{addon.subtitle}
+                      </div>
+                      {addon.description && (
+                        <div style={{ fontSize: 12, color: '#444', marginTop: 4, lineHeight: 1.4 }}>{addon.description}</div>
+                      )}
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginTop: 6 }}>${(addon.priceCents / 100).toFixed(2)}</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                      {qty > 0 ? (
+                        <>
+                          <button onClick={() => updateAddOn(addon.id, qty - 1)} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d1d1d1', background: '#fff', cursor: 'pointer', borderRadius: 0, fontSize: 16, lineHeight: 1, fontFamily: 'inherit' }}>−</button>
+                          <span style={{ fontSize: 14, fontWeight: 700, minWidth: 22, textAlign: 'center' }}>{qty}</span>
+                          <button onClick={() => updateAddOn(addon.id, qty + 1)} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #171717', background: '#171717', color: '#fff', cursor: 'pointer', borderRadius: 0, fontSize: 16, lineHeight: 1, fontFamily: 'inherit' }}>+</button>
+                        </>
+                      ) : (
+                        <button onClick={() => updateAddOn(addon.id, 1)} style={{ padding: '8px 16px', background: '#171717', color: '#fff', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', borderRadius: 0, fontFamily: 'inherit' }}>Add</button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Step 1: Shipping */}
           {step === 'shipping' && (

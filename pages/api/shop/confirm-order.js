@@ -5,6 +5,7 @@ import { Resend } from 'resend';
 import { getVialById, getShippingOption } from '../../../lib/vial-catalog';
 import { todayPacific } from '../../../lib/date-utils';
 import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
+import { sendSMS } from '../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -247,7 +248,6 @@ export default async function handler(req, res) {
 
   // SMS notify staff
   try {
-    const { sendSMS } = require('../../../lib/send-sms');
     const itemSummary = orderItems.map(i => `${i.quantity}x ${i.name}`).join(', ');
     await sendSMS({
       to: '+19496900339',

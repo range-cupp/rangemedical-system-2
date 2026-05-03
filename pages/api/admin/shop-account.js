@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { requireAuth, logAction } from '../../../lib/auth';
 import { Resend } from 'resend';
 import { logComm } from '../../../lib/comms-log';
+import { sendSMS } from '../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -136,7 +137,6 @@ export default async function handler(req, res) {
     // Send via SMS if phone available
     if (patient.phone) {
       try {
-        const { sendSMS } = require('../../../lib/send-sms');
         const result = await sendSMS({
           to: patient.phone,
           message: `Range Medical Peptide Shop\n\nYour login:\nURL: ${shopUrl}\nUsername: ${username}\nPassword: ${plainPassword}\n\nQuestions? (949) 997-3988`,

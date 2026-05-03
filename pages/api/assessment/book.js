@@ -8,6 +8,7 @@ import { createFormBundle } from '../../../lib/form-bundles';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../../lib/blooio-optin';
+import { runPostBookingNotifications } from '../../../lib/assessment-post-booking';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -110,14 +111,37 @@ export default async function handler(req, res) {
       // Non-blocking — booking was created in Cal.com
     }
 
-    // Update assessment_leads with booking info
+    // Update assessment_leads with booking info AND with the verified contact
+    // info from this booking call (overrides any earlier autofill noise).
+    const verifiedFirst = (patientName.trim().split(/\s+/)[0] || '').trim();
+    const verifiedLast = patientName.trim().split(/\s+/).slice(1).join(' ').trim();
+    const verifiedEmail = patientEmail.toLowerCase().trim();
     await supabase
       .from('assessment_leads')
       .update({
         calcom_booking_uid: calResult.uid,
         booking_start_time: startDate.toISOString(),
+        first_name: verifiedFirst || undefined,
+        last_name: verifiedLast || undefined,
+        email: verifiedEmail || undefined,
+        phone: patientPhone || undefined,
       })
       .eq('id', leadId);
+
+    // Fire intake email + Damon's task + pipeline insert. Idempotent — guarded
+    // by post_booking_notified_at on the lead row. Wrapped so a notification
+    // failure never breaks the booking response.
+    runPostBookingNotifications({
+      supabase,
+      leadId,
+      patientId,
+      verified: {
+        firstName: verifiedFirst,
+        lastName: verifiedLast,
+        email: verifiedEmail,
+        phone: patientPhone || '',
+      },
+    }).catch((err) => console.error('[book] post-booking notifications failed:', err.message));
 
     // --- Send medical intake form via SMS ---
     // AUTO FORM-SEND DISABLED — staff send forms manually from the patient profile.

@@ -116,13 +116,20 @@ export default async function handler(req, res) {
       paymentIntent = await stripe.paymentIntents.create(intentParams);
     }
 
-    // Update assessment_leads with payment info
+    // Update assessment_leads with payment info AND refresh contact info from
+    // the form. submit.js may have been triggered by browser autofill with stale
+    // data; the values that come in here are what the user is actually paying
+    // with, so they're the source of truth for downstream patient creation.
     await supabase
       .from('assessment_leads')
       .update({
         stripe_payment_intent_id: paymentIntent.id,
         payment_status: 'pending',
         payment_amount_cents: amountCents,
+        first_name: firstName,
+        last_name: lastName,
+        email: normalizedEmail,
+        phone: phone || null,
       })
       .eq('id', leadId);
 

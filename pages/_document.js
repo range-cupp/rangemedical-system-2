@@ -6,6 +6,7 @@ export default function Document() {
       <Head>
         <meta name="google" content="notranslate" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="facebook-domain-verification" content="b4ref718zh3jharn6vca5acp40x594" />
         {/* Google tag (gtag.js) — Google Ads tracking */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-DTZG1RQCYV" />
         <script

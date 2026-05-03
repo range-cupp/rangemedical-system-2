@@ -8315,7 +8315,7 @@ export default function PatientProfile() {
                                   const pStart = protocol.start_date ? new Date(protocol.start_date + 'T00:00:00') : null;
                                   const pEnd = protocol.end_date ? new Date(protocol.end_date + 'T23:59:59') : null;
                                   if (pStart && cDate < pStart) return false;
-                                  if (pEnd && cDate > pEnd) return false;
+                                  if (pEnd && protocol.category !== 'weight_loss' && cDate > pEnd) return false;
                                   return true;
                                 }).sort((a, b) => new Date(b.check_in_date) - new Date(a.check_in_date));
 

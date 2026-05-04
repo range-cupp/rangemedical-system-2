@@ -821,56 +821,25 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         const endDT = new Date(startDT.getTime() + duration * 60000);
         let res;
 
-        if (allServices.length > 1 && selectedPatient?.id && !useCustomTime && !isBackdated) {
+        // Single creation path for ALL admin bookings: write directly to the
+        // appointments table via /api/appointments/create. Cal.com is no
+        // longer in the loop — the new scheduling engine owns slot validity,
+        // and notifications + automations + audit log all run inline.
+        // /api/appointments/create also writes a shadow calcom_bookings row
+        // so consumers that haven't been migrated yet keep working.
+        if (allServices.length > 1) {
           const detailedServices = [];
           let offsetMins = 0;
           for (const svc of allServices) {
             const svcStart = new Date(startDT.getTime() + offsetMins * 60000);
             const svcProvider = selectedProviders[svc.name];
-            let calcomBookingId = null;
-
-            if (svc.calcomSlug) {
-              const et = resolveEventType(svc.calcomSlug);
-              if (et) {
-                const hostInfo = et.hosts?.find(h => h.username === svcProvider?.calcomUsername);
-                try {
-                  const calRes = await fetch('/api/bookings/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      eventTypeId: et.id,
-                      start: svcStart.toISOString(),
-                      patientId: selectedPatient.id,
-                      patientName,
-                      patientEmail: selectedPatient.email || null,
-                      patientPhone: patientPhone || null,
-                      serviceName: svc.name,
-                      serviceSlug: et.slug || svc.calcomSlug,
-                      durationMinutes: svc.duration,
-                      notes: apptNotes || null,
-                      hostUserId: hostInfo?.userId || null,
-                      hostName: svcProvider?.label || svcProvider?.name || null,
-                    }),
-                  });
-                  if (calRes.ok) {
-                    const calData = await calRes.json();
-                    calcomBookingId = String(calData.calcom?.id || calData.booking?.calcom_booking_id || '');
-                  } else {
-                    console.error(`Cal.com booking failed for ${svc.name}:`, await calRes.text());
-                  }
-                } catch (err) {
-                  console.error(`Cal.com booking error for ${svc.name}:`, err);
-                }
-              }
-            }
-
             detailedServices.push({
               name: svc.name,
               category: svc.category,
               duration: svc.duration,
               provider: svcProvider?.label || svcProvider?.name || null,
               start_time: svcStart.toISOString(),
-              calcom_booking_id: calcomBookingId,
+              slug: svc.calcomSlug || null,
             });
             offsetMins += svc.duration || 0;
           }
@@ -879,7 +848,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              patient_id: selectedPatient.id,
+              patient_id: selectedPatient?.id || null,
               patient_name: patientName,
               patient_phone: patientPhone,
               service_name: displayServiceName,
@@ -894,116 +863,38 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               visit_reason: visitReason.trim(),
               modality,
               send_notification: sendNotification,
-              source: 'cal_com',
+              source: 'manual',
               services: detailedServices,
             }),
           });
 
         } else if (allServices.length === 1) {
-          const calcomSlug = selectedService?.calcomSlug || null;
-          const eventType = calcomSlug ? resolveEventType(calcomSlug) : null;
-
-          if (eventType && selectedPatient?.id && !useCustomTime && !isBackdated) {
-            const hostInfo = eventType.hosts?.find(h => h.username === selectedProvider?.calcomUsername);
-            const serviceDetails = {};
-            if (panelType) serviceDetails.panelType = panelType;
-
-            const body = {
-              eventTypeId: eventType.id,
-              start: startDT.toISOString(),
-              patientId: selectedPatient.id,
-              patientName,
-              patientEmail: selectedPatient.email || null,
-              patientPhone: patientPhone || null,
-              serviceName: selectedService.name,
-              serviceSlug: eventType?.slug || calcomSlug,
-              durationMinutes: duration,
+          const fallbackDetails = {};
+          if (panelType) fallbackDetails.panelType = panelType;
+          res = await fetch('/api/appointments/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              patient_id: selectedPatient?.id || null,
+              patient_name: patientName,
+              patient_phone: patientPhone,
+              service_name: displayServiceName,
+              service_category: selectedService.category,
+              service_slug: selectedService.calcomSlug || null,
+              provider: primaryProviderName,
+              start_time: startDT.toISOString(),
+              end_time: endDT.toISOString(),
+              duration_minutes: duration,
+              location: selectedLocation?.label || DEFAULT_LOCATION.label,
               notes: apptNotes || null,
-              hostUserId: hostInfo?.userId || null,
-              hostName: selectedProvider?.label || selectedProvider?.name || null,
-              serviceDetails: Object.keys(serviceDetails).length > 0 ? serviceDetails : null,
-            };
-
-            const calBookingRes = await fetch('/api/bookings/create', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(body),
-            });
-
-            let schedulingWindowError = false;
-            let calBookingData = null;
-            if (calBookingRes.ok) {
-              calBookingData = await calBookingRes.json();
-            } else {
-              try {
-                const errPayload = await calBookingRes.json();
-                schedulingWindowError = !!errPayload?.schedulingWindowError;
-              } catch {}
-            }
-
-            if (calBookingRes.ok || schedulingWindowError) {
-              const calBookingId = calBookingData
-                ? String(calBookingData.calcom?.id || calBookingData.booking?.calcom_booking_id || '')
-                : '';
-              res = await fetch('/api/appointments/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  patient_id: selectedPatient.id,
-                  patient_name: patientName,
-                  patient_phone: patientPhone,
-                  service_name: displayServiceName,
-                  service_category: selectedService.category,
-                  provider: primaryProviderName,
-                  start_time: startDT.toISOString(),
-                  end_time: endDT.toISOString(),
-                  duration_minutes: duration,
-                  location: selectedLocation?.label || DEFAULT_LOCATION.label,
-                  notes: apptNotes || null,
-                  created_by: employee?.name || session?.user?.email || 'Staff',
-                  visit_reason: visitReason.trim(),
-                  modality,
-                  send_notification: sendNotification,
-                  cal_com_booking_id: calBookingId || null,
-                  source: schedulingWindowError ? 'manual' : 'cal_com',
-                  service_details: Object.keys(serviceDetails).length > 0 ? serviceDetails : null,
-                  services: servicesPayload,
-                }),
-              });
-              if (schedulingWindowError) {
-                console.warn('[booking] Cal.com rejected scheduling window; booked as manual appointment');
-              }
-            } else {
-              res = calBookingRes;
-            }
-          } else {
-            const fallbackDetails = {};
-            if (panelType) fallbackDetails.panelType = panelType;
-            res = await fetch('/api/appointments/create', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                patient_id: selectedPatient?.id || null,
-                patient_name: patientName,
-                patient_phone: patientPhone,
-                service_name: displayServiceName,
-                service_category: selectedService.category,
-                service_slug: selectedService.calcomSlug || null,
-                provider: primaryProviderName,
-                start_time: startDT.toISOString(),
-                end_time: endDT.toISOString(),
-                duration_minutes: duration,
-                location: selectedLocation?.label || DEFAULT_LOCATION.label,
-                notes: apptNotes || null,
-                created_by: employee?.name || session?.user?.email || 'Staff',
-                visit_reason: visitReason.trim(),
-                modality,
-                send_notification: sendNotification,
-                service_details: Object.keys(fallbackDetails).length > 0 ? fallbackDetails : null,
-                services: servicesPayload,
-              }),
-            });
-          }
+              created_by: employee?.name || session?.user?.email || 'Staff',
+              visit_reason: visitReason.trim(),
+              modality,
+              send_notification: sendNotification,
+              service_details: Object.keys(fallbackDetails).length > 0 ? fallbackDetails : null,
+              services: servicesPayload,
+            }),
+          });
         } else {
           res = await fetch('/api/appointments/create', {
             method: 'POST',

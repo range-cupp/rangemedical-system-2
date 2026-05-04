@@ -11,6 +11,7 @@ import { sendAppointmentNotification } from '../../../lib/appointment-notificati
 import { sendProviderNotification } from '../../../lib/provider-notifications';
 import { logAction } from '../../../lib/auth';
 import { runBookingAutomations } from '../../../lib/booking-automations';
+import { toPacificDate } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -256,6 +257,48 @@ export default async function handler(req, res) {
         },
       }))
     );
+
+    // SHADOW WRITE: mirror new appointments into calcom_bookings so consumers
+    // that still read from there (reminder/lab-prep crons, patient timeline,
+    // staff-bot) keep working as we migrate off Cal.com piece by piece.
+    // Rows that came from a real Cal.com booking already have a calcom_bookings
+    // row written by the webhook — skip those (identified by cal_com_booking_id).
+    // Use calcom_uid = `local-<appointment.id>` as a sentinel for our own rows.
+    try {
+      const shadowRows = appointments
+        .filter(a => !a.cal_com_booking_id)
+        .map(a => {
+          const perServiceSlug = isMulti
+            ? services.find(s => s.name === a.service_name)?.slug
+            : null;
+          return {
+            calcom_uid: `local-${a.id}`,
+            patient_id: a.patient_id,
+            patient_name: a.patient_name,
+            patient_phone: a.patient_phone,
+            service_name: a.service_name,
+            service_slug: perServiceSlug || service_slug || null,
+            start_time: a.start_time,
+            end_time: a.end_time,
+            booking_date: toPacificDate(a.start_time),
+            duration_minutes: a.duration_minutes,
+            status: a.status,
+            location: a.location,
+            notes: a.notes,
+            booked_by: 'staff',
+          };
+        });
+      if (shadowRows.length > 0) {
+        const { error: shadowErr } = await supabase
+          .from('calcom_bookings')
+          .insert(shadowRows);
+        if (shadowErr) {
+          console.error('[appt-create] shadow calcom_bookings write failed:', shadowErr);
+        }
+      }
+    } catch (e) {
+      console.error('[appt-create] shadow write error (non-fatal):', e);
+    }
 
     // Audit log — one entry per visit, with the service list in details for multi-service.
     await logAction({

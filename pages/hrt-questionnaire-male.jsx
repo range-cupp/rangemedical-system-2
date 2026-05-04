@@ -240,6 +240,15 @@ export default function HrtMaleQuestionnaire() {
   );
 }
 
+// Progressive phone formatting: 5551234567 → (555) 123-4567 as the user types.
+function formatPhone(input) {
+  const digits = String(input || '').replace(/\D/g, '').slice(0, 10);
+  if (digits.length === 0) return '';
+  if (digits.length < 4) return `(${digits}`;
+  if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
 // ═══════════════════════════════════════════════════════════
 // Question Renderer — handles all question types
 // ═══════════════════════════════════════════════════════════
@@ -287,14 +296,27 @@ function QuestionRenderer({ question, value, onChange }) {
         </div>
       )}
 
-      {(q.type === 'text' || q.type === 'email' || q.type === 'tel') && (
+      {(q.type === 'text' || q.type === 'email') && (
         <input
           type={q.type}
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           style={styles.textInput}
           placeholder={q.placeholder || ''}
-          autoComplete={q.type === 'email' ? 'email' : q.type === 'tel' ? 'tel' : 'off'}
+          autoComplete={q.type === 'email' ? 'email' : 'off'}
+        />
+      )}
+
+      {q.type === 'tel' && (
+        <input
+          type="tel"
+          inputMode="tel"
+          value={formatPhone(value)}
+          onChange={(e) => onChange(formatPhone(e.target.value))}
+          style={styles.textInput}
+          placeholder={q.placeholder || '(555) 555-5555'}
+          autoComplete="tel"
+          maxLength={14}
         />
       )}
 

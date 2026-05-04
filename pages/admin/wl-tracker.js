@@ -13,7 +13,6 @@ import { useAuth } from '../../components/AuthProvider';
 const BookingTab = dynamic(() => import('../../components/BookingTab'), { ssr: false });
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const STATUS_CONFIG = {
   upcoming:       { icon: '⏳', label: 'Upcoming',         bg: '#f5f5f5', color: '#666' },
@@ -66,22 +65,10 @@ function fmtDate(iso, opts = {}) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...opts });
 }
 
-function fmtRange(start, end) {
-  const s = new Date(start + 'T12:00:00');
-  const e = new Date(end + 'T12:00:00');
-  const sameMonth = s.getMonth() === e.getMonth();
-  const sStr = s.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const eStr = sameMonth
-    ? e.toLocaleDateString('en-US', { day: 'numeric' })
-    : e.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  return `${sStr} – ${eStr}, ${e.getFullYear()}`;
-}
-
 export default function WLTrackerPage() {
   const { session } = useAuth();
   const [mode, setMode] = useState('take_home'); // 'take_home' | 'in_clinic'
-  const [view, setView] = useState('daily'); // 'daily' | 'weekly'
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(todayPacificISO()));
+  const [viewDate, setViewDate] = useState(() => todayPacificISO()); // YYYY-MM-DD; defaults to real today
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -101,7 +88,7 @@ export default function WLTrackerPage() {
     try {
       setLoading(true);
       setError(null);
-      const r = await fetch(`/api/admin/wl-tracker?mode=${mode}&week_start=${weekStart}`, { headers: authHeaders() });
+      const r = await fetch(`/api/admin/wl-tracker?mode=${mode}&view_date=${viewDate}`, { headers: authHeaders() });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const json = await r.json();
       setData(json);
@@ -110,7 +97,7 @@ export default function WLTrackerPage() {
     } finally {
       setLoading(false);
     }
-  }, [mode, weekStart, session, authHeaders]);
+  }, [mode, viewDate, session, authHeaders]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -215,11 +202,14 @@ export default function WLTrackerPage() {
   return (
     <AdminLayout title="Weight Loss Tracker">
       <div style={{ padding: '24px', maxWidth: '1600px', margin: '0 auto' }}>
-        {/* Header */}
+        {/* Header — total active count rolled in here so we don't burn a stat
+            card on a number that's just context */}
         <div style={sharedStyles.pageHeader}>
           <h1 style={sharedStyles.pageTitle}>Weight Loss Tracker</h1>
           <p style={sharedStyles.pageSubtitle}>
-            Take-home patient check-ins, nudges, dispatch timing, and payment status
+            {data
+              ? <>Tracking <strong style={{ color: '#000' }}>{data.stats.total_patients}</strong> active {mode === 'in_clinic' ? 'in-clinic' : 'take-home'} patient{data.stats.total_patients === 1 ? '' : 's'}</>
+              : 'Loading…'}
           </p>
         </div>
 
@@ -257,32 +247,17 @@ export default function WLTrackerPage() {
         {/* Mode-specific banner */}
         {mode === 'take_home' ? <AutomationBanner /> : <InClinicBanner />}
 
-        {/* Stats bar */}
-        {data && <StatsBar stats={data.stats} trend={data.trend} weekStart={data.week_start} weekEnd={data.week_end} />}
+        {/* Stats bar — just the two numbers worth surfacing at the top */}
+        {data && <StatsBar stats={data.stats} needsAttentionCount={dailyBuckets.needsAttention.length} />}
 
-        {/* View toggle + week navigation */}
+        {/* Date picker + filters. Date defaults to real today; pick a past
+            date to look back at what happened that day. */}
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', border: '1px solid #ddd', background: '#fff' }}>
-            {['daily', 'weekly'].map(v => (
-              <button key={v} onClick={() => setView(v)}
-                style={{
-                  padding: '10px 20px', border: 'none', cursor: 'pointer',
-                  background: view === v ? '#000' : '#fff',
-                  color: view === v ? '#fff' : '#000',
-                  fontSize: '14px', fontWeight: '600', textTransform: 'capitalize',
-                }}>
-                {v === 'daily' ? `Daily — ${todayDayName}` : 'Weekly Grid'}
-              </button>
-            ))}
-          </div>
-          {view === 'weekly' && (
-            <WeekNav
-              weekStart={weekStart}
-              weekEnd={data?.week_end || addDaysISO(weekStart, 6)}
-              setWeekStart={setWeekStart}
-              today={today}
-            />
-          )}
+          <DatePicker
+            viewDate={viewDate}
+            realToday={data?.real_today || todayPacificISO()}
+            onChange={setViewDate}
+          />
           <div style={{ flex: 1 }} />
           <input
             type="text"
@@ -297,17 +272,15 @@ export default function WLTrackerPage() {
             style={sharedStyles.select}
           >
             <option value="all">All statuses</option>
-            <option value="missed">Missed this week</option>
+            <option value="missed">Missed</option>
             <option value="dispatch_due">Needs dispatch soon</option>
-            <option value="reminders_off">Reminders off</option>
-            <option value="opted_out">Opted out</option>
           </select>
         </div>
 
         {loading && !data && <div style={{ padding: '60px', textAlign: 'center', color: '#666' }}>Loading...</div>}
 
-        {/* Main view */}
-        {data && view === 'daily' && (
+        {/* Main view — daily buckets, always */}
+        {data && (
           <DailyView
             mode={mode}
             buckets={dailyBuckets}
@@ -317,15 +290,6 @@ export default function WLTrackerPage() {
             onAction={handleAction}
             onSchedule={setBookingPatient}
             actionInProgress={actionInProgress}
-          />
-        )}
-
-        {data && view === 'weekly' && (
-          <WeeklyGrid
-            patients={filteredPatients}
-            weekStart={data.week_start}
-            today={today}
-            onSelect={setSelectedPatient}
           />
         )}
 
@@ -416,53 +380,20 @@ function BookingModal({ patient, onClose }) {
 
 // ───────────────────── Stats Bar ─────────────────────
 
-function StatsBar({ stats, trend, weekStart, weekEnd }) {
-  const trendCells = trend.map(t => {
-    const h = Math.max(4, Math.round(t.completion_pct * 0.4)); // 0–40px
-    return { ...t, height: h };
-  });
-
+function StatsBar({ stats, needsAttentionCount }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '20px' }}>
       <StatBlock
-        label={`Week of ${fmtRange(weekStart, weekEnd)}`}
-        value={`${stats.completion_pct}%`}
-        sub={`${stats.completed_this_week}/${stats.sent_this_week} check-ins`}
+        label="Needs attention"
+        value={needsAttentionCount}
+        sub={needsAttentionCount === 0 ? 'all clear' : 'in the bucket below'}
+        accent={needsAttentionCount > 0 ? '#991b1b' : '#166534'}
       />
-      <div style={{ ...sharedStyles.statCard, padding: '16px 18px' }}>
-        <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px' }}>4-Week Trend</div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '46px', marginTop: '8px' }}>
-          {trendCells.map((t, i) => (
-            <div key={t.week_start} title={`Week of ${fmtDate(t.week_start)}: ${t.completion_pct}% (${t.completed}/${t.sent})`}
-              style={{
-                flex: 1, height: t.height + 'px',
-                background: i === trendCells.length - 1 ? '#000' : '#999',
-                minHeight: '4px',
-              }} />
-          ))}
-        </div>
-      </div>
       <StatBlock
-        label="Dispatch needed now"
+        label="Payment outreach"
         value={stats.dispatch_due_now}
-        sub={`+${stats.dispatch_due_soon} due soon`}
+        sub={`+${stats.dispatch_due_soon} due in next 14 days`}
         accent={stats.dispatch_due_now > 0 ? '#9a3412' : null}
-      />
-      <StatBlock
-        label="Missed this week"
-        value={stats.missed_this_week}
-        accent={stats.missed_this_week > 0 ? '#991b1b' : null}
-      />
-      <StatBlock
-        label="Reminders off"
-        value={stats.reminders_disabled}
-        sub={`${stats.opt_outs} opted out`}
-        accent={stats.reminders_disabled > 5 ? '#92400e' : null}
-      />
-      <StatBlock
-        label="Total active"
-        value={stats.total_patients}
-        sub="take-home patients"
       />
     </div>
   );
@@ -480,24 +411,48 @@ function StatBlock({ label, value, sub, accent }) {
 
 // ───────────────────── Week Nav ─────────────────────
 
-function WeekNav({ weekStart, weekEnd, setWeekStart, today }) {
-  const todayWeekStart = startOfWeek(today);
-  const isThisWeek = weekStart === todayWeekStart;
+// Compact date picker: prev / [date input] / next, with a "Today" button when
+// you've drifted off real today. Lets staff look back at any past day to see
+// what was auto-sent, who was nudged, who completed — with the buckets
+// computed as if that picked date were today.
+function DatePicker({ viewDate, realToday, onChange }) {
+  const isToday = viewDate === realToday;
+  const dayLabel = (() => {
+    const d = new Date(viewDate + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  })();
   return (
-    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-      <button onClick={() => setWeekStart(addDaysISO(weekStart, -7))}
-        style={{ ...sharedStyles.btnSecondary, padding: '8px 12px', fontSize: '14px' }}>
-        ← Prev
+    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+      <button onClick={() => onChange(addDaysISO(viewDate, -1))}
+        title="Previous day"
+        style={{ ...sharedStyles.btnSecondary, padding: '8px 10px', fontSize: '14px' }}>
+        ←
       </button>
-      <div style={{ padding: '8px 14px', background: '#f5f5f5', fontSize: '14px', fontWeight: 600, minWidth: '180px', textAlign: 'center' }}>
-        {fmtRange(weekStart, weekEnd)}
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <span style={{
+          padding: '8px 14px', background: isToday ? '#000' : '#f5f5f5',
+          color: isToday ? '#fff' : '#000',
+          fontSize: '14px', fontWeight: 600, minWidth: '160px', textAlign: 'center',
+          pointerEvents: 'none',
+        }}>
+          {isToday ? `Today · ${dayLabel}` : dayLabel}
+        </span>
+        <input type="date" value={viewDate}
+          onChange={e => e.target.value && onChange(e.target.value)}
+          style={{
+            position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%',
+          }}
+          title="Pick a date" />
       </div>
-      <button onClick={() => setWeekStart(addDaysISO(weekStart, 7))}
-        style={{ ...sharedStyles.btnSecondary, padding: '8px 12px', fontSize: '14px' }}>
-        Next →
+      <button onClick={() => onChange(addDaysISO(viewDate, 1))}
+        disabled={viewDate >= realToday}
+        title="Next day"
+        style={{ ...sharedStyles.btnSecondary, padding: '8px 10px', fontSize: '14px',
+          opacity: viewDate >= realToday ? 0.4 : 1 }}>
+        →
       </button>
-      {!isThisWeek && (
-        <button onClick={() => setWeekStart(todayWeekStart)}
+      {!isToday && (
+        <button onClick={() => onChange(realToday)}
           style={{ ...sharedStyles.btnPrimary, padding: '8px 14px', fontSize: '14px' }}>
           Today
         </button>
@@ -1080,107 +1035,6 @@ function todayActionDescription(patient) {
     default:
       return <span style={{ color: '#bbb' }}>—</span>;
   }
-}
-
-// ───────────────────── Weekly Grid ─────────────────────
-
-function WeeklyGrid({ patients, weekStart, today, onSelect }) {
-  // Bucket patients by their expected_date_this_week (one card per day they're scheduled)
-  const byDay = useMemo(() => {
-    const buckets = {};
-    for (let i = 0; i < 7; i++) {
-      const d = addDaysISO(weekStart, i);
-      buckets[d] = [];
-    }
-    for (const p of patients) {
-      if (!p.expected_date_this_week) continue;
-      if (buckets[p.expected_date_this_week]) {
-        buckets[p.expected_date_this_week].push(p);
-      }
-    }
-    return buckets;
-  }, [patients, weekStart]);
-
-  const noDayPatients = patients.filter(p => !p.expected_date_this_week);
-
-  return (
-    <div style={{ marginBottom: '24px' }}>
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px',
-        background: '#fff', border: '1px solid #e5e5e5',
-      }}>
-        {[...Array(7)].map((_, i) => {
-          const d = addDaysISO(weekStart, i);
-          const isToday = d === today;
-          const list = byDay[d] || [];
-          return (
-            <div key={d} style={{
-              padding: '12px', minHeight: '120px',
-              borderRight: i < 6 ? '1px solid #f0f0f0' : 'none',
-              background: isToday ? '#fffbeb' : '#fff',
-            }}>
-              <div style={{
-                fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px',
-                color: isToday ? '#92400e' : '#666', fontWeight: 600,
-                marginBottom: '8px',
-              }}>
-                {DAY_SHORT[i]} {fmtDate(d)} {isToday && '· TODAY'}
-                <span style={{ float: 'right', color: '#999' }}>{list.length}</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {list.map(p => <GridCard key={p.protocol_id} patient={p} onSelect={onSelect} />)}
-                {list.length === 0 && (
-                  <div style={{ fontSize: '12px', color: '#bbb', padding: '8px 0' }}>—</div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {noDayPatients.length > 0 && (
-        <div style={{ marginTop: '12px', padding: '12px 16px', background: '#fef3c7', border: '1px solid #fde68a' }}>
-          <strong style={{ fontSize: '13px' }}>⚠️ {noDayPatients.length} patient{noDayPatients.length === 1 ? '' : 's'} have no injection day set</strong>
-          <span style={{ fontSize: '13px', color: '#666', marginLeft: '8px' }}>
-            (Reminders won't fire — set their day below.)
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function GridCard({ patient, onSelect }) {
-  const cs = patient.cell_status;
-  const sc = STATUS_CONFIG[cs.status] || STATUS_CONFIG.upcoming;
-  const pc = PAYMENT_CONFIG[patient.payment.state] || PAYMENT_CONFIG.unknown;
-  const dc = DISPENSE_CONFIG[patient.dispense.state] || DISPENSE_CONFIG.never;
-
-  return (
-    <div onClick={() => onSelect(patient)}
-      style={{
-        padding: '8px 10px', background: sc.bg, border: `1px solid ${sc.color}30`,
-        cursor: 'pointer', fontSize: '12px',
-      }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
-        <span style={{ fontWeight: 600, color: sc.color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {sc.icon} {patient.name}
-        </span>
-        <span style={{ fontSize: '11px', display: 'inline-flex', gap: '2px' }}>
-          <span title={`Dispense: ${patient.dispense.label}`}>{dc.icon}</span>
-          <span title={`Payment: ${patient.payment.label}`}>{pc.icon}</span>
-        </span>
-      </div>
-      <div style={{ color: '#666', fontSize: '11px', marginTop: '2px' }}>
-        {patient.medication}{patient.selected_dose ? ` ${patient.selected_dose}` : ''}
-      </div>
-      {(cs.status === 'completed' || cs.status === 'late') && cs.weight && (
-        <div style={{ color: sc.color, fontSize: '11px', marginTop: '2px', fontWeight: 600 }}>
-          {cs.weight} lb {cs.status === 'late' && `· ⏰ ${cs.late_by_days}d late`}
-        </div>
-      )}
-    </div>
-  );
 }
 
 // ───────────────────── Roster Table ─────────────────────

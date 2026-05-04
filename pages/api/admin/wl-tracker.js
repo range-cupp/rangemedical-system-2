@@ -479,7 +479,14 @@ export default async function handler(req, res) {
 }
 
 async function handleGet(req, res) {
-  const todayISO = todayPacificISO();
+  // view_date lets the dashboard "look back" — every today/cycle calculation
+  // anchors to this date instead of real today. Defaults to actual Pacific today.
+  // Validates as YYYY-MM-DD; anything malformed falls back to today.
+  const realTodayISO = todayPacificISO();
+  const requestedView = req.query.view_date;
+  const todayISO = (typeof requestedView === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(requestedView))
+    ? requestedView
+    : realTodayISO;
   const requestedWeekStart = req.query.week_start || startOfWeek(todayISO);
   const weekStart = startOfWeek(requestedWeekStart);
   const weekEnd = addDaysISO(weekStart, 6);
@@ -524,7 +531,7 @@ async function handleGet(req, res) {
     if (patientIds.length === 0) {
       return res.status(200).json({
         mode,
-        week_start: weekStart, week_end: weekEnd, today: todayISO,
+        week_start: weekStart, week_end: weekEnd, today: todayISO, real_today: realTodayISO,
         patients: [], stats: emptyStats(), trend: [],
       });
     }

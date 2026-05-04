@@ -49,6 +49,14 @@ function slugify(s) {
 }
 
 export default function ServicesPage() {
+  return (
+    <AdminLayout title="Services">
+      <ServicesContent />
+    </AdminLayout>
+  );
+}
+
+export function ServicesContent() {
   const { session, hasPermission } = useAuth();
   const [services, setServices] = useState([]);
   const [options, setOptions] = useState({ employees: [], locations: [], forms: [], automation_actions: [] });
@@ -311,7 +319,7 @@ export default function ServicesPage() {
   const canManage = hasPermission('can_manage_employees');
 
   return (
-    <AdminLayout title="Services">
+    <>
       {successMsg && <div style={{ ...styles.banner, background: '#dcfce7', color: '#166534' }}>{successMsg}</div>}
       {error && (
         <div style={{ ...styles.banner, background: '#fef2f2', color: '#dc2626' }}>
@@ -456,7 +464,7 @@ export default function ServicesPage() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   );
 }
 

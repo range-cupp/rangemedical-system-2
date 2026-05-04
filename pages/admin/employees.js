@@ -17,6 +17,17 @@ const PERMISSIONS = {
 };
 
 export default function EmployeesPage() {
+  return (
+    <AdminLayout
+      title="Employees"
+      actions={null}
+    >
+      <EmployeesContent />
+    </AdminLayout>
+  );
+}
+
+export function EmployeesContent() {
   const { session } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -200,14 +211,12 @@ export default function EmployeesPage() {
   const inactiveEmployees = employees.filter(e => !e.is_active);
 
   return (
-    <AdminLayout
-      title="Employees"
-      actions={
+    <>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
         <button style={sharedStyles.btnPrimary} onClick={() => setAddModal(true)}>
           + Add Employee
         </button>
-      }
-    >
+      </div>
       {successMsg && (
         <div style={{ ...pageStyles.alert, background: '#dcfce7', color: '#166534' }}>
           {successMsg}
@@ -475,7 +484,7 @@ export default function EmployeesPage() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   );
 }
 

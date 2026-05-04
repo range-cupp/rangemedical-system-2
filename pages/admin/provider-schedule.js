@@ -58,6 +58,14 @@ function getScheduleLocation(schedule) {
 }
 
 export default function ProviderSchedulePage() {
+  return (
+    <AdminLayout title="Range Staff Hours">
+      <ProviderScheduleContent />
+    </AdminLayout>
+  );
+}
+
+export function ProviderScheduleContent() {
   const { session, hasPermission } = useAuth();
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -304,7 +312,7 @@ export default function ProviderSchedulePage() {
   const overrideLocation = overrideSchedule ? getScheduleLocation(overrideSchedule) : null;
 
   return (
-    <AdminLayout title="Range Staff Hours">
+    <>
       {successMsg && (
         <div style={{ ...pageStyles.alert, background: '#dcfce7', color: '#166534' }}>{successMsg}</div>
       )}
@@ -696,7 +704,7 @@ export default function ProviderSchedulePage() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   );
 }
 

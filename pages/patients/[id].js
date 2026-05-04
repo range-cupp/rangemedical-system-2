@@ -5266,24 +5266,29 @@ export default function PatientProfile() {
                 const secondaries = typeof proto.secondary_medication_details === 'string'
                   ? JSON.parse(proto.secondary_medication_details)
                   : proto.secondary_medication_details;
+                const seen = new Set();
                 (secondaries || []).forEach(sec => {
                   const secName = sec.medication || sec.name;
                   if (!secName) return;
+                  const key = secName.toLowerCase();
+                  if (seen.has(key)) return;
+                  seen.add(key);
                   const secPickup = (serviceLogs || [])
                     .filter(l => l.protocol_id === proto.id
                       && l.entry_type === 'pickup'
-                      && (l.medication || '').toLowerCase() === secName.toLowerCase())
+                      && (l.medication || '').toLowerCase() === key)
                     .sort((a, b) => b.entry_date.localeCompare(a.entry_date))[0] || null;
                   secondaryRows.push({ secondaryMed: { ...sec, medication: secName }, parentProtocol: proto, lastPickup: secPickup });
                 });
               } catch {}
             }
           });
-          // Also include manually-added active medications not already covered by a protocol
+          // Also include manually-added active medications not already covered by a protocol or secondary med
           const protoMedNames = new Set(rows.map(r => ((r.protocol || {}).medication || '').toLowerCase()));
+          const secMedNames = new Set(secondaryRows.map(r => (r.secondaryMed?.medication || '').toLowerCase()));
           (medications || []).filter(m => m.is_active).forEach(med => {
             const name = (med.medication_name || med.trade_name || med.generic_name || '').toLowerCase();
-            if (name && !protoMedNames.has(name)) {
+            if (name && !protoMedNames.has(name) && !secMedNames.has(name)) {
               // Find last pickup from service logs matching this medication name
               const medPickup = (serviceLogs || [])
                 .filter(l => l.entry_type === 'pickup' && (l.medication || '').toLowerCase().includes(name))
@@ -5409,7 +5414,7 @@ export default function PatientProfile() {
                     const dLabel = days === 0 ? 'Today' : days === 1 ? 'Yesterday' : `${days}d ago`;
                     return `${formatShortDate(log.entry_date)} (${dLabel})`;
                   };
-                  const medName = latest.medication || protocol.medication || protocol.program_type;
+                  const medName = protocol.medication || latest.medication || protocol.program_type;
                   const isTesto = /testosterone/i.test(medName || '') || /testosterone/i.test(protocol.program_type || '');
                   const isInClinic = protocol.delivery_method === 'in_clinic';
                   const nowDate = new Date();

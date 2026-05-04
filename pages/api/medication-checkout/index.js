@@ -347,12 +347,27 @@ export default async function handler(req, res) {
   }
 }
 
-// Default refill intervals for HRT secondary medications (days per vial)
-const SECONDARY_HRT_PER_VIAL_DAYS = {
-  HCG: 30,
-  Gonadorelin: 30,
-  Nandrolone: 30,
-  Anastrozole: 30,
+// Parse a frequency string (e.g. "2x/week", "Daily") into doses-per-week.
+function parseFrequencyPerWeek(freq) {
+  if (!freq) return null;
+  const f = freq.toLowerCase().replace(/\s+/g, '');
+  if (/daily/.test(f)) return 7;
+  if (/everyotherday/.test(f)) return 3.5;
+  const m = f.match(/^(\d+)x?\/?week/);
+  if (m) return parseInt(m[1]);
+  if (/twiceweekly|2timesperweek/.test(f)) return 2;
+  if (/threetimesperweek/.test(f)) return 3;
+  if (/weekly|1x?\/?week/.test(f)) return 1;
+  if (/everyotherweek|biweekly/.test(f)) return 0.5;
+  return null;
+}
+
+// Fallback doses-per-week when frequency isn't stored on the protocol entry.
+const SECONDARY_DEFAULT_FREQ = {
+  HCG: 2,
+  Gonadorelin: 7,
+  Nandrolone: 1,
+  Anastrozole: 2,
 };
 
 // Detect whether the dispensed `medication` is a secondary med on this protocol.
@@ -381,22 +396,28 @@ async function updateSecondaryMedDetails(protocol, { medication, dosage, quantit
     existing = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : [];
   } catch { existing = []; }
 
-  const numVials = quantity ? parseInt(quantity) : 1;
-  const perVialDays = SECONDARY_HRT_PER_VIAL_DAYS[medication] || 30;
-  const refillDays = Math.max(1, Math.round(numVials * perVialDays));
+  const qty = quantity ? parseInt(quantity) : 1;
+
+  const idx = (existing || []).findIndex(d => (d.medication || d.name || '').toLowerCase() === medication.toLowerCase());
+  const prev = idx >= 0 ? (existing[idx] || {}) : {};
+
+  // Use frequency to calculate how many days the dispensed quantity covers.
+  // quantity = individual doses (e.g. 8 prefilled syringes), not vials.
+  const dosesPerWeek = parseFrequencyPerWeek(prev.frequency)
+    || SECONDARY_DEFAULT_FREQ[medication]
+    || 2;
+  const refillDays = Math.max(1, Math.round(qty / dosesPerWeek * 7));
   const nextDate = new Date(logDate + 'T12:00:00');
   nextDate.setDate(nextDate.getDate() + refillDays);
   const nextExpected = nextDate.toISOString().split('T')[0];
 
-  const idx = (existing || []).findIndex(d => (d.medication || d.name || '').toLowerCase() === medication.toLowerCase());
-  const prev = idx >= 0 ? (existing[idx] || {}) : {};
   const merged = {
     ...prev,
     medication,
     dosage: dosage || prev.dosage || null,
     frequency: prev.frequency || null,
-    supply_type: supply_type || prev.supply_type || 'vial',
-    num_vials: numVials,
+    supply_type: supply_type || prev.supply_type || null,
+    quantity: qty,
     last_refill_date: logDate,
     next_expected_date: nextExpected,
   };

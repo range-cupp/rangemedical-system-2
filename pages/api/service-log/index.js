@@ -1103,11 +1103,26 @@ async function checkAndDecrementPackage(patient_id, category, entry_type, protoc
 // SECONDARY MEDICATION PICKUP SYNCING
 // ============================================
 
-// Default refill intervals for secondary medications (days)
-const SECONDARY_MED_REFILL_DAYS = {
-  'HCG': 90,           // ~3 months (1 vial/month × 3 vials)
-  'Gonadorelin': 30,   // ~1 month per vial
-  'Nandrolone': 90,    // ~3 months
+// Parse a frequency string (e.g. "2x/week", "Daily") into doses-per-week.
+function parseFrequencyPerWeek(freq) {
+  if (!freq) return null;
+  const f = freq.toLowerCase().replace(/\s+/g, '');
+  if (/daily/.test(f)) return 7;
+  if (/everyotherday/.test(f)) return 3.5;
+  const m = f.match(/^(\d+)x?\/?week/);
+  if (m) return parseInt(m[1]);
+  if (/twiceweekly|2timesperweek/.test(f)) return 2;
+  if (/threetimesperweek/.test(f)) return 3;
+  if (/weekly|1x?\/?week/.test(f)) return 1;
+  if (/everyotherweek|biweekly/.test(f)) return 0.5;
+  return null;
+}
+
+const SECONDARY_DEFAULT_FREQ = {
+  HCG: 2,
+  Gonadorelin: 7,
+  Nandrolone: 1,
+  Anastrozole: 2,
 };
 
 async function syncSecondaryMedPickup(protocolId, medication, logDate, details = {}) {
@@ -1132,29 +1147,32 @@ async function syncSecondaryMedPickup(protocolId, medication, logDate, details =
         : protocol.secondary_medication_details;
     }
 
-    // Calculate next_expected_date
-    const numVials = details.num_vials || 1;
-    const defaultRefillDays = SECONDARY_MED_REFILL_DAYS[medication] || 90;
-    // Scale refill interval by number of vials (1 vial = 30 days for HCG)
-    const perVialDays = defaultRefillDays / 3; // HCG default is 90 for 3 vials
-    const refillDays = Math.round(numVials * perVialDays);
+    const qty = details.quantity || details.num_vials || 1;
+
+    // Find existing entry for this medication to read its frequency
+    const idx = existingDetails.findIndex(d => (d.medication || d.name || '').toLowerCase() === medication.toLowerCase());
+    const prev = idx >= 0 ? (existingDetails[idx] || {}) : {};
+
+    // Use frequency to calculate how many days the dispensed quantity covers.
+    const dosesPerWeek = parseFrequencyPerWeek(details.frequency || prev.frequency)
+      || SECONDARY_DEFAULT_FREQ[medication]
+      || 2;
+    const refillDays = Math.max(1, Math.round(qty / dosesPerWeek * 7));
     const nextDate = new Date(logDate + 'T12:00:00');
     nextDate.setDate(nextDate.getDate() + refillDays);
     const nextExpected = nextDate.toISOString().split('T')[0];
 
-    // Build the updated entry for this medication
     const updatedEntry = {
+      ...prev,
       medication,
-      supply_type: details.supply_type || 'vial',
-      num_vials: numVials,
-      dosage: details.dosage || null,
-      frequency: details.frequency || null,
+      supply_type: details.supply_type || prev.supply_type || null,
+      quantity: qty,
+      dosage: details.dosage || prev.dosage || null,
+      frequency: details.frequency || prev.frequency || null,
       last_refill_date: logDate,
       next_expected_date: nextExpected,
     };
 
-    // Upsert: replace existing entry for this medication, or add new
-    const idx = existingDetails.findIndex(d => d.medication === medication);
     if (idx >= 0) {
       existingDetails[idx] = updatedEntry;
     } else {
@@ -1187,7 +1205,7 @@ async function syncSecondaryMedPickup(protocolId, medication, logDate, details =
       return { updated: false, reason: updateErr.message };
     }
 
-    console.log(`✓ Secondary med pickup: ${medication} × ${numVials} vials on ${logDate}, next refill ${nextExpected}`);
+    console.log(`✓ Secondary med pickup: ${medication} × ${qty} doses on ${logDate}, next refill ${nextExpected}`);
     return {
       updated: true,
       protocol_id: protocolId,

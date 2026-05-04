@@ -3550,7 +3550,7 @@ function CheckoutInner() {
                                             />
                                           </div>
                                           <div style={{ ...styles.dispenseFieldGroup, flex: 1 }}>
-                                            <label style={styles.fieldLabel}>🏠 Take-Home Quantity</label>
+                                            <label style={styles.fieldLabel}>🏠 {dispSupplyType?.startsWith('vial') ? 'Vial Count' : 'Take-Home Quantity'}</label>
                                             <input
                                               type="number"
                                               min="0"

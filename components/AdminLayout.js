@@ -36,6 +36,7 @@ const NAV_ITEMS = [
   { href: '/admin/shop-access', label: 'Shop Access', icon: 'shopping-bag', group: 'business' },
   { href: '/admin/snippets', label: 'Snippets', icon: 'file-text', group: 'business' },
   { href: '/admin/provider-schedule', label: 'Staff Hours', icon: 'clock', group: 'business' },
+  { href: '/admin/services', label: 'Services', icon: 'flask', permission: 'can_manage_employees', group: 'business' },
   { href: '/admin/employees', label: 'Employees', icon: 'user-check', permission: 'can_manage_employees', group: 'business' },
   { href: '/admin/employee-activity', label: 'Employee Activity', icon: 'activity', permission: 'can_manage_employees', group: 'business' },
   { href: '/admin/data-health', label: 'Data Health', icon: 'activity', adminOnly: true, group: 'business' },

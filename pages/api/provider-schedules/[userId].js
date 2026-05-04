@@ -31,6 +31,24 @@ function parseScheduleId(scheduleId) {
   return { employeeId: empId, locationId: locId };
 }
 
+// Look up an employee by either calcom_user_id (numeric, legacy) or
+// employee.id (UUID, post-cutover).
+async function resolveEmployee(userId) {
+  if (!userId) return null;
+  const asInt = parseInt(userId, 10);
+  if (!Number.isNaN(asInt) && String(asInt) === String(userId)) {
+    const { data } = await supabase
+      .from('employees').select('id, name, calcom_user_id')
+      .eq('calcom_user_id', asInt).maybeSingle();
+    if (data) return data;
+  }
+  // Fall through to UUID lookup.
+  const { data } = await supabase
+    .from('employees').select('id, name, calcom_user_id')
+    .eq('id', userId).maybeSingle();
+  return data || null;
+}
+
 function normalizeTime(t) {
   if (!t) return null;
   return /^\d{2}:\d{2}$/.test(t) ? `${t}:00` : t;
@@ -44,22 +62,15 @@ export default async function handler(req, res) {
 
 // GET — return the schedules for this provider in the same shape the index
 // endpoint uses. Lightweight wrapper that re-runs the same logic for one
-// employee.
+// employee. userId may be either a numeric calcom_user_id (legacy) or a
+// UUID employee.id (new employees added post-Cal.com cutover).
 async function handleGet(req, res) {
   const employee = await requireAuth(req, res);
   if (!employee) return;
   const { userId } = req.query;
-  const userIdInt = parseInt(userId, 10);
-  if (Number.isNaN(userIdInt)) {
-    return res.status(400).json({ error: 'Invalid userId' });
-  }
 
   try {
-    const { data: emp } = await supabase
-      .from('employees')
-      .select('id, name, calcom_user_id')
-      .eq('calcom_user_id', userIdInt)
-      .maybeSingle();
+    const emp = await resolveEmployee(userId);
     if (!emp) return res.status(404).json({ error: 'Provider not found' });
 
     const { data: scheds } = await supabase
@@ -112,12 +123,16 @@ async function handlePatch(req, res) {
   if (!employee) return;
 
   const { userId } = req.query;
-  const userIdInt = parseInt(userId, 10);
+
+  // Resolve the URL userId to an employee row. Accepts either a numeric
+  // calcom_user_id (legacy) or a UUID employee.id (post-cutover).
+  const targetEmp = await resolveEmployee(userId);
+  if (!targetEmp) return res.status(404).json({ error: 'Provider not found' });
 
   // Permission check: admin/can_manage_schedules can edit anyone, others
-  // can only edit their own schedule (matched via calcom_user_id).
+  // can only edit their own row.
   const canManageAll = hasPermission(employee, 'can_manage_schedules');
-  const isOwnSchedule = employee.calcom_user_id === userIdInt;
+  const isOwnSchedule = employee.id === targetEmp.id;
   if (!canManageAll && !isOwnSchedule) {
     return res.status(403).json({ error: 'You can only edit your own schedule' });
   }
@@ -135,16 +150,12 @@ async function handlePatch(req, res) {
   }
   const { employeeId, locationId } = parsed;
 
-  // Sanity check: the URL userId (calcom_user_id) must resolve to the same
-  // employee row the scheduleId points at.
-  const { data: emp } = await supabase
-    .from('employees')
-    .select('id, name, calcom_user_id')
-    .eq('id', employeeId)
-    .maybeSingle();
-  if (!emp || emp.calcom_user_id !== userIdInt) {
+  // Sanity check: the URL userId must resolve to the same employee row
+  // the scheduleId points at.
+  if (employeeId !== targetEmp.id) {
     return res.status(400).json({ error: 'scheduleId does not match the provider in the URL' });
   }
+  const emp = targetEmp;
 
   try {
     // ── Update weekly availability ─────────────────────────────────────

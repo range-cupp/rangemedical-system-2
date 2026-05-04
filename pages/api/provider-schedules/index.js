@@ -72,12 +72,13 @@ export default async function handler(req, res) {
   if (!employee) return;
 
   try {
-    // 1. Active providers (with calcom_user_id so the existing page can key by it).
+    // 1. All active employees. The calcom_user_id IS NOT NULL filter was
+    //    a relic of the Cal.com era — without it, new employees added via
+    //    /admin/employees show up immediately for schedule editing.
     const { data: employees, error: empErr } = await supabase
       .from('employees')
       .select('id, name, email, title, calcom_user_id')
       .eq('is_active', true)
-      .not('calcom_user_id', 'is', null)
       .order('name');
     if (empErr) throw empErr;
 
@@ -158,7 +159,11 @@ export default async function handler(req, res) {
       }).sort((a, b) => (a.isDefault === b.isDefault ? 0 : a.isDefault ? -1 : 1));
 
       return {
-        userId: emp.calcom_user_id,
+        // Use employee.id as the React key / API param so new employees
+        // (no calcom_user_id) work too. The PATCH endpoint accepts both
+        // — it primarily routes by the schedule.id sentinel anyway.
+        userId: emp.calcom_user_id || emp.id,
+        employeeId: emp.id,
         name: emp.name,
         username: FRIENDLY_USERNAME_BY_CALCOM_USER_ID[emp.calcom_user_id] || '',
         email: emp.email,

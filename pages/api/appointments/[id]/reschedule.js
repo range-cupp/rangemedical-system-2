@@ -5,7 +5,6 @@ import { createClient } from '@supabase/supabase-js';
 import { sendAppointmentNotification } from '../../../../lib/appointment-notifications';
 import { sendProviderNotification } from '../../../../lib/provider-notifications';
 import { logAction } from '../../../../lib/auth';
-import { toPacificDate } from '../../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -46,33 +45,7 @@ export default async function handler(req, res) {
       .update({ status: 'rescheduled' })
       .eq('id', id);
 
-    // Cancel the linked calcom_bookings row so the reminder cron stops
-    // texting about the old time. The new appointment row created below
-    // will get its own shadow calcom_bookings row created during normal
-    // flow (when /api/appointments/create is used). Here we just close
-    // the old shadow + the legacy Cal.com mirror, both forms.
-    {
-      const updates = { status: 'cancelled', cancelled_at: new Date().toISOString() };
-      if (oldAppt.cal_com_booking_id) {
-        const calcomBookingIdInt = parseInt(oldAppt.cal_com_booking_id, 10);
-        if (!Number.isNaN(calcomBookingIdInt)) {
-          await supabase
-            .from('calcom_bookings')
-            .update(updates)
-            .eq('calcom_booking_id', calcomBookingIdInt)
-            .then(({ error: cbErr }) => {
-              if (cbErr) console.error('calcom_bookings reschedule (legacy) error:', cbErr);
-            });
-        }
-      }
-      await supabase
-        .from('calcom_bookings')
-        .update(updates)
-        .eq('calcom_uid', `local-${id}`)
-        .then(({ error: cbErr }) => {
-          if (cbErr) console.error('calcom_bookings reschedule (shadow) error:', cbErr);
-        });
-    }
+    // (calcom_bookings updates removed at end of Cal.com cutover.)
 
     // Log event on old appointment
     await supabase.from('appointment_events').insert({
@@ -121,29 +94,7 @@ export default async function handler(req, res) {
       metadata: { rescheduled_from: id, rescheduled_by: rescheduled_by || null },
     });
 
-    // Shadow calcom_bookings row for the new appointment so reminder/lab-prep
-    // crons pick it up. Same sentinel pattern as lib/create-appointment.js.
-    try {
-      const { error: shadowErr } = await supabase.from('calcom_bookings').insert({
-        calcom_uid: `local-${newAppt.id}`,
-        patient_id: newAppt.patient_id,
-        patient_name: newAppt.patient_name,
-        patient_phone: newAppt.patient_phone,
-        service_name: newAppt.service_name,
-        service_slug: null,
-        start_time: newAppt.start_time,
-        end_time: newAppt.end_time,
-        booking_date: toPacificDate(newAppt.start_time),
-        duration_minutes: newAppt.duration_minutes,
-        status: newAppt.status,
-        location: newAppt.location,
-        notes: newAppt.notes,
-        booked_by: 'staff',
-      });
-      if (shadowErr) console.error('reschedule shadow row insert error:', shadowErr);
-    } catch (e) {
-      console.error('reschedule shadow row error (non-fatal):', e);
-    }
+    // (Shadow calcom_bookings row removed — crons read appointments now.)
 
     // Audit log
     await logAction({

@@ -50,35 +50,8 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: updateError.message });
     }
 
-    // Cancel the linked calcom_bookings row so the reminder/lab-prep crons
-    // (which still query calcom_bookings by booking_date + status='scheduled')
-    // stop texting the patient. Two cases:
-    //   1. Old Cal.com booking — match by cal_com_booking_id (numeric).
-    //   2. New shadow row — match by calcom_uid='local-<appointment.id>'.
-    {
-      const updates = { status: 'cancelled', cancelled_at: new Date().toISOString() };
-      if (appointment.cal_com_booking_id) {
-        const calcomBookingIdInt = parseInt(appointment.cal_com_booking_id, 10);
-        if (!Number.isNaN(calcomBookingIdInt)) {
-          await supabase
-            .from('calcom_bookings')
-            .update(updates)
-            .eq('calcom_booking_id', calcomBookingIdInt)
-            .then(({ error: cbErr }) => {
-              if (cbErr) console.error('calcom_bookings cancel (legacy) error:', cbErr);
-            });
-        }
-      }
-      // Always try the shadow row lookup — works for local-only bookings
-      // and is a no-op when none exists.
-      await supabase
-        .from('calcom_bookings')
-        .update(updates)
-        .eq('calcom_uid', `local-${id}`)
-        .then(({ error: cbErr }) => {
-          if (cbErr) console.error('calcom_bookings cancel (shadow) error:', cbErr);
-        });
-    }
+    // (calcom_bookings updates removed at end of Cal.com cutover — the
+    // crons and other readers now query the appointments table directly.)
 
     // Log event
     await supabase.from('appointment_events').insert({

@@ -6,7 +6,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { getHRTLabSchedule, matchDrawsToLogs } from '../../../lib/hrt-lab-schedule';
 // (Cal.com import removed — cancellation is now local-only.)
-import { todayPacific } from '../../../lib/date-utils';
+// (todayPacific import removed — bookings query now uses now() directly.)
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -74,14 +74,14 @@ export default async function handler(req, res) {
         labProtocols || []
       );
 
-      // 3. Fetch upcoming bookings from calcom_bookings
-      const today = todayPacific();
+      // 3. Fetch upcoming appointments (was calcom_bookings pre-cutover).
+      const nowISO = new Date().toISOString();
       const { data: bookings } = await supabase
-        .from('calcom_bookings')
-        .select('*')
+        .from('appointments')
+        .select('id, service_name, start_time, end_time, provider, status')
         .eq('patient_id', patient.id)
-        .eq('status', 'accepted')
-        .gte('start_time', today)
+        .in('status', ['scheduled', 'confirmed'])
+        .gte('start_time', nowISO)
         .order('start_time', { ascending: true });
 
       // 4. Check IV usage this month (last 30 days)
@@ -132,12 +132,12 @@ export default async function handler(req, res) {
         labSchedule: labScheduleWithStatus,
         bookings: (bookings || []).map(b => ({
           id: b.id,
-          uid: b.booking_uid,
-          title: b.title || b.event_type_name,
+          uid: b.id,                        // appointment.id stands in for the legacy uid
+          title: b.service_name,
           startTime: b.start_time,
           endTime: b.end_time,
-          provider: b.provider_name,
-          status: b.status
+          provider: b.provider,
+          status: b.status,
         })),
         ivStatus: {
           usedThisMonth: ivUsedThisMonth,
@@ -170,54 +170,37 @@ export default async function handler(req, res) {
       }
 
       try {
-        // Verify this booking belongs to this patient.
-        const { data: booking } = await supabase
-          .from('calcom_bookings')
-          .select('id, patient_id, calcom_uid, calcom_booking_id')
-          .eq('booking_uid', bookingUid)
+        // bookingUid is now an appointments.id (the GET handler returns
+        // it that way post-Cal.com cutover). Verify ownership and cancel.
+        const { data: appt } = await supabase
+          .from('appointments')
+          .select('id, patient_id, status')
+          .eq('id', bookingUid)
           .maybeSingle();
 
-        if (!booking || booking.patient_id !== patient.id) {
+        if (!appt || appt.patient_id !== patient.id) {
           return res.status(403).json({ error: 'Booking not found or access denied' });
         }
-
-        const cancelledAt = new Date().toISOString();
-
-        // Cancel the calcom_bookings row (no Cal.com API call).
-        await supabase
-          .from('calcom_bookings')
-          .update({ status: 'cancelled', cancelled_at: cancelledAt })
-          .eq('id', booking.id);
-
-        // Cancel the matching appointment so the admin calendar updates and
-        // the reminder cron stops texting. Two cases mirror lib bookings/cancel:
-        //   1. Shadow row → calcom_uid='local-<appointment_id>'.
-        //   2. Legacy Cal.com row → look up by cal_com_booking_id (string).
-        let appointmentId = null;
-        if (booking.calcom_uid?.startsWith('local-')) {
-          appointmentId = booking.calcom_uid.slice('local-'.length);
-        } else if (booking.calcom_booking_id) {
-          const { data: apptByCal } = await supabase
-            .from('appointments')
-            .select('id')
-            .eq('cal_com_booking_id', String(booking.calcom_booking_id))
-            .maybeSingle();
-          if (apptByCal?.id) appointmentId = apptByCal.id;
+        if (['cancelled', 'completed', 'rescheduled'].includes(appt.status)) {
+          return res.status(400).json({ error: `Already ${appt.status}` });
         }
-        if (appointmentId) {
-          await supabase
-            .from('appointments')
-            .update({ status: 'cancelled', cancellation_reason: 'cancelled by patient via HRT portal' })
-            .eq('id', appointmentId)
-            .not('status', 'in', '(completed,cancelled,rescheduled)');
-          await supabase.from('appointment_events').insert({
-            appointment_id: appointmentId,
-            event_type: 'cancelled',
-            old_status: 'scheduled',
-            new_status: 'cancelled',
-            metadata: { source: 'hrt_portal' },
-          });
+
+        const { error: cancelErr } = await supabase
+          .from('appointments')
+          .update({ status: 'cancelled', cancellation_reason: 'cancelled by patient via HRT portal' })
+          .eq('id', appt.id);
+        if (cancelErr) {
+          console.error('HRT portal cancel error:', cancelErr);
+          return res.status(500).json({ error: 'Failed to cancel' });
         }
+
+        await supabase.from('appointment_events').insert({
+          appointment_id: appt.id,
+          event_type: 'cancelled',
+          old_status: appt.status,
+          new_status: 'cancelled',
+          metadata: { source: 'hrt_portal' },
+        });
 
         return res.status(200).json({ success: true, message: 'Booking cancelled' });
 

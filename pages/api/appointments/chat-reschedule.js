@@ -9,7 +9,6 @@ import { createClient } from '@supabase/supabase-js';
 import { sendAppointmentNotification } from '../../../lib/appointment-notifications';
 import { sendProviderNotification } from '../../../lib/provider-notifications';
 import { logAction } from '../../../lib/auth';
-import { toPacificDate } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -76,19 +75,7 @@ async function handlePost(req, res) {
       .update({ status: 'rescheduled' })
       .eq('id', appointment_id);
 
-    // Cancel any linked calcom_bookings rows (legacy + shadow).
-    {
-      const updates = { status: 'cancelled', cancelled_at: new Date().toISOString() };
-      if (oldAppt.cal_com_booking_id) {
-        const calcomBookingIdInt = parseInt(oldAppt.cal_com_booking_id, 10);
-        if (!Number.isNaN(calcomBookingIdInt)) {
-          await supabase.from('calcom_bookings').update(updates)
-            .eq('calcom_booking_id', calcomBookingIdInt);
-        }
-      }
-      await supabase.from('calcom_bookings').update(updates)
-        .eq('calcom_uid', `local-${appointment_id}`);
-    }
+    // (calcom_bookings updates removed at end of Cal.com cutover.)
 
     await supabase.from('appointment_events').insert({
       appointment_id,
@@ -134,27 +121,7 @@ async function handlePost(req, res) {
       metadata: { rescheduled_from: appointment_id, rescheduled_by: rescheduled_by || null, source: 'chat_reschedule' },
     });
 
-    // Shadow calcom_bookings row for the new appointment.
-    try {
-      await supabase.from('calcom_bookings').insert({
-        calcom_uid: `local-${newAppt.id}`,
-        patient_id: newAppt.patient_id,
-        patient_name: newAppt.patient_name,
-        patient_phone: newAppt.patient_phone,
-        service_name: newAppt.service_name,
-        service_slug: null,
-        start_time: newAppt.start_time,
-        end_time: newAppt.end_time,
-        booking_date: toPacificDate(newAppt.start_time),
-        duration_minutes: newAppt.duration_minutes,
-        status: newAppt.status,
-        location: newAppt.location,
-        notes: newAppt.notes,
-        booked_by: 'staff',
-      });
-    } catch (e) {
-      console.error('chat-reschedule shadow row error (non-fatal):', e);
-    }
+    // (Shadow calcom_bookings row removed — crons read appointments now.)
 
     await logAction({
       employeeName: rescheduled_by || 'Unknown',

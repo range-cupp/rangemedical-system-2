@@ -3565,6 +3565,30 @@ function CheckoutInner() {
                                             </div>
                                           );
                                         })()}
+                                        {(() => {
+                                          if (!dispSupplyType || !dispSupplyType.startsWith('vial') || !dispDosage) return null;
+                                          const mlMatch = dispDosage.match(/([\d.]+)ml/);
+                                          if (!mlMatch) return null;
+                                          const doseMl = parseFloat(mlMatch[1]);
+                                          if (!doseMl) return null;
+                                          const vialMl = dispSupplyType === 'vial_5ml' ? 5 : 10;
+                                          const proto = activeProtocols.find(p => p.id === dispensingProtocolId);
+                                          const freq = proto?.injection_frequency ? parseInt(proto.injection_frequency) : 2;
+                                          const totalInj = Math.floor(vialMl / doseMl);
+                                          const weeks = totalInj / freq;
+                                          const refillDate = new Date(dispDate + 'T12:00:00');
+                                          refillDate.setDate(refillDate.getDate() + Math.round(weeks * 7));
+                                          const refillStr = refillDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                          const freqLabel = freq >= 7 ? 'daily' : freq === 3 ? '3x/wk' : '2x/wk';
+                                          return (
+                                            <div style={{ marginTop: 4, padding: '8px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 4, fontSize: 12, color: '#166534' }}>
+                                              <div>{vialMl}ml vial at {doseMl}ml/injection = <strong>{totalInj} injections</strong> ({freqLabel} = {weeks % 1 === 0 ? weeks : weeks.toFixed(1)} weeks)</div>
+                                              <div style={{ marginTop: 4, fontWeight: 700, fontSize: 13 }}>
+                                                Next refill due: {refillStr}
+                                              </div>
+                                            </div>
+                                          );
+                                        })()}
                                       </>
                                     ) : (
                                       <div style={styles.dispenseFieldGroup}>

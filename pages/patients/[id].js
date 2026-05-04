@@ -5477,12 +5477,12 @@ export default function PatientProfile() {
                         flexShrink: 0,
                       }}>{cat.label}</span>
                       <span style={{ fontWeight: 600 }}>{medName}</span>
-                      {/* HRT: always show current prescribed dose + frequency, even if no injection has been logged yet */}
-                      {protocol.category === 'hrt' && protocol.selected_dose && (
+                      {/* Always show current prescribed dose from protocols.selected_dose (single source of truth) */}
+                      {protocol.selected_dose && (
                         <span style={{ color: '#1f2937' }}>
                           <span style={{ color: '#6b7280' }}>Current: </span>
-                          <span style={{ fontWeight: 700, color: '#7c3aed' }}>{protocol.selected_dose}</span>
-                          {protocol.injections_per_week && (
+                          <span style={{ fontWeight: 700, color: protocol.category === 'hrt' ? '#7c3aed' : '#1f2937' }}>{protocol.selected_dose}</span>
+                          {protocol.category === 'hrt' && protocol.injections_per_week && (
                             <span style={{ color: '#6b7280', marginLeft: 6 }}>· {protocol.injections_per_week === 2 ? 'every 3.5 days' : `${protocol.injections_per_week}x/wk`}</span>
                           )}
                         </span>
@@ -5503,7 +5503,31 @@ export default function PatientProfile() {
                           )}
                         </span>
                       )}
-                      {lastPickup && (() => {
+                      {(() => {
+                        // Source of truth for "Purchased" line: allPurchases (covers in-clinic
+                        // purchases that don't create service_log entries) with service_log
+                        // pickup as fallback for take-home protocols.
+                        const latestPurchase = (allPurchases || []).find(p => p.protocol_id === protocol.id && p.purchase_date);
+                        if (latestPurchase) {
+                          const pDays = Math.floor((new Date() - new Date(latestPurchase.purchase_date + 'T00:00:00')) / (1000 * 60 * 60 * 24));
+                          const pLabel = pDays === 0 ? 'Today' : pDays === 1 ? 'Yesterday' : `${pDays}d ago`;
+                          const pQty = latestPurchase.quantity || 4;
+                          const injSincePurchase = (serviceLogs || []).filter(l =>
+                            l.protocol_id === protocol.id &&
+                            l.entry_type === 'injection' &&
+                            l.entry_date >= latestPurchase.purchase_date
+                          ).length;
+                          const pDose = latestPurchase.dosage || protocol.selected_dose;
+                          return (
+                            <span style={{ color: '#1f2937' }}>
+                              <span style={{ color: '#6b7280' }}>Purchased: </span>
+                              {formatShortDate(latestPurchase.purchase_date)} ({pLabel})
+                              <span style={{ color: '#6b7280', marginLeft: 6 }}>· {injSincePurchase} of {pQty} administered</span>
+                              {pDose && <span style={{ color: '#6b7280', marginLeft: 6 }}>· {pDose}</span>}
+                            </span>
+                          );
+                        }
+                        if (!lastPickup) return null;
                         const isPrepaid = isInClinic || lastPickup.fulfillment_method === 'in_clinic_injections';
                         const injectionsDone = (serviceLogs || []).filter(l =>
                           l.protocol_id === protocol.id &&
@@ -5530,7 +5554,8 @@ export default function PatientProfile() {
                         // in the future AND after the last injection/pickup. If a booked
                         // appt already exists, the booked one supersedes the projection.
                         const todayStr = new Date().toISOString().slice(0, 10);
-                        const lastActivityDate = (lastInjection?.entry_date || lastPickup?.entry_date || '');
+                        const latestPurchaseDate = ((allPurchases || []).find(p => p.protocol_id === protocol.id && p.purchase_date) || {}).purchase_date;
+                        const lastActivityDate = (lastInjection?.entry_date || latestPurchaseDate || lastPickup?.entry_date || '');
                         const projection = protocol.next_expected_date;
                         const projectionFresh = projection
                           && projection >= todayStr
@@ -8248,7 +8273,8 @@ export default function PatientProfile() {
                                           <tr key={'future-' + slot.num} style={{ opacity: 0.35 }}>
                                             <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
                                             <td style={{ color: '#9ca3af' }}>{formatShortDate(slot.expStr)}</td>
-                                            <td colSpan={4} style={{ color: '#9ca3af', fontStyle: 'italic' }}>Upcoming</td>
+                                            <td style={{ color: '#9ca3af' }}>{currentDose || '—'}</td>
+                                            <td colSpan={3} style={{ color: '#9ca3af', fontStyle: 'italic' }}>Upcoming</td>
                                             <td></td>
                                           </tr>
                                         );

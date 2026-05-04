@@ -22,7 +22,7 @@ const SECTIONS = [
     questions: [
       { id: 'first_name', text: 'First name', type: 'text', placeholder: 'First name', required: true },
       { id: 'last_name', text: 'Last name', type: 'text', placeholder: 'Last name', required: true },
-      { id: 'date_of_birth', text: 'Date of birth', type: 'date', required: true },
+      { id: 'date_of_birth', text: 'Date of birth', type: 'dob', placeholder: 'MM/DD/YYYY', required: true },
       { id: 'phone', text: 'Mobile phone', type: 'tel', placeholder: '(555) 555-5555', required: true },
       { id: 'email', text: 'Email', type: 'email', placeholder: 'you@example.com', required: true },
     ],
@@ -110,7 +110,10 @@ export default function HrtMaleQuestionnaire() {
       if (q.required === false) return true;
       if (q.type === 'textarea' && q.required !== true) return true;
       const val = responses[q.id];
-      return val !== undefined && val !== null && val !== '';
+      if (val === undefined || val === null || val === '') return false;
+      if (q.type === 'dob' && String(val).length !== 10) return false;
+      if (q.type === 'tel' && String(val).replace(/\D/g, '').length !== 10) return false;
+      return true;
     });
   };
 
@@ -249,6 +252,15 @@ function formatPhone(input) {
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
+// Progressive date-of-birth formatting: 12251985 → 12/25/1985 as the user types.
+function formatDob(input) {
+  const digits = String(input || '').replace(/\D/g, '').slice(0, 8);
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
 // ═══════════════════════════════════════════════════════════
 // Question Renderer — handles all question types
 // ═══════════════════════════════════════════════════════════
@@ -320,12 +332,16 @@ function QuestionRenderer({ question, value, onChange }) {
         />
       )}
 
-      {q.type === 'date' && (
+      {q.type === 'dob' && (
         <input
-          type="date"
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
+          type="text"
+          inputMode="numeric"
+          value={formatDob(value)}
+          onChange={(e) => onChange(formatDob(e.target.value))}
           style={styles.textInput}
+          placeholder={q.placeholder || 'MM/DD/YYYY'}
+          autoComplete="bday"
+          maxLength={10}
         />
       )}
 

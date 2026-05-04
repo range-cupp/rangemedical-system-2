@@ -19,6 +19,19 @@ function normalizePhone(raw) {
   return digits ? `+${digits}` : null;
 }
 
+// Accepts MM/DD/YYYY or YYYY-MM-DD; returns YYYY-MM-DD or null.
+function normalizeDob(raw) {
+  if (!raw) return null;
+  const s = String(raw).trim();
+  const usMatch = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (usMatch) {
+    const [, mm, dd, yyyy] = usMatch;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  return null;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -32,7 +45,7 @@ export default async function handler(req, res) {
 
     const firstName = responses.first_name?.trim() || null;
     const lastName = responses.last_name?.trim() || null;
-    const dateOfBirth = responses.date_of_birth || null;
+    const dateOfBirth = normalizeDob(responses.date_of_birth);
     const phone = normalizePhone(responses.phone);
     const email = responses.email?.trim().toLowerCase() || null;
 

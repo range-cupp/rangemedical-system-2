@@ -360,6 +360,7 @@ function CheckoutInner() {
   const [dispVerifiedBy, setDispVerifiedBy] = useState('');
   const [dispLotNumber, setDispLotNumber] = useState('');
   const [dispExpirationDate, setDispExpirationDate] = useState('');
+  const [dispFrequency, setDispFrequency] = useState('');
   const [dispFulfillment, setDispFulfillment] = useState('in_clinic');
   const [dispTrackingNumber, setDispTrackingNumber] = useState('');
   const [dispNotes, setDispNotes] = useState('');
@@ -2365,6 +2366,7 @@ function CheckoutInner() {
     setDispVerifiedBy('');
     setDispLotNumber('');
     setDispExpirationDate('');
+    setDispFrequency('');
     setDispFulfillment('in_clinic');
     setDispTrackingNumber('');
     setDispNotes('');
@@ -2426,6 +2428,11 @@ function CheckoutInner() {
       setDispMedication(secondaryMed);
       const detail = secDetails.find(d => d.medication === secondaryMed);
       if (detail?.dosage) setDispDosage(detail.dosage);
+      if (detail?.frequency) setDispFrequency(detail.frequency);
+      else if (HRT_SECONDARY_DOSAGES[secondaryMed]?.defaultFrequency) {
+        setDispFrequency(HRT_SECONDARY_DOSAGES[secondaryMed].defaultFrequency);
+      }
+      if (detail?.supply_type) setDispSupplyType(detail.supply_type);
     } else {
       let medName = protocol.medication || protocol.program_name || '';
       // For injection/NAD categories, try to match against known medication list
@@ -2518,6 +2525,7 @@ function CheckoutInner() {
         verifiedBy: dispVerifiedBy || null,
         lotNumber: dispLotNumber || null,
         expirationDate: dispExpirationDate || null,
+        frequency: dispFrequency || null,
         fulfillmentMethod: dispFulfillment,
         trackingNumber: dispTrackingNumber || null,
         notes: dispNotes || null,
@@ -2661,6 +2669,7 @@ function CheckoutInner() {
             verified_by: d.verifiedBy,
             lot_number: d.lotNumber,
             expiration_date: d.expirationDate,
+            frequency: d.frequency,
             fulfillment_method: d.fulfillmentMethod,
             tracking_number: d.trackingNumber,
             entry_date: d.entryDate || null,
@@ -3530,6 +3539,72 @@ function CheckoutInner() {
                                         </select>
                                       </div>
                                     )}
+
+                                    {/* Supply type + Frequency for HRT secondary meds (HCG, Gonadorelin, Nandrolone) */}
+                                    {cat === 'testosterone' && HRT_SECONDARY_DOSAGES[dispMedication] && (
+                                      <div style={{ display: 'flex', gap: 12 }}>
+                                        {HRT_SECONDARY_DOSAGES[dispMedication].supplyTypes && (
+                                          <div style={{ ...styles.dispenseFieldGroup, flex: 1 }}>
+                                            <label style={styles.fieldLabel}>Supply Type</label>
+                                            <select
+                                              value={dispSupplyType}
+                                              onChange={e => {
+                                                const val = e.target.value;
+                                                setDispSupplyType(val);
+                                                if (val.startsWith('vial')) setDispQuantity('1');
+                                              }}
+                                              style={styles.fieldInput}
+                                            >
+                                              <option value="">Select supply type...</option>
+                                              {HRT_SECONDARY_DOSAGES[dispMedication].supplyTypes.map(s => (
+                                                <option key={s.value} value={s.value}>{s.label}</option>
+                                              ))}
+                                            </select>
+                                          </div>
+                                        )}
+                                        <div style={{ ...styles.dispenseFieldGroup, flex: 1 }}>
+                                          <label style={styles.fieldLabel}>Frequency</label>
+                                          <select
+                                            value={dispFrequency}
+                                            onChange={e => setDispFrequency(e.target.value)}
+                                            style={styles.fieldInput}
+                                          >
+                                            <option value="">Select frequency...</option>
+                                            {HRT_SECONDARY_DOSAGES[dispMedication].frequencies.map(f => (
+                                              <option key={f} value={f}>{f}</option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Refill info for HCG vials */}
+                                    {cat === 'testosterone' && dispMedication === 'HCG' && dispSupplyType?.startsWith('vial') && dispDosage && dispFrequency && (() => {
+                                      const iuPerVial = HRT_SECONDARY_DOSAGES.HCG.iuPerVial || 5000;
+                                      const doseIuMatch = dispDosage.match(/([\d.]+)\s*iu/i);
+                                      const doseIu = doseIuMatch ? parseFloat(doseIuMatch[1]) : 0;
+                                      if (!doseIu) return null;
+                                      const dosesPerVial = Math.floor(iuPerVial / doseIu);
+                                      const vialCount = parseInt(dispQuantity) || 1;
+                                      const totalDoses = dosesPerVial * vialCount;
+                                      const f = dispFrequency.toLowerCase().replace(/\s+/g, '');
+                                      let dosesPerWeek = 2;
+                                      if (/daily/.test(f)) dosesPerWeek = 7;
+                                      else if (/everyotherday/.test(f)) dosesPerWeek = 3.5;
+                                      else { const m = f.match(/^(\d+)x?\/?week/); if (m) dosesPerWeek = parseInt(m[1]); }
+                                      const days = Math.round(totalDoses / dosesPerWeek * 7);
+                                      const refillDate = new Date(dispDate + 'T12:00:00');
+                                      refillDate.setDate(refillDate.getDate() + days);
+                                      const refillStr = refillDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                      return (
+                                        <div style={{ marginTop: 4, padding: '8px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 4, fontSize: 12, color: '#166534' }}>
+                                          <div>{vialCount} vial × {iuPerVial} IU at {doseIu} IU/dose = <strong>{totalDoses} doses</strong> ({dispFrequency} = {(days/7) % 1 === 0 ? days/7 : (days/7).toFixed(1)} weeks)</div>
+                                          <div style={{ marginTop: 4, fontWeight: 700, fontSize: 13 }}>
+                                            Next refill due: {refillStr}
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
 
                                     {/* HRT split: in-clinic count + take-home count.
                                         Total dispensed = inClinic + takeHome. Either can be 0.

@@ -60,6 +60,10 @@ export default async function handler(req, res) {
     injection_frequency,
     wl_frequency_days,
 
+    // Free-text frequency for secondary HRT meds (HCG, Gonadorelin, Nandrolone)
+    // e.g. "2x/week", "Every other day"
+    frequency,
+
     // Date override (for backdating)
     entry_date,
 
@@ -168,6 +172,7 @@ export default async function handler(req, res) {
           supply_type,
           injection_method,
           injection_frequency,
+          frequency,
           isInClinicPurchase,
         });
       } catch (puErr) {
@@ -389,7 +394,7 @@ function isSecondaryMedicationOnProtocol(protocol, medication) {
 // Update only the matching entry inside protocol.secondary_medication_details.
 // Mirrors syncSecondaryMedPickup in /api/service-log so pickups land on the
 // right place regardless of which endpoint logged them.
-async function updateSecondaryMedDetails(protocol, { medication, dosage, quantity, supply_type, logDate }) {
+async function updateSecondaryMedDetails(protocol, { medication, dosage, quantity, supply_type, frequency, logDate }) {
   let existing = [];
   try {
     const raw = protocol.secondary_medication_details;
@@ -401,12 +406,26 @@ async function updateSecondaryMedDetails(protocol, { medication, dosage, quantit
   const idx = (existing || []).findIndex(d => (d.medication || d.name || '').toLowerCase() === medication.toLowerCase());
   const prev = idx >= 0 ? (existing[idx] || {}) : {};
 
-  // Use frequency to calculate how many days the dispensed quantity covers.
-  // quantity = individual doses (e.g. 8 prefilled syringes), not vials.
-  const dosesPerWeek = parseFrequencyPerWeek(prev.frequency)
+  // Resolve frequency (request → previously stored → med-specific default)
+  const resolvedFrequency = frequency || prev.frequency || null;
+  const dosesPerWeek = parseFrequencyPerWeek(resolvedFrequency)
     || SECONDARY_DEFAULT_FREQ[medication]
     || 2;
-  const refillDays = Math.max(1, Math.round(qty / dosesPerWeek * 7));
+
+  // Compute how many doses the dispensed quantity provides.
+  // For vial supplies (e.g. HCG vial_5000iu): qty = number of vials, doses = vials × (IU per vial / dose IU).
+  // For prefilled syringes / unspecified: qty = number of doses directly.
+  let totalDoses = qty;
+  if (supply_type && supply_type.startsWith('vial')) {
+    const iuPerVial = supply_type === 'vial_5000iu' ? 5000 : null;
+    const doseIuMatch = (dosage || '').match(/([\d.]+)\s*iu/i);
+    const doseIu = doseIuMatch ? parseFloat(doseIuMatch[1]) : 0;
+    if (iuPerVial && doseIu > 0) {
+      totalDoses = qty * Math.floor(iuPerVial / doseIu);
+    }
+  }
+
+  const refillDays = Math.max(1, Math.round(totalDoses / dosesPerWeek * 7));
   const nextDate = new Date(logDate + 'T12:00:00');
   nextDate.setDate(nextDate.getDate() + refillDays);
   const nextExpected = nextDate.toISOString().split('T')[0];
@@ -415,7 +434,7 @@ async function updateSecondaryMedDetails(protocol, { medication, dosage, quantit
     ...prev,
     medication,
     dosage: dosage || prev.dosage || null,
-    frequency: prev.frequency || null,
+    frequency: resolvedFrequency,
     supply_type: supply_type || prev.supply_type || null,
     quantity: qty,
     last_refill_date: logDate,
@@ -437,7 +456,7 @@ async function updateSecondaryMedDetails(protocol, { medication, dosage, quantit
 
 // Update protocol based on checkout
 async function updateProtocol(protocolId, opts) {
-  const { category, entryType, logDate, medication, dosage, quantity, supply_type, injection_method, injection_frequency, isInClinicPurchase } = opts;
+  const { category, entryType, logDate, medication, dosage, quantity, supply_type, injection_method, injection_frequency, frequency, isInClinicPurchase } = opts;
 
   try {
     const { data: protocol, error } = await supabase
@@ -455,7 +474,7 @@ async function updateProtocol(protocolId, opts) {
     // overwrite the primary medication's refill date / dose / supply.
     if ((entryType === 'pickup' || entryType === 'med_pickup') && isSecondaryMedicationOnProtocol(protocol, medication)) {
       try {
-        const secResult = await updateSecondaryMedDetails(protocol, { medication, dosage, quantity, supply_type, logDate });
+        const secResult = await updateSecondaryMedDetails(protocol, { medication, dosage, quantity, supply_type, frequency, logDate });
         return { updated: true, protocol_id: protocolId, mode: 'secondary_med_pickup', medication, ...secResult };
       } catch (secErr) {
         console.error('[medication-checkout] secondary med update failed:', secErr.message);

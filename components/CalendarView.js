@@ -739,13 +739,14 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     });
   }, [selectedServices, multiServiceSlots]);
 
-  // Pre-fill wizard if patient is preselected
+  // Pre-fill wizard if patient is preselected (depend on id, not object ref)
+  const preselectedId = preselectedPatient?.id;
   useEffect(() => {
     if (preselectedPatient) {
       setSelectedPatient(preselectedPatient);
       setWizardStep(1);
     }
-  }, [preselectedPatient]);
+  }, [preselectedId]);
 
   // Auto-select provider for single-provider categories (e.g., consultations → Dr. Burgess)
   useEffect(() => {

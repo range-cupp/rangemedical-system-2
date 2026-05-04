@@ -33,6 +33,7 @@ const NAV_ITEMS = [
   { href: '/admin/send-forms', label: 'Send Forms', icon: 'file-text', group: 'medical' },
   { href: '/admin/peptide-guide', label: 'Peptide Guide', icon: 'flask', group: 'business' },
   { href: '/admin/wl-tracker', label: 'WL Tracker', icon: 'activity', group: 'medical' },
+  { href: '/admin/hrt-tracker', label: 'HRT Tracker', icon: 'activity', group: 'medical' },
   { href: '/admin/shop-access', label: 'Shop Access', icon: 'shopping-bag', group: 'business' },
   { href: '/admin/snippets', label: 'Snippets', icon: 'file-text', group: 'business' },
   { href: '/admin/team', label: 'Team', icon: 'user-check', group: 'business' },

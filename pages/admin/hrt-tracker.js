@@ -696,6 +696,9 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule
           </Section>
         )}
 
+        {/* Dispense medication — writes through to service_logs (source of truth) */}
+        <DispenseMedicationBlock patient={patient} onAction={onAction} actionInProgress={actionInProgress} />
+
         {/* Lab reminder SMS */}
         <Section title="Lab reminder SMS">
           <button disabled={actionInProgress || !patient.phone} onClick={() => {
@@ -712,6 +715,125 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule
 
       </div>
     </div>
+  );
+}
+
+// Inline dispense form — writes a pickup row to service_logs through the
+// hrt-tracker API, which is the canonical dispense path. Supports backdating
+// so staff can log a pickup that was handed to the patient on a prior date.
+function DispenseMedicationBlock({ patient, onAction, actionInProgress }) {
+  const [quantity, setQuantity] = useState(1);
+  const [doseOverride, setDoseOverride] = useState('');
+  const [dispenseDate, setDispenseDate] = useState(todayPacificISO());
+  const [fulfillment, setFulfillment] = useState('in_clinic');
+  const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const ds = patient.dispense || {};
+
+  const submit = async () => {
+    if (submitting || actionInProgress) return;
+    if (!quantity || quantity <= 0) {
+      alert('Enter a valid quantity');
+      return;
+    }
+    const doseText = doseOverride || patient.selected_dose || patient.medication || 'medication';
+    if (!confirm(`Log dispense of ${quantity}× ${doseText} for ${patient.name} on ${dispenseDate}?`)) return;
+
+    setSubmitting(true);
+    try {
+      await onAction('dispense_medication', {
+        protocol_id: patient.protocol_id,
+        quantity: Number(quantity),
+        dosage_override: doseOverride || null,
+        dispense_date: dispenseDate,
+        fulfillment_method: fulfillment,
+        notes: notes || null,
+      });
+      setQuantity(1);
+      setDoseOverride('');
+      setDispenseDate(todayPacificISO());
+      setNotes('');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Section title="Dispense medication">
+      {/* Current state summary */}
+      <div style={{
+        padding: '10px 12px', background: '#f9fafb', border: '1px solid #e5e5e5',
+        marginBottom: '12px', fontSize: '12px', color: '#444', lineHeight: 1.5,
+      }}>
+        <div>
+          <strong>Last dispense:</strong> {ds.last_dispensed_date
+            ? <>{fmtDate(ds.last_dispensed_date)}{ds.last_pickup_qty ? ` · ${ds.last_pickup_qty}×` : ''}{ds.last_pickup_dose ? ` ${ds.last_pickup_dose}` : ''}</>
+            : <span style={{ color: '#888' }}>none on file</span>}
+        </div>
+        <div>
+          <strong>Next due:</strong> {ds.next_due_date
+            ? <>{fmtDate(ds.next_due_date)} <span style={{ color: '#888' }}>({ds.label})</span></>
+            : <span style={{ color: '#888' }}>{ds.label}</span>}
+        </div>
+        {ds.pickup_count != null && (
+          <div style={{ color: '#888', marginTop: '2px' }}>
+            {ds.pickup_count} pickup{ds.pickup_count === 1 ? '' : 's'} logged on this protocol
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+        <div>
+          <label style={sharedStyles.label}>Quantity</label>
+          <input type="number" min="1" step="1" value={quantity}
+            onChange={e => setQuantity(e.target.value)}
+            style={sharedStyles.input} />
+        </div>
+        <div>
+          <label style={sharedStyles.label}>Dispense date</label>
+          <input type="date" value={dispenseDate}
+            onChange={e => setDispenseDate(e.target.value)}
+            max={todayPacificISO()}
+            style={sharedStyles.input} />
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '8px' }}>
+        <label style={sharedStyles.label}>Dose <span style={{ color: '#888', textTransform: 'none', letterSpacing: 0 }}>(leave blank to use protocol default: {patient.selected_dose || '—'})</span></label>
+        <input type="text" value={doseOverride}
+          onChange={e => setDoseOverride(e.target.value)}
+          placeholder={patient.selected_dose || 'e.g. 0.4ml/80mg'}
+          style={sharedStyles.input} />
+      </div>
+
+      <div style={{ marginBottom: '8px' }}>
+        <label style={sharedStyles.label}>Fulfillment</label>
+        <select value={fulfillment} onChange={e => setFulfillment(e.target.value)} style={sharedStyles.select}>
+          <option value="in_clinic">In-clinic pickup</option>
+          <option value="overnight">Overnight ship</option>
+          <option value="take_home">Take-home</option>
+        </select>
+      </div>
+
+      <div style={{ marginBottom: '10px' }}>
+        <label style={sharedStyles.label}>Notes (optional)</label>
+        <input type="text" value={notes}
+          onChange={e => setNotes(e.target.value)}
+          placeholder="Lot #, tracking, special instructions, etc."
+          style={sharedStyles.input} />
+      </div>
+
+      <button disabled={submitting || actionInProgress || !quantity}
+        onClick={submit}
+        style={{ ...sharedStyles.btnPrimary, width: '100%' }}>
+        {submitting ? 'Logging…' : `📦 Log dispense (${dispenseDate === todayPacificISO() ? 'today' : `backdated to ${fmtDate(dispenseDate)}`})`}
+      </button>
+
+      <div style={{ fontSize: '11px', color: '#888', marginTop: '6px', textAlign: 'center' }}>
+        Writes to service_logs · updates protocol next-refill date
+      </div>
+    </Section>
   );
 }
 

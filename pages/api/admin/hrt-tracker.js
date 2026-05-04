@@ -75,49 +75,81 @@ function computePaymentStatus(purchases) {
   };
 }
 
-// Medication dispense status — when does the patient need their next shipment?
-// HRT meds are typically dispensed in 10-week or 12-week supplies. We look at the
-// last HRT purchase and protocol frequency to estimate coverage.
-function computeDispenseStatus(protocol, purchases, todayISO) {
-  if (!purchases || purchases.length === 0) {
+// Medication dispense status — single source of truth is service_logs (pickup events)
+// + protocol's next_expected_date (kept in sync by every dispense via /api/medication-checkout).
+// Falls back to purchase data when no pickups have been logged yet (e.g., legacy patients).
+function computeDispenseStatus(protocol, pickupLogs, purchases, todayISO) {
+  // Prefer the canonical fields the medication-checkout endpoint maintains
+  const lastDispensedDate = protocol.last_refill_date
+    || pickupLogs[0]?.entry_date
+    || purchases[0]?.purchase_date
+    || null;
+
+  const nextDueDate = protocol.next_expected_date || null;
+
+  if (!lastDispensedDate && !nextDueDate) {
     return {
       state: 'never', label: 'Never dispensed',
-      days_until_due: null, last_dispensed_date: null, coverage_days: 0,
+      days_until_due: null, last_dispensed_date: null,
+      last_pickup_qty: null, last_pickup_dose: null,
     };
   }
 
-  const last = purchases[0]; // most recent
-  // HRT supply typically covers 10 weeks (70 days). Adjust based on item_name if possible.
-  const itemName = String(last.item_name || '').toLowerCase();
-  let coverageDays = 70; // 10-week default
-  const weekMatch = itemName.match(/(\d+)\s*week/);
-  if (weekMatch) {
-    coverageDays = parseInt(weekMatch[1], 10) * 7;
-  } else if (/month|monthly/.test(itemName)) {
-    coverageDays = 30;
-  } else if (/12.*week|3.*month|quarter/.test(itemName)) {
-    coverageDays = 84;
-  }
-
-  const daysSincePurchase = Math.max(0, daysBetween(last.purchase_date, todayISO));
-  const daysRemaining = coverageDays - daysSincePurchase;
+  const lastQty = pickupLogs[0]?.quantity || null;
+  const lastDose = pickupLogs[0]?.dosage || null;
+  const lastFulfillment = pickupLogs[0]?.fulfillment_method || null;
+  const pickupCount = pickupLogs.length;
 
   const base = {
-    last_dispensed_date: last.purchase_date,
-    coverage_days: coverageDays,
-    days_until_due: Math.max(0, daysRemaining),
+    last_dispensed_date: lastDispensedDate,
+    next_due_date: nextDueDate,
+    last_pickup_qty: lastQty,
+    last_pickup_dose: lastDose,
+    last_fulfillment: lastFulfillment,
+    pickup_count: pickupCount,
   };
 
-  if (daysRemaining <= 0) {
-    return { state: 'send_now', label: 'Send next supply', ...base, days_until_due: 0 };
+  // If we have a next_expected_date, that's the most accurate signal
+  if (nextDueDate) {
+    const daysRemaining = daysBetween(todayISO, nextDueDate);
+    base.days_until_due = Math.max(0, daysRemaining);
+
+    if (daysRemaining < 0) {
+      return { state: 'send_now', label: `Refill overdue (${Math.abs(daysRemaining)}d)`, ...base, days_until_due: 0 };
+    }
+    if (daysRemaining === 0) {
+      return { state: 'send_now', label: 'Refill due today', ...base };
+    }
+    if (daysRemaining <= 7) {
+      return { state: 'due_now', label: `Refill in ${daysRemaining}d`, ...base };
+    }
+    if (daysRemaining <= 14) {
+      return { state: 'due_soon', label: `Refill in ${daysRemaining}d`, ...base };
+    }
+    return { state: 'active', label: `${daysRemaining}d supply`, ...base };
   }
-  if (daysRemaining <= 7) {
-    return { state: 'due_now', label: `Refill in ${daysRemaining}d`, ...base };
+
+  // Fallback: estimate coverage from the last pickup quantity + protocol frequency
+  if (pickupLogs[0]) {
+    const qty = pickupLogs[0].quantity || 1;
+    const cadenceDays = parseFrequencyDays(protocol.frequency) || 7;
+    const coverageDays = qty * cadenceDays;
+    const daysSince = Math.max(0, daysBetween(pickupLogs[0].entry_date, todayISO));
+    const daysRemaining = coverageDays - daysSince;
+    base.days_until_due = Math.max(0, daysRemaining);
+
+    if (daysRemaining <= 0) return { state: 'send_now', label: 'Refill needed', ...base, days_until_due: 0 };
+    if (daysRemaining <= 7) return { state: 'due_now', label: `Refill in ${daysRemaining}d`, ...base };
+    if (daysRemaining <= 14) return { state: 'due_soon', label: `Refill in ${daysRemaining}d`, ...base };
+    return { state: 'active', label: `${daysRemaining}d supply`, ...base };
   }
-  if (daysRemaining <= 14) {
-    return { state: 'due_soon', label: `Refill in ${daysRemaining}d`, ...base };
+
+  // Have a purchase but no pickup logged yet — flag it so staff knows to log the dispense
+  if (purchases[0]) {
+    return { state: 'send_now', label: 'Pickup not logged', ...base, days_until_due: 0 };
   }
-  return { state: 'active', label: `${daysRemaining}d supply`, ...base };
+
+  return { state: 'never', label: 'Never dispensed', ...base, days_until_due: null };
 }
 
 // Lab status — determines if a patient needs labs, is overdue, or is on track
@@ -201,6 +233,8 @@ async function handleGet(req, res) {
         id, patient_id, program_name, program_type, medication, selected_dose,
         frequency, start_date, end_date, status, delivery_method,
         total_sessions, sessions_used, first_followup_weeks,
+        supply_type, injection_method, injection_frequency,
+        last_refill_date, next_expected_date, pickup_frequency,
         patients!inner ( id, name, first_name, last_name, phone, ghl_contact_id )
       `)
       .eq('status', 'active')
@@ -267,8 +301,32 @@ async function handleGet(req, res) {
       (labProtocolMap[lp.patient_id] ||= []).push(lp);
     }
 
-    // 6. Pull recent service logs (HRT-related: pickups, injections)
+    // 6. Pull HRT service logs — pickups (canonical dispense source of truth)
+    // and recent injections. Pickups go back further (1 year) so we can see
+    // the full dispense history; injections only need the last 4 weeks.
+    const oneYearAgo = addDaysISO(todayISO, -365);
     const fourWeeksAgo = addDaysISO(todayISO, -28);
+
+    const { data: pickupLogsRaw } = await supabase
+      .from('service_logs')
+      .select('id, patient_id, protocol_id, entry_date, entry_type, medication, dosage, quantity, supply_type, fulfillment_method, notes, category')
+      .in('patient_id', patientIds)
+      .eq('entry_type', 'pickup')
+      .or('category.eq.testosterone,category.eq.hrt,category.ilike.%hrt%')
+      .gte('entry_date', oneYearAgo)
+      .order('entry_date', { ascending: false });
+
+    // Pickups indexed by protocol_id (so we attribute each pickup to the right
+    // protocol — important when patients have multiple HRT protocols).
+    const pickupLogsByProtocol = {};
+    const pickupLogsByPatient = {};
+    for (const log of (pickupLogsRaw || [])) {
+      if (log.protocol_id) {
+        (pickupLogsByProtocol[log.protocol_id] ||= []).push(log);
+      }
+      (pickupLogsByPatient[log.patient_id] ||= []).push(log);
+    }
+
     const { data: serviceLogsRaw } = await supabase
       .from('service_logs')
       .select('id, patient_id, entry_date, entry_type, medication, dosage, notes, category')
@@ -346,7 +404,13 @@ async function handleGet(req, res) {
 
       const labStatus = computeLabStatus(labSchedule, todayISO);
       const paymentStatus = computePaymentStatus(purchases);
-      const dispenseStatus = computeDispenseStatus(protocol, purchases, todayISO);
+
+      // Pickup logs scoped to this protocol (preferred); fall back to all
+      // patient pickups if the protocol_id link wasn't set on older rows.
+      const pickupLogs = pickupLogsByProtocol[protocol.id]
+        || pickupLogsByPatient[patient.id]
+        || [];
+      const dispenseStatus = computeDispenseStatus(protocol, pickupLogs, purchases, todayISO);
 
       // Days on protocol
       const daysOnProtocol = protocol.start_date
@@ -454,8 +518,11 @@ async function handlePost(req, res, employee) {
   const { data: protocol, error: protoErr } = await supabase
     .from('protocols')
     .select(`
-      id, patient_id, program_type, start_date, first_followup_weeks,
-      patients!inner ( id, name, first_name, phone, ghl_contact_id )
+      id, patient_id, program_type, program_name, start_date, first_followup_weeks,
+      medication, selected_dose, frequency, supply_type,
+      injection_method, injection_frequency, pickup_frequency,
+      sessions_used, last_refill_date, next_expected_date,
+      patients!inner ( id, name, first_name, phone, email, ghl_contact_id )
     `)
     .eq('id', protocol_id)
     .single();
@@ -465,9 +532,10 @@ async function handlePost(req, res, employee) {
 
   try {
     switch (action) {
-      case 'mark_lab_drawn':   return await actionMarkLabDrawn(req, res, protocol, employee);
-      case 'send_lab_reminder': return await actionSendLabReminder(req, res, protocol, employee);
-      case 'send_booking_sms': return await actionSendBookingSMS(req, res, protocol, employee);
+      case 'mark_lab_drawn':      return await actionMarkLabDrawn(req, res, protocol, employee);
+      case 'send_lab_reminder':   return await actionSendLabReminder(req, res, protocol, employee);
+      case 'send_booking_sms':    return await actionSendBookingSMS(req, res, protocol, employee);
+      case 'dispense_medication': return await actionDispenseMedication(req, res, protocol, employee);
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }
@@ -563,4 +631,158 @@ async function actionSendBookingSMS(req, res, protocol, employee) {
 
   if (!smsResult.success) return res.status(500).json({ error: smsResult.error });
   return res.status(200).json({ success: true, message: 'Booking SMS sent' });
+}
+
+// Dispense HRT medication. Goes through the canonical medication-checkout pipeline
+// internally so the dispense is recorded in service_logs (single source of truth) AND
+// the protocol's last_refill_date / next_expected_date / sessions_used stay in sync.
+// Supports backdating via dispense_date.
+async function actionDispenseMedication(req, res, protocol, employee) {
+  const {
+    quantity,
+    dosage_override,
+    dispense_date,    // YYYY-MM-DD — defaults to today, allows backdating
+    fulfillment_method = 'in_clinic',
+    medication_override,
+    supply_type_override,
+    notes,
+  } = req.body;
+
+  const patient = protocol.patients;
+  if (!patient) return res.status(404).json({ error: 'Patient not found on protocol' });
+
+  const qty = quantity ? parseInt(quantity) : 1;
+  if (!Number.isFinite(qty) || qty <= 0) {
+    return res.status(400).json({ error: 'quantity must be a positive integer' });
+  }
+
+  const entryDate = dispense_date && /^\d{4}-\d{2}-\d{2}$/.test(dispense_date)
+    ? dispense_date
+    : todayPacificISO();
+
+  // Map HRT program_types to the testosterone service_log category — same mapping
+  // the canonical /api/admin/dispense and /api/medication-checkout endpoints use.
+  const category = 'testosterone';
+
+  // Duplicate guard — same date + same protocol = already logged
+  const { data: existing } = await supabase
+    .from('service_logs')
+    .select('id')
+    .eq('patient_id', patient.id)
+    .eq('protocol_id', protocol.id)
+    .eq('entry_date', entryDate)
+    .eq('entry_type', 'pickup')
+    .limit(1);
+
+  if (existing && existing.length > 0) {
+    return res.status(409).json({
+      error: `Already dispensed on ${entryDate} — pick a different date or open the patient chart to edit.`,
+      existing_id: existing[0].id,
+    });
+  }
+
+  const dosage = dosage_override || protocol.selected_dose || null;
+  const medication = medication_override || protocol.medication || null;
+  const supplyType = supply_type_override || protocol.supply_type || null;
+
+  // 1. Insert the pickup row in service_logs (the source of truth)
+  const { data: pickupLog, error: insertErr } = await supabase
+    .from('service_logs')
+    .insert({
+      patient_id: patient.id,
+      protocol_id: protocol.id,
+      category,
+      entry_type: 'pickup',
+      entry_date: entryDate,
+      medication,
+      dosage,
+      quantity: qty,
+      supply_type: supplyType,
+      fulfillment_method: fulfillment_method || 'in_clinic',
+      notes: notes || `Dispensed via HRT tracker by ${employee.first_name || employee.name || 'staff'}`,
+    })
+    .select('id')
+    .single();
+
+  if (insertErr) {
+    console.error('[hrt-tracker dispense] insert error:', insertErr);
+    return res.status(500).json({ error: insertErr.message });
+  }
+
+  // 2. Calculate next_expected_date based on supply + frequency. Same logic as
+  // /api/admin/dispense::getRefillIntervalDays — duplicated here intentionally
+  // to keep this endpoint self-contained.
+  const intervalDays = getHRTRefillIntervalDays(protocol, supplyType, dosage, qty);
+  const nextDate = new Date(entryDate + 'T12:00:00');
+  nextDate.setDate(nextDate.getDate() + intervalDays);
+  const nextExpectedDate = nextDate.toISOString().split('T')[0];
+
+  // 3. Update protocol with canonical fields
+  const { error: protoUpdateErr } = await supabase
+    .from('protocols')
+    .update({
+      last_refill_date: entryDate,
+      next_expected_date: nextExpectedDate,
+      sessions_used: (protocol.sessions_used || 0) + qty,
+      ...(supply_type_override ? { supply_type: supply_type_override } : {}),
+    })
+    .eq('id', protocol.id);
+
+  if (protoUpdateErr) {
+    console.error('[hrt-tracker dispense] protocol update error:', protoUpdateErr);
+    // Don't fail the request — the pickup log is the source of truth, the
+    // protocol fields are derived. Log the error but report success.
+  }
+
+  await logAction({
+    employee, action_type: 'hrt_tracker_dispense',
+    description: `Dispensed ${qty}× ${medication || 'HRT'}${dosage ? ' ' + dosage : ''} for ${patient.name} on ${entryDate}`,
+    target_type: 'protocol', target_id: protocol.id,
+  });
+
+  return res.status(200).json({
+    success: true,
+    service_log_id: pickupLog.id,
+    dispense_date: entryDate,
+    next_expected_date: nextExpectedDate,
+    interval_days: intervalDays,
+  });
+}
+
+// Mirrors the HRT branch of /api/admin/dispense::getRefillIntervalDays.
+// Keeps this endpoint self-contained so the tracker can compute coverage
+// without importing from the deprecated dispense API.
+function getHRTRefillIntervalDays(protocol, supplyTypeOverride, doseOverride, qty) {
+  const supply = (supplyTypeOverride || protocol.supply_type || '').toLowerCase();
+  const dose = doseOverride || protocol.selected_dose || '';
+
+  if (supply === 'pellet') return 120;
+  if (supply === 'oral_30day' || supply.includes('oral')) return 30;
+  if (supply === 'in_clinic') return 7 * qty;
+
+  // Prefilled syringes — fixed interval per syringe count
+  if (supply === 'prefilled' || supply.startsWith('prefilled_')) {
+    const prefillDays = { prefilled_1week: 7, prefilled_2week: 14, prefilled_4week: 28 };
+    if (prefillDays[supply]) return prefillDays[supply];
+    return 28;
+  }
+
+  // Vials — figure out coverage from ml-per-injection × frequency
+  if (supply.includes('vial')) {
+    const vialMl = supply === 'vial_5ml' ? 5 : 10;
+    const mlMatch = (dose || '').match(/(\d+\.?\d*)\s*ml/i);
+    const ml = mlMatch ? parseFloat(mlMatch[1]) : null;
+    if (ml && ml < 2) {
+      const isSubQ = (protocol.injection_method || '').toLowerCase() === 'subq';
+      const injectionsPerWeek = isSubQ ? 7 : (protocol.injection_frequency || 2);
+      const mlPerWeek = ml * injectionsPerWeek;
+      const weeks = vialMl / mlPerWeek;
+      return Math.round(weeks * 7);
+    }
+    return supply === 'vial_5ml' ? 42 : 84;
+  }
+
+  // Fallback: estimate from quantity × cadence (e.g. 3 syringes × every 3-5 days)
+  const cadenceDays = parseFrequencyDays(protocol.frequency) || 7;
+  return qty * cadenceDays;
 }

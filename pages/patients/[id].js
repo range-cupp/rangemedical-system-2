@@ -779,6 +779,7 @@ export default function PatientProfile() {
   const [deleting, setDeleting] = useState(false);
   const [bloodDrawModal, setBloodDrawModal] = useState(null);
   const [bloodDrawDate, setBloodDrawDate] = useState('');
+  const [bloodDrawRescheduleDate, setBloodDrawRescheduleDate] = useState('');
   const [bloodDrawSaving, setBloodDrawSaving] = useState(false);
   const [showEditPurchaseModal, setShowEditPurchaseModal] = useState(false);
   const [editingPurchase, setEditingPurchase] = useState(null);
@@ -1334,8 +1335,9 @@ export default function PatientProfile() {
             if (result.status === 'fulfilled') {
               const { proto: p, protoData } = result.value;
               const bloodDrawLogs = (protoData.activityLogs || []).filter(l => l.log_type === 'blood_draw');
+              const rescheduleLogs = (protoData.activityLogs || []).filter(l => l.log_type === 'blood_draw_reschedule');
               const firstFollowup = protoData.protocol?.first_followup_weeks || p.first_followup_weeks || 8;
-              schedules[p.id] = buildAdaptiveHRTSchedule(p.start_date, firstFollowup, bloodDrawLogs, data.labs || [], data.labProtocols || []);
+              schedules[p.id] = buildAdaptiveHRTSchedule(p.start_date, firstFollowup, bloodDrawLogs, data.labs || [], data.labProtocols || [], rescheduleLogs);
             } else {
               const p = hrtProtos[results.indexOf(result)];
               const firstFollowup = p.first_followup_weeks || 8;
@@ -2094,6 +2096,7 @@ export default function PatientProfile() {
 
   const handleBloodDrawClick = (draw, protocolId) => {
     setBloodDrawDate(draw.completedDate || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
+    setBloodDrawRescheduleDate('');
     setBloodDrawModal({ ...draw, protocolId });
   };
 
@@ -2101,19 +2104,26 @@ export default function PatientProfile() {
     if (!bloodDrawModal) return;
     setBloodDrawSaving(true);
     try {
+      const body = { drawLabel: bloodDrawModal.label };
+      if (action === 'undo') {
+        body.action = 'undo';
+      } else if (action === 'reschedule') {
+        body.action = 'reschedule';
+        body.rescheduleDate = bloodDrawRescheduleDate;
+      } else if (action === 'undo-reschedule') {
+        body.action = 'undo-reschedule';
+      } else {
+        body.action = 'complete';
+        body.completedDate = bloodDrawDate;
+      }
       const res = await fetch(`/api/protocols/${bloodDrawModal.protocolId}/log-blood-draw`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          drawLabel: bloodDrawModal.label,
-          completedDate: action === 'undo' ? null : bloodDrawDate,
-          action: action === 'undo' ? 'undo' : 'complete'
-        })
+        body: JSON.stringify(body)
       });
       const data = await res.json();
       if (data.success) {
         setBloodDrawModal(null);
-        // Refresh patient data to update the schedule
         fetchPatient();
       }
     } catch (err) {
@@ -2143,7 +2153,8 @@ export default function PatientProfile() {
       const protoRes = await fetch(`/api/protocols/${protocolId}`);
       const protoData = await protoRes.json();
       const bloodDrawLogs = (protoData.activityLogs || []).filter(l => l.log_type === 'blood_draw');
-      const adaptive = buildAdaptiveHRTSchedule(updatedProto.start_date, newWeeks, bloodDrawLogs, labs || [], labProtocols || []);
+      const rescheduleLogs = (protoData.activityLogs || []).filter(l => l.log_type === 'blood_draw_reschedule');
+      const adaptive = buildAdaptiveHRTSchedule(updatedProto.start_date, newWeeks, bloodDrawLogs, labs || [], labProtocols || [], rescheduleLogs);
       setHrtLabSchedules(prev => ({ ...prev, [protocolId]: adaptive }));
     } catch {
       const schedule = getHRTLabSchedule(updatedProto.start_date, newWeeks);
@@ -6567,7 +6578,7 @@ export default function PatientProfile() {
                     )}
                     <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       {schedule.map(draw => {
-                        const color = draw.status === 'completed' ? '#22c55e' : draw.status === 'overdue' ? '#dc2626' : draw.status === 'skipped' ? '#d1d5db' : '#9ca3af';
+                        const color = draw.status === 'completed' ? '#22c55e' : draw.rescheduled ? '#f59e0b' : draw.status === 'overdue' ? '#dc2626' : draw.status === 'skipped' ? '#d1d5db' : '#9ca3af';
                         return (
                           <div
                             key={draw.label}
@@ -6590,7 +6601,10 @@ export default function PatientProfile() {
                             {draw.completedDate && (
                               <span style={{ color: '#22c55e', fontSize: '12px', fontWeight: 500 }}>✓ {formatShortDate(draw.completedDate)}</span>
                             )}
-                            {draw.status === 'overdue' && !draw.completedDate && (
+                            {draw.rescheduled && !draw.completedDate && (
+                              <span style={{ color: '#f59e0b', fontSize: '12px', fontWeight: 500 }}>Rescheduled</span>
+                            )}
+                            {draw.status === 'overdue' && !draw.completedDate && !draw.rescheduled && (
                               <span style={{ color: '#dc2626', fontSize: '12px', fontWeight: 500 }}>Overdue</span>
                             )}
                             {draw.status === 'skipped' && !draw.completedDate && (
@@ -7731,7 +7745,7 @@ export default function PatientProfile() {
                                 {isLabExpanded && (
                                   <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     {schedule.map(draw => {
-                                      const color = draw.status === 'completed' ? '#22c55e' : draw.status === 'overdue' ? '#dc2626' : draw.status === 'skipped' ? '#d1d5db' : '#9ca3af';
+                                      const color = draw.status === 'completed' ? '#22c55e' : draw.rescheduled ? '#f59e0b' : draw.status === 'overdue' ? '#dc2626' : draw.status === 'skipped' ? '#d1d5db' : '#9ca3af';
                                       return (
                                         <div
                                           key={draw.label}
@@ -7752,13 +7766,16 @@ export default function PatientProfile() {
                                           {draw.completedDate && (
                                             <span style={{ color: '#22c55e', marginLeft: 'auto', fontSize: '12px' }}>✓ {formatShortDate(draw.completedDate)}</span>
                                           )}
-                                          {draw.status === 'overdue' && !draw.completedDate && (
+                                          {draw.rescheduled && !draw.completedDate && (
+                                            <span style={{ color: '#f59e0b', marginLeft: 'auto', fontSize: '12px' }}>Rescheduled</span>
+                                          )}
+                                          {draw.status === 'overdue' && !draw.completedDate && !draw.rescheduled && (
                                             <span style={{ color: '#dc2626', marginLeft: 'auto', fontSize: '12px' }}>Overdue</span>
                                           )}
                                           {draw.status === 'skipped' && !draw.completedDate && (
                                             <span style={{ color: '#9ca3af', marginLeft: 'auto', fontSize: '12px' }}>Skipped</span>
                                           )}
-                                          {draw.status === 'upcoming' && !draw.completedDate && (
+                                          {draw.status === 'upcoming' && !draw.completedDate && !draw.rescheduled && (
                                             <span style={{ color: '#3b82f6', marginLeft: 'auto', fontSize: '11px' }}>Mark complete</span>
                                           )}
                                         </div>
@@ -15957,6 +15974,9 @@ export default function PatientProfile() {
               </h3>
               <p style={{ margin: '0 0 16px', color: '#6b7280', fontSize: 14 }}>
                 Scheduled: {bloodDrawModal.weekLabel}
+                {bloodDrawModal.rescheduled && (
+                  <span style={{ color: '#f59e0b', fontWeight: 600 }}> — Rescheduled</span>
+                )}
                 {bloodDrawModal.status === 'completed' && (
                   <span style={{ color: '#22c55e', fontWeight: 600 }}> — Completed</span>
                 )}
@@ -15973,6 +15993,43 @@ export default function PatientProfile() {
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
                 />
               </div>
+
+              {/* Reschedule section — only for non-completed draws */}
+              {bloodDrawModal.status !== 'completed' && (
+                <div style={{ marginBottom: 16, paddingTop: 12, borderTop: '1px solid #e5e7eb' }}>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+                    Reschedule to
+                  </label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      type="date"
+                      value={bloodDrawRescheduleDate}
+                      onChange={e => setBloodDrawRescheduleDate(e.target.value)}
+                      style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
+                    />
+                    <button
+                      onClick={() => handleBloodDrawSave('reschedule')}
+                      disabled={bloodDrawSaving || !bloodDrawRescheduleDate}
+                      style={{
+                        padding: '8px 16px', border: 'none', borderRadius: 0,
+                        background: '#f59e0b', color: '#fff', cursor: bloodDrawSaving || !bloodDrawRescheduleDate ? 'not-allowed' : 'pointer',
+                        fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
+                        opacity: bloodDrawSaving || !bloodDrawRescheduleDate ? 0.5 : 1
+                      }}
+                    >Reschedule</button>
+                  </div>
+                  {bloodDrawModal.rescheduled && (
+                    <button
+                      onClick={() => handleBloodDrawSave('undo-reschedule')}
+                      disabled={bloodDrawSaving}
+                      style={{
+                        marginTop: 6, padding: '4px 0', border: 'none', background: 'none',
+                        color: '#6b7280', cursor: 'pointer', fontSize: 12, textDecoration: 'underline'
+                      }}
+                    >Reset to original schedule</button>
+                  )}
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 {bloodDrawModal.status === 'completed' && (

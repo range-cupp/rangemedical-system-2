@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   }
 
   const { id } = req.query;
-  const { drawLabel, completedDate, action } = req.body;
+  const { drawLabel, completedDate, action, rescheduleDate } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'Protocol ID required' });
@@ -40,6 +40,51 @@ export default async function handler(req, res) {
     }
 
     const patientName = protocol.patients?.name || 'Unknown Patient';
+
+    // Handle reschedule action
+    if (action === 'reschedule') {
+      if (!rescheduleDate) {
+        return res.status(400).json({ error: 'Reschedule date required' });
+      }
+      const { data: existing } = await supabase
+        .from('protocol_logs')
+        .select('id')
+        .eq('protocol_id', id)
+        .eq('log_type', 'blood_draw_reschedule')
+        .eq('notes', drawLabel);
+
+      if (existing && existing.length > 0) {
+        await supabase
+          .from('protocol_logs')
+          .update({ log_date: rescheduleDate })
+          .eq('id', existing[0].id);
+      } else {
+        await supabase
+          .from('protocol_logs')
+          .insert({
+            protocol_id: id,
+            patient_id: protocol.patient_id,
+            log_type: 'blood_draw_reschedule',
+            log_date: rescheduleDate,
+            notes: drawLabel
+          });
+      }
+      console.log(`✓ Blood draw rescheduled: ${drawLabel} for ${patientName} → ${rescheduleDate}`);
+      return res.status(200).json({ success: true, message: `${drawLabel} rescheduled to ${rescheduleDate}`, action: 'rescheduled' });
+    }
+
+    // Handle undo-reschedule action
+    if (action === 'undo-reschedule') {
+      await supabase
+        .from('protocol_logs')
+        .delete()
+        .eq('protocol_id', id)
+        .eq('log_type', 'blood_draw_reschedule')
+        .eq('notes', drawLabel);
+      console.log(`✓ Blood draw reschedule undone: ${drawLabel} for ${patientName}`);
+      return res.status(200).json({ success: true, message: `${drawLabel} reset to original schedule`, action: 'undo-rescheduled' });
+    }
+
     const ghlContactId = protocol.patients?.ghl_contact_id;
 
     // Check for existing blood_draw log with this label
@@ -119,6 +164,14 @@ export default async function handler(req, res) {
           notes: drawLabel
         });
     }
+
+    // Clear any reschedule override now that the draw is actually completed
+    await supabase
+      .from('protocol_logs')
+      .delete()
+      .eq('protocol_id', id)
+      .eq('log_type', 'blood_draw_reschedule')
+      .eq('notes', drawLabel);
 
     // Sync: advance matching auto-scheduled lab protocol to blood_draw_complete
     try {

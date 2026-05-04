@@ -9,6 +9,7 @@ import { isWeightLossType } from '../../../lib/protocol-config';
 import { todayPacific, nowPacificISO } from '../../../lib/date-utils';
 import { buildAdaptiveHRTSchedule, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
 import { guardDoseChange } from '../../../lib/dose-change-guard';
+import { extractWLFields } from '../../../lib/wl-note-parser';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -224,13 +225,23 @@ export default async function handler(req, res) {
     let doseGuardBlocked = false;
     let doseGuardReason = null;
 
-    if (isWLEncounter && structured_data) {
+    if (isWLEncounter) {
       try {
-        const rawWeight = structured_data?.weight_vitals?.current_weight;
-        const weight = rawWeight ? parseFloat(rawWeight) : null;
+        // Pull dose/weight/medication from structured_data when present, fall
+        // back to parsing the rendered body markdown. extractWLFields returns
+        // null when neither source carries any recognizable WL fields, in
+        // which case there's nothing to sync (e.g. an addendum-only note).
+        const wl = extractWLFields(structured_data, noteBody);
+        if (!wl) {
+          console.warn(
+            `[wl-sync] WL encounter note ${data.id} carries no parseable dose/weight/medication — skipping service_log sync. Body preview: ${(noteBody || '').slice(0, 120)}`
+          );
+        }
+
+        const dose = wl?.dose || null;
+        const medication = wl?.medication || null;
+        const weight = wl?.weight ?? null;
         const hasWeight = weight !== null && !isNaN(weight);
-        const dose = structured_data?.medication?.dose || null;
-        const medication = structured_data?.medication?.medication_name || null;
         const logDate = note_date
           ? new Date(note_date).toISOString().split('T')[0]
           : todayPacific();
@@ -240,28 +251,72 @@ export default async function handler(req, res) {
         // both to identify WL/HRT. Without them every protocol looks "other"
         // and the guard silently lets dose writes through (the Lily/Claudia
         // 6→8mg incident on 2026-04-28).
-        const { data: protocols } = await supabase
+        const { data: protocols } = wl ? await supabase
           .from('protocols')
           .select('id, starting_weight, sessions_used, total_sessions, selected_dose, dose, dose_per_injection, injections_per_week, patient_id, medication, program_type, category')
           .eq('patient_id', patient_id)
           .ilike('program_type', 'weight_loss%')
           .in('status', ['active', 'in_progress'])
           .order('created_at', { ascending: false })
-          .limit(1);
+          .limit(1)
+          : { data: null };
 
         const activeProtocol = protocols?.[0];
 
-        if (activeProtocol) {
-          // 1. Create service_logs entry (source of truth for protocol session table)
-          // Injection is recorded even without a weight — weight can be added later
-          const { data: existingServiceLog } = await supabase
-            .from('service_logs')
-            .select('id')
-            .eq('patient_id', patient_id)
-            .eq('category', 'weight_loss')
-            .eq('entry_date', logDate)
-            .neq('entry_type', 'pickup')
-            .maybeSingle();
+        if (wl && activeProtocol) {
+          // 1. Create or update service_logs entry. Linkage priority:
+          //    a) note_id — direct link, used when re-syncing an edit
+          //    b) appointment_id matched via patient_notes — same visit, same row
+          //    c) (patient_id, category, entry_date) — legacy fallback
+          // The first path that returns a row wins. This stops same-visit
+          // notes from clobbering each other and stops repeated edits from
+          // creating dup rows on a different day.
+          let existingServiceLog = null;
+
+          // (a) by note_id
+          {
+            const { data: byNote } = await supabase
+              .from('service_logs')
+              .select('id, entry_date, entry_type')
+              .eq('note_id', data.id)
+              .maybeSingle();
+            if (byNote) existingServiceLog = byNote;
+          }
+
+          // (b) by appointment — find any service_log already linked to a
+          // note that points at this appointment
+          if (!existingServiceLog && (data.appointment_id || appointment_id)) {
+            const apptId = data.appointment_id || appointment_id;
+            const { data: notesForAppt } = await supabase
+              .from('patient_notes')
+              .select('id')
+              .eq('appointment_id', apptId);
+            const noteIds = (notesForAppt || []).map(n => n.id);
+            if (noteIds.length > 0) {
+              const { data: byAppt } = await supabase
+                .from('service_logs')
+                .select('id, entry_date, entry_type')
+                .in('note_id', noteIds)
+                .neq('entry_type', 'pickup')
+                .limit(1)
+                .maybeSingle();
+              if (byAppt) existingServiceLog = byAppt;
+            }
+          }
+
+          // (c) date fallback (legacy notes with no note_id link yet)
+          if (!existingServiceLog) {
+            const { data: byDate } = await supabase
+              .from('service_logs')
+              .select('id, entry_date, entry_type')
+              .eq('patient_id', patient_id)
+              .eq('category', 'weight_loss')
+              .eq('entry_date', logDate)
+              .neq('entry_type', 'pickup')
+              .is('note_id', null)
+              .maybeSingle();
+            if (byDate) existingServiceLog = byDate;
+          }
 
           const serviceLogFields = {
             dosage: dose,
@@ -272,14 +327,24 @@ export default async function handler(req, res) {
           if (hasWeight) serviceLogFields.weight = weight;
 
           if (existingServiceLog) {
-            // Update existing entry for today
+            // Promote any pre-existing non-injection row (e.g. an auto-created
+            // 'weight_check' from an earlier flow) to a real injection now
+            // that a provider has documented one.
+            const updateFields = {
+              ...serviceLogFields,
+              note_id: data.id,
+              entry_date: logDate,
+            };
+            if (existingServiceLog.entry_type !== 'injection' && dose) {
+              updateFields.entry_type = 'injection';
+            }
             await supabase
               .from('service_logs')
-              .update(serviceLogFields)
+              .update(updateFields)
               .eq('id', existingServiceLog.id);
-            console.log(`Updated service_log ${existingServiceLog.id} for ${logDate}`);
+            console.log(`Updated service_log ${existingServiceLog.id} for ${logDate} (linked to note ${data.id})`);
           } else {
-            // Create new service log entry
+            // Create new service log entry, linked back to this note.
             await supabase
               .from('service_logs')
               .insert({
@@ -288,10 +353,11 @@ export default async function handler(req, res) {
                 category: 'weight_loss',
                 entry_type: 'injection',
                 entry_date: logDate,
+                note_id: data.id,
                 ...serviceLogFields,
                 administered_by: created_by || null,
               });
-            console.log(`Created service_log for weight loss on ${logDate}`);
+            console.log(`Created service_log for weight loss on ${logDate} (linked to note ${data.id})`);
           }
 
           // 2. Update protocol: dose + sessions_used + starting_weight
@@ -332,7 +398,7 @@ export default async function handler(req, res) {
             // Log dose change if different from previous dose — record intent
             // regardless of whether the dose was actually applied.
             if (previousDose && previousDose !== dose) {
-              const plan = structured_data?.assessment?.plan || '';
+              const plan = wl.plan || '';
               const isIncrease = plan.toLowerCase().includes('increase');
               const isDecrease = plan.toLowerCase().includes('decrease');
               const direction = isIncrease ? 'increased' : (isDecrease ? 'decreased' : 'changed');
@@ -345,7 +411,7 @@ export default async function handler(req, res) {
                 log_date: logDate,
                 dose: dose,
                 weight: weight || null,
-                notes: `Dose ${direction}: ${previousDose} → ${dose}.${blockedTag} ${plan}${structured_data?.additional?.notes ? ' — ' + structured_data.additional.notes : ''}`,
+                notes: `Dose ${direction}: ${previousDose} → ${dose}.${blockedTag} ${plan}${wl.additional_notes ? ' — ' + wl.additional_notes : ''}`,
                 logged_by: created_by || 'Staff',
               }).then(({ error: doseLogErr }) => {
                 if (doseLogErr) console.error('Dose change log error:', doseLogErr);
@@ -366,19 +432,13 @@ export default async function handler(req, res) {
           protocolUpdates.last_visit_date = logDate;
 
           // Set starting weight if not already set
-          if (!activeProtocol.starting_weight && structured_data?.weight_vitals?.starting_weight) {
-            const startWeight = parseFloat(structured_data.weight_vitals.starting_weight);
-            if (!isNaN(startWeight)) {
-              protocolUpdates.starting_weight = startWeight;
-            }
+          if (!activeProtocol.starting_weight && wl.starting_weight != null) {
+            protocolUpdates.starting_weight = wl.starting_weight;
           }
 
           // Sync goal weight from encounter note (always update to latest)
-          if (structured_data?.weight_vitals?.goal_weight) {
-            const goalWeight = parseFloat(structured_data.weight_vitals.goal_weight);
-            if (!isNaN(goalWeight)) {
-              protocolUpdates.goal_weight = goalWeight;
-            }
+          if (wl.goal_weight != null) {
+            protocolUpdates.goal_weight = wl.goal_weight;
           }
 
           await supabase

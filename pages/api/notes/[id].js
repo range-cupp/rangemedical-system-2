@@ -9,6 +9,8 @@ const supabase = createClient(
 );
 
 import { isNoteAuthor, isAdmin, ADMIN_EMAILS } from '../../../lib/staff-config';
+import { extractWLFields } from '../../../lib/wl-note-parser';
+import { isWeightLossType } from '../../../lib/protocol-config';
 
 export default async function handler(req, res) {
   const { id } = req.query;
@@ -83,7 +85,7 @@ export default async function handler(req, res) {
       // Get the note to find its patient_id, authorship, status, and pin state
       const { data: note, error: fetchError } = await supabase
         .from('patient_notes')
-        .select('id, patient_id, created_by, status, pinned')
+        .select('id, patient_id, created_by, status, pinned, encounter_service, source')
         .eq('id', id)
         .single();
 
@@ -160,6 +162,86 @@ export default async function handler(req, res) {
         .eq('id', id);
 
       if (updateError) throw updateError;
+
+      // Re-sync the linked weight-loss service_log when the body or date
+      // of a WL encounter note changes. The encounter note is the source of
+      // truth — edits must propagate so the protocol injection table reflects
+      // what the provider actually wrote.
+      const bodyChanged = typeof body === 'string';
+      const dateChanged = !!note_date;
+      if ((bodyChanged || dateChanged) && (note.encounter_service || note.source === 'encounter')) {
+        try {
+          const { data: fullNote } = await supabase
+            .from('patient_notes')
+            .select('id, patient_id, body, encounter_service, note_date, created_by, appointment_id')
+            .eq('id', id)
+            .single();
+
+          if (fullNote) {
+            const esLower = (fullNote.encounter_service || '').toLowerCase();
+            const isWL = isWeightLossType(esLower) ||
+              esLower.includes('weight') ||
+              esLower === 'weight_loss';
+
+            if (isWL) {
+              const wl = extractWLFields(null, fullNote.body);
+              if (wl) {
+                const logDate = fullNote.note_date
+                  ? new Date(fullNote.note_date).toISOString().split('T')[0]
+                  : new Date().toISOString().split('T')[0];
+
+                const { data: existing } = await supabase
+                  .from('service_logs')
+                  .select('id, entry_type')
+                  .eq('note_id', fullNote.id)
+                  .maybeSingle();
+
+                const fields = {
+                  dosage: wl.dose,
+                  medication: wl.medication,
+                  entry_date: logDate,
+                  notes: `Via encounter note by ${fullNote.created_by || 'Staff'}`,
+                  updated_at: new Date().toISOString(),
+                };
+                if (wl.weight != null) fields.weight = wl.weight;
+
+                if (existing) {
+                  if (existing.entry_type !== 'injection' && wl.dose) {
+                    fields.entry_type = 'injection';
+                  }
+                  await supabase.from('service_logs').update(fields).eq('id', existing.id);
+                  console.log(`[note-edit] Re-synced service_log ${existing.id} from note ${fullNote.id}`);
+                } else {
+                  // Find the active WL protocol to attach the new log to.
+                  const { data: protocols } = await supabase
+                    .from('protocols')
+                    .select('id')
+                    .eq('patient_id', fullNote.patient_id)
+                    .ilike('program_type', 'weight_loss%')
+                    .in('status', ['active', 'in_progress'])
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+                  const protocolId = protocols?.[0]?.id;
+                  if (protocolId) {
+                    await supabase.from('service_logs').insert({
+                      patient_id: fullNote.patient_id,
+                      protocol_id: protocolId,
+                      category: 'weight_loss',
+                      entry_type: 'injection',
+                      note_id: fullNote.id,
+                      administered_by: fullNote.created_by || null,
+                      ...fields,
+                    });
+                    console.log(`[note-edit] Created service_log from edited note ${fullNote.id}`);
+                  }
+                }
+              }
+            }
+          }
+        } catch (syncErr) {
+          console.error('[note-edit] WL re-sync error (non-fatal):', syncErr.message);
+        }
+      }
 
       return res.status(200).json({ success: true, ...updates });
     } catch (error) {

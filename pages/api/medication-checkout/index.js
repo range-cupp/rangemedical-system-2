@@ -176,57 +176,15 @@ export default async function handler(req, res) {
       }
     }
 
-    // 4. For weight loss TAKE-HOME pickups only, create future injection entries
-    // In-clinic purchases (WL or peptide) do NOT pre-schedule — encounter notes handle each injection individually
-    // Wrapped so a single insert error doesn't skip subsequent steps.
-    try {
-      if (!isInClinicPurchase && isWeightLossType(category) && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0) {
-        const pickupDosage = dosage || '';
-        const atMatch = pickupDosage.match(/@\s*(.+)/);
-        const injectionDose = atMatch ? atMatch[1].trim() : pickupDosage;
-
-        // Use frequency from request, or look up from protocol, default 7 (weekly)
-        let wlFreqDays = wl_frequency_days ? parseInt(wl_frequency_days) : 0;
-        if (!wlFreqDays && protocol_id) {
-          const { data: proto } = await supabase.from('protocols').select('frequency').eq('id', protocol_id).single();
-          const freqStr = (proto?.frequency || '').toLowerCase();
-          if (freqStr.includes('14') || freqStr.includes('biweekly') || freqStr.includes('bi-weekly')) wlFreqDays = 14;
-          else if (freqStr.includes('10')) wlFreqDays = 10;
-        }
-        if (!wlFreqDays) wlFreqDays = 7;
-
-        let createdWl = 0;
-        for (let i = 0; i < parseInt(quantity); i++) {
-          const injDate = new Date(logDate + 'T12:00:00');
-          injDate.setDate(injDate.getDate() + i * wlFreqDays);
-          const injDateStr = injDate.toISOString().split('T')[0];
-          const freqLabel = wlFreqDays === 7
-            ? `week ${i + 1} of ${quantity}`
-            : `injection ${i + 1} of ${quantity}, every ${wlFreqDays} days`;
-          const { error: wlInjErr } = await supabase.from('service_logs').insert([{
-            patient_id,
-            category,
-            entry_type: 'injection',
-            entry_date: injDateStr,
-            medication: medication || null,
-            dosage: injectionDose || null,
-            quantity: 1,
-            notes: `Dispensed on ${logDate} (${quantity}-injection pickup, ${freqLabel})`,
-            protocol_id: protocol_id || null,
-            administered_by: administered_by || null,
-            fulfillment_method: fulfillment_method || 'in_clinic',
-          }]);
-          if (wlInjErr) {
-            console.error(`[medication-checkout] WL auto-schedule insert failed for ${injDateStr}:`, wlInjErr.message);
-          } else {
-            createdWl++;
-          }
-        }
-        console.log(`[medication-checkout] WL auto-schedule: created ${createdWl}/${quantity} injection entries`);
-      }
-    } catch (wlErr) {
-      console.error('[medication-checkout] WL auto-schedule block error:', wlErr.message);
-    }
+    // 4. Weight-loss take-home pickups no longer pre-create future injection
+    // service_logs. Each injection row in the protocol table must come from
+    // an actual provider encounter note OR a patient self-check-in submission
+    // — the encounter is the source of truth. The visual projected slot rows
+    // in the patient profile (wlDeliveryLogs + injection_day cadence) still
+    // render so staff and patients can see the schedule; they just stay
+    // "Click to add weight" until logged. The weekly-checkin-reminder cron
+    // sends the patient an SMS on each scheduled day so they have a chance
+    // to log it themselves.
 
     // 4b. For HRT TAKE-HOME pickups, create future injection entries
     // Same logic as service-log: auto-create individual injection entries dated to the

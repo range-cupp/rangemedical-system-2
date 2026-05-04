@@ -7024,7 +7024,10 @@ export default function PatientProfile() {
                         return effects;
                       };
                       const startingDose = protocol.starting_dose || protocol.selected_dose || (wlLogs.length > 0 ? parseDose(wlLogs[0].dosage) : null);
-                      const currentDose = protocol.dose || protocol.selected_dose || (wlLogs.length > 0 ? parseDose(wlLogs[wlLogs.length - 1].dosage) : null);
+                      // selected_dose is canonical; protocol.dose is a legacy field that
+                      // can drift stale (e.g. when a dose change writes selected_dose +
+                      // current_dose but a separate code path leaves dose untouched).
+                      const currentDose = protocol.selected_dose || protocol.current_dose || protocol.dose || (wlLogs.length > 0 ? parseDose(wlLogs[wlLogs.length - 1].dosage) : null);
                       const pLogs = getProtocolLogsForId(protocol.id);
 
                       // Activity summary: get ALL service logs for this protocol (any category)

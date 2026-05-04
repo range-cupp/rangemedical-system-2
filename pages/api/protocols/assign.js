@@ -486,7 +486,13 @@ export default async function handler(req, res) {
       pickup_frequency: pickupFrequencyDays || null,
       injection_frequency: injectionFrequencyDays || null,
       injection_day: injectionDay || null,
-      checkin_reminder_enabled: checkinReminderEnabled || false,
+      // Take-home WL patients need the weekly check-in SMS by default so they
+      // can self-log weight + side effects on injection day. The reminder is
+      // the only way the protocol injection table gets populated for take-home
+      // (in-clinic patients are logged at the visit by staff).
+      checkin_reminder_enabled: typeof checkinReminderEnabled === 'boolean'
+        ? checkinReminderEnabled
+        : (isWeightLossType(programType) && deliveryMethod !== 'in_clinic'),
       peptide_reminders_enabled: programType === 'peptide' ? true : false,
       // HRT vial-specific fields
       dose_per_injection: dosePerInjection ? parseFloat(dosePerInjection) : null,

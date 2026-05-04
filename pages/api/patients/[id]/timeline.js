@@ -123,6 +123,10 @@ export default async function handler(req, res) {
         .order('start_time', { ascending: false })
         .limit(50);
 
+      // appointments is the single source of truth post-Cal.com cutover.
+      // The legacy parallel query against calcom_bookings was removed — it
+      // produced duplicate timeline entries (every new booking writes a
+      // shadow calcom_bookings row alongside the appointment).
       (appointments || []).forEach(apt => {
         events.push({
           type: 'appointment',
@@ -130,24 +134,6 @@ export default async function handler(req, res) {
           title: `Appointment: ${apt.service_name || 'Visit'}`,
           detail: apt.status || 'scheduled',
           metadata: { id: apt.id, status: apt.status }
-        });
-      });
-
-      // Also check calcom_bookings
-      const { data: bookings } = await supabase
-        .from('calcom_bookings')
-        .select('id, service_name, start_time, status, created_at')
-        .eq('patient_id', id)
-        .order('start_time', { ascending: false })
-        .limit(50);
-
-      (bookings || []).forEach(b => {
-        events.push({
-          type: 'appointment',
-          date: b.start_time || b.created_at,
-          title: `Booking: ${b.service_name || 'Appointment'}`,
-          detail: b.status || 'scheduled',
-          metadata: { id: b.id, source: 'calcom', status: b.status }
         });
       });
     }

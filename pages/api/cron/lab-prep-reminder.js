@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import { isInQuietHours } from '../../../lib/quiet-hours';
+import { pacificDayUTCBounds } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -73,22 +74,26 @@ export default async function handler(req, res) {
     const tomorrowStr = getTomorrowDateStr();
     console.log(`[lab-prep-reminder] Checking blood draw appointments for ${tomorrowStr}`);
 
-    // Find tomorrow's blood draw bookings that are still scheduled
+    // Read straight from appointments. Filter to the Pacific day in UTC
+    // bounds and to the labs category (which is the appointments-table
+    // equivalent of BLOOD_DRAW_SLUGS — both legacy slugs map to it).
+    const { startUTC, endUTC } = pacificDayUTCBounds(tomorrowStr);
     const { data: bookings, error: bookingsError } = await supabase
-      .from('calcom_bookings')
+      .from('appointments')
       .select(`
         id,
         patient_id,
         patient_name,
         patient_phone,
-        service_slug,
+        service_name,
+        service_category,
         start_time,
-        booking_date,
         status
       `)
-      .in('service_slug', BLOOD_DRAW_SLUGS)
-      .eq('booking_date', tomorrowStr)
-      .eq('status', 'scheduled');
+      .eq('service_category', 'labs')
+      .gte('start_time', startUTC.toISOString())
+      .lt('start_time', endUTC.toISOString())
+      .in('status', ['scheduled', 'confirmed']);
 
     if (bookingsError) {
       console.error('[lab-prep-reminder] Bookings query error:', bookingsError);

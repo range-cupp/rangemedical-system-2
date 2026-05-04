@@ -1,8 +1,11 @@
 // /pages/api/bookings/event-types.js
-// Returns Cal.com event types (services available for booking)
+// Returns the service catalog used by CalendarView's booking wizard.
+// Cal.com is no longer in the loop — this reads from the local
+// `services` + `service_providers` + `employees` tables. Response shape
+// is preserved (id, title, slug, length, hosts) so existing callers
+// don't have to change.
 
 import { createClient } from '@supabase/supabase-js';
-import { getEventTypes } from '../../../lib/calcom';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -15,52 +18,65 @@ export default async function handler(req, res) {
   }
 
   try {
-    const eventTypes = await getEventTypes();
-
-    if (!eventTypes) {
-      return res.status(500).json({ error: 'Failed to fetch event types from Cal.com' });
-    }
-
-    // Cal.com sometimes returns null names for managed users (API can't set name on
-    // existing users). Fall back to the employees table keyed by calcom_user_id.
-    const { data: employees } = await supabase
-      .from('employees')
-      .select('name, calcom_user_id')
+    const { data: services, error: svcErr } = await supabase
+      .from('services')
+      .select('id, name, slug, duration_minutes, legacy_calcom_event_type_id, sort_order')
       .eq('is_active', true)
-      .not('calcom_user_id', 'is', null);
-    const empNameByCalcomId = {};
-    for (const emp of employees || []) {
-      if (emp.calcom_user_id) empNameByCalcomId[emp.calcom_user_id] = emp.name;
+      .order('sort_order');
+    if (svcErr) throw svcErr;
+
+    const serviceIds = (services || []).map(s => s.id);
+    let providerRowsByService = {};
+    if (serviceIds.length > 0) {
+      const { data: providerRows, error: provErr } = await supabase
+        .from('service_providers')
+        .select(`
+          service_id, sort_order, display_label,
+          employee:employees!inner ( id, name, calcom_user_id, is_active )
+        `)
+        .in('service_id', serviceIds);
+      if (provErr) throw provErr;
+
+      for (const row of (providerRows || [])) {
+        if (row.employee?.is_active === false) continue;
+        if (!providerRowsByService[row.service_id]) providerRowsByService[row.service_id] = [];
+        providerRowsByService[row.service_id].push(row);
+      }
     }
 
-    // Return simplified event type data, filtering out hidden ones
-    const simplified = eventTypes
-      .filter(et => !et.hidden)
-      .map(et => ({
-        id: et.id,
-        title: et.title,
-        slug: et.slug,
-        length: et.lengthInMinutes || et.length,
-        description: et.description,
-        hosts: (et.hosts || []).map(h => {
-          const username = h.username || h.user?.username || '';
-          const rawName = h.name || h.user?.name || '';
-          const empName = empNameByCalcomId[h.userId];
-          const displayName =
-            rawName ||
-            empName ||
-            (username ? username.charAt(0).toUpperCase() + username.slice(1).replace(/-.*$/, '') : '');
-          return {
-            userId: h.userId,
-            name: displayName,
-            username,
-          };
-        }).filter(h => h.userId)
+    const FRIENDLY_USERNAME_BY_CALCOM_USER_ID = {
+      2189658: 'chris',
+      2197563: 'damien',
+      2197567: 'lily',
+      2197566: 'evan',
+      2197565: 'damon',
+      2383086: 'brendyn',
+    };
+
+    const simplified = (services || []).map(s => {
+      const provs = (providerRowsByService[s.id] || [])
+        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+      const hosts = provs.map(p => ({
+        userId: p.employee.calcom_user_id || null,
+        name: p.display_label || p.employee.name || '',
+        username: FRIENDLY_USERNAME_BY_CALCOM_USER_ID[p.employee.calcom_user_id] || '',
       }));
+      return {
+        // Keep id as the legacy Cal.com event type id when available so
+        // existing CalendarView code that round-trips eventTypeId in URLs
+        // (e.g. via the slots endpoint) keeps working unchanged.
+        id: s.legacy_calcom_event_type_id || s.id,
+        title: s.name,
+        slug: s.slug,
+        length: s.duration_minutes,
+        description: null,
+        hosts,
+      };
+    });
 
     return res.status(200).json({ success: true, eventTypes: simplified });
-  } catch (error) {
-    console.error('Event types API error:', error);
-    return res.status(500).json({ error: 'Server error', details: error.message });
+  } catch (e) {
+    console.error('Event types API error:', e);
+    return res.status(500).json({ error: 'Server error', details: e.message });
   }
 }

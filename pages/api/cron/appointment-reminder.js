@@ -11,14 +11,17 @@ import { isInQuietHours } from '../../../lib/quiet-hours';
 import { sendBlooioMessage } from '../../../lib/blooio';
 import { REQUIRED_FORMS } from '../../../lib/appointment-services';
 import { FORM_DEFINITIONS } from '../../../lib/form-bundles';
+import { pacificDayUTCBounds } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Blood draw slugs — already handled by lab-prep-reminder cron
-const BLOOD_DRAW_SLUGS = ['new-patient-blood-draw', 'follow-up-blood-draw'];
+// Blood draws are handled by lab-prep-reminder cron.
+// We exclude by service_category since the migrated query reads from
+// `appointments` (which uses category, not slug).
+const LAB_CATEGORY = 'labs';
 
 // 8 message variations so texts feel personal (no service type for patient privacy)
 const REMINDER_MESSAGES = [
@@ -100,31 +103,34 @@ export default async function handler(req, res) {
     const tomorrowStr = getTomorrowDateStr();
     console.log(`[appointment-reminder] Checking appointments for ${tomorrowStr}`);
 
-    // Find tomorrow's bookings that are still scheduled (exclude blood draws)
+    // Read straight from appointments (single source of truth). Filter to
+    // the Pacific day in UTC bounds so we don't need to depend on the
+    // legacy calcom_bookings.booking_date column.
+    const { startUTC, endUTC } = pacificDayUTCBounds(tomorrowStr);
     const { data: bookings, error: bookingsError } = await supabase
-      .from('calcom_bookings')
+      .from('appointments')
       .select(`
         id,
         patient_id,
         patient_name,
         patient_phone,
-        service_slug,
         service_name,
+        service_category,
         start_time,
-        booking_date,
         status
       `)
-      .eq('booking_date', tomorrowStr)
-      .eq('status', 'scheduled');
+      .gte('start_time', startUTC.toISOString())
+      .lt('start_time', endUTC.toISOString())
+      .in('status', ['scheduled', 'confirmed']);
 
     if (bookingsError) {
       console.error('[appointment-reminder] Bookings query error:', bookingsError);
       return res.status(500).json({ error: bookingsError.message });
     }
 
-    // Filter out blood draws (handled by lab-prep-reminder)
+    // Exclude blood draws — they get the lab-prep-reminder instead.
     const filteredBookings = (bookings || []).filter(
-      b => !BLOOD_DRAW_SLUGS.includes(b.service_slug)
+      b => b.service_category !== LAB_CATEGORY,
     );
 
     if (filteredBookings.length === 0) {

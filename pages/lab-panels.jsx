@@ -1381,7 +1381,7 @@ export default function LabPanels() {
               max-width: 280px;
             }
             .lp-chart-summary-divider {
-              transform: rotate(90deg);
+              transform: none;
             }
             .lp-bundle-group {
               grid-template-columns: 1fr;

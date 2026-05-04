@@ -5,7 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { getHRTLabSchedule, matchDrawsToLogs } from '../../../lib/hrt-lab-schedule';
-import { cancelBooking } from '../../../lib/calcom';
+// (Cal.com import removed — cancellation is now local-only.)
 import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
@@ -170,10 +170,10 @@ export default async function handler(req, res) {
       }
 
       try {
-        // Verify this booking belongs to this patient
+        // Verify this booking belongs to this patient.
         const { data: booking } = await supabase
           .from('calcom_bookings')
-          .select('id, patient_id')
+          .select('id, patient_id, calcom_uid, calcom_booking_id')
           .eq('booking_uid', bookingUid)
           .maybeSingle();
 
@@ -181,18 +181,43 @@ export default async function handler(req, res) {
           return res.status(403).json({ error: 'Booking not found or access denied' });
         }
 
-        // Cancel via Cal.com API
-        const result = await cancelBooking(bookingUid);
+        const cancelledAt = new Date().toISOString();
 
-        if (result.error) {
-          return res.status(500).json({ error: 'Failed to cancel booking' });
-        }
-
-        // Update local record
+        // Cancel the calcom_bookings row (no Cal.com API call).
         await supabase
           .from('calcom_bookings')
-          .update({ status: 'cancelled' })
-          .eq('booking_uid', bookingUid);
+          .update({ status: 'cancelled', cancelled_at: cancelledAt })
+          .eq('id', booking.id);
+
+        // Cancel the matching appointment so the admin calendar updates and
+        // the reminder cron stops texting. Two cases mirror lib bookings/cancel:
+        //   1. Shadow row → calcom_uid='local-<appointment_id>'.
+        //   2. Legacy Cal.com row → look up by cal_com_booking_id (string).
+        let appointmentId = null;
+        if (booking.calcom_uid?.startsWith('local-')) {
+          appointmentId = booking.calcom_uid.slice('local-'.length);
+        } else if (booking.calcom_booking_id) {
+          const { data: apptByCal } = await supabase
+            .from('appointments')
+            .select('id')
+            .eq('cal_com_booking_id', String(booking.calcom_booking_id))
+            .maybeSingle();
+          if (apptByCal?.id) appointmentId = apptByCal.id;
+        }
+        if (appointmentId) {
+          await supabase
+            .from('appointments')
+            .update({ status: 'cancelled', cancellation_reason: 'cancelled by patient via HRT portal' })
+            .eq('id', appointmentId)
+            .not('status', 'in', '(completed,cancelled,rescheduled)');
+          await supabase.from('appointment_events').insert({
+            appointment_id: appointmentId,
+            event_type: 'cancelled',
+            old_status: 'scheduled',
+            new_status: 'cancelled',
+            metadata: { source: 'hrt_portal' },
+          });
+        }
 
         return res.status(200).json({ success: true, message: 'Booking cancelled' });
 

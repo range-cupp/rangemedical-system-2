@@ -249,6 +249,156 @@ const CARD_ELEMENT_STYLE = {
   },
 };
 
+// ───────────────────────────────────────────────────────────
+// HRT Questionnaire (Male) — provider-facing summary card.
+// Renders all submissions with collapsible detail; severity sliders
+// color-coded, family/sexual-health and goals shown in plain rows.
+// ───────────────────────────────────────────────────────────
+const HRT_MALE_SYMPTOM_LABELS = {
+  sym_sleep_disruption:   'Sleep Disruption',
+  sym_irritability:       'Irritability',
+  sym_depression:         'Depression',
+  sym_breast_development: 'Breast Development',
+  sym_morning_erections:  'Decreased Morning Erections',
+  sym_sex_drive:          'Decreased Sex Drive',
+  sym_climax:             'Harder to Reach Climax',
+  sym_testicular_size:    'Reduced Testicular Size',
+  sym_motivation:         'Decreased Motivation',
+  sym_self_confidence:    'Decreased Self Confidence',
+  sym_abdominal_fat:      'Abdominal Fat',
+  sym_muscle_atrophy:     'Muscle Atrophy',
+  sym_fatigue:            'Fatigue',
+  sym_recent_memory:      'Loss of Recent Memory',
+  sym_dry_skin:           'Dry Skin',
+  sym_arthritis:          'Arthritis or Joint Pain',
+  sym_hair_loss:          'Hair Loss',
+  sym_weight_gain:        'Weight Gain',
+};
+
+const HRT_MALE_YESNO_LABELS = {
+  has_children:                   'Has any children',
+  plan_more_children:             'Plans to have more children',
+  partner_pregnant_breastfeeding: 'Partner currently pregnant or breastfeeding',
+  past_steroids:                  'Used steroids in the past',
+  current_steroids:               'Currently uses steroids',
+  sexually_active:                'Currently sexually active',
+};
+
+function HrtMaleQuestionnaireSection({ submissions }) {
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const sub = submissions[selectedIdx] || submissions[0];
+  if (!sub) return null;
+
+  const r = sub.responses || {};
+  const submittedDate = sub.created_at
+    ? new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })
+    : 'Pending';
+
+  const symptomEntries = Object.entries(HRT_MALE_SYMPTOM_LABELS)
+    .map(([key, label]) => ({ key, label, value: typeof r[key] === 'number' ? r[key] : null }));
+  const yesNoEntries = Object.entries(HRT_MALE_YESNO_LABELS)
+    .map(([key, label]) => ({ key, label, value: r[key] }));
+  const goals = [r.goal_1, r.goal_2, r.goal_3].filter(g => g && String(g).trim());
+
+  const sevColor = (v) => v == null ? '#999' : v >= 7 ? '#ef4444' : v >= 4 ? '#eab308' : v >= 1 ? '#84cc16' : '#22c55e';
+
+  return (
+    <section className="card" style={{ marginTop: '24px' }}>
+      <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+        <h3>📝 HRT Questionnaire (Male)</h3>
+        <span style={{ fontSize: '13px', color: '#888' }}>Submitted {submittedDate}</span>
+      </div>
+
+      {/* History selector */}
+      {submissions.length > 1 && (
+        <div style={{ display: 'flex', gap: '8px', padding: '12px 20px 0', flexWrap: 'wrap' }}>
+          {submissions.map((s, idx) => {
+            const d = s.created_at
+              ? new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })
+              : `#${idx + 1}`;
+            return (
+              <button
+                key={s.id || idx}
+                onClick={() => setSelectedIdx(idx)}
+                style={{
+                  padding: '6px 14px', borderRadius: 0, border: '1px solid',
+                  borderColor: idx === selectedIdx ? '#000' : '#ddd',
+                  background: idx === selectedIdx ? '#000' : '#fff',
+                  color: idx === selectedIdx ? '#fff' : '#666',
+                  fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >{d}</button>
+            );
+          })}
+        </div>
+      )}
+
+      <div style={{ padding: '16px 20px 20px' }}>
+        {/* Patient identifiers — what they typed on the form */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginBottom: '20px' }}>
+          {[
+            { label: 'Submitted name', value: [sub.first_name, sub.last_name].filter(Boolean).join(' ') || '—' },
+            { label: 'Date of birth', value: sub.date_of_birth || '—' },
+            { label: 'Phone', value: sub.phone || '—' },
+            { label: 'Email', value: sub.email || '—' },
+          ].map(item => (
+            <div key={item.label} style={{ padding: '8px 10px', background: '#f9fafb', border: '1px solid #f0f0f0' }}>
+              <div style={{ fontSize: '11px', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>{item.label}</div>
+              <div style={{ fontSize: '13px', color: '#333', wordBreak: 'break-word' }}>{item.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Symptom severity — 0–10 sliders */}
+        <h4 style={{ margin: '0 0 8px', fontSize: '13px', fontWeight: '700', color: '#111', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Symptom severity (0 = none, 10 = severe)</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '6px 16px', marginBottom: '20px' }}>
+          {symptomEntries.map(s => (
+            <div key={s.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #f5f5f5' }}>
+              <span style={{ fontSize: '13px', color: '#333' }}>{s.label}</span>
+              <span style={{
+                fontSize: '12px', fontWeight: '700', padding: '2px 10px',
+                background: sevColor(s.value) + '18', color: sevColor(s.value),
+                minWidth: '40px', textAlign: 'center',
+              }}>{s.value == null ? '—' : `${s.value}/10`}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Family planning + steroids + sexual activity */}
+        <h4 style={{ margin: '0 0 8px', fontSize: '13px', fontWeight: '700', color: '#111', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Family planning & sexual health</h4>
+        <div style={{ marginBottom: '20px', border: '1px solid #f0f0f0' }}>
+          {yesNoEntries.map((y, idx) => (
+            <div key={y.key} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '10px 14px', borderBottom: idx < yesNoEntries.length - 1 ? '1px solid #f5f5f5' : 'none',
+              background: idx % 2 === 0 ? '#fff' : '#fafafa',
+            }}>
+              <span style={{ fontSize: '13px', color: '#333' }}>{y.label}</span>
+              <span style={{
+                fontSize: '12px', fontWeight: '700', padding: '2px 12px',
+                background: y.value === 'yes' ? '#fef2f2' : y.value === 'no' ? '#f0fdf4' : '#f3f4f6',
+                color: y.value === 'yes' ? '#dc2626' : y.value === 'no' ? '#16a34a' : '#888',
+              }}>{y.value === 'yes' ? 'YES' : y.value === 'no' ? 'NO' : '—'}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Goals */}
+        {goals.length > 0 && (
+          <>
+            <h4 style={{ margin: '0 0 8px', fontSize: '13px', fontWeight: '700', color: '#111', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top goals for HRT</h4>
+            <ol style={{ margin: 0, paddingLeft: '20px' }}>
+              {goals.map((g, i) => (
+                <li key={i} style={{ fontSize: '13px', color: '#333', padding: '4px 0', lineHeight: '1.5' }}>{g}</li>
+              ))}
+            </ol>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function AddCardForm({ patientId, onCardSaved }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -443,6 +593,7 @@ export default function PatientProfile() {
   const [selectedQuestionnaireIdx, setSelectedQuestionnaireIdx] = useState(0);
   const [baselineQuestionnaires, setBaselineQuestionnaires] = useState([]);
   const [selectedBaselineIdx, setSelectedBaselineIdx] = useState(0);
+  const [hrtMaleQuestionnaires, setHrtMaleQuestionnaires] = useState([]);
   const [showSendAssessment, setShowSendAssessment] = useState(false);
   const [sendAssessmentDoor, setSendAssessmentDoor] = useState(3);
   const [sendingAssessment, setSendingAssessment] = useState(false);
@@ -1137,6 +1288,7 @@ export default function PatientProfile() {
         setCheckIns(data.checkIns || []);
         setQuestionnaireResponses(data.questionnaireResponses || []);
         setBaselineQuestionnaires(data.baselineQuestionnaires || []);
+        setHrtMaleQuestionnaires(data.hrtMaleQuestionnaires || []);
         setAppointments(data.appointments || []);
         setNotes(data.notes || []);
         setWeightLossLogs(data.weightLossLogs || []);
@@ -10991,6 +11143,11 @@ export default function PatientProfile() {
                   </>
                 );
               })()}
+
+              {/* HRT Questionnaire (Male) submissions */}
+              {(hrtMaleQuestionnaires?.length > 0) && (
+                <HrtMaleQuestionnaireSection submissions={hrtMaleQuestionnaires} />
+              )}
             </>
             );
           })()}

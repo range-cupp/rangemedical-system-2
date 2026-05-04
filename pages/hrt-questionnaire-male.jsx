@@ -400,7 +400,11 @@ function Page({ title, progress, children }) {
 
       <div style={styles.container}>
         <header style={styles.header}>
-          <div style={styles.wordmark}>RANGE</div>
+          <img
+            src="https://www.range-medical.com/brand/range_logo_transparent_black.png"
+            alt="Range Medical"
+            style={styles.logo}
+          />
           {progress != null && (
             <div style={styles.progressBar}>
               <div style={{ ...styles.progressFill, width: `${progress}%` }} />
@@ -427,13 +431,10 @@ const styles = {
     background: '#fff',
     borderBottom: '1px solid #e8e8e8',
   },
-  wordmark: {
-    fontSize: '13px',
-    fontWeight: 800,
-    letterSpacing: '0.15em',
-    textAlign: 'center',
-    color: '#1a1a1a',
-    marginBottom: '16px',
+  logo: {
+    display: 'block',
+    height: '36px',
+    margin: '0 auto 16px',
   },
   progressBar: {
     height: 4,

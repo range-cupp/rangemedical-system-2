@@ -115,6 +115,7 @@ export default async function handler(req, res) {
         nativeAppointmentsResult,
         baselineQuestionnairesResult,
         checkInsResult,
+        hrtMaleQuestionnairesResult,
       ] = await Promise.all([
         // Protocols
         supabase.from('protocols').select('*').eq('patient_id', id).order('created_at', { ascending: false }),
@@ -168,6 +169,8 @@ export default async function handler(req, res) {
         supabase.from('baseline_questionnaires').select('id, patient_id, intake_id, door, questionnaire_type, responses, scored_totals, sections_completed, status, submitted_at, created_at, ai_synopsis, ai_synopsis_generated_at').eq('patient_id', id).order('submitted_at', { ascending: false }).limit(20),
         // Weekly check-ins (symptom scores from patient portal)
         supabase.from('check_ins').select('id, patient_id, check_in_date, energy_score, sleep_score, mood_score, brain_fog_score, pain_score, libido_score, overall_score, weight, notes, created_at').eq('patient_id', id).order('check_in_date', { ascending: false }).limit(50),
+        // HRT Male Questionnaire submissions (sent via Guides; linked to patient by phone/email match)
+        supabase.from('hrt_male_questionnaire_responses').select('*').eq('patient_id', id).order('created_at', { ascending: false }).limit(20),
       ]);
 
       // ── Step 3: Extract results ──
@@ -179,6 +182,7 @@ export default async function handler(req, res) {
       const questionnaireResponses = questionnaireResult.data || [];
       const baselineQuestionnaires = baselineQuestionnairesResult.data || [];
       const checkIns = checkInsResult.data || [];
+      const hrtMaleQuestionnaires = hrtMaleQuestionnairesResult.data || [];
       const medicalDocumentsRaw = medicalDocumentsResult.data || [];
       // Generate signed URLs for documents stored in Supabase Storage
       const medicalDocuments = await Promise.all(
@@ -585,6 +589,7 @@ export default async function handler(req, res) {
         symptomResponses: symptomResponses || [],
         questionnaireResponses: questionnaireResponses || [],
         baselineQuestionnaires: baselineQuestionnaires || [],
+        hrtMaleQuestionnaires: hrtMaleQuestionnaires || [],
         appointments: appointments || [],
         notes: patientNotes || [],
         weightLossLogs: weightLossLogs || [],

@@ -1,10 +1,10 @@
 // /pages/api/book/create.js
-// Creates a Cal.com booking for a patient's in-clinic injection
-// Prefers Lily/Evan over Damien, notifies front desk + assigned provider via SMS
+// Books an in-clinic injection via the native scheduling engine.
+// Cal.com is no longer in the loop.
 
 import { createClient } from '@supabase/supabase-js';
-import { createBooking, reassignBooking } from '../../../lib/calcom';
-import { sendProviderNotification } from '../../../lib/provider-notifications';
+import { createAppointment } from '../../../lib/create-appointment';
+import { pickProviderForSlot } from '../../../lib/scheduling';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 
 const supabase = createClient(
@@ -12,23 +12,12 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Cal.com user IDs — prefer Lily/Evan for injections
-const PREFERRED_HOSTS = [
-  { id: 2197567, name: 'Lily' },
-  { id: 2197566, name: 'Evan' },
-];
-const DAMIEN_ID = 2197563;
-
-// Front desk number for booking notifications
 const FRONT_DESK_PHONE = '+19495395023';
 
 function formatDateTimePST(isoString) {
   return new Date(isoString).toLocaleString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+    weekday: 'short', month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit',
     timeZone: 'America/Los_Angeles',
   });
 }
@@ -40,7 +29,7 @@ export default async function handler(req, res) {
 
   const { token, eventTypeId, slug, slotStart, patientName, patientEmail, patientPhone } = req.body;
 
-  if (!token || !eventTypeId || !slotStart) {
+  if (!token || !slotStart) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -54,58 +43,59 @@ export default async function handler(req, res) {
       .eq('delivery_method', 'in_clinic')
       .limit(1)
       .maybeSingle();
-
     if (protocolError) throw protocolError;
-
     if (!protocol) {
       return res.status(404).json({ error: 'Invalid or expired booking link' });
     }
 
-    // Create booking via Cal.com
-    const booking = await createBooking({
-      eventTypeId: parseInt(eventTypeId),
-      start: slotStart,
-      name: patientName,
-      email: patientEmail || `patient-${protocol.patient_id}@range-medical.com`,
-      phoneNumber: patientPhone || undefined,
+    // Resolve service slug
+    let serviceSlug = slug || 'range-injections';
+    if (!slug && eventTypeId) {
+      const { data: svc } = await supabase
+        .from('services')
+        .select('slug')
+        .eq('legacy_calcom_event_type_id', parseInt(eventTypeId, 10))
+        .maybeSingle();
+      if (svc?.slug) serviceSlug = svc.slug;
+    }
+
+    const provider = await pickProviderForSlot({ serviceSlug, startISO: slotStart });
+    if (!provider) {
+      return res.status(409).json({ error: 'No provider available for that time. Please pick another.' });
+    }
+    const assignedHost = provider.displayLabel || provider.name;
+
+    const serviceName = serviceSlug === 'injection-testosterone' ? 'Testosterone Injection'
+      : serviceSlug === 'injection-weight-loss' ? 'Weight Loss Injection'
+      : 'Range Injection';
+    const serviceCategory = serviceSlug === 'injection-testosterone' ? 'hrt'
+      : serviceSlug === 'injection-weight-loss' ? 'weight_loss'
+      : 'injection';
+
+    const startDate = new Date(slotStart);
+    const endDate = new Date(startDate.getTime() + 15 * 60000);
+
+    const result = await createAppointment({
+      patient_id: protocol.patient_id,
+      patient_name: patientName,
+      patient_phone: patientPhone || null,
+      service_name: serviceName,
+      service_category: serviceCategory,
+      service_slug: serviceSlug,
+      provider: assignedHost,
+      start_time: startDate.toISOString(),
+      end_time: endDate.toISOString(),
+      duration_minutes: 15,
       notes: `Self-booked via patient booking link (${protocol.program_type})`,
+      visit_reason: `Self-booked ${serviceName} (${protocol.program_type})`,
+      source: 'patient',
+      created_by: 'patient-self-book',
+      send_notification: true,
     });
 
-    if (booking.error) {
-      console.error('Cal.com booking error:', booking.error);
-      return res.status(500).json({ error: 'Failed to create booking. Please try another time slot.' });
-    }
-
-    const bookingUid = booking.uid || booking.id;
-    let assignedHost = null;
-
-    // Check if Damien was assigned — if so, reassign to Lily or Evan
-    const assignedHostId = booking.hosts?.[0]?.id || booking.host?.id || null;
-    const assignedHostName = booking.hosts?.[0]?.name || booking.host?.name || null;
-
-    if (assignedHostId === DAMIEN_ID) {
-      for (const preferred of PREFERRED_HOSTS) {
-        const result = await reassignBooking(bookingUid, preferred.id);
-        if (!result.error) {
-          assignedHost = preferred.name;
-          console.log(`Injection booking reassigned from Damien to ${preferred.name} (booking ${bookingUid})`);
-          break;
-        }
-        console.log(`Could not reassign to ${preferred.name}, trying next...`);
-      }
-      // If reassign failed, Damien stays
-      if (!assignedHost) assignedHost = 'Damien';
-    } else {
-      assignedHost = assignedHostName || 'Staff';
-    }
-
-    const serviceName = slug === 'injection-testosterone' ? 'Testosterone Injection'
-      : slug === 'injection-weight-loss' ? 'Weight Loss Injection'
-      : 'Range Injection';
-
+    // Front desk SMS notification (provider notification + patient confirmation
+    // already fired from createAppointment).
     const dateTime = formatDateTimePST(slotStart);
-
-    // Send front desk notification
     const frontDeskMsg = `New self-booking: ${patientName} — ${serviceName} on ${dateTime}. Assigned to ${assignedHost}. - Range Medical`;
     const normalizedFrontDesk = normalizePhone(FRONT_DESK_PHONE);
     if (normalizedFrontDesk) {
@@ -117,28 +107,13 @@ export default async function handler(req, res) {
           source: 'book-create',
           patientId: protocol.patient_id,
         },
-      }).catch((err) => {
-        console.error('Front desk SMS failed:', err);
-      });
+      }).catch((err) => console.error('Front desk SMS failed:', err));
     }
-
-    // Send provider notification
-    sendProviderNotification({
-      type: 'created',
-      staff: { name: assignedHost },
-      appointment: {
-        patientName,
-        serviceName,
-        startTime: slotStart,
-      },
-    }).catch((err) => {
-      console.error('Provider notification failed:', err);
-    });
 
     return res.status(200).json({
       success: true,
       booking: {
-        uid: bookingUid,
+        uid: result.appointment.id,
         start: slotStart,
         assignedTo: assignedHost,
       },

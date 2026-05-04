@@ -7,7 +7,6 @@ import { Resend } from 'resend';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import stripe from '../../../lib/stripe';
-import { getEventTypes } from '../../../lib/calcom';
 import { createCard } from '../../../lib/pipelines-server';
 import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
 
@@ -287,14 +286,20 @@ export default async function handler(req, res) {
       console.error('Damon free-session task insert error:', taskErr);
     }
 
-    // 5. Resolve Cal.com event type ID for self-booking
+    // 5. Resolve legacy event type ID for the slot picker (kept for
+    // back-compat with the client; the booking endpoint also accepts
+    // serviceSlug directly so this is optional). Read from local services
+    // table — no Cal.com call.
     let eventTypeId = null;
     try {
-      const eventTypes = await getEventTypes();
-      const match = (eventTypes || []).find((et) => et.slug === config.calcomSlug);
-      if (match?.id) eventTypeId = match.id;
-    } catch (calErr) {
-      console.error('Cal.com event type lookup error:', calErr);
+      const { data: svc } = await supabase
+        .from('services')
+        .select('legacy_calcom_event_type_id')
+        .eq('slug', config.calcomSlug)
+        .maybeSingle();
+      if (svc?.legacy_calcom_event_type_id) eventTypeId = svc.legacy_calcom_event_type_id;
+    } catch (lookupErr) {
+      console.error('Service lookup error:', lookupErr);
     }
 
     // 6. Stripe: find or create customer + SetupIntent for no-show card

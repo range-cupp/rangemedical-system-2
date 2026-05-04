@@ -1,12 +1,14 @@
 // pages/api/free-session/book.js
-// Books the Cal.com slot for a free trial session and persists the no-show
-// payment method on the trial_pass. The prospect must have already agreed
-// to the $25 no-show fee (noShowAgreed = true) and attached a card via
+// Books a free trial session (HBOT or RLT) via the native scheduling
+// engine and persists the no-show payment method on the trial_pass.
+// Cal.com is no longer in the loop. The prospect must have agreed to
+// the $25 no-show fee (noShowAgreed = true) and attached a card via
 // Stripe Elements + SetupIntent.
 
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
-import { createBooking } from '../../../lib/calcom';
+import { createAppointment } from '../../../lib/create-appointment';
+import { pickProviderForSlot } from '../../../lib/scheduling';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
@@ -22,19 +24,15 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const OWNER_PHONE = '+19496900339';
 
 const TYPE_LABELS = {
-  hbot: { label: 'Hyperbaric Oxygen', shortLabel: 'HBOT', duration: 60 },
-  rlt:  { label: 'Red Light',         shortLabel: 'RLT',  duration: 20 },
+  hbot: { label: 'Hyperbaric Oxygen', shortLabel: 'HBOT', duration: 60, slug: 'hbot', category: 'hbot' },
+  rlt:  { label: 'Red Light',         shortLabel: 'RLT',  duration: 20, slug: 'red-light-therapy', category: 'rlt' },
 };
 
 function formatPacific(iso) {
   return new Date(iso).toLocaleString('en-US', {
     timeZone: 'America/Los_Angeles',
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
+    weekday: 'short', month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true,
   });
 }
 
@@ -44,31 +42,18 @@ export default async function handler(req, res) {
   }
 
   try {
-    const {
-      trialId,
-      eventTypeId,
-      slotStart,
-      paymentMethodId,
-      noShowAgreed,
-    } = req.body || {};
+    const { trialId, slotStart, paymentMethodId, noShowAgreed } = req.body || {};
 
-    if (!trialId || !eventTypeId || !slotStart) {
-      console.error('book: missing required fields', {
-        hasTrialId: !!trialId,
-        hasEventTypeId: !!eventTypeId,
-        hasSlotStart: !!slotStart,
-      });
+    if (!trialId || !slotStart) {
       return res.status(400).json({
         error: 'Missing required booking fields',
-        debug: { hasTrialId: !!trialId, hasEventTypeId: !!eventTypeId, hasSlotStart: !!slotStart },
+        debug: { hasTrialId: !!trialId, hasSlotStart: !!slotStart },
       });
     }
     if (!paymentMethodId) {
-      console.error('book: missing payment method');
       return res.status(400).json({ error: 'A payment method is required to hold your session' });
     }
     if (noShowAgreed !== true) {
-      console.error('book: no-show not agreed', { noShowAgreed });
       return res.status(400).json({ error: 'You must agree to the $25 no-show fee to continue' });
     }
 
@@ -81,7 +66,6 @@ export default async function handler(req, res) {
     if (trialErr || !trial) {
       return res.status(404).json({ error: 'Free session record not found' });
     }
-
     if (trial.calcom_booking_uid) {
       return res.status(409).json({ error: 'This session has already been booked' });
     }
@@ -90,9 +74,7 @@ export default async function handler(req, res) {
     const customerName = `${trial.first_name || ''} ${trial.last_name || ''}`.trim();
     const normalizedPhone = normalizePhone(trial.phone);
 
-    // Attach the payment method to the Stripe customer (if not already) so we
-    // can charge it off-session for a no-show. The SetupIntent confirm on the
-    // client usually handles attach, but call here defensively.
+    // Attach payment method defensively (SetupIntent confirm usually does it).
     if (trial.stripe_customer_id) {
       try {
         await stripe.paymentMethods.attach(paymentMethodId, { customer: trial.stripe_customer_id });
@@ -103,46 +85,50 @@ export default async function handler(req, res) {
       }
     }
 
-    // Book in Cal.com
-    const bookingNotes = `Free ${typeCfg.label} trial — $25 no-show hold on file (pm_id on trial_pass ${trialId})`;
-    const calResult = await createBooking({
-      eventTypeId: parseInt(eventTypeId, 10),
-      start: slotStart,
-      name: customerName || trial.email || 'Range Medical Lead',
-      email: trial.email,
-      phoneNumber: trial.phone,
-      notes: bookingNotes,
-    });
-
-    if (calResult?.error) {
-      console.error('Cal.com booking failed:', calResult);
-      let errorMsg = 'Could not book this time. Please pick another slot.';
-      try {
-        const parsed = typeof calResult.error === 'string' ? JSON.parse(calResult.error) : calResult.error;
-        const detail = parsed?.error?.message || parsed?.message || '';
-        if (detail.includes('already has booking') || detail.includes('not available')) {
-          errorMsg = 'This time slot is no longer available. Please pick another.';
-        } else if (detail) {
-          errorMsg = detail;
-        }
-      } catch {
-        // fall through
-      }
-      return res.status(409).json({ error: errorMsg, slotUnavailable: /no longer available|not available|already/i.test(errorMsg) });
+    // Pick provider via the engine (round-robin).
+    const provider = await pickProviderForSlot({ serviceSlug: typeCfg.slug, startISO: slotStart });
+    if (!provider) {
+      return res.status(409).json({
+        error: 'This time slot is no longer available. Please pick another.',
+        slotUnavailable: true,
+      });
     }
 
     const startDate = new Date(slotStart);
     const endDate = new Date(startDate.getTime() + typeCfg.duration * 60000);
-    const calBookingId = calResult.id;
-    const calBookingUid = calResult.uid;
+    const serviceName = `Free ${typeCfg.label} Trial`;
+    const bookingNotes = `Free ${typeCfg.label} trial — $25 no-show hold on file (pm_id on trial_pass ${trialId})`;
+
+    let appointmentResult;
+    try {
+      appointmentResult = await createAppointment({
+        patient_id: trial.patient_id,
+        patient_name: customerName || 'Range Medical Lead',
+        patient_phone: trial.phone || null,
+        service_name: serviceName,
+        service_category: typeCfg.category,
+        service_slug: typeCfg.slug,
+        provider: provider.displayLabel || provider.name,
+        start_time: startDate.toISOString(),
+        end_time: endDate.toISOString(),
+        duration_minutes: typeCfg.duration,
+        notes: bookingNotes,
+        visit_reason: `Free ${typeCfg.label} trial session (self-booked)`,
+        source: 'patient',
+        created_by: 'free-session-self-book',
+        send_notification: false,   // Custom SMS/email below
+      });
+    } catch (e) {
+      console.error('Free session createAppointment error:', e);
+      return res.status(500).json({ error: 'Could not book this time. Please try again.' });
+    }
 
     // Update trial pass with booking + no-show hold
     await supabase
       .from('trial_passes')
       .update({
         scheduled_start_time: startDate.toISOString(),
-        calcom_booking_id: calBookingId,
-        calcom_booking_uid: calBookingUid,
+        calcom_booking_uid: appointmentResult.appointment.id,  // legacy column → appointment.id
         no_show_payment_method_id: paymentMethodId,
         no_show_agreed_at: new Date().toISOString(),
         status: 'scheduled',
@@ -150,65 +136,7 @@ export default async function handler(req, res) {
       })
       .eq('id', trialId);
 
-    // Mirror to calcom_bookings (source-of-truth for Cal.com sync) + appointments
-    // (what the admin schedule view actually reads). Done in parallel.
-    const serviceSlug = trial.trial_type === 'hbot' ? 'hbot' : 'red-light-therapy';
-    const serviceCategory = trial.trial_type === 'hbot' ? 'hbot' : 'rlt';
-    const serviceName = `Free ${typeCfg.label} Trial`;
-
-    await Promise.allSettled([
-      supabase
-        .from('calcom_bookings')
-        .insert({
-          calcom_booking_id: calBookingId,
-          calcom_uid: calBookingUid,
-          patient_id: trial.patient_id,
-          patient_name: customerName,
-          patient_email: trial.email,
-          patient_phone: trial.phone,
-          service_name: serviceName,
-          service_slug: serviceSlug,
-          calcom_event_type_id: parseInt(eventTypeId, 10),
-          start_time: startDate.toISOString(),
-          end_time: endDate.toISOString(),
-          booking_date: slotStart.split('T')[0],
-          duration_minutes: typeCfg.duration,
-          status: 'scheduled',
-          notes: bookingNotes,
-          booked_by: 'self',
-        })
-        .then(({ error }) => { if (error) console.error('calcom_bookings insert error:', error); }),
-      (async () => {
-        // Existence check since there's no unique constraint on cal_com_booking_id
-        // and the Cal.com webhook may also try to insert this row.
-        const { data: existing } = await supabase
-          .from('appointments')
-          .select('id')
-          .eq('cal_com_booking_id', String(calBookingId))
-          .maybeSingle();
-        if (existing?.id) return;
-        const { error } = await supabase
-          .from('appointments')
-          .insert({
-            patient_id: trial.patient_id,
-            patient_name: customerName || 'Unknown',
-            patient_phone: trial.phone || null,
-            service_name: serviceName,
-            service_category: serviceCategory,
-            start_time: startDate.toISOString(),
-            end_time: endDate.toISOString(),
-            duration_minutes: typeCfg.duration,
-            status: 'scheduled',
-            source: 'free_session_self_book',
-            cal_com_booking_id: String(calBookingId),
-            visit_reason: `Free ${typeCfg.label} trial session (self-booked)`,
-          });
-        if (error) console.error('appointments insert error:', error);
-      })(),
-    ]);
-
     // Move the matching Free Sessions pipeline card to "scheduled".
-    // Non-blocking — log and continue if it fails.
     try {
       const { data: card } = await supabase
         .from('pipeline_cards')
@@ -223,20 +151,18 @@ export default async function handler(req, res) {
           to_stage: 'scheduled',
           scheduled_for: startDate.toISOString(),
           triggered_by: 'free_session_book',
-          automation_reason: 'Cal.com slot booked via /api/free-session/book',
+          automation_reason: 'slot booked via /api/free-session/book',
         });
-      } else {
-        console.warn('No free_sessions card found for trial_pass', trialId);
       }
     } catch (cardErr) {
       console.error('Free session pipeline card move error:', cardErr);
     }
 
-    // SMS confirmation to lead
+    // Patient SMS confirmation
     const prettyWhen = formatPacific(startDate.toISOString());
     if (normalizedPhone) {
       try {
-        const message = `You\u2019re booked for a free ${typeCfg.label} session at Range Medical on ${prettyWhen}. 1901 Westcliff Dr #10, Newport Beach. A card is on file for the $25 no-show fee \u2014 only charged if you miss without letting us know. Reply to reschedule.\n\n\u2014 Range Medical`;
+        const message = `You’re booked for a free ${typeCfg.label} session at Range Medical on ${prettyWhen}. 1901 Westcliff Dr #10, Newport Beach. A card is on file for the $25 no-show fee — only charged if you miss without letting us know. Reply to reschedule.\n\n— Range Medical`;
         const smsResult = await sendSMS({ to: normalizedPhone, message });
         await logComm({
           channel: 'sms',
@@ -256,7 +182,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // Create follow-up task for Damon
+    // Damon follow-up task
     try {
       const { data: damon } = await supabase
         .from('employees')
@@ -287,7 +213,7 @@ export default async function handler(req, res) {
 
     // Staff alert SMS
     try {
-      const alertMsg = `Free ${typeCfg.shortLabel} booked: ${customerName} (${trial.phone}) \u2014 ${prettyWhen}. $25 no-show card on file.`;
+      const alertMsg = `Free ${typeCfg.shortLabel} booked: ${customerName} (${trial.phone}) — ${prettyWhen}. $25 no-show card on file.`;
       const alertResult = await sendSMS({ to: OWNER_PHONE, message: alertMsg });
       await logComm({
         channel: 'sms',
@@ -311,7 +237,7 @@ export default async function handler(req, res) {
 <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;">
 <tr><td style="background:#0A0A0A;padding:20px 28px;"><h1 style="margin:0;color:#fff;font-size:18px;">Free ${typeCfg.label} Session Booked</h1></td></tr>
 <tr><td style="padding:24px 28px;">
-<p style="margin:0 0 12px;font-size:15px;"><strong>${escapeHtml(customerName)}</strong> \u00b7 ${escapeHtml(trial.phone || '')} \u00b7 ${escapeHtml(trial.email || '')}</p>
+<p style="margin:0 0 12px;font-size:15px;"><strong>${escapeHtml(customerName)}</strong> · ${escapeHtml(trial.phone || '')} · ${escapeHtml(trial.email || '')}</p>
 <p style="margin:0 0 12px;font-size:15px;"><strong>When:</strong> ${escapeHtml(prettyWhen)}</p>
 <p style="margin:0 0 12px;font-size:15px;"><strong>Duration:</strong> ${typeCfg.duration} min</p>
 <p style="margin:0 0 0;font-size:13px;color:#737373;">$25 no-show card saved on trial_pass ${trialId}. Charge from Stripe if they no-show.</p>
@@ -319,7 +245,7 @@ export default async function handler(req, res) {
       await resend.emails.send({
         from: 'Range Medical <hello@range-medical.com>',
         to: ['chris@range-medical.com', 'damon@range-medical.com'],
-        subject: `Free ${typeCfg.shortLabel} booked: ${customerName} \u2014 ${prettyWhen}`,
+        subject: `Free ${typeCfg.shortLabel} booked: ${customerName} — ${prettyWhen}`,
         html,
       });
     } catch (emailErr) {
@@ -328,8 +254,8 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      bookingUid: calBookingUid,
-      bookingId: calBookingId,
+      bookingUid: appointmentResult.appointment.id,
+      bookingId: appointmentResult.appointment.id,
       scheduledStart: startDate.toISOString(),
     });
   } catch (err) {

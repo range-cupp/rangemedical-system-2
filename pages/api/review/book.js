@@ -1,22 +1,16 @@
 // /pages/api/review/book.js
-// Books a free review gift injection via Cal.com and marks the gift as booked
-// Same host preference logic as birthday bookings
+// Books a free review-gift injection via the native scheduling engine.
+// Cal.com is no longer in the loop.
 
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
-import { createBooking, reassignBooking } from '../../../lib/calcom';
+import { createAppointment } from '../../../lib/create-appointment';
+import { pickProviderForSlot } from '../../../lib/scheduling';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-// Cal.com user IDs — prefer Lily/Evan for injections
-const PREFERRED_HOSTS = [
-  { id: 2197567, name: 'Lily' },
-  { id: 2197566, name: 'Evan' },
-];
-const DAMIEN_ID = 2197563;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -25,7 +19,7 @@ export default async function handler(req, res) {
 
   const { token, injectionType, eventTypeId, slotStart, patientName, patientEmail, patientPhone } = req.body;
 
-  if (!token || !injectionType || !eventTypeId || !slotStart) {
+  if (!token || !injectionType || !slotStart) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -35,95 +29,65 @@ export default async function handler(req, res) {
       .select('id, patient_id, status, expires_at')
       .eq('token', token)
       .maybeSingle();
-
     if (giftError) throw giftError;
 
-    if (!gift) {
-      return res.status(404).json({ error: 'Gift not found' });
-    }
-
+    if (!gift) return res.status(404).json({ error: 'Gift not found' });
     if (gift.status !== 'active') {
       return res.status(400).json({ error: `Gift is already ${gift.status}` });
     }
-
     if (new Date() > new Date(gift.expires_at)) {
       await supabase.from('review_gifts').update({ status: 'expired' }).eq('id', gift.id);
       return res.status(400).json({ error: 'Gift has expired' });
     }
 
-    // Create booking via Cal.com
-    const booking = await createBooking({
-      eventTypeId: parseInt(eventTypeId),
-      start: slotStart,
-      name: patientName,
-      email: patientEmail || `patient-${gift.patient_id}@range-medical.com`,
-      phoneNumber: patientPhone || undefined,
+    let serviceSlug = injectionType === 'nad-injection' ? 'nad-injection' : 'range-injections';
+    if (eventTypeId) {
+      const { data: svc } = await supabase
+        .from('services')
+        .select('slug')
+        .eq('legacy_calcom_event_type_id', parseInt(eventTypeId, 10))
+        .maybeSingle();
+      if (svc?.slug) serviceSlug = svc.slug;
+    }
+
+    const provider = await pickProviderForSlot({ serviceSlug, startISO: slotStart });
+    if (!provider) {
+      return res.status(409).json({ error: 'No provider available for that time. Please pick another.' });
+    }
+
+    const startDate = new Date(slotStart);
+    const endDate = new Date(startDate.getTime() + 15 * 60 * 1000);
+    const injectionLabelForAppt = injectionType === 'nad-injection' ? 'NAD+ Injection' : 'Range Injections';
+
+    const result = await createAppointment({
+      patient_id: gift.patient_id,
+      patient_name: patientName,
+      patient_phone: patientPhone || null,
+      service_name: injectionLabelForAppt,
+      service_category: 'injection',
+      service_slug: serviceSlug,
+      provider: provider.displayLabel || provider.name,
+      start_time: startDate.toISOString(),
+      end_time: endDate.toISOString(),
+      duration_minutes: 15,
       notes: '[GOOGLE REVIEW GIFT] Free injection - do not charge',
+      visit_reason: 'Google review gift — free injection',
+      source: 'patient',
+      created_by: 'review-gift',
+      send_notification: true,
     });
 
-    if (booking.error) {
-      console.error('Cal.com booking error:', booking.error);
-      return res.status(500).json({ error: 'Failed to create booking. Please try another time slot.' });
-    }
-
-    const bookingUid = booking.uid || booking.id;
-
-    // Check if Damien was assigned — if so, reassign to Lily or Evan
-    const assignedHostId = booking.hosts?.[0]?.id || booking.host?.id || null;
-    if (assignedHostId === DAMIEN_ID) {
-      for (const preferred of PREFERRED_HOSTS) {
-        const result = await reassignBooking(bookingUid, preferred.id);
-        if (!result.error) {
-          console.log(`Review injection reassigned from Damien to ${preferred.name} (booking ${bookingUid})`);
-          break;
-        }
-        console.log(`Could not reassign to ${preferred.name}, trying next...`);
-      }
-    }
-
-    // Mark gift as booked
     await supabase
       .from('review_gifts')
       .update({
         status: 'booked',
         injection_type: injectionType,
-        calcom_booking_uid: String(bookingUid),
+        calcom_booking_uid: result.appointment.id,
         booked_at: new Date().toISOString(),
       })
       .eq('id', gift.id);
 
-    // Write directly to appointments table so it shows on schedule + patient profile
-    // Check if webhook already created this appointment first
-    const injectionLabelForAppt = injectionType === 'nad-injection' ? 'NAD+ Injection' : 'Range Injections';
-    const startTime = new Date(slotStart);
-    const endTime = new Date(startTime.getTime() + 15 * 60 * 1000);
-
-    const { data: existing } = await supabase
-      .from('appointments')
-      .select('id')
-      .eq('cal_com_booking_id', String(bookingUid))
-      .maybeSingle();
-
-    if (!existing) {
-      await supabase.from('appointments').insert({
-        patient_id: gift.patient_id,
-        patient_name: patientName,
-        patient_phone: patientPhone || null,
-        service_name: injectionLabelForAppt,
-        service_category: 'injection',
-        provider: null,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        duration_minutes: 15,
-        status: 'scheduled',
-        notes: '[GOOGLE REVIEW GIFT] Free injection - do not charge',
-        source: 'cal_com',
-        cal_com_booking_id: String(bookingUid),
-        created_by: 'review-gift',
-      });
-    }
-
-    // Notify Chris via email
+    // Notify Chris via email (unchanged from previous behaviour).
     try {
       const resend = new Resend(process.env.RESEND_API_KEY);
       const injectionLabel = injectionType === 'nad-injection' ? 'NAD+ Injection' : 'Range Injection';
@@ -155,13 +119,12 @@ export default async function handler(req, res) {
       });
     } catch (emailErr) {
       console.error('Failed to send review gift notification email:', emailErr);
-      // Non-fatal — booking still succeeded
     }
 
     return res.status(200).json({
       success: true,
       booking: {
-        uid: bookingUid,
+        uid: result.appointment.id,
         start: slotStart,
         injectionType,
       },

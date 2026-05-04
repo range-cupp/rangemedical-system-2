@@ -1,38 +1,65 @@
 // /pages/api/bookings/slots.js
-// Returns available time slots for a Cal.com event type on a given date
+// Returns available time slots for the given service+date.
+//
+// As of step 2 of the Cal.com cutover this endpoint no longer calls
+// Cal.com — it delegates to the native scheduling engine in
+// lib/scheduling.js. The legacy contract (eventTypeId + date) is
+// preserved so existing callers (FreeSessionScheduler, ConversationView,
+// BookingTab, patient assessment + start pages) work unchanged.
 
-import { getAvailableSlots } from '../../../lib/calcom';
+import { createClient } from '@supabase/supabase-js';
+import { getAvailableSlots } from '../../../lib/scheduling';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { eventTypeId, date } = req.query;
+  const { eventTypeId, serviceSlug: rawSlug, date, locationId, providerId } = req.query;
 
-  if (!eventTypeId || !date) {
-    return res.status(400).json({ error: 'eventTypeId and date are required' });
+  if (!date) {
+    return res.status(400).json({ error: 'date is required' });
+  }
+  if (!eventTypeId && !rawSlug) {
+    return res.status(400).json({ error: 'eventTypeId or serviceSlug is required' });
   }
 
   try {
-    // Fetch slots for the full day in Pacific Time
-    const startTime = `${date}T00:00:00`;
-    const endTime = `${date}T23:59:59`;
-
-    const slots = await getAvailableSlots(
-      parseInt(eventTypeId),
-      startTime,
-      endTime,
-      'America/Los_Angeles'
-    );
-
-    if (!slots) {
-      return res.status(500).json({ error: 'Failed to fetch slots from Cal.com' });
+    let serviceSlug = rawSlug;
+    if (!serviceSlug && eventTypeId) {
+      const { data: svc } = await supabase
+        .from('services')
+        .select('slug')
+        .eq('legacy_calcom_event_type_id', parseInt(eventTypeId, 10))
+        .maybeSingle();
+      if (!svc) {
+        return res.status(404).json({
+          error: `No service found for eventTypeId=${eventTypeId}`,
+        });
+      }
+      serviceSlug = svc.slug;
     }
 
-    return res.status(200).json({ success: true, date, slots });
-  } catch (error) {
-    console.error('Slots API error:', error);
-    return res.status(500).json({ error: 'Server error', details: error.message });
+    const result = await getAvailableSlots({
+      serviceSlug,
+      date,
+      locationId: locationId || 'newport',
+      providerId: providerId || null,
+    });
+
+    return res.status(200).json({
+      success: true,
+      date,
+      slots: result.slots,
+      byProvider: result.byProvider,
+    });
+  } catch (e) {
+    console.error('slots error:', e);
+    return res.status(500).json({ error: 'Server error', details: e.message });
   }
 }

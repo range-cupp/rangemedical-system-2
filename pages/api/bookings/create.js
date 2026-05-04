@@ -1,8 +1,13 @@
 // /pages/api/bookings/create.js
-// Creates a booking in Cal.com and stores it in Supabase
+// Backwards-compatible booking endpoint. The legacy callers (BookingTab,
+// older patient flows) still POST here with the Cal.com-shaped payload
+// (eventTypeId, start, etc.) — we translate to the native scheduling
+// engine and use the shared createAppointment helper. Cal.com itself is
+// no longer in the loop.
 
 import { createClient } from '@supabase/supabase-js';
-import { createBooking, reassignBooking } from '../../../lib/calcom';
+import { createAppointment, CreateAppointmentError } from '../../../lib/create-appointment';
+import { pickProviderForSlot, getServiceProviders } from '../../../lib/scheduling';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -16,149 +21,112 @@ export default async function handler(req, res) {
 
   const {
     eventTypeId,
+    serviceSlug: rawSlug,
     start,
     patientId,
     patientName,
     patientEmail,
     patientPhone,
     serviceName,
-    serviceSlug,
     durationMinutes,
     notes,
-    serviceDetails,
     hostUserId,
     hostName,
   } = req.body;
 
-  if (!eventTypeId || !start || !patientId || !patientName) {
-    return res.status(400).json({ error: 'eventTypeId, start, patientId, and patientName are required' });
+  if (!start || !patientId || !patientName) {
+    return res.status(400).json({ error: 'start, patientId, and patientName are required' });
+  }
+  if (!eventTypeId && !rawSlug) {
+    return res.status(400).json({ error: 'eventTypeId or serviceSlug is required' });
   }
 
   try {
-    // Use placeholder email if patient has none or has an invalid value (e.g. "na", "none").
-    // Cal.com rejects malformed emails with email_validation_error.
-    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const rawEmail = typeof patientEmail === 'string' ? patientEmail.trim() : '';
-    const email = emailRe.test(rawEmail) ? rawEmail : `${patientId}@range-medical.com`;
-
-    // Create booking in Cal.com (round-robin auto-assigns host)
-    const calResult = await createBooking({
-      eventTypeId: parseInt(eventTypeId),
-      start,
-      name: patientName,
-      email,
-      phoneNumber: patientPhone,
-      notes,
-    });
-
-    if (calResult.error) {
-      console.error('Cal.com booking failed:', calResult);
-
-      // Parse Cal.com error for user-friendly message
-      let errorMsg = 'Failed to create booking in Cal.com';
-      let schedulingWindowError = false;
-      const rawErrStr = typeof calResult.error === 'string'
-        ? calResult.error
-        : JSON.stringify(calResult.error || '');
-      try {
-        const parsed = typeof calResult.error === 'string' ? JSON.parse(calResult.error) : calResult.error;
-        const detail = parsed?.error?.message || parsed?.message || '';
-        if (detail.includes('already has booking') || detail.includes('not available')) {
-          errorMsg = 'This time slot is no longer available — all providers are booked. Please select a different time.';
-        } else if (detail.includes("can't be booked at the") || detail.includes('minimum booking notice') || detail.includes('scheduling window')) {
-          errorMsg = 'Cal.com won\u2019t accept this time (too close to now or outside the event\u2019s booking window). Falling back to a manual appointment.';
-          schedulingWindowError = true;
-        } else if (detail.includes('not found')) {
-          errorMsg = 'This appointment type is no longer available. Please refresh and try again.';
-        } else if (detail) {
-          errorMsg = detail;
-        }
-      } catch {
-        // If error is a plain string, check it directly
-        if (rawErrStr.includes('already has booking') || rawErrStr.includes('not available')) {
-          errorMsg = 'This time slot is no longer available — all providers are booked. Please select a different time.';
-        } else if (rawErrStr.includes("can't be booked at the") || rawErrStr.includes('minimum booking notice') || rawErrStr.includes('scheduling window')) {
-          errorMsg = 'Cal.com won\u2019t accept this time. Falling back to a manual appointment.';
-          schedulingWindowError = true;
-        }
-      }
-
-      return res.status(calResult.status === 400 ? 400 : 500).json({
-        error: errorMsg,
-        slotUnavailable: errorMsg.includes('no longer available'),
-        schedulingWindowError,
-        details: calResult.error,
+    // Resolve service from slug (preferred) or legacy event type id.
+    let serviceSlug = rawSlug;
+    let svc = null;
+    if (serviceSlug) {
+      const { data } = await supabase
+        .from('services')
+        .select('slug, name, category, duration_minutes')
+        .eq('slug', serviceSlug)
+        .maybeSingle();
+      svc = data;
+    } else {
+      const { data } = await supabase
+        .from('services')
+        .select('slug, name, category, duration_minutes')
+        .eq('legacy_calcom_event_type_id', parseInt(eventTypeId, 10))
+        .maybeSingle();
+      svc = data;
+      if (svc) serviceSlug = svc.slug;
+    }
+    if (!svc) {
+      return res.status(404).json({
+        error: `Service not found for ${serviceSlug ? `slug=${serviceSlug}` : `eventTypeId=${eventTypeId}`}`,
       });
     }
 
-    console.log('📅 Cal.com booking created:', calResult.id || calResult.uid);
-
-    // If a specific host was requested and Cal.com assigned someone else, reassign
-    if (hostUserId) {
-      const assignedHostId = calResult.hosts?.[0]?.id;
-      if (assignedHostId && assignedHostId !== parseInt(hostUserId)) {
-        console.log(`📅 Reassigning from host ${assignedHostId} to requested host ${hostUserId}`);
-        const reassignResult = await reassignBooking(calResult.uid, parseInt(hostUserId));
-        if (reassignResult.error) {
-          console.warn('Cal.com reassign failed (booking still created):', reassignResult.error);
-        } else {
-          console.log('📅 Host reassigned successfully');
-        }
+    // Provider: if a specific host was requested, find the matching one;
+    // otherwise round-robin via the engine.
+    let providerName = hostName || null;
+    if (hostUserId && !providerName) {
+      const providers = await getServiceProviders(serviceSlug);
+      // Bridge hostUserId (cal.com numeric id) → friendly name via employees
+      const { data: emp } = await supabase
+        .from('employees')
+        .select('id, name')
+        .eq('calcom_user_id', parseInt(hostUserId, 10))
+        .maybeSingle();
+      if (emp) {
+        const match = providers.find(p => p.employeeId === emp.id);
+        providerName = match?.displayLabel || emp.name;
       }
     }
+    if (!providerName) {
+      const picked = await pickProviderForSlot({ serviceSlug, startISO: start });
+      if (!picked) {
+        return res.status(409).json({
+          error: 'This time slot is no longer available — all providers are booked. Please select a different time.',
+          slotUnavailable: true,
+        });
+      }
+      providerName = picked.displayLabel || picked.name;
+    }
 
-    // Calculate end time
-    const duration = durationMinutes || 30;
+    const duration = durationMinutes || svc.duration_minutes || 30;
     const startDate = new Date(start);
     const endDate = new Date(startDate.getTime() + duration * 60000);
-    const bookingDate = start.split('T')[0];
 
-    // Store in Supabase (calcom_bookings only — the admin schedule reads from
-    // the native `appointments` table, which is written by the caller's
-    // secondary POST /api/appointments/create and, as a fallback, by the
-    // Cal.com BOOKING_CREATED webhook).
-    const { data: booking, error: dbError } = await supabase
-      .from('calcom_bookings')
-      .insert({
-        calcom_booking_id: calResult.id,
-        calcom_uid: calResult.uid,
-        patient_id: patientId,
-        patient_name: patientName,
-        patient_email: email,
-        patient_phone: patientPhone,
-        service_name: serviceName,
-        service_slug: serviceSlug,
-        calcom_event_type_id: parseInt(eventTypeId),
-        start_time: startDate.toISOString(),
-        end_time: endDate.toISOString(),
-        booking_date: bookingDate,
-        duration_minutes: duration,
-        status: 'scheduled',
-        notes,
-        booked_by: 'staff',
-        service_details: serviceDetails || null,
-      })
-      .select()
-      .single();
-
-    if (dbError) {
-      console.error('Supabase insert error:', dbError);
-      // Booking was created in Cal.com but failed to save locally
-      return res.status(200).json({
-        success: true,
-        warning: 'Booking created in Cal.com but failed to save locally',
-        calcom: calResult,
-        dbError: dbError.message
-      });
-    }
+    const result = await createAppointment({
+      patient_id: patientId,
+      patient_name: patientName,
+      patient_phone: patientPhone || null,
+      service_name: serviceName || svc.name,
+      service_category: svc.category,
+      service_slug: serviceSlug,
+      provider: providerName,
+      start_time: startDate.toISOString(),
+      end_time: endDate.toISOString(),
+      duration_minutes: duration,
+      notes: notes || null,
+      visit_reason: notes?.trim() || serviceName || svc.name,
+      source: 'staff',
+      created_by: 'BookingTab',
+      send_notification: true,
+    });
 
     return res.status(200).json({
       success: true,
-      booking,
-      calcom: calResult
+      booking: { id: result.appointment.id, uid: result.appointment.id },
+      // Back-compat shape — old callers read calBookingData.calcom?.id.
+      calcom: { id: result.appointment.id, uid: result.appointment.id },
     });
-  } catch (error) {
-    console.error('Create booking API error:', error);
-    return res.status(500).json({ error: 'Server error', details: error.message });
+  } catch (e) {
+    if (e instanceof CreateAppointmentError) {
+      return res.status(e.statusCode).json({ error: e.message });
+    }
+    console.error('Bookings/create error:', e);
+    return res.status(500).json({ error: 'Server error', details: e.message });
   }
 }

@@ -168,6 +168,7 @@ const FORM_QUICK_SELECTS = [
 // Guides available to send from patient profile
 const AVAILABLE_GUIDES = [
   { id: 'hrt-guide', name: 'HRT Guide', icon: '💊', category: 'hrt' },
+  { id: 'hrt-questionnaire-male', name: 'HRT Questionnaire (Male)', icon: '📝', category: 'hrt' },
   { id: 'tirzepatide-guide', name: 'Tirzepatide Guide', icon: '⚖️', category: 'weight_loss' },
   { id: 'retatrutide-guide', name: 'Retatrutide Guide', icon: '⚖️', category: 'weight_loss' },
   { id: 'weight-loss-medication-guide-page', name: 'WL Medication Guide', icon: '⚖️', category: 'weight_loss' },

@@ -217,7 +217,8 @@ function computeDispenseStatus(cadenceDays, lastPurchase, todayISO) {
 //   - 'auto_nudged_today'     cron sent the 1st nudge today
 //   - 'auto_final_today'      cron sent the final nudge today
 //   - 'completed_today'       patient logged a check-in today
-//   - 'waiting'               sent earlier in cycle, no auto-action today, no response yet
+//   - 'completed_in_cycle'    patient already responded earlier in this cycle (not today)
+//   - 'waiting'               sent earlier in cycle, no response yet
 //   - 'will_send_today'       today is the injection day, cron hasn't run yet (before ~10am PT)
 //   - 'cron_skipped_today'    today is the injection day, cron should have run, didn't
 //   - 'needs_setup'           reminders enabled but no injection_day set
@@ -261,6 +262,14 @@ function computeCycleEvents({ expectedDateISO, todayISO, cadenceDays, reminderLo
     return { today_action: 'completed_today', original, nudge1, nudge2, checkin: cycleCheckin };
   }
 
+  // Patient already responded earlier in this cycle → still completed, just
+  // not today. Critical: this MUST come before the "waiting" branch so a
+  // patient who checked in yesterday doesn't get bucketed as "waiting" (and
+  // doesn't trigger the next cron's nudge logic on the dashboard side).
+  if (cycleCheckin) {
+    return { today_action: 'completed_in_cycle', original, nudge1, nudge2, checkin: cycleCheckin };
+  }
+
   // Cron sent something today
   if (nudge2 && nudge2.sent_date === todayISO) {
     return { today_action: 'auto_final_today', original, nudge1, nudge2 };
@@ -287,7 +296,7 @@ function computeCycleEvents({ expectedDateISO, todayISO, cadenceDays, reminderLo
 
   // Sent earlier this cycle, in flight, nothing happening today
   if (original) {
-    return { today_action: 'waiting', original, nudge1, nudge2, checkin: cycleCheckin };
+    return { today_action: 'waiting', original, nudge1, nudge2, checkin: null };
   }
 
   return { today_action: 'idle', original, nudge1, nudge2 };

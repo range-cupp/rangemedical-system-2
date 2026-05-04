@@ -219,13 +219,16 @@ export default async function handler(req, res) {
       }
 
       // Has the patient already completed their check-in for this cycle?
+      // Include BOTH 'weight_check' (legacy) and 'injection' (current patient
+      // form writes this) so a patient who already responded today doesn't
+      // get nudged tomorrow morning.
       const originalDate = new Date(lastOriginal.sent_at).toISOString().split('T')[0];
       const { count: completedCount } = await supabase
         .from('service_logs')
         .select('id', { count: 'exact', head: true })
         .eq('patient_id', patient.id)
         .eq('category', 'weight_loss')
-        .eq('entry_type', 'weight_check')
+        .in('entry_type', ['weight_check', 'injection'])
         .gte('entry_date', originalDate);
 
       if ((completedCount || 0) > 0) {

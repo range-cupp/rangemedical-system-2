@@ -988,6 +988,7 @@ async function handlePost(req, res, employee) {
       case 'toggle_reminder':    return await actionToggleReminder(req, res, protocol, employee);
       case 'set_opt_out':        return await actionSetOptOut(req, res, protocol, employee);
       case 'update_injection_day': return await actionUpdateInjectionDay(req, res, protocol, employee);
+      case 'update_goal_weight': return await actionUpdateGoalWeight(req, res, protocol, employee);
       case 'send_booking_sms':   return await actionSendBookingSMS(req, res, protocol, employee);
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
@@ -1177,6 +1178,34 @@ async function actionUpdateInjectionDay(req, res, protocol, employee) {
   });
 
   return res.status(200).json({ success: true });
+}
+
+async function actionUpdateGoalWeight(req, res, protocol, employee) {
+  const { goal_weight } = req.body;
+  // Allow null (clear) or a positive number. Reject anything weird.
+  if (goal_weight !== null && goal_weight !== undefined) {
+    const n = Number(goal_weight);
+    if (!Number.isFinite(n) || n <= 0 || n > 1000) {
+      return res.status(400).json({ error: 'goal_weight must be a positive number under 1000' });
+    }
+  }
+  const value = (goal_weight === null || goal_weight === undefined || goal_weight === '')
+    ? null
+    : Number(goal_weight);
+
+  const { error } = await supabase
+    .from('protocols')
+    .update({ goal_weight: value })
+    .eq('id', protocol.id);
+  if (error) return res.status(500).json({ error: error.message });
+
+  await logAction({
+    employee, action_type: 'wl_tracker_update_goal_weight',
+    description: `Set goal weight to ${value != null ? value + ' lb' : 'none'} for ${protocol.patients.name}`,
+    target_type: 'protocol', target_id: protocol.id,
+  });
+
+  return res.status(200).json({ success: true, goal_weight: value });
 }
 
 // Sends a "let's get your next visit on the calendar" SMS to the patient.

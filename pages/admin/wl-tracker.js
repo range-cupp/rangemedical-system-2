@@ -863,6 +863,96 @@ function InClinicRow({ patient, sectionKey, onSelect, onAction, onSchedule, acti
   );
 }
 
+// Compact goal-weight cell for the roster. Click to open an inline editor —
+// type the goal in lb, hit Enter or Save. Shows the delta to current weight
+// underneath when both are set so staff can scan progress at a glance.
+function GoalCell({ patient, disabled, onAction }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(patient.weight_stats?.goal_weight ?? '');
+  const [saving, setSaving] = useState(false);
+  const goal = patient.weight_stats?.goal_weight;
+  const current = patient.weight_stats?.current_weight;
+
+  // Reset local state when patient changes (different row clicked, etc.)
+  useEffect(() => {
+    setValue(patient.weight_stats?.goal_weight ?? '');
+    setEditing(false);
+  }, [patient.protocol_id, patient.weight_stats?.goal_weight]);
+
+  const save = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const trimmed = String(value).trim();
+      const payload = trimmed === '' ? null : Number(trimmed);
+      await onAction('update_goal_weight', {
+        protocol_id: patient.protocol_id,
+        goal_weight: payload,
+      });
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div onClick={e => e.stopPropagation()}
+        style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+        <input
+          type="number" step="0.5"
+          autoFocus
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') save();
+            if (e.key === 'Escape') { setEditing(false); setValue(goal ?? ''); }
+          }}
+          placeholder="lb"
+          style={{ width: '64px', padding: '4px 6px', border: '1px solid #999', fontSize: '13px' }}
+        />
+        <button disabled={saving} onClick={save}
+          style={{ ...sharedStyles.btnPrimary, padding: '4px 8px', fontSize: '12px' }}>
+          {saving ? '…' : 'Save'}
+        </button>
+        <button disabled={saving} onClick={() => { setEditing(false); setValue(goal ?? ''); }}
+          style={{ ...sharedStyles.btnSecondary, padding: '4px 6px', fontSize: '12px' }}>
+          ✕
+        </button>
+      </div>
+    );
+  }
+
+  if (goal == null) {
+    return (
+      <button disabled={disabled}
+        onClick={e => { e.stopPropagation(); setEditing(true); }}
+        style={{
+          background: 'transparent', border: '1px dashed #ccc',
+          padding: '4px 8px', fontSize: '12px', color: '#888', cursor: 'pointer',
+        }}>
+        + Set goal
+      </button>
+    );
+  }
+
+  const delta = (current != null) ? Math.round((current - goal) * 10) / 10 : null;
+  const reached = delta != null && delta <= 0;
+
+  return (
+    <div onClick={e => { e.stopPropagation(); setEditing(true); }}
+      title="Click to edit goal weight"
+      style={{ cursor: 'pointer' }}>
+      <div style={{ fontSize: '13px', fontWeight: 600 }}>{goal} lb</div>
+      {delta != null && (
+        <div style={{ fontSize: '11px', color: reached ? '#166534' : '#888' }}>
+          {reached ? '🎉 reached' : `${delta} lb to go`}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StreakBadge({ streak }) {
   if (!streak || streak < 2) return null;
   const onFire = streak >= 4;
@@ -1111,6 +1201,7 @@ function RosterTable({ mode, patients, onSelect, onAction, actionInProgress }) {
               <th style={sharedStyles.th}>Med / Dose</th>
               <th style={sharedStyles.th}>Cadence</th>
               <th style={sharedStyles.th}>{inClinic ? 'Last Visit' : 'Last Check-in'}</th>
+              <th style={sharedStyles.th}>Goal</th>
               <th style={sharedStyles.th}>{inClinic ? 'Streak' : '4-wk Rate'}</th>
               <th style={sharedStyles.th}>Status</th>
               {!inClinic && <th style={sharedStyles.th}>Reminders</th>}
@@ -1189,6 +1280,9 @@ function RosterTable({ mode, patients, onSelect, onAction, actionInProgress }) {
                   )}
                 </td>
                 <td style={sharedStyles.td}>
+                  <GoalCell patient={p} disabled={actionInProgress} onAction={onAction} />
+                </td>
+                <td style={sharedStyles.td}>
                   {inClinic ? (
                     p.streak && p.streak > 0 ? (
                       <StreakBadge streak={p.streak} />
@@ -1228,7 +1322,7 @@ function RosterTable({ mode, patients, onSelect, onAction, actionInProgress }) {
             );
             })}
             {patients.length === 0 && (
-              <tr><td colSpan={inClinic ? 8 : 9} style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No patients match the current filter</td></tr>
+              <tr><td colSpan={inClinic ? 9 : 10} style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No patients match the current filter</td></tr>
             )}
           </tbody>
         </table>
@@ -1296,7 +1390,7 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule
           </Section>
         )}
 
-        <WeightProgressBlock patient={patient} />
+        <WeightProgressBlock patient={patient} onAction={onAction} actionInProgress={actionInProgress} />
 
         <ProtocolSummaryBlock patient={patient} />
 
@@ -1451,7 +1545,7 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule
 
 // ───────────────────── Side-panel info blocks ─────────────────────
 
-function WeightProgressBlock({ patient }) {
+function WeightProgressBlock({ patient, onAction, actionInProgress }) {
   const ws = patient.weight_stats || {};
   const history = patient.weight_history || [];
   const { starting_weight, current_weight, goal_weight, total_loss_lb, to_goal_lb } = ws;
@@ -1468,7 +1562,7 @@ function WeightProgressBlock({ patient }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
         <Tile label="Starting" value={starting_weight} unit="lb" />
         <Tile label="Current" value={current_weight} unit="lb" emphasis />
-        <Tile label="Goal" value={goal_weight} unit="lb" />
+        <GoalTile patient={patient} onAction={onAction} actionInProgress={actionInProgress} />
       </div>
 
       {(total_loss_lb != null || to_goal_lb != null) && (
@@ -1506,6 +1600,82 @@ function WeightProgressBlock({ patient }) {
         </div>
       )}
     </Section>
+  );
+}
+
+// Editable variant of Tile for the goal weight. Click → input → save.
+function GoalTile({ patient, onAction, actionInProgress }) {
+  const goal = patient.weight_stats?.goal_weight;
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(goal ?? '');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setValue(goal ?? '');
+    setEditing(false);
+  }, [patient.protocol_id, goal]);
+
+  const save = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const trimmed = String(value).trim();
+      const payload = trimmed === '' ? null : Number(trimmed);
+      await onAction('update_goal_weight', {
+        protocol_id: patient.protocol_id,
+        goal_weight: payload,
+      });
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div style={{ padding: '10px 12px', background: '#f5f5f5' }}>
+        <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#666', fontWeight: 600 }}>
+          Goal
+        </div>
+        <input
+          type="number" step="0.5" autoFocus
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') save();
+            if (e.key === 'Escape') { setEditing(false); setValue(goal ?? ''); }
+          }}
+          placeholder="lb"
+          style={{ width: '100%', marginTop: '2px', padding: '4px 6px',
+            border: '1px solid #999', fontSize: '18px', fontWeight: 700, boxSizing: 'border-box' }}
+        />
+        <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+          <button disabled={saving || actionInProgress} onClick={save}
+            style={{ ...sharedStyles.btnPrimary, padding: '4px 8px', fontSize: '11px', flex: 1 }}>
+            {saving ? '…' : 'Save'}
+          </button>
+          <button disabled={saving} onClick={() => { setEditing(false); setValue(goal ?? ''); }}
+            style={{ ...sharedStyles.btnSecondary, padding: '4px 8px', fontSize: '11px' }}>
+            ✕
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div onClick={() => setEditing(true)}
+      title="Click to edit goal weight"
+      style={{ padding: '10px 12px', background: '#f5f5f5', cursor: 'pointer',
+        border: goal == null ? '1px dashed #aaa' : '1px solid transparent' }}>
+      <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#666', fontWeight: 600 }}>
+        Goal {goal != null && <span style={{ color: '#aaa', fontWeight: 400, textTransform: 'none' }}>· edit</span>}
+      </div>
+      <div style={{ fontSize: '20px', fontWeight: 700, marginTop: '2px' }}>
+        {goal != null ? goal : <span style={{ color: '#888', fontSize: '14px', fontWeight: 600 }}>+ Set</span>}
+        {goal != null && <span style={{ fontSize: '11px', fontWeight: 500, marginLeft: '3px', color: '#666' }}>lb</span>}
+      </div>
+    </div>
   );
 }
 

@@ -57,14 +57,16 @@ export default async function handler(req, res) {
 
     const patientIds = consultProtocols.map(p => p.patient_id).filter(Boolean);
 
-    // 2. Get lab review bookings that have already happened for these patients
+    // 2. Get lab review appointments that have already happened for these
+    // patients. Lab review services have service_name like
+    // "Initial Lab Review" or "Follow-Up Lab Review (telemedicine)".
     const { data: pastBookings } = await supabase
-      .from('calcom_bookings')
-      .select('patient_id, start_time, service_slug')
+      .from('appointments')
+      .select('patient_id, start_time, service_name')
       .in('patient_id', patientIds)
-      .in('service_slug', LAB_REVIEW_SLUGS)
+      .ilike('service_name', '%lab review%')
       .lt('start_time', now)
-      .in('status', ['completed', 'confirmed', 'accepted', 'scheduled'])
+      .in('status', ['completed', 'confirmed', 'scheduled', 'in_progress', 'checked_in'])
       .order('start_time', { ascending: false });
 
     if (!pastBookings || pastBookings.length === 0) {

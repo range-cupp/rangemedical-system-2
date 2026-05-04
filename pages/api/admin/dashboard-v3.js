@@ -441,11 +441,11 @@ export default async function handler(req, res) {
         if (dueItems.length > 0) {
           const duePatientIds = dueItems.map(d => d.patientId).filter(Boolean);
           const { data: scheduledBookings } = await supabase
-            .from('calcom_bookings')
-            .select('patient_id, start_time, service_slug, status')
+            .from('appointments')
+            .select('patient_id, start_time, service_category, status')
             .in('patient_id', duePatientIds)
-            .in('service_slug', ['new-patient-blood-draw', 'follow-up-blood-draw'])
-            .in('status', ['scheduled', 'confirmed', 'accepted'])
+            .eq('service_category', 'labs')
+            .in('status', ['scheduled', 'confirmed', 'checked_in'])
             .gte('start_time', new Date().toISOString());
 
           if (scheduledBookings && scheduledBookings.length > 0) {

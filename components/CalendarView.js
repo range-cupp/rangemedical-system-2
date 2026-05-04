@@ -125,6 +125,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [eventTypesMap, setEventTypesMap] = useState({}); // slug → { id, hosts }
   const [providerSchedules, setProviderSchedules] = useState({}); // username → { newport: { monday: [{start,end}], ... }, locations: { placentia: { monday: [{start,end}] } } }
   const [availableSlots, setAvailableSlots] = useState(null); // null = not loaded, [] = no slots, [...] = available
+  const [slotsByProvider, setSlotsByProvider] = useState({}); // { employeeId: [{ start, end, providerName, providerFirstName }] } from /api/bookings/slots-v2
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slotsError, setSlotsError] = useState(false); // true when Cal.com API fails
   // Multi-service availability: fetched per-service slots (null = no cal.com, [] = none available, [...] = slots)
@@ -572,13 +573,31 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     });
   }, [providerSchedules]);
 
-  // Get slots for a specific provider from the combined Cal.com slots
+  // Get slots for a specific provider. Prefers the engine's per-provider
+  // availability (which already accounts for actual existing appointments),
+  // falling back to the working-hours filter when no match is found.
   const getSlotsForProvider = useCallback((provUsername, locationId) => {
     if (!availableSlots || !apptDate) return [];
+
+    // Prefer engine byProvider when present. Match by providerFirstName,
+    // which equals the friendly username for our providers (lily, damien, etc.)
+    const wantFirst = (provUsername || '').toLowerCase();
+    if (wantFirst && slotsByProvider) {
+      for (const slots of Object.values(slotsByProvider)) {
+        if (slots[0]?.providerFirstName?.toLowerCase() === wantFirst) {
+          return slots.map(s => {
+            const d = new Date(s.start);
+            return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+          });
+        }
+      }
+    }
+
+    // Fall back to working-hours filter (engine had no entry for this provider)
     const dateObj = new Date(apptDate + 'T12:00:00');
     const dayOfWeek = dateObj.getDay();
     return availableSlots.filter(time => isSlotInSchedule(time, dayOfWeek, provUsername, locationId));
-  }, [availableSlots, apptDate, isSlotInSchedule]);
+  }, [availableSlots, slotsByProvider, apptDate, isSlotInSchedule]);
 
   // Fetch available slots from Cal.com when date/service/location change
   // Stores COMBINED team slots — per-provider filtering happens in the render
@@ -639,6 +658,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         // De-duplicate (Cal.com can return overlapping slots for multiple hosts)
         const unique = [...new Set(slotTimes)].sort();
         setAvailableSlots(unique);
+        setSlotsByProvider(data.byProvider || {});
         setLoadingSlots(false);
       })
       .catch(err => {

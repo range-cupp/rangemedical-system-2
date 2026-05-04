@@ -579,10 +579,11 @@ async function handleGet(req, res) {
     }
 
     // 4a. All-time WL weight history (any entry with weight populated). Used
-    // for the side-panel sparkline and the start/current weight tiles.
+    // for the side-panel sparkline, the start/current weight tiles, and the
+    // "Recent injections" list (date/weight/dose/notes per row).
     const { data: weightRowsRaw } = await supabase
       .from('service_logs')
-      .select('patient_id, entry_date, weight, entry_type')
+      .select('patient_id, entry_date, weight, entry_type, dosage, notes')
       .in('patient_id', patientIds)
       .eq('category', 'weight_loss')
       .not('weight', 'is', null)
@@ -593,6 +594,8 @@ async function handleGet(req, res) {
         date: w.entry_date,
         weight: Number(w.weight),
         entry_type: w.entry_type,
+        dosage: w.dosage,
+        notes: w.notes,
       });
     }
 

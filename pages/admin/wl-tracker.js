@@ -1258,6 +1258,8 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule
 
         <WeightProgressBlock patient={patient} onAction={onAction} actionInProgress={actionInProgress} />
 
+        <RecentInjectionsBlock patient={patient} />
+
         <ProtocolSummaryBlock patient={patient} />
 
         {onSchedule && (
@@ -1606,6 +1608,96 @@ function WeightSparkline({ history, startingWeight, goalWeight }) {
       </div>
     </div>
   );
+}
+
+// Last N injections / weight check-ins, newest first. Shows date, dose,
+// weight, and the delta from the previous entry so you can scan progress
+// at a glance — same shape Lily looks at in the protocol detail page.
+function RecentInjectionsBlock({ patient }) {
+  const history = patient.weight_history || [];
+  if (history.length === 0) return null;
+
+  // weight_history is sorted oldest→newest. Take the last 4, then reverse so
+  // the newest sits on top. Compute delta vs the previous entry chronologically.
+  const lastFour = history.slice(-4).map((entry, idx, arr) => {
+    const prev = arr[idx - 1];
+    const delta = prev ? Math.round((entry.weight - prev.weight) * 10) / 10 : null;
+    return { ...entry, delta };
+  }).reverse();
+
+  return (
+    <Section title={`Recent injections (last ${lastFour.length})`}>
+      <div style={{ border: '1px solid #f0f0f0' }}>
+        {lastFour.map((entry, i) => {
+          const summary = parseCheckinNotesClient(entry.notes);
+          const dateLabel = (() => {
+            const d = new Date(entry.date + 'T12:00:00');
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          })();
+          return (
+            <div key={i} style={{
+              display: 'grid',
+              gridTemplateColumns: '64px 1fr auto',
+              gap: '10px', alignItems: 'center',
+              padding: '10px 12px',
+              borderBottom: i < lastFour.length - 1 ? '1px solid #f0f0f0' : 'none',
+              background: i === 0 ? '#fafafa' : '#fff',
+            }}>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600 }}>{dateLabel}</div>
+                {entry.dosage && (
+                  <div style={{ fontSize: '11px', color: '#888' }}>{entry.dosage}</div>
+                )}
+              </div>
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: 700 }}>
+                  {entry.weight} <span style={{ fontSize: '11px', fontWeight: 500, color: '#666' }}>lb</span>
+                </div>
+                {summary?.has_anything_notable && (
+                  <div style={{ fontSize: '11px', color: '#92400e', marginTop: '2px',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    title={[summary.side_effects && `Side effects: ${summary.side_effects}`, summary.patient_note].filter(Boolean).join(' · ')}>
+                    💬 {summary.side_effects && summary.side_effects.toLowerCase() !== 'none' ? summary.side_effects : summary.patient_note}
+                  </div>
+                )}
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                {entry.delta == null ? (
+                  <span style={{ fontSize: '11px', color: '#aaa' }}>—</span>
+                ) : entry.delta === 0 ? (
+                  <span style={{ fontSize: '12px', color: '#888' }}>no change</span>
+                ) : (
+                  <span style={{
+                    fontSize: '13px', fontWeight: 600,
+                    color: entry.delta < 0 ? '#166534' : '#991b1b',
+                  }}>
+                    {entry.delta < 0 ? '↓' : '↑'} {Math.abs(entry.delta)}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
+// Mirror of the API's parseCheckinNotes so the per-row chip can show notes
+// from older check-ins too (not just the current cycle's checkin_summary).
+function parseCheckinNotesClient(rawNotes) {
+  if (!rawNotes) return null;
+  const sideEffectsMatch = rawNotes.match(/Side effects:\s*([^|]+?)(?:\s*\||$)/i);
+  const notesMatch = rawNotes.match(/Notes:\s*(.+)$/i);
+  const sideEffectsRaw = sideEffectsMatch ? sideEffectsMatch[1].trim() : null;
+  const patientNote = notesMatch ? notesMatch[1].trim() : null;
+  const sideEffectsNotable = sideEffectsRaw && sideEffectsRaw.toLowerCase() !== 'none';
+  const noteNotable = patientNote && patientNote.length > 0;
+  return {
+    side_effects: sideEffectsRaw,
+    patient_note: patientNote,
+    has_anything_notable: !!(sideEffectsNotable || noteNotable),
+  };
 }
 
 function ProtocolSummaryBlock({ patient }) {

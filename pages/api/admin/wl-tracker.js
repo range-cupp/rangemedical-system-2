@@ -67,6 +67,28 @@ function getInitials(name) {
   return ((parts[0]?.[0] || '') + (parts[parts.length - 1]?.[0] || '')).toUpperCase();
 }
 
+// The patient-checkin form writes notes in this shape:
+//   "Patient self-reported check-in | Side effects: Nausea, Fatigue | Notes: <free text>"
+// Pull side effects + free-text notes out separately so the dashboard can
+// surface them as a 💬 chip without staff opening the side panel. Returns
+// { side_effects, patient_note, has_anything_notable } — "None" side effects
+// with no free-text are treated as not notable so we don't decorate clean
+// check-ins with a chip that says "nothing here."
+function parseCheckinNotes(rawNotes) {
+  if (!rawNotes) return { side_effects: null, patient_note: null, has_anything_notable: false };
+  const sideEffectsMatch = rawNotes.match(/Side effects:\s*([^|]+?)(?:\s*\||$)/i);
+  const notesMatch = rawNotes.match(/Notes:\s*(.+)$/i);
+  const sideEffectsRaw = sideEffectsMatch ? sideEffectsMatch[1].trim() : null;
+  const patientNote = notesMatch ? notesMatch[1].trim() : null;
+  const sideEffectsNotable = sideEffectsRaw && sideEffectsRaw.toLowerCase() !== 'none';
+  const noteNotable = patientNote && patientNote.length > 0;
+  return {
+    side_effects: sideEffectsRaw,
+    patient_note: patientNote,
+    has_anything_notable: !!(sideEffectsNotable || noteNotable),
+  };
+}
+
 // Compute the "expected injection date" for a given protocol within the requested week.
 // For weekly cadence: returns the date in the week matching injection_day.
 // For 10/14-day cadence: walks forward from a known anchor (last reminder OR start_date)
@@ -717,6 +739,13 @@ async function handleGet(req, res) {
         protocol,
       });
 
+      // Parsed summary of the current cycle's check-in (if any) — drives the
+      // 💬 chip on completed-today rows so notable side effects / questions
+      // surface without needing to open the side panel.
+      const checkinSummary = cycleEvents?.checkin
+        ? parseCheckinNotes(cycleEvents.checkin.notes)
+        : null;
+
       // In-clinic specific: appointment-anchored status + streak
       const appointments = appointmentsByPatient[patient.id] || [];
       const visit = mode === 'in_clinic'
@@ -794,6 +823,7 @@ async function handleGet(req, res) {
         expected_date_this_week: expectedDate,
         cell_status: cellStatus,
         cycle: cycleEvents,
+        checkin_summary: checkinSummary,  // parsed side effects + free-text from this cycle's check-in
         visit,    // in-clinic only: today/recent appointment status
         streak,   // in-clinic only: consecutive injections (no big gaps)
 

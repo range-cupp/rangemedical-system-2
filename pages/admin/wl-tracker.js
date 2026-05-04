@@ -880,6 +880,40 @@ function StreakBadge({ streak }) {
   );
 }
 
+// Inline 💬 chip on rows where the patient's check-in had non-default side
+// effects or a free-text question/note. Title shows the full content on hover;
+// the row's body shows a one-line preview so you don't have to click to know
+// whether it needs a response.
+function NotableNotesChip({ summary, compact }) {
+  if (!summary?.has_anything_notable) return null;
+  const parts = [];
+  if (summary.side_effects && summary.side_effects.toLowerCase() !== 'none') {
+    parts.push(`Side effects: ${summary.side_effects}`);
+  }
+  if (summary.patient_note) {
+    parts.push(summary.patient_note);
+  }
+  const fullText = parts.join(' · ');
+  const preview = compact
+    ? fullText
+    : (fullText.length > 90 ? fullText.slice(0, 87) + '…' : fullText);
+
+  return (
+    <div title={fullText}
+      style={{
+        marginTop: compact ? 0 : '4px',
+        display: 'inline-flex', alignItems: 'flex-start', gap: '4px',
+        padding: '3px 8px',
+        background: '#fef9f3', border: '1px solid #fde68a',
+        color: '#92400e', fontSize: compact ? '11px' : '12px',
+        fontWeight: 500, lineHeight: 1.4, maxWidth: '100%',
+      }}>
+      <span>💬</span>
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{preview}</span>
+    </div>
+  );
+}
+
 function visitDescription(visit) {
   const a = visit?.today_action;
   const today = visit?.today_appt;
@@ -933,7 +967,12 @@ function todayActionDescription(patient) {
     case 'auto_final_today':
       return <span>🚨 Final nudge sent at <strong>{c.nudge2?.sent_time || 'today'}</strong></span>;
     case 'completed_today':
-      return <span>✅ Patient logged today</span>;
+      return (
+        <div>
+          <span>✅ Patient logged today</span>
+          <NotableNotesChip summary={patient.checkin_summary} />
+        </div>
+      );
     case 'will_send_today':
       return <span>⏰ Cron will send today (~9 AM PT)</span>;
     case 'waiting':
@@ -1140,6 +1179,11 @@ function RosterTable({ mode, patients, onSelect, onAction, actionInProgress }) {
                       <>
                         <div style={{ fontSize: '13px' }}>{fmtDate(p.last_checkin_date)}</div>
                         {p.last_weight && <div style={{ fontSize: '12px', color: '#888' }}>{p.last_weight} lb</div>}
+                        {p.checkin_summary?.has_anything_notable && (
+                          <div style={{ marginTop: '4px' }}>
+                            <NotableNotesChip summary={p.checkin_summary} compact />
+                          </div>
+                        )}
                       </>
                     ) : <span style={{ color: '#999' }}>—</span>
                   )}
@@ -1240,6 +1284,17 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule
           <DispensePill dispense={patient.dispense} />
           <PaymentPill payment={patient.payment} />
         </div>
+
+        {patient.checkin_summary?.has_anything_notable && (
+          <Section title="Patient note from latest check-in">
+            <NotableNotesChip summary={patient.checkin_summary} compact />
+            {patient.cycle?.checkin?.entry_date && (
+              <div style={{ fontSize: '11px', color: '#888', marginTop: '6px' }}>
+                Logged {fmtDate(patient.cycle.checkin.entry_date)}
+              </div>
+            )}
+          </Section>
+        )}
 
         <WeightProgressBlock patient={patient} />
 

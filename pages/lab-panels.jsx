@@ -1968,29 +1968,44 @@ export default function LabPanels() {
             .lp-chart-wrapper {
               margin: 0 -1rem;
               padding: 0 1rem;
+              overflow-x: hidden;
+            }
+
+            .lp-chart {
+              min-width: 0;
+            }
+
+            .lp-chart-body {
+              max-height: none;
+              overflow-y: visible;
             }
 
             .lp-chart-header,
             .lp-chart-row,
             .lp-chart-footer {
-              grid-template-columns: 1fr 80px 80px;
+              grid-template-columns: 1fr 64px 64px;
             }
 
             .lp-chart-marker-col {
-              padding: 0.75rem 1rem;
-              font-size: 0.875rem;
-            }
-
-            .lp-chart-header .lp-chart-marker-col {
-              padding: 1rem;
-            }
-
-            .lp-chart-panel-name {
+              padding: 0.75rem 0.75rem;
               font-size: 0.8125rem;
             }
 
-            .lp-chart-panel-price {
+            .lp-chart-header .lp-chart-marker-col {
+              padding: 0.75rem;
+              font-size: 10px;
+            }
+
+            .lp-chart-panel-col {
+              padding: 0.75rem 0.25rem;
+            }
+
+            .lp-chart-panel-name {
               font-size: 0.75rem;
+            }
+
+            .lp-chart-panel-price {
+              font-size: 0.6875rem;
             }
 
             .lp-chart-hint {
@@ -1999,11 +2014,22 @@ export default function LabPanels() {
             }
 
             .lp-chart-description {
-              padding: 0.875rem 1rem;
+              padding: 0.875rem 0.75rem;
             }
 
             .lp-chart-description p {
               font-size: 0.8125rem;
+            }
+
+            .lp-chart-footer .lp-chart-panel-col {
+              padding: 0.75rem 0.25rem;
+            }
+
+            .lp-btn-sm,
+            .lp-btn-sm-white {
+              font-size: 0.5625rem;
+              padding: 0.5rem 0.25rem;
+              letter-spacing: 0.05em;
             }
 
             .lp-process-grid {

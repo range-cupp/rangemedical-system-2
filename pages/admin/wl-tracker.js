@@ -74,7 +74,11 @@ export default function WLTrackerPage() {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [selectedPatient, setSelectedPatient] = useState(null);
+  // Track only the protocol_id for the open side panel — derive the actual
+  // patient object from the latest data each render. Otherwise actions like
+  // opt-out update the DB but the panel keeps showing stale state from when
+  // it was first opened.
+  const [selectedProtocolId, setSelectedProtocolId] = useState(null);
   const [bookingPatient, setBookingPatient] = useState(null);  // when set, shows the inline booking modal
   const [actionInProgress, setActionInProgress] = useState(false);
 
@@ -108,6 +112,14 @@ export default function WLTrackerPage() {
   }, [today]);
 
   const patients = data?.patients || [];
+
+  // Derived: the live patient object for the open side panel. Always reflects
+  // the latest fetch so actions like opt-out / toggle / log show through
+  // immediately instead of being shadowed by a captured snapshot.
+  const selectedPatient = useMemo(
+    () => selectedProtocolId ? patients.find(p => p.protocol_id === selectedProtocolId) || null : null,
+    [selectedProtocolId, patients]
+  );
 
   const filteredPatients = useMemo(() => {
     return patients.filter(p => {
@@ -286,7 +298,7 @@ export default function WLTrackerPage() {
             buckets={dailyBuckets}
             todayDayName={todayDayName}
             today={today}
-            onSelect={setSelectedPatient}
+            onSelect={(p) => setSelectedProtocolId(p.protocol_id)}
             onAction={handleAction}
             onSchedule={setBookingPatient}
             actionInProgress={actionInProgress}
@@ -298,7 +310,7 @@ export default function WLTrackerPage() {
           <RosterTable
             mode={mode}
             patients={filteredPatients}
-            onSelect={setSelectedPatient}
+            onSelect={(p) => setSelectedProtocolId(p.protocol_id)}
             onAction={handleAction}
             actionInProgress={actionInProgress}
           />
@@ -308,7 +320,7 @@ export default function WLTrackerPage() {
         {selectedPatient && (
           <PatientPanel
             patient={selectedPatient}
-            onClose={() => setSelectedPatient(null)}
+            onClose={() => setSelectedProtocolId(null)}
             onAction={handleAction}
             actionInProgress={actionInProgress}
             onSchedule={() => setBookingPatient(selectedPatient)}

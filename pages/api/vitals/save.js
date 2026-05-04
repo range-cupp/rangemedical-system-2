@@ -119,6 +119,34 @@ export default async function handler(req, res) {
 
     let result;
     if (existingId) {
+      // Snapshot current values before overwriting
+      const { data: prev } = await supabase
+        .from('patient_vitals')
+        .select('*')
+        .eq('id', existingId)
+        .single();
+
+      if (prev) {
+        await supabase.from('patient_vitals_history').insert({
+          vitals_id: existingId,
+          patient_id: prev.patient_id,
+          appointment_id: prev.appointment_id,
+          height_inches: prev.height_inches,
+          weight_lbs: prev.weight_lbs,
+          bp_systolic: prev.bp_systolic,
+          bp_diastolic: prev.bp_diastolic,
+          bp_arm: prev.bp_arm,
+          temperature: prev.temperature,
+          pulse: prev.pulse,
+          respiratory_rate: prev.respiratory_rate,
+          o2_saturation: prev.o2_saturation,
+          bmi: prev.bmi,
+          recorded_by: prev.recorded_by,
+          recorded_at: prev.recorded_at,
+          changed_by: recorded_by || null,
+        });
+      }
+
       // Update existing
       const { data, error } = await supabase
         .from('patient_vitals')

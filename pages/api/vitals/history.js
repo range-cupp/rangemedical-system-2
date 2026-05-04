@@ -30,7 +30,25 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
-    return res.status(200).json({ vitals: data || [] });
+    // Check which entries have undo history available
+    const ids = (data || []).map(v => v.id);
+    let undoableIds = new Set();
+    if (ids.length > 0) {
+      const { data: histRows } = await supabase
+        .from('patient_vitals_history')
+        .select('vitals_id')
+        .in('vitals_id', ids);
+      if (histRows) {
+        undoableIds = new Set(histRows.map(r => r.vitals_id));
+      }
+    }
+
+    const vitals = (data || []).map(v => ({
+      ...v,
+      has_undo: undoableIds.has(v.id),
+    }));
+
+    return res.status(200).json({ vitals });
 
   } catch (error) {
     console.error('Vitals history error:', error);

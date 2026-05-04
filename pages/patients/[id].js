@@ -991,6 +991,33 @@ export default function PatientProfile() {
     }
   };
 
+  const handleUndoVitals = async () => {
+    if (!editingVitalsId) return;
+    if (!confirm('Revert this vitals entry to its previous values?')) return;
+    setVitalsModalSaving(true);
+    try {
+      const res = await fetch('/api/vitals/undo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vitals_id: editingVitalsId }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to undo');
+      }
+      const vitalsRes = await fetch(`/api/vitals/history?patient_id=${id}`);
+      const vitalsData = await vitalsRes.json();
+      setVitalsHistory(vitalsData.vitals || []);
+      setShowVitalsModal(false);
+      setVitalsModalData({ recorded_at: '', weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', bp_arm: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
+      setEditingVitalsId(null);
+    } catch (err) {
+      alert('Error undoing vitals: ' + err.message);
+    } finally {
+      setVitalsModalSaving(false);
+    }
+  };
+
   // Save standalone vitals (no encounter required)
   const handleSaveStandaloneVitals = async () => {
     setVitalsModalSaving(true);
@@ -18124,13 +18151,20 @@ export default function PatientProfile() {
                 </div>
               </div>
               <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
-                <div>
+                <div style={{ display: 'flex', gap: '8px' }}>
                   {editingVitalsId && (
                     <button
                       onClick={handleDeleteVitals}
                       disabled={vitalsModalSaving}
                       style={{ padding: '8px 14px', border: '1px solid #fecaca', background: '#fff', color: '#dc2626', cursor: 'pointer', fontSize: '13px', borderRadius: 0 }}
                     >Delete</button>
+                  )}
+                  {editingVitalsId && vitalsHistory.find(v => v.id === editingVitalsId)?.has_undo && (
+                    <button
+                      onClick={handleUndoVitals}
+                      disabled={vitalsModalSaving}
+                      style={{ padding: '8px 14px', border: '1px solid #fde68a', background: '#fffbeb', color: '#92400e', cursor: 'pointer', fontSize: '13px', borderRadius: 0 }}
+                    >Undo Last Edit</button>
                   )}
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>

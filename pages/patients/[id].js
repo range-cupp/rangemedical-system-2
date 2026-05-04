@@ -151,6 +151,7 @@ const SEND_FORMS_LIST = [
   { id: 'prp', name: 'PRP Consent', icon: '🩸', time: '5 min' },
   { id: 'exosome-iv', name: 'Exosome IV Consent', icon: '🧬', time: '5 min' },
   { id: 'questionnaire', name: 'Baseline Assessment', icon: '📊', time: '10 min', auto: true },
+  { id: 'hrt-questionnaire-male', name: 'HRT Questionnaire (Male)', icon: '📝', time: '8 min' },
 ];
 const FORM_QUICK_SELECTS = [
   { label: 'New Patient', forms: ['intake', 'hipaa'] },
@@ -168,7 +169,6 @@ const FORM_QUICK_SELECTS = [
 // Guides available to send from patient profile
 const AVAILABLE_GUIDES = [
   { id: 'hrt-guide', name: 'HRT Guide', icon: '💊', category: 'hrt' },
-  { id: 'hrt-questionnaire-male', name: 'HRT Questionnaire (Male)', icon: '📝', category: 'hrt' },
   { id: 'tirzepatide-guide', name: 'Tirzepatide Guide', icon: '⚖️', category: 'weight_loss' },
   { id: 'retatrutide-guide', name: 'Retatrutide Guide', icon: '⚖️', category: 'weight_loss' },
   { id: 'weight-loss-medication-guide-page', name: 'WL Medication Guide', icon: '⚖️', category: 'weight_loss' },

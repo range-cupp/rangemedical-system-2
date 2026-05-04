@@ -3,7 +3,7 @@
 // Standalone (no token) — sent via the Guides system.
 // Matches the v2 design used by /pages/questionnaire/[token].js exactly.
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 
 // ═══════════════════════════════════════════════════════════
@@ -99,6 +99,30 @@ export default function HrtMaleQuestionnaire() {
   const [complete, setComplete] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
+  // Pre-fill patient identifiers from URL params (set by /forms/[token] bundle launcher)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const p = new URLSearchParams(window.location.search);
+    const fn = p.get('fn'), ln = p.get('ln');
+    const em = p.get('em') || p.get('email');
+    const phRaw = p.get('ph') || p.get('phone');
+    const dobRaw = p.get('dob');
+    setResponses(prev => {
+      const next = { ...prev };
+      if (fn && !next.first_name) next.first_name = fn;
+      if (ln && !next.last_name) next.last_name = ln;
+      if (em && !next.email) next.email = em;
+      if (phRaw && !next.phone) next.phone = formatPhone(phRaw);
+      if (dobRaw && !next.date_of_birth) {
+        const isoMatch = dobRaw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        next.date_of_birth = isoMatch
+          ? `${isoMatch[2]}/${isoMatch[3]}/${isoMatch[1]}`
+          : formatDob(dobRaw);
+      }
+      return next;
+    });
+  }, []);
+
   const updateResponse = useCallback((questionId, value) => {
     setResponses(prev => ({ ...prev, [questionId]: value }));
   }, []);
@@ -137,10 +161,13 @@ export default function HrtMaleQuestionnaire() {
     setSubmitting(true);
     setErrorMsg(null);
     try {
+      const bundleToken = typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('bundle')
+        : null;
       const res = await fetch('/api/hrt-questionnaire-male/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ responses }),
+        body: JSON.stringify({ responses, bundleToken }),
       });
       if (res.ok) {
         setComplete(true);

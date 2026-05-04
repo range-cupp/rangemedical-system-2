@@ -8,7 +8,6 @@ import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../..
 
 const GUIDE_DEFINITIONS = {
   'hrt-guide': { name: 'HRT Guide', path: '/hrt-guide' },
-  'hrt-questionnaire-male': { name: 'HRT Questionnaire (Male)', path: '/hrt-questionnaire-male' },
   'tirzepatide-guide': { name: 'Tirzepatide Guide', path: '/tirzepatide-guide' },
   'retatrutide-guide': { name: 'Retatrutide Guide', path: '/retatrutide-guide' },
   'weight-loss-medication-guide-page': { name: 'WL Medication Guide', path: '/weight-loss-medication-guide-page' },

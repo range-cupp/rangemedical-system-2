@@ -108,6 +108,39 @@ export default async function handler(req, res) {
         }
       }
 
+      // Check hrt_male_questionnaire_responses (saves there, not consents)
+      if (bundle.form_ids.includes('hrt-questionnaire-male')) {
+        // Priority 1: bundle_token match
+        const { data: byBundle } = await supabase
+          .from('hrt_male_questionnaire_responses')
+          .select('id')
+          .eq('bundle_token', token)
+          .limit(1);
+        if (byBundle && byBundle.length > 0) {
+          completedTypes.push('hrt-questionnaire-male');
+        } else {
+          // Priority 2: patient_id / email / phone match
+          const hrtOrParts = [];
+          if (bundle.patient_id) hrtOrParts.push(`patient_id.eq.${bundle.patient_id}`);
+          if (bundle.patient_email) hrtOrParts.push(`email.ilike.${bundle.patient_email}`);
+          if (bundle.patient_phone) {
+            const digits = bundle.patient_phone.replace(/\D/g, '');
+            const last10 = digits.slice(-10);
+            hrtOrParts.push(`phone.ilike.%${last10}`);
+          }
+          if (hrtOrParts.length > 0) {
+            const { data: byMatch } = await supabase
+              .from('hrt_male_questionnaire_responses')
+              .select('id')
+              .or(hrtOrParts.join(','))
+              .limit(1);
+            if (byMatch && byMatch.length > 0) {
+              completedTypes.push('hrt-questionnaire-male');
+            }
+          }
+        }
+      }
+
       // Check intakes table separately (intake form saves there, not consents)
       if (bundle.form_ids.includes('intake')) {
         let intakeFound = false;

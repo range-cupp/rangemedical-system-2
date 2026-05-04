@@ -38,10 +38,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { responses } = req.body || {};
+    const { responses, bundleToken } = req.body || {};
     if (!responses || typeof responses !== 'object') {
       return res.status(400).json({ error: 'responses is required' });
     }
+    const bundleTokenClean = typeof bundleToken === 'string' && bundleToken.trim()
+      ? bundleToken.trim()
+      : null;
 
     const firstName = responses.first_name?.trim() || null;
     const lastName = responses.last_name?.trim() || null;
@@ -57,28 +60,43 @@ export default async function handler(req, res) {
     const clinicalResponses = { ...responses };
     for (const k of PATIENT_INFO_KEYS) delete clinicalResponses[k];
 
-    // Best-effort link to an existing patient by phone or email
+    // Best-effort link to an existing patient — prefer the bundle's patient_id
+    // when this submission came from a sent form bundle, else match by phone/email.
     let patientId = null;
-    try {
-      const { data: matchByPhone } = await supabase
-        .from('patients')
-        .select('id')
-        .eq('phone', phone)
-        .limit(1)
-        .maybeSingle();
-      if (matchByPhone?.id) {
-        patientId = matchByPhone.id;
-      } else if (email) {
-        const { data: matchByEmail } = await supabase
+    if (bundleTokenClean) {
+      try {
+        const { data: bundle } = await supabase
+          .from('form_bundles')
+          .select('patient_id')
+          .eq('token', bundleTokenClean)
+          .maybeSingle();
+        if (bundle?.patient_id) patientId = bundle.patient_id;
+      } catch (bundleErr) {
+        console.error('Bundle lookup failed:', bundleErr);
+      }
+    }
+    if (!patientId) {
+      try {
+        const { data: matchByPhone } = await supabase
           .from('patients')
           .select('id')
-          .eq('email', email)
+          .eq('phone', phone)
           .limit(1)
           .maybeSingle();
-        if (matchByEmail?.id) patientId = matchByEmail.id;
+        if (matchByPhone?.id) {
+          patientId = matchByPhone.id;
+        } else if (email) {
+          const { data: matchByEmail } = await supabase
+            .from('patients')
+            .select('id')
+            .eq('email', email)
+            .limit(1)
+            .maybeSingle();
+          if (matchByEmail?.id) patientId = matchByEmail.id;
+        }
+      } catch (lookupErr) {
+        console.error('Patient lookup failed:', lookupErr);
       }
-    } catch (lookupErr) {
-      console.error('Patient lookup failed:', lookupErr);
     }
 
     const { data, error } = await supabase
@@ -91,6 +109,7 @@ export default async function handler(req, res) {
         email,
         responses: clinicalResponses,
         patient_id: patientId,
+        bundle_token: bundleTokenClean,
       })
       .select('id')
       .single();

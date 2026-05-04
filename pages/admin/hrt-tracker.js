@@ -59,6 +59,7 @@ export default function HRTTrackerPage() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedProtocolId, setSelectedProtocolId] = useState(null);
   const [bookingPatient, setBookingPatient] = useState(null);
+  const [labReminderDraft, setLabReminderDraft] = useState(null); // { patient, message }
   const [actionInProgress, setActionInProgress] = useState(false);
 
   const authHeaders = useCallback(() => ({
@@ -142,6 +143,17 @@ export default function HRTTrackerPage() {
     }
   };
 
+  const openLabReminder = (patient) => {
+    if (!patient.phone) {
+      alert(`No phone number on file for ${patient.name}.`);
+      return;
+    }
+    setLabReminderDraft({
+      patient,
+      message: defaultLabReminderMessage(patient),
+    });
+  };
+
   return (
     <AdminLayout title="HRT Tracker">
       <div style={{ padding: '24px', maxWidth: '1600px', margin: '0 auto' }}>
@@ -194,6 +206,7 @@ export default function HRTTrackerPage() {
             onSelect={(p) => setSelectedProtocolId(p.protocol_id)}
             onAction={handleAction}
             onSchedule={setBookingPatient}
+            onComposeLabReminder={openLabReminder}
             actionInProgress={actionInProgress}
           />
         )}
@@ -214,6 +227,7 @@ export default function HRTTrackerPage() {
             onAction={handleAction}
             actionInProgress={actionInProgress}
             onSchedule={() => setBookingPatient(selectedPatient)}
+            onComposeLabReminder={openLabReminder}
           />
         )}
 
@@ -223,8 +237,121 @@ export default function HRTTrackerPage() {
             onClose={() => { setBookingPatient(null); loadData(); }}
           />
         )}
+
+        {labReminderDraft && (
+          <LabReminderModal
+            patient={labReminderDraft.patient}
+            initialMessage={labReminderDraft.message}
+            actionInProgress={actionInProgress}
+            onClose={() => setLabReminderDraft(null)}
+            onSend={async (message) => {
+              await handleAction('send_lab_reminder', {
+                protocol_id: labReminderDraft.patient.protocol_id,
+                message,
+              });
+              setLabReminderDraft(null);
+            }}
+            onResetDefault={() => setLabReminderDraft(d => d && ({ ...d, message: defaultLabReminderMessage(d.patient) }))}
+          />
+        )}
       </div>
     </AdminLayout>
+  );
+}
+
+// ───────────────────── Lab Reminder SMS Modal ─────────────────────
+
+function defaultLabReminderMessage(patient) {
+  const firstName = patient.first_name || patient.name?.split(' ')[0] || 'there';
+  return (
+    `Hey ${firstName}! You're due for your next blood draw. ` +
+    `When would be a good day for you to come in fasted? ` +
+    `Just reply to this text or call us at (949) 997-3988.\n\n` +
+    `- Range Medical`
+  );
+}
+
+function LabReminderModal({ patient, initialMessage, actionInProgress, onClose, onSend, onResetDefault }) {
+  const [message, setMessage] = useState(initialMessage);
+
+  useEffect(() => { setMessage(initialMessage); }, [initialMessage]);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  const trimmed = message.trim();
+  const canSend = !!trimmed && !actionInProgress;
+
+  return (
+    <div onClick={onClose}
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', zIndex: 1000, padding: '24px',
+      }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{
+          background: '#fff', width: '100%', maxWidth: '560px',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+        }}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '16px 24px', borderBottom: '1px solid #e5e5e5',
+        }}>
+          <div>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Send lab reminder</h3>
+            <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
+              to <strong>{patient.name}</strong> · {patient.phone || 'no phone'}
+            </div>
+          </div>
+          <button onClick={onClose}
+            style={{ background: 'none', border: 'none', fontSize: '26px', cursor: 'pointer', color: '#666', lineHeight: 1 }}>
+            ×
+          </button>
+        </div>
+
+        <div style={{ padding: '20px 24px' }}>
+          <label style={{ ...sharedStyles.label, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Message</span>
+            <button type="button" onClick={onResetDefault}
+              style={{ background: 'none', border: 'none', color: '#666', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }}>
+              Reset to default
+            </button>
+          </label>
+          <textarea
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            rows={7}
+            style={{
+              ...sharedStyles.input, width: '100%', resize: 'vertical',
+              fontFamily: 'inherit', fontSize: '14px', lineHeight: 1.5,
+              minHeight: '140px',
+            }}
+          />
+          <div style={{ fontSize: '11px', color: '#888', marginTop: '6px' }}>
+            {message.length} character{message.length === 1 ? '' : 's'}
+            {message.length > 160 && ' · may send as multiple SMS segments'}
+          </div>
+        </div>
+
+        <div style={{
+          display: 'flex', justifyContent: 'flex-end', gap: '10px',
+          padding: '14px 24px', borderTop: '1px solid #e5e5e5', background: '#fafafa',
+        }}>
+          <button onClick={onClose} disabled={actionInProgress}
+            style={sharedStyles.btnSecondary}>
+            Cancel
+          </button>
+          <button onClick={() => onSend(trimmed)} disabled={!canSend}
+            style={{ ...sharedStyles.btnPrimary, opacity: canSend ? 1 : 0.5 }}>
+            {actionInProgress ? 'Sending…' : '💬 Send SMS'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -347,7 +474,7 @@ function InfoBanner() {
 
 // ───────────────────── Daily View ─────────────────────
 
-function DailyView({ buckets, onSelect, onAction, onSchedule, actionInProgress }) {
+function DailyView({ buckets, onSelect, onAction, onSchedule, onComposeLabReminder, actionInProgress }) {
   const sections = [
     {
       key: 'needsAttention',
@@ -396,13 +523,14 @@ function DailyView({ buckets, onSelect, onAction, onSchedule, actionInProgress }
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
       {sections.map(s => (
         <DailySection key={s.key} section={s}
-          onSelect={onSelect} onAction={onAction} onSchedule={onSchedule} actionInProgress={actionInProgress} />
+          onSelect={onSelect} onAction={onAction} onSchedule={onSchedule}
+          onComposeLabReminder={onComposeLabReminder} actionInProgress={actionInProgress} />
       ))}
     </div>
   );
 }
 
-function DailySection({ section, onSelect, onAction, onSchedule, actionInProgress }) {
+function DailySection({ section, onSelect, onAction, onSchedule, onComposeLabReminder, actionInProgress }) {
   const [expanded, setExpanded] = useState(!section.collapsedByDefault);
   const empty = section.list.length === 0;
   if (empty && section.key !== 'needsAttention' && section.key !== 'labsOverdue') return null;
@@ -438,7 +566,8 @@ function DailySection({ section, onSelect, onAction, onSchedule, actionInProgres
             <div>
               {section.list.map(p => (
                 <DailyRow key={p.protocol_id} patient={p} sectionKey={section.key}
-                  onSelect={onSelect} onAction={onAction} onSchedule={onSchedule} actionInProgress={actionInProgress} />
+                  onSelect={onSelect} onAction={onAction} onSchedule={onSchedule}
+                  onComposeLabReminder={onComposeLabReminder} actionInProgress={actionInProgress} />
               ))}
             </div>
           </>
@@ -469,14 +598,8 @@ function ColumnHeader({ sectionKey }) {
   );
 }
 
-function DailyRow({ patient, sectionKey, onSelect, onAction, onSchedule, actionInProgress }) {
+function DailyRow({ patient, sectionKey, onSelect, onAction, onSchedule, onComposeLabReminder, actionInProgress }) {
   const isAttention = sectionKey === 'needsAttention' || sectionKey === 'labsOverdue';
-
-  const sendLabReminder = () => {
-    const firstName = patient.first_name || patient.name?.split(' ')[0] || 'them';
-    if (!confirm(`Send a lab reminder SMS to ${patient.name} (${patient.phone || 'no phone'})?\n\nAsks ${firstName} to schedule their blood draw.`)) return;
-    onAction('send_lab_reminder', { protocol_id: patient.protocol_id });
-  };
 
   return (
     <div style={{
@@ -508,7 +631,7 @@ function DailyRow({ patient, sectionKey, onSelect, onAction, onSchedule, actionI
       <StatusStack payment={patient.payment} dispense={patient.dispense} />
       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         {(sectionKey === 'labsOverdue' || sectionKey === 'labsDueSoon') && (
-          <button disabled={actionInProgress || !patient.phone} onClick={sendLabReminder}
+          <button disabled={actionInProgress || !patient.phone} onClick={() => onComposeLabReminder(patient)}
             title={patient.phone ? `Text ${patient.phone}` : 'No phone on file'}
             style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall }}>
             💬 Lab SMS
@@ -649,7 +772,7 @@ function RosterTable({ patients, onSelect, onAction, actionInProgress }) {
 
 // ───────────────────── Patient Side Panel ─────────────────────
 
-function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule }) {
+function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule, onComposeLabReminder }) {
   const ls = patient.lab_status;
   const lsc = LAB_STATUS_CONFIG[ls.state] || LAB_STATUS_CONFIG.on_track;
 
@@ -678,7 +801,7 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule
         </div>
 
         {/* Lab Schedule */}
-        <LabScheduleBlock patient={patient} onAction={onAction} actionInProgress={actionInProgress} />
+        <LabScheduleBlock patient={patient} onComposeLabReminder={onComposeLabReminder} actionInProgress={actionInProgress} />
 
         {/* Protocol Summary */}
         <ProtocolSummaryBlock patient={patient} />
@@ -828,7 +951,7 @@ function DispenseMedicationBlock({ patient, onAction, actionInProgress }) {
 
 // ───────────────────── Side-panel blocks ─────────────────────
 
-function LabScheduleBlock({ patient, onAction, actionInProgress }) {
+function LabScheduleBlock({ patient, onComposeLabReminder, actionInProgress }) {
   const schedule = patient.lab_schedule || [];
   if (schedule.length === 0) {
     return (
@@ -839,12 +962,6 @@ function LabScheduleBlock({ patient, onAction, actionInProgress }) {
       </Section>
     );
   }
-
-  const sendLabReminder = () => {
-    const firstName = patient.first_name || patient.name?.split(' ')[0] || 'them';
-    if (!confirm(`Send a lab reminder SMS to ${patient.name} (${patient.phone || 'no phone'})?\n\nAsks ${firstName} to schedule their fasted blood draw.`)) return;
-    onAction('send_lab_reminder', { protocol_id: patient.protocol_id });
-  };
 
   return (
     <Section title={`Lab schedule (${patient.lab_status.completed_count}/${patient.lab_status.total_count} complete)`}>
@@ -881,7 +998,7 @@ function LabScheduleBlock({ patient, onAction, actionInProgress }) {
                 </div>
               </div>
               {canText && (
-                <button disabled={actionInProgress} onClick={sendLabReminder}
+                <button disabled={actionInProgress} onClick={() => onComposeLabReminder(patient)}
                   title={`Text ${patient.phone}`}
                   style={{
                     ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall,

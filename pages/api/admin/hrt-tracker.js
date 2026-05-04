@@ -573,11 +573,12 @@ async function actionSendLabReminder(req, res, protocol, employee) {
   if (!phone) return res.status(400).json({ error: 'No phone number on file' });
 
   const firstName = patient.first_name || patient.name?.split(' ')[0] || 'there';
-  const message =
-    `Hey ${firstName}! You're due for your next blood draw. ` +
-    `When would be a good day for you to come in fasted? ` +
-    `Just reply to this text or call us at (949) 997-3988.\n\n` +
-    `- Range Medical`;
+  const customMessage = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
+  const message = customMessage ||
+    (`Hey ${firstName}! You're due for your next blood draw. ` +
+     `When would be a good day for you to come in fasted? ` +
+     `Just reply to this text or call us at (949) 997-3988.\n\n` +
+     `- Range Medical`);
 
   const smsResult = await sendSMS({ to: phone, message });
 

@@ -339,6 +339,41 @@ async function handleGet(req, res) {
       (serviceLogsByPatient[sl.patient_id] ||= []).push(sl);
     }
 
+    // 6b. Pull recent OUTBOUND lab-related SMS per patient — so the tracker
+    // can surface "you already texted Thomas 2h ago" before staff fires a
+    // duplicate reminder. Includes every message_type we use to push patients
+    // toward labs, not just the new hrt_lab_reminder one.
+    const LAB_OUTREACH_TYPES = [
+      'hrt_lab_reminder',
+      'lab_review_scheduling',
+      'lab_prep_reminder',
+      'lab_prep_instructions_sent',
+    ];
+    const labOutreachSince = addDaysISO(todayISO, -30) + 'T00:00:00Z';
+    const { data: labOutreachRaw } = await supabase
+      .from('comms_log')
+      .select('patient_id, message_type, channel, created_at, sent_by_employee_name, message, status')
+      .in('patient_id', patientIds)
+      .in('message_type', LAB_OUTREACH_TYPES)
+      .eq('direction', 'outbound')
+      .gte('created_at', labOutreachSince)
+      .order('created_at', { ascending: false });
+
+    const labOutreachByPatient = {};
+    for (const c of (labOutreachRaw || [])) {
+      // Most-recent only (already sorted desc — first one wins)
+      if (!labOutreachByPatient[c.patient_id]) {
+        labOutreachByPatient[c.patient_id] = {
+          sent_at: c.created_at,
+          channel: c.channel,
+          message_type: c.message_type,
+          sent_by: c.sent_by_employee_name || null,
+          message_preview: (c.message || '').slice(0, 140),
+          status: c.status,
+        };
+      }
+    }
+
     // 7. Pull last encounter note per patient
     const { data: encounterRows } = await supabase
       .from('patient_notes')
@@ -462,6 +497,7 @@ async function handleGet(req, res) {
         last_encounter: lastEncounter,
         last_service_log: lastServiceLog,
         next_appointment: nextAppt,
+        last_lab_outreach: labOutreachByPatient[patient.id] || null,
 
         protocol_summary: {
           name: protocol.program_name,

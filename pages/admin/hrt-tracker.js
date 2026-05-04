@@ -50,6 +50,66 @@ function fmtDate(iso, opts = {}) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...opts });
 }
 
+// Render a UTC ISO timestamp as a short relative phrase ("12m ago", "3h ago",
+// "yesterday", "Mar 14"). Used so staff see at a glance how stale a previous
+// outreach is without doing date math.
+function relativeTimeShort(isoTimestamp) {
+  if (!isoTimestamp) return null;
+  const then = new Date(isoTimestamp).getTime();
+  if (!Number.isFinite(then)) return null;
+  const now = Date.now();
+  const diffMs = now - then;
+  if (diffMs < 0) return 'just now';
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days}d ago`;
+  const d = new Date(isoTimestamp);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function hoursSince(isoTimestamp) {
+  if (!isoTimestamp) return Infinity;
+  const then = new Date(isoTimestamp).getTime();
+  if (!Number.isFinite(then)) return Infinity;
+  return (Date.now() - then) / 3600000;
+}
+
+// Inline pill that appears anywhere we want to remind staff "we already
+// reached out about labs recently — don't double-text." Color shifts toward
+// red as the gap shrinks (still warm = looks more like spam to the patient).
+function LabOutreachBadge({ outreach, compact }) {
+  if (!outreach?.sent_at) return null;
+  const hours = hoursSince(outreach.sent_at);
+  let bg = '#f1f5f9';
+  let color = '#475569';
+  if (hours < 24) { bg = '#fee2e2'; color = '#991b1b'; }
+  else if (hours < 72) { bg = '#fef3c7'; color = '#92400e'; }
+  const label = `Texted ${relativeTimeShort(outreach.sent_at)}`;
+  const tip = [
+    `Channel: ${outreach.channel || 'sms'}`,
+    `Type: ${outreach.message_type}`,
+    outreach.sent_by ? `Sent by ${outreach.sent_by}` : null,
+    outreach.message_preview ? `\nMessage: ${outreach.message_preview}` : null,
+  ].filter(Boolean).join(' · ');
+  return (
+    <span title={tip}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: '4px',
+        padding: compact ? '2px 6px' : '3px 8px',
+        background: bg, color,
+        fontSize: compact ? '10px' : '11px', fontWeight: 600,
+        whiteSpace: 'nowrap',
+      }}>
+      💬 {label}
+    </span>
+  );
+}
+
 export default function HRTTrackerPage() {
   const { session } = useAuth();
   const [data, setData] = useState(null);
@@ -314,6 +374,35 @@ function LabReminderModal({ patient, initialMessage, actionInProgress, onClose, 
         </div>
 
         <div style={{ padding: '20px 24px' }}>
+          {patient.last_lab_outreach && (() => {
+            const o = patient.last_lab_outreach;
+            const hours = hoursSince(o.sent_at);
+            const recent = hours < 72; // anything in the last 3 days = warn loudly
+            const bg = hours < 24 ? '#fee2e2' : recent ? '#fef3c7' : '#f1f5f9';
+            const border = hours < 24 ? '#fca5a5' : recent ? '#fcd34d' : '#e2e8f0';
+            const color = hours < 24 ? '#991b1b' : recent ? '#92400e' : '#475569';
+            return (
+              <div style={{
+                marginBottom: '14px', padding: '10px 12px',
+                background: bg, border: `1px solid ${border}`, color,
+                fontSize: '12px', lineHeight: 1.5,
+              }}>
+                <div style={{ fontWeight: 700, marginBottom: '2px' }}>
+                  ⚠️ Already texted {patient.first_name || patient.name?.split(' ')[0]} {relativeTimeShort(o.sent_at)}
+                </div>
+                <div>
+                  via {o.channel || 'sms'} · type <code>{o.message_type}</code>
+                  {o.sent_by ? ` · by ${o.sent_by}` : ''}
+                </div>
+                {o.message_preview && (
+                  <div style={{ marginTop: '6px', fontStyle: 'italic', color: '#444' }}>
+                    “{o.message_preview}{(o.message_preview || '').length >= 140 ? '…' : ''}”
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           <label style={{ ...sharedStyles.label, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>Message</span>
             <button type="button" onClick={onResetDefault}
@@ -616,6 +705,11 @@ function DailyRow({ patient, sectionKey, onSelect, onAction, onSchedule, onCompo
         <div style={{ fontSize: '12px', color: '#888' }}>
           {patient.medication}{patient.selected_dose ? ` ${patient.selected_dose}` : ''} · {patient.frequency || '—'}
         </div>
+        {patient.last_lab_outreach && (
+          <div style={{ marginTop: '4px' }}>
+            <LabOutreachBadge outreach={patient.last_lab_outreach} compact />
+          </div>
+        )}
       </div>
       <div style={{ fontSize: '13px', color: '#333' }}>
         <ActionDescription patient={patient} />
@@ -798,6 +892,7 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule
           <Badge bg={lsc.bg} color={lsc.color} icon={lsc.icon} text={ls.label} />
           <DispensePill dispense={patient.dispense} />
           <PaymentPill payment={patient.payment} />
+          {patient.last_lab_outreach && <LabOutreachBadge outreach={patient.last_lab_outreach} />}
         </div>
 
         {/* Lab Schedule */}

@@ -516,13 +516,19 @@ async function handleGet(req, res) {
       .gte('sent_at', fourWeeksAgo + 'T00:00:00')
       .order('sent_at', { ascending: false });
 
-    // 3. Pull check-in service logs (4 weeks of context)
+    // 3. Pull check-in service logs (4 weeks of context). Include BOTH
+    // 'weight_check' (legacy take-home form) and 'injection' entries — the
+    // current patient-checkin/submit endpoint writes 'injection' since the
+    // patient is reporting "I took my injection + here's my weight." Without
+    // 'injection' here, real take-home check-ins were silently invisible
+    // (Cade, AJ, Blake all submitted today and the dashboard still showed
+    // "waiting on patient").
     const { data: checkinLogsRaw } = await supabase
       .from('service_logs')
-      .select('id, patient_id, entry_date, weight, notes, created_at')
+      .select('id, patient_id, entry_date, weight, notes, created_at, entry_type')
       .in('patient_id', patientIds)
       .eq('category', 'weight_loss')
-      .eq('entry_type', 'weight_check')
+      .in('entry_type', ['weight_check', 'injection'])
       .gte('entry_date', fourWeeksAgo)
       .order('entry_date', { ascending: false });
 

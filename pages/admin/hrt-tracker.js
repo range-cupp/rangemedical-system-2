@@ -18,6 +18,24 @@ const LAB_STATUS_CONFIG = {
   no_schedule: { icon: '➖', label: 'No lab schedule', bg: '#f5f5f5', color: '#999' },
 };
 
+// Reusable "lab draw is on the calendar" pill. Shows up on rows / panels /
+// modal warnings to make it instantly clear we don't need to text the patient.
+function LabScheduledBadge({ appt, compact }) {
+  if (!appt?.date) return null;
+  return (
+    <span title={`Blood draw: ${appt.service_name || 'Lab'}${appt.provider ? ' · ' + appt.provider : ''}`}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: '4px',
+        padding: compact ? '2px 6px' : '4px 10px',
+        background: '#dbeafe', color: '#1e40af',
+        fontSize: compact ? '10px' : '12px', fontWeight: 600,
+        whiteSpace: 'nowrap',
+      }}>
+      📅 Draw scheduled {fmtDate(appt.date)}{compact ? '' : ` at ${appt.time}`}
+    </span>
+  );
+}
+
 const PAYMENT_CONFIG = {
   paid:    { icon: '💳', bg: '#dcfce7', color: '#166534' },
   comp:    { icon: '🆓', bg: '#e0e7ff', color: '#3730a3' },
@@ -155,8 +173,12 @@ export default function HRTTrackerPage() {
   const filteredPatients = useMemo(() => {
     return patients.filter(p => {
       if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
-      if (filterStatus === 'labs_overdue' && p.lab_status.state !== 'overdue') return false;
-      if (filterStatus === 'labs_due' && !['overdue', 'due_soon'].includes(p.lab_status.state)) return false;
+      // Filters around lab status now respect the "scheduled" override —
+      // a patient with a draw on the calendar shouldn't show up in
+      // "labs overdue" filters since the action is already taken.
+      if (filterStatus === 'labs_overdue' && (p.lab_status.state !== 'overdue' || p.labs_scheduled)) return false;
+      if (filterStatus === 'labs_due' && (!['overdue', 'due_soon'].includes(p.lab_status.state) || p.labs_scheduled)) return false;
+      if (filterStatus === 'labs_scheduled' && !p.labs_scheduled) return false;
       if (filterStatus === 'dispatch_due' && !['send_now', 'due_now', 'due_soon'].includes(p.dispense.state)) return false;
       if (filterStatus === 'no_purchases' && p.payment.state !== 'unknown') return false;
       return true;
@@ -165,6 +187,7 @@ export default function HRTTrackerPage() {
 
   const dailyBuckets = useMemo(() => {
     const needsAttention = [];
+    const labsScheduled = [];
     const labsOverdue = [];
     const labsDueSoon = [];
     const medsDispatch = [];
@@ -173,6 +196,7 @@ export default function HRTTrackerPage() {
     for (const p of patients) {
       switch (p.today_action) {
         case 'needs_attention':  needsAttention.push(p); break;
+        case 'labs_scheduled':   labsScheduled.push(p); break;
         case 'labs_overdue':     labsOverdue.push(p); break;
         case 'labs_due_soon':    labsDueSoon.push(p); break;
         case 'meds_dispatch':
@@ -180,7 +204,7 @@ export default function HRTTrackerPage() {
         default:                 active.push(p); break;
       }
     }
-    return { needsAttention, labsOverdue, labsDueSoon, medsDispatch, active };
+    return { needsAttention, labsScheduled, labsOverdue, labsDueSoon, medsDispatch, active };
   }, [patients]);
 
   const handleAction = async (action, body) => {
@@ -251,8 +275,9 @@ export default function HRTTrackerPage() {
             style={sharedStyles.select}
           >
             <option value="all">All statuses</option>
-            <option value="labs_overdue">Labs overdue</option>
-            <option value="labs_due">Labs due / overdue</option>
+            <option value="labs_overdue">Labs overdue (no draw booked)</option>
+            <option value="labs_due">Labs due / overdue (no draw booked)</option>
+            <option value="labs_scheduled">Labs scheduled</option>
             <option value="dispatch_due">Needs medication dispatch</option>
             <option value="no_purchases">No purchases on file</option>
           </select>
@@ -374,6 +399,26 @@ function LabReminderModal({ patient, initialMessage, actionInProgress, onClose, 
         </div>
 
         <div style={{ padding: '20px 24px' }}>
+          {patient.upcoming_lab_draw && (
+            <div style={{
+              marginBottom: '14px', padding: '10px 12px',
+              background: '#dbeafe', border: '1px solid #93c5fd', color: '#1e3a8a',
+              fontSize: '12px', lineHeight: 1.5,
+            }}>
+              <div style={{ fontWeight: 700, marginBottom: '2px' }}>
+                📅 Blood draw already scheduled — {fmtDate(patient.upcoming_lab_draw.date)} at {patient.upcoming_lab_draw.time}
+              </div>
+              <div>
+                {patient.upcoming_lab_draw.service_name}
+                {patient.upcoming_lab_draw.provider ? ` · ${patient.upcoming_lab_draw.provider}` : ''}
+                {patient.upcoming_lab_draw.status ? ` · status: ${patient.upcoming_lab_draw.status}` : ''}
+              </div>
+              <div style={{ marginTop: '4px', fontStyle: 'italic' }}>
+                Most patients won't need another reminder — confirm before sending.
+              </div>
+            </div>
+          )}
+
           {patient.last_lab_outreach && (() => {
             const o = patient.last_lab_outreach;
             const hours = hoursSince(o.sent_at);
@@ -506,9 +551,9 @@ function StatsBar({ stats, needsAttentionCount }) {
         accent={needsAttentionCount > 0 ? '#991b1b' : '#166534'}
       />
       <StatBlock
-        label="Labs due soon"
-        value={stats.labs_due_soon}
-        sub={`${stats.labs_overdue} overdue`}
+        label="Labs need outreach"
+        value={stats.labs_overdue + stats.labs_due_soon}
+        sub={`${stats.labs_overdue} overdue · ${stats.labs_scheduled || 0} already scheduled`}
         accent={stats.labs_overdue > 0 ? '#9a3412' : null}
       />
       <StatBlock
@@ -546,8 +591,8 @@ function InfoBanner() {
         <strong>HRT patients are tracked by protocol, labs, and medication supply.</strong>
         {!collapsed && (
           <ul style={{ margin: '8px 0 0', paddingLeft: '18px' }}>
-            <li><strong>Labs overdue</strong> — patient needs a follow-up blood draw based on their adaptive lab schedule</li>
-            <li><strong>Labs due soon</strong> — next draw is within 14 days</li>
+            <li><strong>Labs overdue / due soon</strong> — patient needs outreach AND has no blood draw on the calendar</li>
+            <li><strong>Labs scheduled</strong> — draw is on the calendar; we hide these from outreach so we don't double-text</li>
             <li><strong>Meds need dispatch</strong> — medication supply is running low or exhausted</li>
             <li><strong>Payment outreach</strong> — medication block needs billing</li>
           </ul>
@@ -576,7 +621,7 @@ function DailyView({ buckets, onSelect, onAction, onSchedule, onComposeLabRemind
     {
       key: 'labsOverdue',
       title: '🔴 Labs overdue',
-      subtitle: 'Blood draw is past due — reach out to schedule',
+      subtitle: 'Blood draw is past due AND not yet on the calendar',
       list: buckets.labsOverdue,
       accent: '#991b1b',
       tone: 'warn',
@@ -584,10 +629,19 @@ function DailyView({ buckets, onSelect, onAction, onSchedule, onComposeLabRemind
     {
       key: 'labsDueSoon',
       title: '🟡 Labs due soon',
-      subtitle: 'Next blood draw coming up within 14 days',
+      subtitle: 'Next blood draw coming up within 14 days, no appointment yet',
       list: buckets.labsDueSoon,
       accent: '#92400e',
       tone: 'warn',
+    },
+    {
+      key: 'labsScheduled',
+      title: '📅 Labs scheduled',
+      subtitle: 'Blood draw is on the calendar — no outreach needed',
+      list: buckets.labsScheduled,
+      accent: '#1e40af',
+      tone: 'info',
+      collapsedByDefault: true,
     },
     {
       key: 'medsDispatch',
@@ -705,9 +759,10 @@ function DailyRow({ patient, sectionKey, onSelect, onAction, onSchedule, onCompo
         <div style={{ fontSize: '12px', color: '#888' }}>
           {patient.medication}{patient.selected_dose ? ` ${patient.selected_dose}` : ''} · {patient.frequency || '—'}
         </div>
-        {patient.last_lab_outreach && (
-          <div style={{ marginTop: '4px' }}>
-            <LabOutreachBadge outreach={patient.last_lab_outreach} compact />
+        {(patient.upcoming_lab_draw || patient.last_lab_outreach) && (
+          <div style={{ marginTop: '4px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            {patient.upcoming_lab_draw && <LabScheduledBadge appt={patient.upcoming_lab_draw} compact />}
+            {patient.last_lab_outreach && <LabOutreachBadge outreach={patient.last_lab_outreach} compact />}
           </div>
         )}
       </div>
@@ -724,7 +779,7 @@ function DailyRow({ patient, sectionKey, onSelect, onAction, onSchedule, onCompo
       </div>
       <StatusStack payment={patient.payment} dispense={patient.dispense} />
       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-        {(sectionKey === 'labsOverdue' || sectionKey === 'labsDueSoon') && (
+        {(sectionKey === 'labsOverdue' || sectionKey === 'labsDueSoon') && !patient.labs_scheduled && (
           <button disabled={actionInProgress || !patient.phone} onClick={() => onComposeLabReminder(patient)}
             title={patient.phone ? `Text ${patient.phone}` : 'No phone on file'}
             style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall }}>
@@ -744,6 +799,17 @@ function DailyRow({ patient, sectionKey, onSelect, onAction, onSchedule, onCompo
 function ActionDescription({ patient }) {
   const ls = patient.lab_status;
   const ds = patient.dispense;
+
+  // Scheduled draw trumps overdue/due-soon: even if labs are technically past
+  // due, the action is already booked, so staff shouldn't be nagged.
+  if (patient.labs_scheduled && patient.upcoming_lab_draw) {
+    const a = patient.upcoming_lab_draw;
+    return (
+      <span style={{ color: '#1e40af' }}>
+        📅 <strong>Draw scheduled</strong> — {fmtDate(a.date)} at {a.time}
+      </span>
+    );
+  }
 
   if (ls.state === 'overdue') {
     return (
@@ -890,6 +956,7 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule
         {/* Status badges */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
           <Badge bg={lsc.bg} color={lsc.color} icon={lsc.icon} text={ls.label} />
+          {patient.upcoming_lab_draw && <LabScheduledBadge appt={patient.upcoming_lab_draw} />}
           <DispensePill dispense={patient.dispense} />
           <PaymentPill payment={patient.payment} />
           {patient.last_lab_outreach && <LabOutreachBadge outreach={patient.last_lab_outreach} />}

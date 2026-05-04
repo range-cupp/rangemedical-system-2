@@ -391,9 +391,11 @@ async function handleGet(req, res) {
       }
     }
 
-    // 8. Pull upcoming appointments
+    // 8. Pull upcoming appointments. Pull a wider future window for blood draws
+    // (90 days) so a draw scheduled out 6-8 weeks still suppresses the
+    // "labs overdue" alert.
     const apptStart = addDaysISO(todayISO, -14);
-    const apptEnd = addDaysISO(todayISO, 30);
+    const apptEnd = addDaysISO(todayISO, 90);
     const { data: appts } = await supabase
       .from('appointments')
       .select('id, patient_id, service_name, service_category, provider, start_time, status')
@@ -403,18 +405,40 @@ async function handleGet(req, res) {
       .order('start_time', { ascending: true });
 
     const appointmentsByPatient = {};
+    const upcomingLabDrawByPatient = {}; // patient_id → next scheduled blood draw (or null)
     for (const a of (appts || [])) {
-      (appointmentsByPatient[a.patient_id] ||= []).push({
+      const dateISO = formatPacificDate(new Date(a.start_time));
+      const time = new Date(a.start_time).toLocaleTimeString('en-US', {
+        hour: 'numeric', minute: '2-digit', hour12: true,
+        timeZone: 'America/Los_Angeles',
+      });
+      const apptRecord = {
         id: a.id,
-        date: formatPacificDate(new Date(a.start_time)),
-        time: new Date(a.start_time).toLocaleTimeString('en-US', {
-          hour: 'numeric', minute: '2-digit', hour12: true,
-          timeZone: 'America/Los_Angeles',
-        }),
+        date: dateISO,
+        time,
         service_name: a.service_name,
+        service_category: a.service_category,
         provider: a.provider,
         status: a.status,
-      });
+      };
+      (appointmentsByPatient[a.patient_id] ||= []).push(apptRecord);
+
+      // Detect a scheduled blood DRAW (not a lab review consult). Anything in
+      // the lab(s) category whose name mentions "draw" or "phlebotomy"
+      // qualifies. Lab reviews are post-results consults — staff still want
+      // to see the overdue alert until the draw itself is on the calendar.
+      const cat = (a.service_category || '').toLowerCase();
+      const name = (a.service_name || '').toLowerCase();
+      const isDraw = (
+        (cat === 'labs' || cat === 'lab') &&
+        (name.includes('blood draw') || name.includes('phlebotomy'))
+      ) || name.includes('blood draw') || name.includes('phlebotomy');
+      const stillBooked = !['cancelled', 'canceled', 'no_show', 'rescheduled'].includes((a.status || '').toLowerCase());
+      const isFuture = dateISO >= todayISO;
+
+      if (isDraw && stillBooked && isFuture && !upcomingLabDrawByPatient[a.patient_id]) {
+        upcomingLabDrawByPatient[a.patient_id] = apptRecord;
+      }
     }
 
     // 9. Build patient rows
@@ -459,9 +483,16 @@ async function handleGet(req, res) {
       const futureAppts = appointments.filter(a => a.date >= todayISO);
       const nextAppt = futureAppts[0] || null;
 
+      // Upcoming lab draw — used to suppress the "overdue" / "due soon" alert
+      // when staff has already gotten a blood draw appointment on the calendar.
+      const upcomingLabDraw = upcomingLabDrawByPatient[patient.id] || null;
+      const labsScheduled = !!upcomingLabDraw && (labStatus.state === 'overdue' || labStatus.state === 'due_soon');
+
       // Today action bucket classification
       let today_action = 'active';
-      if (labStatus.state === 'overdue') {
+      if (labsScheduled) {
+        today_action = 'labs_scheduled';
+      } else if (labStatus.state === 'overdue') {
         today_action = 'labs_overdue';
       } else if (labStatus.state === 'due_soon') {
         today_action = 'labs_due_soon';
@@ -497,6 +528,8 @@ async function handleGet(req, res) {
         last_encounter: lastEncounter,
         last_service_log: lastServiceLog,
         next_appointment: nextAppt,
+        upcoming_lab_draw: upcomingLabDraw,
+        labs_scheduled: labsScheduled,
         last_lab_outreach: labOutreachByPatient[patient.id] || null,
 
         protocol_summary: {
@@ -517,11 +550,14 @@ async function handleGet(req, res) {
       };
     });
 
-    // 10. Compute stats
+    // 10. Compute stats. labs_overdue / labs_due_soon EXCLUDE patients who
+    // already have a blood draw on the calendar — they're tracked separately
+    // under labs_scheduled so we don't keep flagging them for outreach.
     const stats = {
       total_patients: patients.length,
-      labs_overdue: patients.filter(p => p.lab_status.state === 'overdue').length,
-      labs_due_soon: patients.filter(p => p.lab_status.state === 'due_soon').length,
+      labs_overdue: patients.filter(p => p.lab_status.state === 'overdue' && !p.labs_scheduled).length,
+      labs_due_soon: patients.filter(p => p.lab_status.state === 'due_soon' && !p.labs_scheduled).length,
+      labs_scheduled: patients.filter(p => p.labs_scheduled).length,
       dispatch_due_now: patients.filter(p => ['send_now', 'due_now'].includes(p.dispense.state)).length,
       dispatch_due_soon: patients.filter(p => p.dispense.state === 'due_soon').length,
       no_purchases: patients.filter(p => p.payment.state === 'unknown').length,

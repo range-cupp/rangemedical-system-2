@@ -580,10 +580,22 @@ async function updateProtocol(protocolId, opts) {
           prefilled_3week: 21,
           prefilled_4week: 28,
           prefilled_8week: 56,
-          vial_5ml: 70,
-          vial_10ml: 140,
-          vial: 140,
         };
+
+        // Vials: calculate from actual dosage + injection frequency
+        if (supply_type.startsWith('vial')) {
+          const vialMl = supply_type === 'vial_5ml' ? 5 : 10;
+          const ipw = parseInt(protocol.injection_frequency) || 2;
+          const mlMatch = (dosage || '').match(/([\d.]+)ml/);
+          const doseMl = mlMatch ? parseFloat(mlMatch[1]) : 0;
+          if (doseMl > 0) {
+            const totalInj = Math.floor(vialMl / doseMl);
+            const weeks = totalInj / ipw;
+            supplyDays[supply_type] = Math.round(weeks * 7);
+          } else {
+            supplyDays[supply_type] = supply_type === 'vial_5ml' ? 70 : 140;
+          }
+        }
 
         // For 'prefilled' (new simplified) or prefilled_N (legacy), calculate from quantity + frequency
         // Walk the injection schedule to find when the NEXT injection falls after the last dispensed syringe

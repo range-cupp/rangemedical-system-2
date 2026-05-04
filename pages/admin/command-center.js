@@ -452,7 +452,7 @@ function openGHL(contactId) {
 // ============================================
 
 export default function CommandCenter() {
-  const { session } = useAuth();
+  const { session, employee } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

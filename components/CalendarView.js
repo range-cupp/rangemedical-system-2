@@ -601,7 +601,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     setApptTime(''); // Reset selected time when date changes
     setSelectedProvider(null); // Reset provider when date changes
 
-    const url = `/api/bookings/slots?eventTypeId=${eventType.id}&date=${apptDate}`;
+    // Native scheduling engine (replaces Cal.com slot fetch). Falls back to
+    // serviceSlug lookup; eventTypeId still works for backward compat.
+    const url = `/api/bookings/slots-v2?eventTypeId=${eventType.id}&date=${apptDate}`;
 
     fetch(url)
       .then(r => r.json())
@@ -666,7 +668,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       const et = resolveEventType(svc.calcomSlug);
       if (!et) return [svc.name, null];
       try {
-        const r = await fetch(`/api/bookings/slots?eventTypeId=${et.id}&date=${apptDate}`);
+        const r = await fetch(`/api/bookings/slots-v2?eventTypeId=${et.id}&date=${apptDate}`);
         const data = await r.json();
         const daySlots = data.slots?.[apptDate] || [];
         const times = [...new Set(

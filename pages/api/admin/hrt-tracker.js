@@ -574,8 +574,9 @@ async function actionSendLabReminder(req, res, protocol, employee) {
 
   const firstName = patient.first_name || patient.name?.split(' ')[0] || 'there';
   const message =
-    `Hi ${firstName}! It's time to schedule your follow-up blood draw for your HRT protocol. ` +
-    `Please call us at (949) 997-3988 or reply to this text to get your labs scheduled.\n\n` +
+    `Hey ${firstName}! You're due for your next blood draw. ` +
+    `When would be a good day for you to come in fasted? ` +
+    `Just reply to this text or call us at (949) 997-3988.\n\n` +
     `- Range Medical`;
 
   const smsResult = await sendSMS({ to: phone, message });

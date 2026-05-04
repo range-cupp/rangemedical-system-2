@@ -699,17 +699,6 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule
         {/* Dispense medication — writes through to service_logs (source of truth) */}
         <DispenseMedicationBlock patient={patient} onAction={onAction} actionInProgress={actionInProgress} />
 
-        {/* Lab reminder SMS */}
-        <Section title="Lab reminder SMS">
-          <button disabled={actionInProgress || !patient.phone} onClick={() => {
-            if (!confirm(`Send a lab reminder SMS to ${patient.name}?`)) return;
-            onAction('send_lab_reminder', { protocol_id: patient.protocol_id });
-          }}
-            style={{ ...sharedStyles.btnSecondary, width: '100%' }}>
-            💬 Send lab reminder to {patient.first_name || patient.name.split(' ')[0]} ({patient.phone || 'no phone'})
-          </button>
-        </Section>
-
         {/* Mark lab drawn */}
         <MarkLabDrawnBlock patient={patient} onAction={onAction} actionInProgress={actionInProgress} />
 
@@ -839,7 +828,7 @@ function DispenseMedicationBlock({ patient, onAction, actionInProgress }) {
 
 // ───────────────────── Side-panel blocks ─────────────────────
 
-function LabScheduleBlock({ patient }) {
+function LabScheduleBlock({ patient, onAction, actionInProgress }) {
   const schedule = patient.lab_schedule || [];
   if (schedule.length === 0) {
     return (
@@ -851,6 +840,12 @@ function LabScheduleBlock({ patient }) {
     );
   }
 
+  const sendLabReminder = () => {
+    const firstName = patient.first_name || patient.name?.split(' ')[0] || 'them';
+    if (!confirm(`Send a lab reminder SMS to ${patient.name} (${patient.phone || 'no phone'})?\n\nAsks ${firstName} to schedule their fasted blood draw.`)) return;
+    onAction('send_lab_reminder', { protocol_id: patient.protocol_id });
+  };
+
   return (
     <Section title={`Lab schedule (${patient.lab_status.completed_count}/${patient.lab_status.total_count} complete)`}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -858,6 +853,11 @@ function LabScheduleBlock({ patient }) {
           const isCompleted = draw.status === 'completed';
           const isOverdue = draw.status === 'overdue';
           const isSkipped = draw.status === 'skipped';
+          const isDueSoon = draw.status === 'upcoming' && draw.targetDate && (() => {
+            const diff = Math.floor((new Date(draw.targetDate) - new Date()) / 86400000);
+            return diff <= 14;
+          })();
+          const canText = (isOverdue || isDueSoon) && patient.phone;
           return (
             <div key={i} style={{
               display: 'flex', alignItems: 'center', gap: '10px',
@@ -880,6 +880,16 @@ function LabScheduleBlock({ patient }) {
                       : `Target: ${fmtDate(draw.targetDate)}`}
                 </div>
               </div>
+              {canText && (
+                <button disabled={actionInProgress} onClick={sendLabReminder}
+                  title={`Text ${patient.phone}`}
+                  style={{
+                    ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall,
+                    fontSize: '11px', padding: '4px 10px', whiteSpace: 'nowrap',
+                  }}>
+                  💬 Text
+                </button>
+              )}
             </div>
           );
         })}

@@ -358,6 +358,8 @@ function CheckoutInner() {
   const [dispInClinicCount, setDispInClinicCount] = useState('');
   const [dispAdministeredBy, setDispAdministeredBy] = useState('');
   const [dispVerifiedBy, setDispVerifiedBy] = useState('');
+  const [dispLotNumber, setDispLotNumber] = useState('');
+  const [dispExpirationDate, setDispExpirationDate] = useState('');
   const [dispFulfillment, setDispFulfillment] = useState('in_clinic');
   const [dispTrackingNumber, setDispTrackingNumber] = useState('');
   const [dispNotes, setDispNotes] = useState('');
@@ -2361,6 +2363,8 @@ function CheckoutInner() {
     setDispInClinicCount('');
     setDispAdministeredBy('');
     setDispVerifiedBy('');
+    setDispLotNumber('');
+    setDispExpirationDate('');
     setDispFulfillment('in_clinic');
     setDispTrackingNumber('');
     setDispNotes('');
@@ -2512,6 +2516,8 @@ function CheckoutInner() {
         quantity: dispQuantity ? parseInt(dispQuantity) : null,
         administeredBy: dispAdministeredBy || null,
         verifiedBy: dispVerifiedBy || null,
+        lotNumber: dispLotNumber || null,
+        expirationDate: dispExpirationDate || null,
         fulfillmentMethod: dispFulfillment,
         trackingNumber: dispTrackingNumber || null,
         notes: dispNotes || null,
@@ -2599,6 +2605,8 @@ function CheckoutInner() {
                 coverage_source: d.coverageSource,
                 administered_by: d.administeredBy,
                 verified_by: d.verifiedBy,
+                lot_number: d.lotNumber,
+                expiration_date: d.expirationDate,
                 fulfillment_method: 'in_clinic',
                 tracking_number: null,
                 entry_date: d.entryDate || null,
@@ -2625,6 +2633,8 @@ function CheckoutInner() {
               coverage_source: d.coverageSource,
               administered_by: d.administeredBy,
               verified_by: d.verifiedBy,
+              lot_number: d.lotNumber,
+              expiration_date: d.expirationDate,
               fulfillment_method: d.fulfillmentMethod || 'in_clinic',
               tracking_number: d.trackingNumber,
               entry_date: d.entryDate || null,
@@ -2649,6 +2659,8 @@ function CheckoutInner() {
             coverage_source: d.coverageSource,
             administered_by: d.administeredBy,
             verified_by: d.verifiedBy,
+            lot_number: d.lotNumber,
+            expiration_date: d.expirationDate,
             fulfillment_method: d.fulfillmentMethod,
             tracking_number: d.trackingNumber,
             entry_date: d.entryDate || null,
@@ -3639,6 +3651,31 @@ function CheckoutInner() {
                                         </select>
                                       </div>
                                     </div>
+
+                                    {/* Lot Number + Expiration Date — controlled substance tracking */}
+                                    {cat === 'testosterone' && (
+                                      <div style={{ display: 'flex', gap: '12px' }}>
+                                        <div style={{ ...styles.dispenseFieldGroup, flex: 1 }}>
+                                          <label style={styles.fieldLabel}>Lot Number</label>
+                                          <input
+                                            type="text"
+                                            value={dispLotNumber}
+                                            onChange={e => setDispLotNumber(e.target.value)}
+                                            placeholder="e.g. ABC123"
+                                            style={styles.fieldInput}
+                                          />
+                                        </div>
+                                        <div style={{ ...styles.dispenseFieldGroup, flex: 1 }}>
+                                          <label style={styles.fieldLabel}>Expiration Date</label>
+                                          <input
+                                            type="date"
+                                            value={dispExpirationDate}
+                                            onChange={e => setDispExpirationDate(e.target.value)}
+                                            style={styles.fieldInput}
+                                          />
+                                        </div>
+                                      </div>
+                                    )}
 
                                     {/* Fulfillment */}
                                     <div style={styles.dispenseFieldGroup}>

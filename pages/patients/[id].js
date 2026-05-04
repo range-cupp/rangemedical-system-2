@@ -2814,6 +2814,19 @@ export default function PatientProfile() {
 
   const openEditInjection = (log, ctx = null) => {
     setEditInjectionModal(log);
+    // Build initial slot_fulfillment array from existing data
+    const blockSize = ctx?.totalInBlock || 4;
+    const isPickupContext = !!ctx;
+    let initialSlots = [];
+    if (isPickupContext) {
+      if (Array.isArray(log.slot_fulfillment) && log.slot_fulfillment.length === blockSize) {
+        initialSlots = [...log.slot_fulfillment];
+      } else {
+        const takeHomeQty = Math.max(0, Math.min(parseInt(log.quantity) || 0, blockSize));
+        const takeHomeMethod = log.fulfillment_method === 'overnight' ? 'overnight' : 'take_home';
+        initialSlots = Array.from({ length: blockSize }, (_, i) => i < takeHomeQty ? takeHomeMethod : 'in_clinic');
+      }
+    }
     setEditInjectionForm({
       entry_date: log.entry_date || '',
       dosage: log.dosage || '',
@@ -2822,6 +2835,7 @@ export default function PatientProfile() {
       notes: log.notes || '',
       fulfillment_method: log.fulfillment_method || 'in_clinic',
       tracking_number: log.tracking_number || '',
+      slot_fulfillment: initialSlots,
     });
     setDispenseContext(ctx);
     setConfirmDeleteInjection(false);
@@ -2831,6 +2845,18 @@ export default function PatientProfile() {
     if (!editInjectionModal?.id) return;
     setEditInjectionSaving(true);
     try {
+      // If the per-slot picker is active (dispenseContext), derive quantity and
+      // fulfillment_method from the slot array so the legacy rendering paths
+      // still work, and persist the per-slot plan in slot_fulfillment.
+      const slots = Array.isArray(editInjectionForm.slot_fulfillment) ? editInjectionForm.slot_fulfillment : null;
+      let derivedQty = editInjectionForm.quantity ? parseInt(editInjectionForm.quantity) : null;
+      let derivedFulfillment = editInjectionForm.fulfillment_method || null;
+      if (slots && slots.length > 0) {
+        const takeHomeCount = slots.filter(s => s === 'take_home' || s === 'overnight').length;
+        derivedQty = takeHomeCount;
+        const overnightCount = slots.filter(s => s === 'overnight').length;
+        derivedFulfillment = overnightCount > 0 ? 'overnight' : 'in_clinic';
+      }
       const res = await fetch(`/api/service-log?id=${editInjectionModal.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -2839,11 +2865,12 @@ export default function PatientProfile() {
           entry_date: editInjectionForm.entry_date,
           dosage: editInjectionForm.dosage,
           weight: editInjectionForm.weight || null,
-          quantity: editInjectionForm.quantity ? parseInt(editInjectionForm.quantity) : null,
+          quantity: derivedQty,
           medication: editInjectionModal.medication,
           notes: editInjectionForm.notes || null,
-          fulfillment_method: editInjectionForm.fulfillment_method || null,
-          tracking_number: editInjectionForm.fulfillment_method === 'overnight' ? (editInjectionForm.tracking_number || null) : null,
+          fulfillment_method: derivedFulfillment,
+          tracking_number: derivedFulfillment === 'overnight' ? (editInjectionForm.tracking_number || null) : null,
+          slot_fulfillment: slots,
         }),
       });
       if (res.ok) {
@@ -11999,13 +12026,11 @@ export default function PatientProfile() {
               </div>
               <div className="modal-body">
                 {dispenseContext && (() => {
-                  const qty = parseInt(editInjectionForm.quantity) || 0;
                   const total = dispenseContext.totalInBlock || 4;
-                  const pickedUp = Math.max(0, Math.min(qty, total));
-                  const inClinic = Math.max(0, total - pickedUp);
-                  const isOvernight = editInjectionForm.fulfillment_method === 'overnight';
-                  const pickupLabel = isOvernight ? `📦 ${pickedUp} overnighted` : `🏠 ${pickedUp} take-home`;
-                  const pickupColor = isOvernight ? '#e67e22' : '#475569';
+                  const slots = Array.isArray(editInjectionForm.slot_fulfillment) ? editInjectionForm.slot_fulfillment : [];
+                  const inClinicCount = slots.filter(s => s === 'in_clinic').length;
+                  const takeHomeCount = slots.filter(s => s === 'take_home').length;
+                  const overnightCount = slots.filter(s => s === 'overnight').length;
                   const pAmt = dispenseContext.purchase?.amount_paid;
                   const pDateStr = dispenseContext.purchase?.purchase_date;
                   const pDateLabel = pDateStr ? new Date(pDateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' }) : null;
@@ -12016,24 +12041,55 @@ export default function PatientProfile() {
                         {pAmt != null && <span style={{ fontWeight: 500, color: '#64748b' }}> · ${parseFloat(pAmt).toFixed(0)}{pDateLabel ? ` on ${pDateLabel}` : ''}</span>}
                       </div>
                       <div>
-                        <span style={{ color: '#2E75B6', fontWeight: 600 }}>🏥 {inClinic} in-clinic</span>
-                        <span style={{ color: '#94a3b8', margin: '0 6px' }}>+</span>
-                        <span style={{ color: pickupColor, fontWeight: 600 }}>{pickupLabel}</span>
-                        {qty > total && <span style={{ color: '#dc2626', fontWeight: 600, marginLeft: 8 }}>⚠️ exceeds block total</span>}
+                        {inClinicCount > 0 && <span style={{ color: '#2E75B6', fontWeight: 600 }}>🏥 {inClinicCount} in-clinic</span>}
+                        {inClinicCount > 0 && (takeHomeCount > 0 || overnightCount > 0) && <span style={{ color: '#94a3b8', margin: '0 6px' }}>+</span>}
+                        {takeHomeCount > 0 && <span style={{ color: '#475569', fontWeight: 600 }}>🏠 {takeHomeCount} take-home</span>}
+                        {takeHomeCount > 0 && overnightCount > 0 && <span style={{ color: '#94a3b8', margin: '0 6px' }}>+</span>}
+                        {overnightCount > 0 && <span style={{ color: '#e67e22', fontWeight: 600 }}>📦 {overnightCount} overnighted</span>}
                       </div>
                       <div style={{ marginTop: 6, color: '#64748b', fontStyle: 'italic', fontSize: 11 }}>
-                        Change the dispensed quantity below. In-clinic count adjusts automatically.
+                        Pick fulfillment for each injection below.
                       </div>
                     </div>
                   );
                 })()}
+                {/* Per-slot picker — only when editing block dispense */}
+                {dispenseContext && Array.isArray(editInjectionForm.slot_fulfillment) && editInjectionForm.slot_fulfillment.length > 0 && (
+                  <div className="form-group">
+                    <label>Per-Slot Fulfillment</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {editInjectionForm.slot_fulfillment.map((method, i) => {
+                        const slotNum = ((dispenseContext.blockNum || 1) - 1) * (dispenseContext.totalInBlock || 4) + i + 1;
+                        return (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                            <span style={{ fontWeight: 600, minWidth: 90, color: '#475569' }}>Injection #{slotNum}</span>
+                            <select
+                              value={method}
+                              onChange={e => {
+                                const next = [...editInjectionForm.slot_fulfillment];
+                                next[i] = e.target.value;
+                                setEditInjectionForm({ ...editInjectionForm, slot_fulfillment: next });
+                              }}
+                              style={{ flex: 1, padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 13, background: '#fff' }}
+                            >
+                              <option value="take_home">🏠 Take-home (picked up at clinic)</option>
+                              <option value="overnight">📦 Overnighted (shipped)</option>
+                              <option value="in_clinic">🏥 In-clinic (administered at visit)</option>
+                            </select>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 <div className="form-group">
                   <label>Date</label>
                   <input type="date" value={editInjectionForm.entry_date} onChange={e => setEditInjectionForm({ ...editInjectionForm, entry_date: e.target.value })} />
                 </div>
-                {editInjectionModal?.entry_type === 'pickup' && (
+                {/* Legacy quantity input — only shown when NOT using per-slot picker */}
+                {editInjectionModal?.entry_type === 'pickup' && !dispenseContext && (
                   <div className="form-group">
-                    <label>{dispenseContext ? (editInjectionForm.fulfillment_method === 'overnight' ? 'Overnighted Quantity' : 'Take-Home Quantity') : 'Quantity'}</label>
+                    <label>Quantity</label>
                     <input type="number" min="0" value={editInjectionForm.quantity} onChange={e => setEditInjectionForm({ ...editInjectionForm, quantity: e.target.value })} />
                   </div>
                 )}
@@ -12051,8 +12107,8 @@ export default function PatientProfile() {
                   <label>Notes</label>
                   <textarea value={editInjectionForm.notes} onChange={e => setEditInjectionForm({ ...editInjectionForm, notes: e.target.value })} rows={2} placeholder="Optional notes..." />
                 </div>
-                {/* Fulfillment Method */}
-                {(editInjectionModal.entry_type === 'pickup' || editInjectionModal.category === 'peptide' || editInjectionModal.category === 'weight_loss') && (
+                {/* Fulfillment Method — legacy button group, hidden when per-slot picker active */}
+                {!dispenseContext && (editInjectionModal.entry_type === 'pickup' || editInjectionModal.category === 'peptide' || editInjectionModal.category === 'weight_loss') && (
                   <div className="form-group">
                     <label>Fulfillment</label>
                     <div style={{ display: 'flex', gap: '8px' }}>

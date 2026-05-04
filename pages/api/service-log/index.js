@@ -410,44 +410,11 @@ async function handlePost(req, res) {
       await syncWeightToVitals(patient_id, weight, logDate, administered_by);
     }
 
-    // ── Weight loss multi-injection: create additional entries for future weeks ──
-    // When staff logs a weight loss injection with quantity > 1, it means the patient
-    // picked up multiple injections at once (e.g., 2 weeks' worth). Create individual
-    // service_log entries for each week so the protocol schedule fills correctly.
-    const wlMultiQty = isWeightLossType(category) && resolvedEntryType === 'injection' && quantity && parseInt(quantity) > 1 ? parseInt(quantity) : 0;
+    // Weight-loss multi-injection auto-log was removed: it created phantom future
+    // injection rows that didn't reflect real injections. WL injection rows now
+    // come solely from real injection logs (provider encounter notes or patient
+    // self-check-ins) plus client-side projected slots from wlDeliveryLogs.
     const additionalLogs = [];
-    if (wlMultiQty > 1) {
-      for (let i = 1; i < wlMultiQty; i++) {
-        const futureDate = new Date(logDate + 'T12:00:00');
-        futureDate.setDate(futureDate.getDate() + i * 7);
-        const futureDateStr = futureDate.toISOString().split('T')[0];
-        const extraLogData = {
-          patient_id,
-          category,
-          entry_type: 'injection',
-          entry_date: futureDateStr,
-          medication: medication || null,
-          dosage: dosage || null,
-          weight: null, // only first entry gets the weigh-in
-          quantity: 1,
-          notes: `Dispensed on ${logDate} (${wlMultiQty}-injection pickup, week ${i + 1} of ${wlMultiQty})`,
-          protocol_id: protocol_id || null,
-          administered_by: administered_by || null,
-          fulfillment_method: fulfillment_method || 'in_clinic',
-        };
-        const { data: extraLog, error: extraErr } = await supabase
-          .from('service_logs')
-          .insert([extraLogData])
-          .select()
-          .single();
-        if (!extraErr && extraLog) {
-          additionalLogs.push(extraLog);
-        } else {
-          console.error(`[service-log] Failed to create extra WL entry for ${futureDateStr}:`, extraErr);
-        }
-      }
-      console.log(`[service-log] Created ${additionalLogs.length} additional WL entries for multi-injection pickup`);
-    }
 
     // Weight-loss pickups no longer pre-create future injection service_logs.
     // The protocol injection table is rendered from real injection logs (from
@@ -782,6 +749,7 @@ async function handlePut(req, res) {
     notes,
     fulfillment_method,
     tracking_number,
+    slot_fulfillment,
   } = req.body;
 
   try {
@@ -805,6 +773,11 @@ async function handlePut(req, res) {
     if (fulfillment_method !== undefined) {
       updateData.fulfillment_method = fulfillment_method || null;
       updateData.tracking_number = tracking_number || null;
+    }
+
+    // Per-slot fulfillment plan (WL block dispense)
+    if (slot_fulfillment !== undefined) {
+      updateData.slot_fulfillment = Array.isArray(slot_fulfillment) && slot_fulfillment.length > 0 ? slot_fulfillment : null;
     }
 
     // Try service_logs first

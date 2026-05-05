@@ -23,6 +23,20 @@ function isClinicalProvider(createdBy) {
     || lower.includes('practice fusion');
 }
 
+// Tolerant medication-name comparison. Matches exact (case-insensitive) and
+// common shorthand ("Reta" → "Retatrutide"). "Other" wildcards through.
+function medicationMatches(noteMed, protocolMed) {
+  if (!noteMed || !protocolMed) return true;
+  const a = String(noteMed).trim().toLowerCase();
+  const b = String(protocolMed).trim().toLowerCase();
+  if (!a || !b) return true;
+  if (a === b) return true;
+  if (a === 'other' || b === 'other') return true;
+  if (a.length >= 3 && b.includes(a)) return true;
+  if (b.length >= 3 && a.includes(b)) return true;
+  return false;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -66,6 +80,56 @@ export default async function handler(req, res) {
       } else {
         // No API key — save raw text as-is
         noteBody = raw_input;
+      }
+    }
+
+    // ── Medication-mismatch guard (WL encounter notes) ──
+    // A WL encounter note must reference a medication that matches one of the
+    // patient's active WL protocols. This blocks the failure mode where staff
+    // pick the wrong medication on a charting form and silently create a new
+    // protocol/service_log on the wrong drug (Lauren Lopez-Galvez, 2026-04-30).
+    // The form-level lock in InteractiveEncounterForm.js seeds the medication
+    // from the active protocol; this is the server-side backstop for any path
+    // (copy-previous, body-only edits, freetext) that bypasses the form lock.
+    {
+      const esLower = (encounter_service || '').toLowerCase();
+      const isWLEncounter = isWeightLossType(esLower) ||
+        esLower.includes('weight') ||
+        esLower === 'weight_loss' ||
+        structured_data?.form_type === 'weight_loss';
+
+      if (isWLEncounter) {
+        const wl = extractWLFields(structured_data, noteBody);
+        const noteMed = wl?.medication || null;
+        if (noteMed) {
+          const { data: activeWL } = await supabase
+            .from('protocols')
+            .select('id, medication')
+            .eq('patient_id', patient_id)
+            .ilike('program_type', 'weight_loss%')
+            .in('status', ['active', 'in_progress']);
+
+          const activeMeds = (activeWL || [])
+            .map(p => p.medication)
+            .filter(Boolean);
+
+          // If we have at least one active WL protocol with a medication on
+          // file, require the note to reference one of those medications. We
+          // only enforce when there's a baseline to compare against — if no
+          // protocol exists yet (e.g. brand-new patient charted before
+          // checkout), there's nothing to mismatch against.
+          if (activeMeds.length > 0) {
+            const matches = activeMeds.some(m => medicationMatches(noteMed, m));
+            if (!matches) {
+              return res.status(409).json({
+                error: `This note lists ${noteMed}, but the patient's active weight loss protocol is ${activeMeds.join(' / ')}. Notes can't change a patient's medication. Cancel this note and re-open the form, or update the protocol from the Meds tab first.`,
+                code: 'medication_mismatch',
+                note_medication: noteMed,
+                active_medications: activeMeds,
+              });
+            }
+          }
+        }
       }
     }
 

@@ -100,14 +100,14 @@ function hoursSince(isoTimestamp) {
 // Inline pill that appears anywhere we want to remind staff "we already
 // reached out about labs recently — don't double-text." Color shifts toward
 // red as the gap shrinks (still warm = looks more like spam to the patient).
-function LabOutreachBadge({ outreach, compact }) {
+function LabOutreachBadge({ outreach, compact, label: kindLabel = 'Texted' }) {
   if (!outreach?.sent_at) return null;
   const hours = hoursSince(outreach.sent_at);
   let bg = '#f1f5f9';
   let color = '#475569';
   if (hours < 24) { bg = '#fee2e2'; color = '#991b1b'; }
   else if (hours < 72) { bg = '#fef3c7'; color = '#92400e'; }
-  const label = `Texted ${relativeTimeShort(outreach.sent_at)}`;
+  const label = `${kindLabel} ${relativeTimeShort(outreach.sent_at)}`;
   const tip = [
     `Channel: ${outreach.channel || 'sms'}`,
     `Type: ${outreach.message_type}`,
@@ -138,6 +138,7 @@ export default function HRTTrackerPage() {
   const [selectedProtocolId, setSelectedProtocolId] = useState(null);
   const [bookingPatient, setBookingPatient] = useState(null);
   const [labReminderDraft, setLabReminderDraft] = useState(null); // { patient, message }
+  const [medReminderDraft, setMedReminderDraft] = useState(null); // { patient, message }
   const [actionInProgress, setActionInProgress] = useState(false);
 
   const authHeaders = useCallback(() => ({
@@ -238,6 +239,17 @@ export default function HRTTrackerPage() {
     });
   };
 
+  const openMedReminder = (patient) => {
+    if (!patient.phone) {
+      alert(`No phone number on file for ${patient.name}.`);
+      return;
+    }
+    setMedReminderDraft({
+      patient,
+      message: defaultMedReminderMessage(patient),
+    });
+  };
+
   return (
     <AdminLayout title="HRT Tracker">
       <div style={{ padding: '24px', maxWidth: '1600px', margin: '0 auto' }}>
@@ -292,6 +304,7 @@ export default function HRTTrackerPage() {
             onAction={handleAction}
             onSchedule={setBookingPatient}
             onComposeLabReminder={openLabReminder}
+            onComposeMedReminder={openMedReminder}
             actionInProgress={actionInProgress}
           />
         )}
@@ -313,6 +326,7 @@ export default function HRTTrackerPage() {
             actionInProgress={actionInProgress}
             onSchedule={() => setBookingPatient(selectedPatient)}
             onComposeLabReminder={openLabReminder}
+            onComposeMedReminder={openMedReminder}
           />
         )}
 
@@ -339,6 +353,23 @@ export default function HRTTrackerPage() {
             onResetDefault={() => setLabReminderDraft(d => d && ({ ...d, message: defaultLabReminderMessage(d.patient) }))}
           />
         )}
+
+        {medReminderDraft && (
+          <MedRefillReminderModal
+            patient={medReminderDraft.patient}
+            initialMessage={medReminderDraft.message}
+            actionInProgress={actionInProgress}
+            onClose={() => setMedReminderDraft(null)}
+            onSend={async (message) => {
+              await handleAction('send_med_refill_reminder', {
+                protocol_id: medReminderDraft.patient.protocol_id,
+                message,
+              });
+              setMedReminderDraft(null);
+            }}
+            onResetDefault={() => setMedReminderDraft(d => d && ({ ...d, message: defaultMedReminderMessage(d.patient) }))}
+          />
+        )}
       </div>
     </AdminLayout>
   );
@@ -352,6 +383,24 @@ function defaultLabReminderMessage(patient) {
     `Hey ${firstName}! You're due for your next blood draw. ` +
     `When would be a good day for you to come in fasted? ` +
     `Just reply to this text or call us at (949) 997-3988.\n\n` +
+    `- Range Medical`
+  );
+}
+
+// Default refill reminder copy. Adapts the verb based on whether supply is
+// already exhausted vs. running low — both are softer than the lab reminder
+// since the action is just "come pick up / let us ship."
+function defaultMedReminderMessage(patient) {
+  const firstName = patient.first_name || patient.name?.split(' ')[0] || 'there';
+  const ds = patient.dispense || {};
+  const exhausted = ds.state === 'send_now';
+  const opener = exhausted
+    ? `your testosterone refill is overdue`
+    : `your next testosterone refill is coming up`;
+  return (
+    `Hey ${firstName}! Just a heads up — ${opener}. ` +
+    `Want to swing by the clinic to pick it up, or have us ship it overnight to you? ` +
+    `Reply to this text or call us at (949) 997-3988 and we'll get it set up.\n\n` +
     `- Range Medical`
   );
 }
@@ -434,6 +483,136 @@ function LabReminderModal({ patient, initialMessage, actionInProgress, onClose, 
               }}>
                 <div style={{ fontWeight: 700, marginBottom: '2px' }}>
                   ⚠️ Already texted {patient.first_name || patient.name?.split(' ')[0]} {relativeTimeShort(o.sent_at)}
+                </div>
+                <div>
+                  via {o.channel || 'sms'} · type <code>{o.message_type}</code>
+                  {o.sent_by ? ` · by ${o.sent_by}` : ''}
+                </div>
+                {o.message_preview && (
+                  <div style={{ marginTop: '6px', fontStyle: 'italic', color: '#444' }}>
+                    “{o.message_preview}{(o.message_preview || '').length >= 140 ? '…' : ''}”
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          <label style={{ ...sharedStyles.label, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Message</span>
+            <button type="button" onClick={onResetDefault}
+              style={{ background: 'none', border: 'none', color: '#666', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }}>
+              Reset to default
+            </button>
+          </label>
+          <textarea
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            rows={7}
+            style={{
+              ...sharedStyles.input, width: '100%', resize: 'vertical',
+              fontFamily: 'inherit', fontSize: '14px', lineHeight: 1.5,
+              minHeight: '140px',
+            }}
+          />
+          <div style={{ fontSize: '11px', color: '#888', marginTop: '6px' }}>
+            {message.length} character{message.length === 1 ? '' : 's'}
+            {message.length > 160 && ' · may send as multiple SMS segments'}
+          </div>
+        </div>
+
+        <div style={{
+          display: 'flex', justifyContent: 'flex-end', gap: '10px',
+          padding: '14px 24px', borderTop: '1px solid #e5e5e5', background: '#fafafa',
+        }}>
+          <button onClick={onClose} disabled={actionInProgress}
+            style={sharedStyles.btnSecondary}>
+            Cancel
+          </button>
+          <button onClick={() => onSend(trimmed)} disabled={!canSend}
+            style={{ ...sharedStyles.btnPrimary, opacity: canSend ? 1 : 0.5 }}>
+            {actionInProgress ? 'Sending…' : '💬 Send SMS'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ───────────────────── Med Refill Reminder Modal ─────────────────────
+// Mirror of LabReminderModal — same structure, different prefilled copy and
+// different "already texted" warning source (last_med_outreach instead of
+// last_lab_outreach). Kept separate rather than generic so the warning copy
+// can stay specific ("already texted about a refill" vs "lab draw").
+function MedRefillReminderModal({ patient, initialMessage, actionInProgress, onClose, onSend, onResetDefault }) {
+  const [message, setMessage] = useState(initialMessage);
+
+  useEffect(() => { setMessage(initialMessage); }, [initialMessage]);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  const trimmed = message.trim();
+  const canSend = !!trimmed && !actionInProgress;
+
+  return (
+    <div onClick={onClose}
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', zIndex: 1000, padding: '24px',
+      }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{
+          background: '#fff', width: '100%', maxWidth: '560px',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+        }}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '16px 24px', borderBottom: '1px solid #e5e5e5',
+        }}>
+          <div>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Send refill reminder</h3>
+            <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
+              to <strong>{patient.name}</strong> · {patient.phone || 'no phone'}
+            </div>
+          </div>
+          <button onClick={onClose}
+            style={{ background: 'none', border: 'none', fontSize: '26px', cursor: 'pointer', color: '#666', lineHeight: 1 }}>
+            ×
+          </button>
+        </div>
+
+        <div style={{ padding: '20px 24px' }}>
+          {/* Current dispense state — gives staff the context to phrase the message */}
+          <div style={{
+            marginBottom: '14px', padding: '10px 12px',
+            background: '#f9fafb', border: '1px solid #e5e5e5',
+            fontSize: '12px', color: '#444', lineHeight: 1.5,
+          }}>
+            <div><strong>Current supply:</strong> {patient.dispense?.label || 'unknown'}</div>
+            {patient.dispense?.last_dispensed_date && (
+              <div><strong>Last dispensed:</strong> {fmtDate(patient.dispense.last_dispensed_date)}{patient.dispense.last_pickup_qty ? ` · ${patient.dispense.last_pickup_qty}×` : ''}</div>
+            )}
+          </div>
+
+          {patient.last_med_outreach && (() => {
+            const o = patient.last_med_outreach;
+            const hours = hoursSince(o.sent_at);
+            const recent = hours < 72;
+            const bg = hours < 24 ? '#fee2e2' : recent ? '#fef3c7' : '#f1f5f9';
+            const border = hours < 24 ? '#fca5a5' : recent ? '#fcd34d' : '#e2e8f0';
+            const color = hours < 24 ? '#991b1b' : recent ? '#92400e' : '#475569';
+            return (
+              <div style={{
+                marginBottom: '14px', padding: '10px 12px',
+                background: bg, border: `1px solid ${border}`, color,
+                fontSize: '12px', lineHeight: 1.5,
+              }}>
+                <div style={{ fontWeight: 700, marginBottom: '2px' }}>
+                  ⚠️ Already texted {patient.first_name || patient.name?.split(' ')[0]} about meds {relativeTimeShort(o.sent_at)}
                 </div>
                 <div>
                   via {o.channel || 'sms'} · type <code>{o.message_type}</code>
@@ -608,7 +787,7 @@ function InfoBanner() {
 
 // ───────────────────── Daily View ─────────────────────
 
-function DailyView({ buckets, onSelect, onAction, onSchedule, onComposeLabReminder, actionInProgress }) {
+function DailyView({ buckets, onSelect, onAction, onSchedule, onComposeLabReminder, onComposeMedReminder, actionInProgress }) {
   const sections = [
     {
       key: 'needsAttention',
@@ -667,13 +846,15 @@ function DailyView({ buckets, onSelect, onAction, onSchedule, onComposeLabRemind
       {sections.map(s => (
         <DailySection key={s.key} section={s}
           onSelect={onSelect} onAction={onAction} onSchedule={onSchedule}
-          onComposeLabReminder={onComposeLabReminder} actionInProgress={actionInProgress} />
+          onComposeLabReminder={onComposeLabReminder}
+          onComposeMedReminder={onComposeMedReminder}
+          actionInProgress={actionInProgress} />
       ))}
     </div>
   );
 }
 
-function DailySection({ section, onSelect, onAction, onSchedule, onComposeLabReminder, actionInProgress }) {
+function DailySection({ section, onSelect, onAction, onSchedule, onComposeLabReminder, onComposeMedReminder, actionInProgress }) {
   const [expanded, setExpanded] = useState(!section.collapsedByDefault);
   const empty = section.list.length === 0;
   if (empty && section.key !== 'needsAttention' && section.key !== 'labsOverdue') return null;
@@ -710,7 +891,9 @@ function DailySection({ section, onSelect, onAction, onSchedule, onComposeLabRem
               {section.list.map(p => (
                 <DailyRow key={p.protocol_id} patient={p} sectionKey={section.key}
                   onSelect={onSelect} onAction={onAction} onSchedule={onSchedule}
-                  onComposeLabReminder={onComposeLabReminder} actionInProgress={actionInProgress} />
+                  onComposeLabReminder={onComposeLabReminder}
+                  onComposeMedReminder={onComposeMedReminder}
+                  actionInProgress={actionInProgress} />
               ))}
             </div>
           </>
@@ -741,7 +924,7 @@ function ColumnHeader({ sectionKey }) {
   );
 }
 
-function DailyRow({ patient, sectionKey, onSelect, onAction, onSchedule, onComposeLabReminder, actionInProgress }) {
+function DailyRow({ patient, sectionKey, onSelect, onAction, onSchedule, onComposeLabReminder, onComposeMedReminder, actionInProgress }) {
   const isAttention = sectionKey === 'needsAttention' || sectionKey === 'labsOverdue';
 
   return (
@@ -759,10 +942,11 @@ function DailyRow({ patient, sectionKey, onSelect, onAction, onSchedule, onCompo
         <div style={{ fontSize: '12px', color: '#888' }}>
           {patient.medication}{patient.selected_dose ? ` ${patient.selected_dose}` : ''} · {patient.frequency || '—'}
         </div>
-        {(patient.upcoming_lab_draw || patient.last_lab_outreach) && (
+        {(patient.upcoming_lab_draw || patient.last_lab_outreach || patient.last_med_outreach) && (
           <div style={{ marginTop: '4px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
             {patient.upcoming_lab_draw && <LabScheduledBadge appt={patient.upcoming_lab_draw} compact />}
-            {patient.last_lab_outreach && <LabOutreachBadge outreach={patient.last_lab_outreach} compact />}
+            {patient.last_lab_outreach && <LabOutreachBadge outreach={patient.last_lab_outreach} compact label="Lab text" />}
+            {patient.last_med_outreach && <LabOutreachBadge outreach={patient.last_med_outreach} compact label="Refill text" />}
           </div>
         )}
       </div>
@@ -784,6 +968,13 @@ function DailyRow({ patient, sectionKey, onSelect, onAction, onSchedule, onCompo
             title={patient.phone ? `Text ${patient.phone}` : 'No phone on file'}
             style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall }}>
             💬 Lab SMS
+          </button>
+        )}
+        {sectionKey === 'medsDispatch' && (
+          <button disabled={actionInProgress || !patient.phone} onClick={() => onComposeMedReminder(patient)}
+            title={patient.phone ? `Text ${patient.phone}` : 'No phone on file'}
+            style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall }}>
+            💬 Refill SMS
           </button>
         )}
         <button disabled={actionInProgress}
@@ -932,9 +1123,10 @@ function RosterTable({ patients, onSelect, onAction, actionInProgress }) {
 
 // ───────────────────── Patient Side Panel ─────────────────────
 
-function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule, onComposeLabReminder }) {
+function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule, onComposeLabReminder, onComposeMedReminder }) {
   const ls = patient.lab_status;
   const lsc = LAB_STATUS_CONFIG[ls.state] || LAB_STATUS_CONFIG.on_track;
+  const refillNeeded = ['send_now', 'due_now', 'due_soon'].includes(patient.dispense?.state);
 
   return (
     <div style={{
@@ -959,8 +1151,26 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule
           {patient.upcoming_lab_draw && <LabScheduledBadge appt={patient.upcoming_lab_draw} />}
           <DispensePill dispense={patient.dispense} />
           <PaymentPill payment={patient.payment} />
-          {patient.last_lab_outreach && <LabOutreachBadge outreach={patient.last_lab_outreach} />}
+          {patient.last_lab_outreach && <LabOutreachBadge outreach={patient.last_lab_outreach} label="Lab text" />}
+          {patient.last_med_outreach && <LabOutreachBadge outreach={patient.last_med_outreach} label="Refill text" />}
         </div>
+
+        {/* Refill outreach — only when supply needs attention */}
+        {refillNeeded && onComposeMedReminder && (
+          <Section title="Refill outreach">
+            <button disabled={actionInProgress || !patient.phone}
+              onClick={() => onComposeMedReminder(patient)}
+              style={{ ...sharedStyles.btnPrimary, width: '100%' }}>
+              💬 Send refill reminder to {patient.first_name || patient.name.split(' ')[0]}
+              {patient.phone ? ` (${patient.phone})` : ' (no phone)'}
+            </button>
+            {patient.last_med_outreach && (
+              <div style={{ fontSize: '11px', color: '#888', marginTop: '6px', textAlign: 'center' }}>
+                Last refill text: {relativeTimeShort(patient.last_med_outreach.sent_at)}
+              </div>
+            )}
+          </Section>
+        )}
 
         {/* Lab Schedule */}
         <LabScheduleBlock patient={patient} onComposeLabReminder={onComposeLabReminder} actionInProgress={actionInProgress} />

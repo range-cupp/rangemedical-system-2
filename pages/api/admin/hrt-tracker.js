@@ -349,28 +349,38 @@ async function handleGet(req, res) {
       'lab_prep_reminder',
       'lab_prep_instructions_sent',
     ];
-    const labOutreachSince = addDaysISO(todayISO, -30) + 'T00:00:00Z';
-    const { data: labOutreachRaw } = await supabase
+    const MED_OUTREACH_TYPES = [
+      'hrt_med_refill_reminder',
+      'hrt_iv_reminder',
+      'hrt_injection_reminder',
+    ];
+    const allOutreachTypes = [...LAB_OUTREACH_TYPES, ...MED_OUTREACH_TYPES];
+    const outreachSince = addDaysISO(todayISO, -30) + 'T00:00:00Z';
+    const { data: outreachRaw } = await supabase
       .from('comms_log')
       .select('patient_id, message_type, channel, created_at, sent_by_employee_name, message, status')
       .in('patient_id', patientIds)
-      .in('message_type', LAB_OUTREACH_TYPES)
+      .in('message_type', allOutreachTypes)
       .eq('direction', 'outbound')
-      .gte('created_at', labOutreachSince)
+      .gte('created_at', outreachSince)
       .order('created_at', { ascending: false });
 
     const labOutreachByPatient = {};
-    for (const c of (labOutreachRaw || [])) {
-      // Most-recent only (already sorted desc — first one wins)
-      if (!labOutreachByPatient[c.patient_id]) {
-        labOutreachByPatient[c.patient_id] = {
-          sent_at: c.created_at,
-          channel: c.channel,
-          message_type: c.message_type,
-          sent_by: c.sent_by_employee_name || null,
-          message_preview: (c.message || '').slice(0, 140),
-          status: c.status,
-        };
+    const medOutreachByPatient = {};
+    for (const c of (outreachRaw || [])) {
+      const summary = {
+        sent_at: c.created_at,
+        channel: c.channel,
+        message_type: c.message_type,
+        sent_by: c.sent_by_employee_name || null,
+        message_preview: (c.message || '').slice(0, 140),
+        status: c.status,
+      };
+      if (LAB_OUTREACH_TYPES.includes(c.message_type) && !labOutreachByPatient[c.patient_id]) {
+        labOutreachByPatient[c.patient_id] = summary;
+      }
+      if (MED_OUTREACH_TYPES.includes(c.message_type) && !medOutreachByPatient[c.patient_id]) {
+        medOutreachByPatient[c.patient_id] = summary;
       }
     }
 
@@ -531,6 +541,7 @@ async function handleGet(req, res) {
         upcoming_lab_draw: upcomingLabDraw,
         labs_scheduled: labsScheduled,
         last_lab_outreach: labOutreachByPatient[patient.id] || null,
+        last_med_outreach: medOutreachByPatient[patient.id] || null,
 
         protocol_summary: {
           name: protocol.program_name,
@@ -604,10 +615,11 @@ async function handlePost(req, res, employee) {
 
   try {
     switch (action) {
-      case 'mark_lab_drawn':      return await actionMarkLabDrawn(req, res, protocol, employee);
-      case 'send_lab_reminder':   return await actionSendLabReminder(req, res, protocol, employee);
-      case 'send_booking_sms':    return await actionSendBookingSMS(req, res, protocol, employee);
-      case 'dispense_medication': return await actionDispenseMedication(req, res, protocol, employee);
+      case 'mark_lab_drawn':         return await actionMarkLabDrawn(req, res, protocol, employee);
+      case 'send_lab_reminder':      return await actionSendLabReminder(req, res, protocol, employee);
+      case 'send_booking_sms':       return await actionSendBookingSMS(req, res, protocol, employee);
+      case 'send_med_refill_reminder': return await actionSendMedRefillReminder(req, res, protocol, employee);
+      case 'dispense_medication':    return await actionDispenseMedication(req, res, protocol, employee);
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }
@@ -705,6 +717,45 @@ async function actionSendBookingSMS(req, res, protocol, employee) {
 
   if (!smsResult.success) return res.status(500).json({ error: smsResult.error });
   return res.status(200).json({ success: true, message: 'Booking SMS sent' });
+}
+
+// Send the patient a "your refill is due / overdue" SMS. Mirrors the lab
+// reminder flow: staff opens a modal with a pre-filled message they can edit,
+// then we log to comms_log so the tracker shows "Texted Xh ago" and prevents
+// double-texts.
+async function actionSendMedRefillReminder(req, res, protocol, employee) {
+  const patient = protocol.patients;
+  const phone = normalizePhone(patient.phone);
+  if (!phone) return res.status(400).json({ error: 'No phone number on file' });
+
+  const firstName = patient.first_name || patient.name?.split(' ')[0] || 'there';
+  const customMessage = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
+  const message = customMessage ||
+    (`Hey ${firstName}! Your next testosterone refill is due. ` +
+     `Want to swing by the clinic to grab it, or have us ship it overnight? ` +
+     `Just reply to this text or call (949) 997-3988.\n\n` +
+     `- Range Medical`);
+
+  const smsResult = await sendSMS({ to: phone, message });
+
+  await logComm({
+    channel: 'sms', messageType: 'hrt_med_refill_reminder', message,
+    source: 'admin-hrt-tracker', patientId: patient.id, protocolId: protocol.id,
+    ghlContactId: patient.ghl_contact_id, patientName: patient.name, recipient: phone,
+    twilioMessageSid: smsResult.messageSid,
+    status: smsResult.success ? undefined : 'error',
+    errorMessage: smsResult.success ? undefined : smsResult.error,
+    provider: smsResult.provider || null, direction: 'outbound',
+  });
+
+  await logAction({
+    employee, action_type: 'hrt_tracker_send_med_refill_reminder',
+    description: `Sent medication refill reminder SMS to ${patient.name}`,
+    target_type: 'protocol', target_id: protocol.id,
+  });
+
+  if (!smsResult.success) return res.status(500).json({ error: smsResult.error });
+  return res.status(200).json({ success: true, message: 'Refill reminder sent' });
 }
 
 // Dispense HRT medication. Goes through the canonical medication-checkout pipeline

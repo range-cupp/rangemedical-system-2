@@ -9,6 +9,7 @@ import { generateReceiptHtml } from '../../../lib/receipt-email';
 import { todayPacific } from '../../../lib/date-utils';
 import { isWeightLossType } from '../../../lib/protocol-config';
 import { guardDoseChange } from '../../../lib/dose-change-guard';
+import { spawnTakeHomeInjections } from '../../../lib/spawn-takehome-injections';
 // Controlled substance staff config — used for logging, not blocking
 // Dose approval is enforced via dose-change-requests SMS flow
 
@@ -181,15 +182,33 @@ export default async function handler(req, res) {
       }
     }
 
-    // 4. Weight-loss take-home pickups no longer pre-create future injection
-    // service_logs. Each injection row in the protocol table must come from
-    // an actual provider encounter note OR a patient self-check-in submission
-    // — the encounter is the source of truth. The visual projected slot rows
-    // in the patient profile (wlDeliveryLogs + injection_day cadence) still
-    // render so staff and patients can see the schedule; they just stay
-    // "Click to add weight" until logged. The weekly-checkin-reminder cron
-    // sends the patient an SMS on each scheduled day so they have a chance
-    // to log it themselves.
+    // 4. Weight-loss take-home pickups: spawn one injection row per dose
+    // dispensed, dated for the patient's injection_day. Range's WL programs
+    // run weekly without skipped weeks, so dispensing implies a real
+    // injection in a known future week. Spawned rows are idempotent (skip
+    // if any injection/session log already exists within ±3 days of the
+    // target). Encounter notes that arrive later link to the spawned rows
+    // via the wl-note-sync date-window match instead of creating duplicates.
+    try {
+      const isWLTakeHomePickup = finalLog
+        && isWeightLossType(category)
+        && (resolvedEntryType === 'pickup' || resolvedEntryType === 'med_pickup')
+        && (parseInt(quantity || 0) > 0)
+        && fulfillment_method !== 'in_clinic_injections'
+        && protocol_id;
+      if (isWLTakeHomePickup) {
+        const { data: protoRow } = await supabase
+          .from('protocols')
+          .select('id, frequency, injection_day, medication, selected_dose, dose')
+          .eq('id', protocol_id)
+          .single();
+        if (protoRow) {
+          await spawnTakeHomeInjections(supabase, finalLog, protoRow);
+        }
+      }
+    } catch (spawnErr) {
+      console.error('[medication-checkout] WL spawn error (non-fatal):', spawnErr.message);
+    }
 
     // 4b. For HRT TAKE-HOME pickups, create future injection entries
     // Same logic as service-log: auto-create individual injection entries dated to the

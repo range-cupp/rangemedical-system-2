@@ -739,7 +739,7 @@ export default function PaymentsPage() {
       {/* Tab bar + Create button */}
       <div style={styles.topBar}>
         <div style={styles.tabBar}>
-          {['checkout', 'invoices', 'pos', 'subscriptions', 'purchases', 'products', 'gift_cards', 'verify'].map(t => (
+          {['checkout', 'daily', 'invoices', 'pos', 'subscriptions', 'purchases', 'products', 'gift_cards', 'verify'].map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -748,7 +748,7 @@ export default function PaymentsPage() {
                 ...(tab === t ? styles.tabActive : {})
               }}
             >
-              {t === 'checkout' ? 'Checkout' : t === 'invoices' ? 'Invoices' : t === 'pos' ? 'POS Checkout' : t === 'subscriptions' ? 'Subscriptions' : t === 'purchases' ? 'Purchases' : t === 'products' ? 'Products & Services' : t === 'gift_cards' ? 'Gift Cards' : 'Verify'}
+              {t === 'checkout' ? 'Checkout' : t === 'daily' ? 'Daily' : t === 'invoices' ? 'Invoices' : t === 'pos' ? 'POS Checkout' : t === 'subscriptions' ? 'Subscriptions' : t === 'purchases' ? 'Purchases' : t === 'products' ? 'Products & Services' : t === 'gift_cards' ? 'Gift Cards' : 'Verify'}
             </button>
           ))}
         </div>
@@ -866,6 +866,9 @@ export default function PaymentsPage() {
           />
         </>
       )}
+
+      {/* === DAILY TAB === */}
+      {tab === 'daily' && <DailyTab />}
 
       {tab === 'invoices' && viewMode === 'calendar' && (
         <>
@@ -2856,6 +2859,245 @@ const checkoutStyles = {
     padding: '10px 16px', fontSize: '14px', verticalAlign: 'middle',
   },
 };
+
+// ================================================================
+// DAILY TAB — Real purchases grouped by Pacific-time day
+// Shows actual amount_paid (including comps), payment method, and
+// COGS where available. No line items — one row per purchase row.
+// ================================================================
+function DailyTab() {
+  const [days, setDays] = useState([]);
+  const [totals, setTotals] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [range, setRange] = useState(30);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetch(`/api/admin/payments-by-day?days=${range}`)
+      .then(r => r.json())
+      .then(d => {
+        if (cancelled) return;
+        setDays(d.days || []);
+        setTotals(d.totals || null);
+      })
+      .catch(err => console.error('Daily load error:', err))
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [range]);
+
+  const catLabels = {
+    hrt: 'HRT', testosterone: 'HRT', weight_loss: 'Weight Loss',
+    peptide: 'Peptide', iv_therapy: 'IV', iv: 'IV', hbot: 'HBOT',
+    rlt: 'Red Light', red_light: 'Red Light', regenerative: 'Red Light',
+    injection: 'Injection', supplement: 'Supplement', vitamin: 'Vitamin',
+    lab_panels: 'Labs', labs: 'Labs', other: 'Other',
+  };
+  const catColors = {
+    hrt: '#7c3aed', testosterone: '#7c3aed', weight_loss: '#ea580c',
+    peptide: '#0891b2', iv_therapy: '#2563eb', iv: '#2563eb',
+    hbot: '#059669', rlt: '#dc2626', red_light: '#dc2626',
+    regenerative: '#dc2626', injection: '#7c3aed',
+    supplement: '#64748b', vitamin: '#ca8a04',
+    lab_panels: '#475569', labs: '#475569', other: '#94a3b8',
+  };
+
+  const fmtMoney = (v) => `$${(Math.round(v * 100) / 100).toFixed(2)}`;
+  const fmtCents = (c) => `$${(c / 100).toFixed(2)}`;
+  const fmtDate = (s) => {
+    if (!s) return '';
+    const d = new Date(s + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles' });
+  };
+  const fmtTime = (iso) => {
+    if (!iso) return '';
+    return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
+  };
+
+  const methodLabel = (p) => {
+    const src = (p.source || '').toLowerCase();
+    const method = (p.payment_method || '').toLowerCase();
+    if (p.is_comp) return 'Comp';
+    if (method === 'cash') return 'Cash';
+    if (method === 'stripe' || src === 'stripe_pos' || src === 'website_checkout' || src === 'payment_link') {
+      const brand = p.card_brand ? p.card_brand.charAt(0).toUpperCase() + p.card_brand.slice(1) : 'Card';
+      return p.card_last4 ? `${brand} ····${p.card_last4}` : brand;
+    }
+    if (method === 'invoice') return 'Invoice';
+    if (src === 'manual' || method === 'manual') return 'Manual';
+    return method || src || '—';
+  };
+
+  const filteredDays = !search.trim() ? days : days
+    .map(d => ({
+      ...d,
+      purchases: d.purchases.filter(p => {
+        const q = search.toLowerCase();
+        return (p.patient_name || '').toLowerCase().includes(q) ||
+               (p.medication || '').toLowerCase().includes(q) ||
+               (p.item_name || '').toLowerCase().includes(q) ||
+               (p.product_name || '').toLowerCase().includes(q);
+      }),
+    }))
+    .filter(d => d.purchases.length > 0)
+    .map(d => {
+      const collected = d.purchases.reduce((s, p) => s + p.amount_paid_num, 0);
+      const cogs_cents = d.purchases.reduce((s, p) => s + (p.cogs_cents || 0), 0);
+      return { ...d, collected, cogs_cents, txn_count: d.purchases.length, comp_count: d.purchases.filter(p => p.is_comp).length, margin: collected - cogs_cents / 100 };
+    });
+
+  const sectionTitle = { margin: '0 0 12px', fontSize: '16px', fontWeight: 600 };
+
+  return (
+    <div>
+      {/* Stats + filters */}
+      <div style={styles.statsRow}>
+        <div style={styles.stat}>
+          <div style={styles.statValue}>{totals ? fmtMoney(totals.collected) : '—'}</div>
+          <div style={styles.statLabel}>Collected</div>
+        </div>
+        <div style={styles.stat}>
+          <div style={styles.statValue}>{totals ? totals.txn_count : '—'}</div>
+          <div style={styles.statLabel}>Transactions</div>
+        </div>
+        <div style={styles.stat}>
+          <div style={styles.statValue}>{totals ? totals.comp_count : '—'}</div>
+          <div style={styles.statLabel}>Comps</div>
+        </div>
+        <div style={styles.stat}>
+          <div style={styles.statValue}>{totals ? fmtCents(totals.cogs_cents) : '—'}</div>
+          <div style={styles.statLabel}>COGS (tracked)</div>
+        </div>
+        <div style={styles.stat}>
+          <div style={styles.statValue}>{totals ? fmtMoney(totals.collected - totals.cogs_cents / 100) : '—'}</div>
+          <div style={styles.statLabel}>Margin (est.)</div>
+        </div>
+      </div>
+
+      <div style={styles.filters}>
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search patient or item..."
+          style={styles.searchInput}
+        />
+        <div style={styles.filterPills}>
+          {[7, 30, 60, 90].map(n => (
+            <button
+              key={n}
+              onClick={() => setRange(n)}
+              style={{
+                ...styles.filterPill,
+                ...(range === n ? styles.filterPillActive : {}),
+              }}
+            >
+              Last {n}d
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={styles.loading}>Loading payments...</div>
+      ) : filteredDays.length === 0 ? (
+        <div style={{ ...styles.card, ...styles.empty }}>No payments found in this range.</div>
+      ) : (
+        filteredDays.map(day => (
+          <div key={day.date} style={{ ...styles.card, marginBottom: '14px' }}>
+            <div style={{
+              padding: '12px 16px',
+              background: '#f8fafc',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+            }}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
+                {fmtDate(day.date)}
+              </div>
+              <div style={{ display: 'flex', gap: '18px', fontSize: '12px', color: '#475569', flexWrap: 'wrap' }}>
+                <span><b style={{ color: '#166534' }}>{fmtMoney(day.collected)}</b> collected</span>
+                <span>{day.txn_count} {day.txn_count === 1 ? 'transaction' : 'transactions'}</span>
+                {day.comp_count > 0 && <span style={{ color: '#7c3aed' }}>{day.comp_count} comp{day.comp_count === 1 ? '' : 's'}</span>}
+                {day.cogs_cents > 0 && (
+                  <>
+                    <span>COGS <b>{fmtCents(day.cogs_cents)}</b></span>
+                    <span>Margin <b style={{ color: '#0f172a' }}>{fmtMoney(day.margin)}</b></span>
+                  </>
+                )}
+              </div>
+            </div>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Time</th>
+                  <th style={styles.th}>Patient</th>
+                  <th style={styles.th}>Service</th>
+                  <th style={styles.th}>Item</th>
+                  <th style={{ ...styles.th, textAlign: 'right' }}>Paid</th>
+                  <th style={styles.th}>Method</th>
+                  <th style={{ ...styles.th, textAlign: 'right' }}>COGS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {day.purchases.map(p => {
+                  const cat = (p.category || 'other').toLowerCase();
+                  const label = catLabels[cat] || (p.category || 'Other');
+                  const color = catColors[cat] || '#94a3b8';
+                  const itemText = p.medication || p.item_name || p.product_name || p.description || '—';
+                  return (
+                    <tr key={p.id} style={styles.tr}>
+                      <td style={{ ...styles.td, whiteSpace: 'nowrap', fontSize: '12px', color: '#64748b' }}>
+                        {fmtTime(p.created_at)}
+                      </td>
+                      <td style={styles.td}>
+                        {p.patient_id ? (
+                          <Link href={`/admin/patient/${p.patient_id}`} style={{ color: '#1e40af', textDecoration: 'none', fontWeight: 500 }}>
+                            {p.patient_name || '—'}
+                          </Link>
+                        ) : (
+                          <span style={{ fontWeight: 500 }}>{p.patient_name || '—'}</span>
+                        )}
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{
+                          display: 'inline-block', padding: '3px 8px',
+                          fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
+                          color: '#fff', background: color, letterSpacing: '0.5px',
+                        }}>
+                          {label}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{ fontSize: '13px' }}>{itemText}</span>
+                        {p.quantity && p.quantity > 1 && (
+                          <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '6px' }}>×{p.quantity}</span>
+                        )}
+                      </td>
+                      <td style={{ ...styles.td, textAlign: 'right', fontWeight: 700, color: p.is_comp ? '#7c3aed' : '#0f172a', whiteSpace: 'nowrap' }}>
+                        {p.is_comp ? 'Comp' : fmtMoney(p.amount_paid_num)}
+                      </td>
+                      <td style={{ ...styles.td, fontSize: '12px', color: '#475569' }}>
+                        {methodLabel(p)}
+                      </td>
+                      <td style={{ ...styles.td, textAlign: 'right', fontSize: '12px', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                        {p.cogs_cents != null ? fmtCents(p.cogs_cents) : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
 
 const styles = {
   topBar: {

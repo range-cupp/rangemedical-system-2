@@ -330,9 +330,10 @@ export default function RLTTrial() {
             <section className="fs-hero">
               <h1>Free Red Light Therapy Session For First&#8209;Time Patients</h1>
               <p className="fs-sub">
-                Try a 20-minute full-body red light session at Range Medical so you can
-                see how it feels in your own body. One visit won&apos;t change your whole
-                life, but it&apos;s the best first step for energy, recovery, and sleep.
+                Try a 20-minute full-body red light session (normally $85, yours free today)
+                at Range Medical so you can see how it feels in your own body. One visit
+                won&apos;t change your whole life, but it&apos;s the best first step for
+                energy, recovery, and sleep.
               </p>
               <ul className="fs-bullets">
                 <li>Relax in a calm, private room for about 20 minutes</li>
@@ -427,7 +428,7 @@ export default function RLTTrial() {
                   <style>{`@keyframes fs-btn-spin { to { transform: rotate(360deg); } }`}</style>
 
                   <p className="fs-fineprint">
-                    New patients only. One free session per person.
+                    New patients only. One free $85 session per person. Newport Beach location.
                   </p>
                 </div>
               </form>

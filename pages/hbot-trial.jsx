@@ -369,14 +369,10 @@ export default function HBOTTrial() {
               <p className="fs-eyebrow">Free Session · Newport Beach</p>
               <h1>Free Hyperbaric Oxygen Session For First&#8209;Time Patients</h1>
               <p className="fs-sub">
-                We&apos;ll give you a free 60-minute hyperbaric oxygen session so you can
-                feel what it&apos;s actually like — no payment, no pressure.
-              </p>
-              <p className="fs-clarifier">
-                One session by itself won&apos;t change your whole life. Real change with
-                HBOT usually comes from consistent sessions over a few weeks. But this
-                first visit lets you see how it feels in your own body and decide if
-                it&apos;s worth continuing.
+                Experience a 60-minute hyperbaric oxygen session (normally $185, yours
+                free today) to see how HBOT feels for recovery, brain clarity, and
+                everyday energy. One session won&apos;t fix everything, but it&apos;s
+                the best way to know if it&apos;s right for you.
               </p>
 
               <p className="fs-section-title">How it works</p>
@@ -477,7 +473,7 @@ export default function HBOTTrial() {
                   <style>{`@keyframes fs-btn-spin { to { transform: rotate(360deg); } }`}</style>
 
                   <p className="fs-fineprint">
-                    New patients only. One free session per person. Newport Beach location.
+                    New patients only. One free $185 session per person. Newport Beach location.
                   </p>
                 </div>
               </form>

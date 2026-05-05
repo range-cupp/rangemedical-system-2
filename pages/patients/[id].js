@@ -7408,6 +7408,34 @@ export default function PatientProfile() {
                           )}
                           <div className="protocol-dates">Started {formatShortDate(protocol.start_date)}{protocol.end_date && ` → ${formatShortDate(protocol.end_date)}`}</div>
 
+                          {/* ===== HRT: Last dispensed / Next refill strip ===== */}
+                          {isHRTProtocol(protocol.program_type) && protocol.status === 'active' && (protocol.last_refill_date || protocol.next_expected_date) && (() => {
+                            const today = new Date(); today.setHours(0, 0, 0, 0);
+                            const nextDate = protocol.next_expected_date ? new Date(protocol.next_expected_date + 'T12:00:00') : null;
+                            const daysUntil = nextDate ? Math.ceil((nextDate - today) / 86400000) : null;
+                            const overdue = daysUntil !== null && daysUntil < 0;
+                            const dueSoon = daysUntil !== null && daysUntil >= 0 && daysUntil <= 7;
+                            return (
+                              <div style={{ margin: '6px 0 2px', padding: '7px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: 12, display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center' }}>
+                                {protocol.last_refill_date && (
+                                  <span>
+                                    <span style={{ color: '#6b7280' }}>Last dispensed: </span>
+                                    <strong>{formatShortDate(protocol.last_refill_date)}</strong>
+                                  </span>
+                                )}
+                                {nextDate && (
+                                  <span>
+                                    <span style={{ color: '#6b7280' }}>Next refill: </span>
+                                    <strong style={{ color: overdue ? '#dc2626' : dueSoon ? '#d97706' : '#111' }}>
+                                      {formatShortDate(protocol.next_expected_date)}
+                                      {overdue ? ` (${Math.abs(daysUntil)}d overdue)` : ` (${daysUntil}d)`}
+                                    </strong>
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
+
 
                           {/* ===== Weight Loss: Section 1 — Status Strip ===== */}
                           {isWeightLoss && protocol.status === 'active' && (() => {

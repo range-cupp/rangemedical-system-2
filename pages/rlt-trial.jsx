@@ -446,6 +446,7 @@ export default function RLTTrial() {
             scheduleLabel="Step 2"
             scheduleTitle="Choose Your Time In Newport Beach"
             scheduleSubtitle="Pick a time that works best for you. This reserves your free red light session. We'll send a quick confirmation text once you're booked."
+            scheduleFootnote="New patients only. One free session per person."
           />
         )}
       </div>

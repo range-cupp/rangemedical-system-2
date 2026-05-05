@@ -228,6 +228,7 @@ export default function FreeSessionScheduler({
   scheduleLabel,
   scheduleTitle,
   scheduleSubtitle,
+  scheduleFootnote,
 }) {
   const [phase, setPhase] = useState('schedule');
   const days = useMemoDays();
@@ -337,6 +338,16 @@ export default function FreeSessionScheduler({
             }}>
             {selectedSlot ? 'Continue — add card & confirm' : 'Pick a time to continue'}
           </button>
+
+          {scheduleFootnote && (
+            <div style={{ marginTop: 20, textAlign: 'center' }}>
+              {(Array.isArray(scheduleFootnote) ? scheduleFootnote : [scheduleFootnote]).map((line, i) => (
+                <p key={i} style={{ fontSize: 12, color: '#737373', lineHeight: 1.5, margin: i === 0 ? '0' : '6px 0 0' }}>
+                  {line}
+                </p>
+              ))}
+            </div>
+          )}
         </>
       )}
 

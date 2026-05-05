@@ -48,7 +48,10 @@ export default async function handler(req, res) {
     }
 
     try {
-      const result = await syncWLNoteToServiceLog(supabase, note);
+      const result = await syncWLNoteToServiceLog(supabase, note, {
+        createIfMissing: false,
+        dateMatchWindowDays: 2,
+      });
       if (result.synced) {
         results.synced++;
         synced.push({

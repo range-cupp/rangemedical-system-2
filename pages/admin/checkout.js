@@ -292,6 +292,7 @@ function CheckoutInner() {
   const [hrtSupplyType, setHrtSupplyType] = useState('prefilled'); // prefilled | vial_5ml | vial_10ml
   const [hrtDispenseQty, setHrtDispenseQty] = useState(0); // # of prefilled syringes given today (drives supply tracking)
   const [hrtSecondaries, setHrtSecondaries] = useState([]); // [{ medKey, dose, frequency }]
+  const [hrtDeliveryMethod, setHrtDeliveryMethod] = useState('take_home'); // take_home | in_clinic
 
   // ── Injection Builder (NAD+, Standard, Premium) ──
   const [injBuilderType, setInjBuilderType] = useState(''); // 'nad', 'standard', 'premium'
@@ -1139,6 +1140,7 @@ function CheckoutInner() {
   function closeHrtBuilder() {
     setHrtModalOpen(false);
     setHrtModalPendingItem(null);
+    setHrtDeliveryMethod('take_home');
   }
 
   function setHrtPrimaryMedAndResetDeps(key) {
@@ -1213,6 +1215,7 @@ function CheckoutInner() {
       frequency: hrtPrimaryFrequency,
       supplyType,
       dispenseQty, // # of prefilled syringes handed out today; null for vials
+      deliveryMethod: hrtDeliveryMethod,
       sig,
       secondaryMedications: hrtSecondaries.map(s => {
         const sm = hrtMedMeta(s.medKey);
@@ -5994,6 +5997,24 @@ function CheckoutInner() {
                       </div>
                     </div>
                   )}
+
+                  {/* Delivery method */}
+                  <div style={{ marginBottom: '18px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>DELIVERY METHOD</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {[{ value: 'take_home', label: 'Take Home' }, { value: 'in_clinic', label: 'In Clinic' }].map(opt => (
+                        <button
+                          key={opt.value}
+                          onClick={() => setHrtDeliveryMethod(opt.value)}
+                          style={{
+                            padding: '10px 14px', fontSize: '14px', fontWeight: 600,
+                            border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
+                            ...(hrtDeliveryMethod === opt.value ? { border: '2px solid #C47B2B', background: '#FDF6EE', color: '#C47B2B' } : { color: '#333' }),
+                          }}
+                        >{opt.label}</button>
+                      ))}
+                    </div>
+                  </div>
 
                   {/* Secondary medications */}
                   <div style={{ marginTop: '24px', paddingTop: '18px', borderTop: '1px solid #eee' }}>

@@ -5990,10 +5990,13 @@ function CheckoutInner() {
                     </div>
                   )}
 
-                  {/* Pre-filled: editable syringe count + day supply */}
+                  {/* Pre-filled: editable syringe count + summary */}
                   {needsSupply && hrtDeliveryMethod === 'take_home' && hrtSupplyType === 'prefilled' && (
                     <div style={{ marginBottom: '18px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>SYRINGES TO DISPENSE TODAY</label>
+                      <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>DISPENSING TODAY</label>
+                      <div style={{ padding: '12px 16px', background: '#f9fafb', border: '1px solid #e5e5e5', marginBottom: '8px', fontSize: '13px', color: '#555' }}>
+                        {gender === 'female' ? 'Female' : 'Male'}{hrtPrimaryMedKey ? ` · ${hrtMedDisplayName(hrtPrimaryMedKey)}` : ''}{hrtPrimaryDose ? ` · ${hrtPrimaryDose}` : ''}
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <input
                           type="number"
@@ -6003,7 +6006,7 @@ function CheckoutInner() {
                           style={{ width: '90px', padding: '10px', border: '1px solid #ddd', fontSize: '15px', fontWeight: 700, textAlign: 'center' }}
                         />
                         <span style={{ fontSize: '13px', color: '#666' }}>
-                          ≈ {Math.round((hrtDispenseQty || 0) * (defaultMonthlySyringes(hrtPrimaryFrequency) ? 28 / defaultMonthlySyringes(hrtPrimaryFrequency) : 7))} day supply · refill due {(() => {
+                          pre-filled syringes · ≈ {Math.round((hrtDispenseQty || 0) * (defaultMonthlySyringes(hrtPrimaryFrequency) ? 28 / defaultMonthlySyringes(hrtPrimaryFrequency) : 7))} day supply · refill due {(() => {
                             const days = Math.round((hrtDispenseQty || 0) * (defaultMonthlySyringes(hrtPrimaryFrequency) ? 28 / defaultMonthlySyringes(hrtPrimaryFrequency) : 7));
                             const d = new Date();
                             d.setDate(d.getDate() + days);
@@ -6014,7 +6017,7 @@ function CheckoutInner() {
                     </div>
                   )}
 
-                  {/* Vial: 1 vial dispensed, auto-calculated day supply */}
+                  {/* Vial: 1 vial + needles/syringes count, auto-calculated from dose + vial size */}
                   {needsSupply && hrtDeliveryMethod === 'take_home' && (hrtSupplyType === 'vial_5ml' || hrtSupplyType === 'vial_10ml') && (() => {
                     const vialMl = hrtSupplyType === 'vial_5ml' ? 5 : 10;
                     const doseMatch = (hrtPrimaryDose || '').match(/^([\d.]+)ml\//i);
@@ -6025,20 +6028,33 @@ function CheckoutInner() {
                     else if (freqLower.includes('twice')) injPerWeek = 2;
                     else if (freqLower.includes('biweekly') || freqLower.includes('bi-weekly') || freqLower.includes('every 2 week')) injPerWeek = 0.5;
                     else if (freqLower.includes('3x')) injPerWeek = 3;
-                    const supplyDays = doseMl && doseMl > 0 ? Math.max(1, Math.round((vialMl / (doseMl * injPerWeek)) * 7)) : 30;
+                    const totalInj = doseMl && doseMl > 0 ? Math.round(vialMl / doseMl) : null;
+                    const supplyDays = totalInj ? Math.max(1, Math.round((totalInj / injPerWeek) * 7)) : 30;
                     const refillDate = new Date();
                     refillDate.setDate(refillDate.getDate() + supplyDays);
                     return (
                       <div style={{ marginBottom: '18px' }}>
                         <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>DISPENSING TODAY</label>
-                        <div style={{ padding: '12px 16px', background: '#f5f3ff', border: '1px solid #e0d9ff', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                          <span style={{ fontSize: '22px', fontWeight: 700, color: '#7c3aed' }}>1</span>
-                          <div>
-                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a1a' }}>Vial ({vialMl}ml)</div>
-                            <div style={{ fontSize: '13px', color: '#666' }}>
-                              ≈ {supplyDays} day supply · refill due {refillDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        <div style={{ padding: '12px 16px', background: '#f9fafb', border: '1px solid #e5e5e5', marginBottom: '8px', fontSize: '13px', color: '#555' }}>
+                          {gender === 'female' ? 'Female' : 'Male'}{hrtPrimaryMedKey ? ` · ${hrtMedDisplayName(hrtPrimaryMedKey)}` : ''}{hrtPrimaryDose ? ` · ${hrtPrimaryDose}` : ''}
+                        </div>
+                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                          <div style={{ padding: '12px 16px', background: '#f5f3ff', border: '1px solid #e0d9ff', display: 'flex', alignItems: 'center', gap: '12px', flex: '1 1 200px' }}>
+                            <span style={{ fontSize: '22px', fontWeight: 700, color: '#7c3aed' }}>1</span>
+                            <div>
+                              <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a1a' }}>Vial ({vialMl}ml)</div>
+                              <div style={{ fontSize: '12px', color: '#666' }}>≈ {supplyDays} day supply · refill due {refillDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
                             </div>
                           </div>
+                          {totalInj && (
+                            <div style={{ padding: '12px 16px', background: '#f0f9ff', border: '1px solid #bae0ff', display: 'flex', alignItems: 'center', gap: '12px', flex: '1 1 200px' }}>
+                              <span style={{ fontSize: '22px', fontWeight: 700, color: '#0369a1' }}>{totalInj}</span>
+                              <div>
+                                <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a1a' }}>Needles & Syringes</div>
+                                <div style={{ fontSize: '12px', color: '#666' }}>{totalInj} injections · {(totalInj / injPerWeek / (30/7)).toFixed(1)} month supply</div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

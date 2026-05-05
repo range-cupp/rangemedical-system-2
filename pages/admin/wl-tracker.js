@@ -65,6 +65,26 @@ function fmtDate(iso, opts = {}) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...opts });
 }
 
+// Default body builders for the SMS preview modal. Mirror the server-side
+// defaults in /api/admin/wl-tracker.js so the preview shows what would be
+// sent if the staff member edits nothing.
+function defaultManualCheckinMessage(patient) {
+  const firstName = patient.first_name || patient.name?.split(' ')[0] || 'there';
+  const cadenceDays = patient.cadence_days || 7;
+  const cadenceWord = cadenceDays === 7 ? 'weekly' : cadenceDays === 14 ? 'biweekly' : `${cadenceDays}-day`;
+  const checkinUrl = `https://app.range-medical.com/patient-checkin.html?contact_id=${patient.ghl_contact_id || patient.patient_id}`;
+  return `Hi ${firstName}! 📊\n\nTime for your ${cadenceWord} weight loss check-in. Takes 30 seconds:\n\n${checkinUrl}\n\n- Range Medical`;
+}
+
+function defaultBookingMessage(patient) {
+  const firstName = patient.first_name || patient.name?.split(' ')[0] || 'there';
+  return (
+    `Hi ${firstName}! It's time to get your next weight loss injection on the calendar. ` +
+    `Reply with a few times that work for you, or call us at (949) 997-3988 and we'll get you booked.\n\n` +
+    `- Range Medical`
+  );
+}
+
 export default function WLTrackerPage() {
   const { session } = useAuth();
   const [mode, setMode] = useState('take_home'); // 'take_home' | 'in_clinic'
@@ -80,6 +100,8 @@ export default function WLTrackerPage() {
   // it was first opened.
   const [selectedProtocolId, setSelectedProtocolId] = useState(null);
   const [bookingPatient, setBookingPatient] = useState(null);  // when set, shows the inline booking modal
+  // SMS preview modal: { patient, action, kind, message } — kind drives the title/banner copy
+  const [smsDraft, setSmsDraft] = useState(null);
   const [actionInProgress, setActionInProgress] = useState(false);
 
   const authHeaders = useCallback(() => ({
@@ -176,6 +198,7 @@ export default function WLTrackerPage() {
         case 'missed':
           needsAttention.push(p); break;
         case 'completed_today':       completedToday.push(p); break;
+        case 'completed_in_cycle':    completedToday.push(p); break;  // already responded — same bucket so they show as done
         case 'auto_sent_today':       autoSentToday.push(p); break;
         case 'auto_nudged_today':     autoNudgedToday.push(p); break;
         case 'auto_final_today':      autoFinalToday.push(p); break;
@@ -301,6 +324,11 @@ export default function WLTrackerPage() {
             onSelect={(p) => setSelectedProtocolId(p.protocol_id)}
             onAction={handleAction}
             onSchedule={setBookingPatient}
+            onSmsPreview={(patient, kind) => {
+              const builder = kind === 'booking' ? defaultBookingMessage : defaultManualCheckinMessage;
+              const action = kind === 'booking' ? 'send_booking_sms' : 'send_now';
+              setSmsDraft({ patient, kind, action, message: builder(patient), defaultBuilder: builder });
+            }}
             actionInProgress={actionInProgress}
           />
         )}
@@ -324,6 +352,11 @@ export default function WLTrackerPage() {
             onAction={handleAction}
             actionInProgress={actionInProgress}
             onSchedule={() => setBookingPatient(selectedPatient)}
+            onSmsPreview={(kind) => {
+              const builder = kind === 'booking' ? defaultBookingMessage : defaultManualCheckinMessage;
+              const action = kind === 'booking' ? 'send_booking_sms' : 'send_now';
+              setSmsDraft({ patient: selectedPatient, kind, action, message: builder(selectedPatient), defaultBuilder: builder });
+            }}
           />
         )}
 
@@ -334,8 +367,179 @@ export default function WLTrackerPage() {
             onClose={() => { setBookingPatient(null); loadData(); }}
           />
         )}
+
+        {/* SMS preview / edit modal — fires for both manual check-in and
+            booking outreach. Mirrors the LabReminderModal pattern from HRT. */}
+        {smsDraft && (
+          <SmsPreviewModal
+            draft={smsDraft}
+            actionInProgress={actionInProgress}
+            onClose={() => setSmsDraft(null)}
+            onResetDefault={() => setSmsDraft(d => d && ({ ...d, message: smsDraft.defaultBuilder(smsDraft.patient) }))}
+            onSend={async (message) => {
+              await handleAction(smsDraft.action, { protocol_id: smsDraft.patient.protocol_id, message });
+              setSmsDraft(null);
+            }}
+          />
+        )}
       </div>
     </AdminLayout>
+  );
+}
+
+// ───────────────────── SMS Preview Modal ─────────────────────
+
+// Generic preview-and-edit-before-send modal. Mirrors the HRT
+// LabReminderModal pattern: header (kind-specific), optional warning banner
+// if a similar SMS went out recently, editable textarea, character count
+// with SMS-segment hint, Send / Reset / Cancel buttons.
+function SmsPreviewModal({ draft, actionInProgress, onClose, onResetDefault, onSend }) {
+  const [message, setMessage] = useState(draft.message);
+  const [sending, setSending] = useState(false);
+
+  // Re-sync local state when caller swaps in a new patient or hits Reset
+  useEffect(() => { setMessage(draft.message); }, [draft.message, draft.patient.protocol_id, draft.action]);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  const charCount = message.length;
+  const segments = Math.max(1, Math.ceil(charCount / 160));
+  const segmentNotice = charCount > 160
+    ? `${charCount} chars · will send as ${segments} SMS segments`
+    : `${charCount} / 160 chars`;
+
+  const handleSend = async () => {
+    if (!message.trim() || sending) return;
+    setSending(true);
+    try {
+      await onSend(message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const titleByKind = {
+    manual_checkin: '📊 Send manual check-in',
+    booking: '📅 Send booking outreach',
+  };
+  const subtitleByKind = {
+    manual_checkin: 'The system already auto-sends originals + nudges on schedule. Use this only if the patient lost the link or asked for a fresh one.',
+    booking: 'Asks the patient to reply with times that work, or call to schedule.',
+  };
+
+  return (
+    <div onClick={onClose}
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', zIndex: 1100, padding: '24px',
+      }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{
+          background: '#fff', width: '100%', maxWidth: '560px',
+          maxHeight: '92vh', overflow: 'auto',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+        }}>
+        {/* Header */}
+        <div style={{
+          padding: '16px 22px', borderBottom: '1px solid #e5e5e5',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px',
+        }}>
+          <div>
+            <h3 style={{ fontSize: '17px', fontWeight: 700, margin: 0 }}>
+              {titleByKind[draft.kind] || 'Send SMS'}
+            </h3>
+            <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>
+              to <strong>{draft.patient.name}</strong> · {draft.patient.phone || 'no phone'}
+            </div>
+          </div>
+          <button onClick={onClose}
+            style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666', lineHeight: 1 }}>
+            ×
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '18px 22px' }}>
+          {/* Warning banner: cron auto-send conflict */}
+          {draft.kind === 'manual_checkin' && draft.patient.cycle?.original?.sent_date && (
+            <div style={{
+              padding: '10px 12px', background: '#fef9f3', border: '1px solid #fde68a',
+              fontSize: '12px', color: '#92400e', marginBottom: '14px', lineHeight: 1.5,
+            }}>
+              ⚠️ <strong>Heads up:</strong> the cron already sent this patient an automatic check-in on
+              {' '}<strong>{fmtDate(draft.patient.cycle.original.sent_date)}</strong>
+              {draft.patient.cycle.original.sent_time ? ` at ${draft.patient.cycle.original.sent_time}` : ''}.
+              Sending again will double-text them.
+            </div>
+          )}
+
+          {/* Subtitle */}
+          {subtitleByKind[draft.kind] && (
+            <div style={{ fontSize: '12px', color: '#666', marginBottom: '12px', lineHeight: 1.5 }}>
+              {subtitleByKind[draft.kind]}
+            </div>
+          )}
+
+          {/* Label + Reset */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
+            <label style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px',
+              color: '#666', fontWeight: 600 }}>
+              Message
+            </label>
+            <button onClick={onResetDefault}
+              style={{ background: 'transparent', border: 'none', color: '#1e40af',
+                fontSize: '12px', cursor: 'pointer', padding: 0, fontWeight: 500 }}>
+              Reset to default
+            </button>
+          </div>
+
+          {/* Textarea */}
+          <textarea
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            rows={7}
+            style={{
+              ...sharedStyles.input,
+              minHeight: '160px', resize: 'vertical',
+              fontFamily: 'inherit', fontSize: '14px', lineHeight: 1.55,
+            }}
+            placeholder="Type your message..."
+          />
+
+          {/* Char count */}
+          <div style={{
+            fontSize: '11px', color: charCount > 160 ? '#92400e' : '#888',
+            marginTop: '6px', textAlign: 'right',
+          }}>
+            {segmentNotice}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          padding: '14px 22px', borderTop: '1px solid #e5e5e5',
+          display: 'flex', justifyContent: 'flex-end', gap: '8px',
+        }}>
+          <button onClick={onClose} disabled={sending || actionInProgress}
+            style={{ ...sharedStyles.btnSecondary }}>
+            Cancel
+          </button>
+          <button onClick={handleSend}
+            disabled={!message.trim() || sending || actionInProgress || !draft.patient.phone}
+            style={{
+              ...sharedStyles.btnPrimary,
+              opacity: !message.trim() || sending || !draft.patient.phone ? 0.5 : 1,
+            }}>
+            {sending ? 'Sending…' : '📱 Send SMS'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -536,7 +740,7 @@ function AutomationBanner() {
 
 // ───────────────────── Daily View ─────────────────────
 
-function DailyView({ mode, buckets, todayDayName, today, onSelect, onAction, onSchedule, actionInProgress }) {
+function DailyView({ mode, buckets, todayDayName, today, onSelect, onAction, onSchedule, onSmsPreview, actionInProgress }) {
   const sections = mode === 'in_clinic' ? [
     {
       key: 'needsAttention',
@@ -635,13 +839,13 @@ function DailyView({ mode, buckets, todayDayName, today, onSelect, onAction, onS
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
       {sections.map(s => (
         <DailySection key={s.key} section={s} today={today} mode={mode}
-          onSelect={onSelect} onAction={onAction} onSchedule={onSchedule} actionInProgress={actionInProgress} />
+          onSelect={onSelect} onAction={onAction} onSchedule={onSchedule} onSmsPreview={onSmsPreview} actionInProgress={actionInProgress} />
       ))}
     </div>
   );
 }
 
-function DailySection({ section, today, mode, onSelect, onAction, onSchedule, actionInProgress }) {
+function DailySection({ section, today, mode, onSelect, onAction, onSchedule, onSmsPreview, actionInProgress }) {
   const [expanded, setExpanded] = useState(!section.collapsedByDefault);
   const empty = section.list.length === 0;
   if (empty && section.key !== 'needsAttention') return null;
@@ -678,7 +882,7 @@ function DailySection({ section, today, mode, onSelect, onAction, onSchedule, ac
               {section.list.map(p => (
                 mode === 'in_clinic'
                   ? <InClinicRow key={p.protocol_id} patient={p} sectionKey={section.key}
-                      onSelect={onSelect} onAction={onAction} onSchedule={onSchedule} actionInProgress={actionInProgress} />
+                      onSelect={onSelect} onAction={onAction} onSchedule={onSchedule} onSmsPreview={onSmsPreview} actionInProgress={actionInProgress} />
                   : <DailyRow key={p.protocol_id} patient={p} today={today} sectionKey={section.key}
                       onSelect={onSelect} onAction={onAction} actionInProgress={actionInProgress} />
               ))}
@@ -752,7 +956,7 @@ function DailyRow({ patient, sectionKey, onSelect, onAction, actionInProgress })
   );
 }
 
-function InClinicRow({ patient, sectionKey, onSelect, onAction, onSchedule, actionInProgress }) {
+function InClinicRow({ patient, sectionKey, onSelect, onAction, onSchedule, onSmsPreview, actionInProgress }) {
   const isAttention = sectionKey === 'needsAttention';
   const v = patient.visit || {};
   // Booking-related statuses get the explicit Schedule + SMS buttons since the
@@ -760,11 +964,8 @@ function InClinicRow({ patient, sectionKey, onSelect, onAction, onSchedule, acti
   // Open chart + Details.
   const needsBooking = v.today_action === 'missed_cadence' || v.today_action === 'needs_booking_soon';
 
-  const sendBookingSMS = () => {
-    const firstName = patient.first_name || patient.name?.split(' ')[0] || 'them';
-    if (!confirm(`Send a booking outreach SMS to ${patient.name} (${patient.phone || 'no phone'})?\n\nThe text asks ${firstName} to reply with times that work, or call (949) 997-3988.`)) return;
-    onAction('send_booking_sms', { protocol_id: patient.protocol_id });
-  };
+  // Open the SMS preview modal — staff edits/reviews before send.
+  const sendBookingSMS = () => onSmsPreview(patient, 'booking');
 
   return (
     <div style={{
@@ -1030,6 +1231,15 @@ function todayActionDescription(patient) {
           <NotableNotesChip summary={patient.checkin_summary} />
         </div>
       );
+    case 'completed_in_cycle': {
+      const when = c.checkin?.entry_date ? fmtDate(c.checkin.entry_date) : 'earlier this cycle';
+      return (
+        <div>
+          <span>✅ Logged {when}</span>
+          <NotableNotesChip summary={patient.checkin_summary} />
+        </div>
+      );
+    }
     case 'will_send_today':
       return <span>⏰ Cron will send today (~9 AM PT)</span>;
     case 'waiting':
@@ -1199,7 +1409,7 @@ function RosterTable({ mode, patients, onSelect, onAction, actionInProgress }) {
 
 // ───────────────────── Patient Side Panel ─────────────────────
 
-function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule }) {
+function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule, onSmsPreview }) {
   const [logWeight, setLogWeight] = useState(patient.last_weight ? String(patient.last_weight) : '');
   const [logNotes, setLogNotes] = useState('');
   const [optOutReason, setOptOutReason] = useState(patient.reminder_opt_out_reason || '');
@@ -1274,22 +1484,22 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule
           </Section>
         )}
 
-        <Section title="Manual SMS (one-off)">
-          <div style={{
-            padding: '10px 12px', background: '#fef9f3', border: '1px solid #fde68a',
-            fontSize: '12px', color: '#92400e', marginBottom: '10px', lineHeight: 1.5,
-          }}>
-            ⚠️ <strong>Only use this for one-off cases</strong> (patient lost the link, asked for a fresh one, etc.).
-            The system already auto-sends originals + nudges on schedule —
-            clicking this when something already went out today will <strong>double-text the patient.</strong>
+        <Section title="Send SMS">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button disabled={actionInProgress || !patient.phone}
+              onClick={() => onSmsPreview('manual_checkin')}
+              style={{ ...sharedStyles.btnSecondary, width: '100%' }}>
+              📊 Manual check-in (preview & edit)
+            </button>
+            <button disabled={actionInProgress || !patient.phone}
+              onClick={() => onSmsPreview('booking')}
+              style={{ ...sharedStyles.btnSecondary, width: '100%' }}>
+              📅 Booking outreach (preview & edit)
+            </button>
           </div>
-          <button disabled={actionInProgress} onClick={() => {
-            if (!confirm(`Send a manual check-in SMS to ${patient.name}? This will text the patient now even if the system already sent one today.`)) return;
-            onAction('send_now', { protocol_id: patient.protocol_id });
-          }}
-            style={{ ...sharedStyles.btnSecondary, width: '100%' }}>
-            📱 Send manual check-in to {patient.first_name || patient.name.split(' ')[0]} ({patient.phone || 'no phone'})
-          </button>
+          <div style={{ fontSize: '11px', color: '#888', marginTop: '8px', lineHeight: 1.5 }}>
+            Both open a preview modal so you can edit the text before sending.
+          </div>
         </Section>
 
         <Section title="Log check-in manually">

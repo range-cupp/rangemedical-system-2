@@ -1029,7 +1029,11 @@ async function actionSendNow(req, res, protocol, employee) {
   const cadenceWord = cadenceDays === 7 ? 'weekly' : cadenceDays === 14 ? 'biweekly' : `${cadenceDays}-day`;
   const checkinUrl = `https://app.range-medical.com/patient-checkin.html?contact_id=${patient.ghl_contact_id || patient.id}`;
   const firstName = patient.first_name || patient.name?.split(' ')[0] || 'there';
-  const message = `Hi ${firstName}! 📊\n\nTime for your ${cadenceWord} weight loss check-in. Takes 30 seconds:\n\n${checkinUrl}\n\n- Range Medical`;
+  const defaultMessage = `Hi ${firstName}! 📊\n\nTime for your ${cadenceWord} weight loss check-in. Takes 30 seconds:\n\n${checkinUrl}\n\n- Range Medical`;
+  // Allow caller to override the body — used by the SmsPreviewModal so staff
+  // can edit before sending. Falls back to the default if missing/blank.
+  const customMessage = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
+  const message = customMessage || defaultMessage;
 
   const smsResult = await sendSMS({ to: phone, message });
 
@@ -1237,10 +1241,13 @@ async function actionSendBookingSMS(req, res, protocol, employee) {
   if (!phone) return res.status(400).json({ error: 'No phone number on file' });
 
   const firstName = patient.first_name || patient.name?.split(' ')[0] || 'there';
-  const message =
+  const defaultMessage =
     `Hi ${firstName}! It's time to get your next weight loss injection on the calendar. ` +
     `Reply with a few times that work for you, or call us at (949) 997-3988 and we'll get you booked.\n\n` +
     `- Range Medical`;
+  // Allow caller to override the body via the SmsPreviewModal.
+  const customMessage = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
+  const message = customMessage || defaultMessage;
 
   const smsResult = await sendSMS({ to: phone, message });
 

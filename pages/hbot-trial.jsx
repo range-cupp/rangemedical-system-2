@@ -378,6 +378,54 @@ export default function HBOTTrial() {
             margin: 16px 0 0;
             text-align: center;
           }
+
+          .fs-location {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 0 2rem 4rem;
+          }
+          .fs-location-eyebrow {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: ${ACCENT};
+            margin: 0 0 10px;
+          }
+          .fs-location h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 6px;
+            color: #171717;
+          }
+          .fs-location-address {
+            font-size: 15px;
+            color: #404040;
+            line-height: 1.55;
+            margin: 0 0 16px;
+          }
+          .fs-location-address a {
+            color: #404040;
+            text-decoration: none;
+            border-bottom: 1px solid #d4d4d4;
+          }
+          .fs-location-address a:hover { color: ${ACCENT}; border-color: ${ACCENT}; }
+          .fs-map-frame {
+            width: 100%;
+            height: 280px;
+            border: 1px solid #e0e0e0;
+            display: block;
+          }
+
+          .fs-hero-where {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #525252;
+            margin: 0 0 20px;
+          }
+          .fs-hero-where svg { flex-shrink: 0; }
         `}</style>
       </Head>
 
@@ -400,6 +448,12 @@ export default function HBOTTrial() {
                 <li>On the next step, pick a time that works best for you.</li>
                 <li>Come in, try the chamber, and if you&apos;d like, we&apos;ll walk through options for recovery, energy, or brain clarity.</li>
               </ul>
+              <p className="fs-hero-where">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+                1901 Westcliff Drive, Suite 10, Newport Beach, CA
+              </p>
             </section>
 
             <section className="fs-form-section">
@@ -496,6 +550,23 @@ export default function HBOTTrial() {
                   </p>
                 </div>
               </form>
+            </section>
+
+            <section className="fs-location">
+              <p className="fs-location-eyebrow">Where to find us</p>
+              <h3>Range Medical · Newport Beach</h3>
+              <p className="fs-location-address">
+                <a href="https://maps.google.com/?q=1901+Westcliff+Drive,+Suite+10,+Newport+Beach,+CA+92660" target="_blank" rel="noopener noreferrer">
+                  1901 Westcliff Drive, Suite 10<br />Newport Beach, CA 92660
+                </a>
+              </p>
+              <iframe
+                title="Range Medical location map"
+                className="fs-map-frame"
+                src="https://maps.google.com/maps?q=1901+Westcliff+Drive,+Suite+10,+Newport+Beach,+CA+92660&output=embed"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
             </section>
           </>
         ) : (

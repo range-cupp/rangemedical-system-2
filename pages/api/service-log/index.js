@@ -14,6 +14,7 @@ import { isWeightLossType } from '../../../lib/protocol-config';
 import { createProtocol } from '../../../lib/create-protocol';
 import { todayPacific } from '../../../lib/date-utils';
 import { guardDoseChange } from '../../../lib/dose-change-guard';
+import { spawnTakeHomeInjections } from '../../../lib/spawn-takehome-injections';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -811,6 +812,12 @@ async function handlePut(req, res) {
       await syncWeightToVitals(log.patient_id, weight, log.entry_date);
     }
 
+    // If a WL pickup's slot_fulfillment changed, reconcile the spawned
+    // take-home injection rows so they match the new per-slot plan.
+    if (log?.entry_type === 'pickup' && slot_fulfillment !== undefined && log.protocol_id) {
+      await reconcileSpawnedRowsForPickup(log);
+    }
+
     // Recalculate protocol state after edit (date/weight changes affect tracking)
     if (log?.protocol_id) {
       await recalcProtocolAfterEdit(log.protocol_id);
@@ -934,6 +941,41 @@ async function recalcProtocolAfterDelete(protocolId, patientId, category) {
 
 // Recalculate protocol state after an edit (date/weight/dose change)
 // Counts actual injection/session entries — single source of truth for sessions_used
+// When a WL pickup's slot_fulfillment is edited, the previously spawned
+// placeholder injection rows may no longer match the plan (e.g. user flipped
+// a slot from overnight to in-clinic). Drop untouched placeholders, then
+// re-run the spawn so non-in-clinic slots get fresh rows with the right
+// fulfillment_method. Rows that already have a weight logged are preserved
+// — those represent real activity and shouldn't be deleted.
+async function reconcileSpawnedRowsForPickup(pickup) {
+  try {
+    const { data: spawnRows } = await supabase
+      .from('service_logs')
+      .select('id, weight, notes')
+      .eq('protocol_id', pickup.protocol_id)
+      .eq('entry_type', 'injection')
+      .like('notes', `%via pickup ${pickup.id}%`);
+
+    for (const row of spawnRows || []) {
+      if (row.weight == null) {
+        await supabase.from('service_logs').delete().eq('id', row.id);
+      }
+    }
+
+    const { data: protocol } = await supabase
+      .from('protocols')
+      .select('*')
+      .eq('id', pickup.protocol_id)
+      .single();
+
+    if (protocol) {
+      await spawnTakeHomeInjections(supabase, pickup, protocol);
+    }
+  } catch (err) {
+    console.error('reconcileSpawnedRowsForPickup error:', err);
+  }
+}
+
 async function recalcProtocolAfterEdit(protocolId) {
   try {
     // Count injection/session entries (same pattern as recalcProtocolAfterDelete)

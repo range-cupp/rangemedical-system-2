@@ -7,6 +7,7 @@ import { CardElement, Elements, useStripe, useElements } from '@stripe/react-str
 import { formatPrice } from '../lib/pos-pricing';
 
 import { overlayClickProps } from './AdminLayout';
+import { useAuth } from './AuthProvider';
 
 // Category display order and labels
 const CATEGORY_ORDER = [
@@ -47,6 +48,15 @@ const CATEGORY_LABELS = {
 function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   const stripe = useStripe();
   const elements = useElements();
+
+  // Staff identity for audit attribution on POS charges. Spread into every
+  // /api/stripe/record-purchase body so the server can write an audit_log row
+  // naming who rang up the charge.
+  const { employee } = useAuth();
+  const staffMeta = {
+    staff_user_id: employee?.id || null,
+    staff_user_name: employee?.name || employee?.email || null,
+  };
 
   // Patient state (for when no patient is pre-selected)
   const [patient, setPatient] = useState(initialPatient || null);
@@ -635,6 +645,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           quantity: 1,
           shipping: isComp ? 0 : shippingCents,
           skip_receipt: skipNotification,
+          ...staffMeta,
           ...discountData,
           ...restFields,
         }),
@@ -681,6 +692,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           fulfillment_method: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) ? fulfillmentMethod : null,
           tracking_number: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) && fulfillmentMethod === 'overnight' ? trackingNumber : null,
           skip_receipt: true, // consolidated receipt sent below
+          ...staffMeta,
           ...(!isComp && itemDiscountAmt > 0 ? {
             discount_type: item.itemDiscountType,
             discount_amount: parseFloat(item.itemDiscountValue),
@@ -731,6 +743,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           quantity: 1,
           shipping: amount_override ? 0 : shippingCents,
           skip_receipt: skipNotification,
+          ...staffMeta,
           ...(amount_override ? {} : discountData),
           ...restFields,
         }),
@@ -787,6 +800,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           fulfillment_method: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) ? fulfillmentMethod : null,
           tracking_number: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) && fulfillmentMethod === 'overnight' ? trackingNumber : null,
           skip_receipt: skipNotification || cartItems.length > 1,
+          ...staffMeta,
           ...(itemDiscountAmt > 0 && !amount_override ? {
             discount_type: item.itemDiscountType,
             discount_amount: parseFloat(item.itemDiscountValue),

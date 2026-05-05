@@ -8,6 +8,7 @@ import { generateReceiptHtml } from '../../../lib/receipt-email';
 import { generateReceiptPdf } from '../../../lib/receipt-pdf';
 import { autoCreateOrExtendProtocol } from '../../../lib/auto-protocol';
 import { logComm } from '../../../lib/comms-log';
+import { logAction } from '../../../lib/auth';
 import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
@@ -163,6 +164,8 @@ export default async function handler(req, res) {
       hrt_config,
       injection_frequency,
       item_description,
+      staff_user_id,
+      staff_user_name,
     } = req.body;
 
     if (!patient_id || (amount === undefined || amount === null)) {
@@ -308,6 +311,34 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: error.message });
     }
 
+    // Audit-log the POS charge so we can trace mistakes back to a staff
+    // member. Captures who, which patient, which SKU, the amount, and
+    // discount/medication metadata. Required after the Lauren Lopez-Galvez
+    // 2026-04-30 incident (Tirzepatide rung up on a Retatrutide patient
+    // with no recorded staff identity).
+    logAction({
+      employeeId: staff_user_id || null,
+      employeeName: staff_user_name || 'Unknown (no staff context)',
+      action: 'pos_charge',
+      resourceType: 'purchase',
+      resourceId: data.id,
+      details: {
+        patient_id,
+        patient_name: patient?.name || null,
+        item_name: data.item_name,
+        service_category: service_category || null,
+        service_name: service_name || null,
+        medication: medication || null,
+        amount_paid: data.amount_paid,
+        original_amount: data.original_amount || null,
+        discount_type: discount_type || null,
+        discount_amount: discount_amount || null,
+        payment_method: data.payment_method,
+        stripe_payment_intent_id: stripe_payment_intent_id || null,
+      },
+      req,
+    }).catch(err => console.error('audit_log pos_charge write failed:', err));
+
     // Send receipt email (with PDF attachment) after purchase
     // skip_receipt flag is used when POSChargeModal sends a consolidated receipt for multi-item carts
     if (!skip_receipt) {
@@ -335,6 +366,8 @@ export default async function handler(req, res) {
           peptideConfig: peptide_config || null,
           hrtConfig: hrt_config || null,
           injectionFrequency: injection_frequency || null,
+          staffUserId: staff_user_id || null,
+          staffUserName: staff_user_name || null,
         });
       } catch (err) {
         console.error(`Auto-protocol FAILED for purchase ${data.id} (${service_category}/${service_name}):`, err);

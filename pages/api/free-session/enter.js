@@ -9,6 +9,7 @@ import { logComm } from '../../../lib/comms-log';
 import stripe from '../../../lib/stripe';
 import { createCard } from '../../../lib/pipelines-server';
 import { postToStaffChannel } from '../../../lib/post-to-staff-channel';
+import { sendMetaCapiEvent, getClientIp } from '../../../lib/meta-capi';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -102,6 +103,7 @@ export default async function handler(req, res) {
       importance90d,
       budgetAnswer,
       source,
+      meta: metaInput = {},
     } = req.body || {};
 
     const config = TRIAL_CONFIG[trialType];
@@ -370,6 +372,44 @@ export default async function handler(req, res) {
         console.error('Free session staff chat error:', chatErr);
       }
     })());
+
+    // Meta Conversions API \u2014 server-side Lead event, deduped against the
+    // browser pixel via the matching event_id.
+    if (metaInput?.eventId) {
+      notificationTasks.push((async () => {
+        try {
+          const sessionValue = trialType === 'hbot' ? 185 : 85;
+          const result = await sendMetaCapiEvent({
+            eventName: 'Lead',
+            eventId: metaInput.eventId,
+            eventSourceUrl: metaInput.eventSourceUrl || `https://range-medical.com/${trialType}-trial`,
+            user: {
+              email: normalizedEmail,
+              phone: phone.trim(),
+              firstName: firstName.trim(),
+              lastName: lastName.trim(),
+              fbp: metaInput.fbp,
+              fbc: metaInput.fbc,
+              clientIp: getClientIp(req),
+              clientUserAgent: req.headers['user-agent'] || '',
+            },
+            custom: {
+              value: sessionValue,
+              currency: 'USD',
+              content_name: `${config.label} Free Session`,
+              content_category: trialType,
+            },
+          });
+          if (result.skipped) {
+            console.log(`Meta CAPI Lead skipped: ${result.skipped}`);
+          } else if (!result.ok) {
+            console.error('Meta CAPI Lead failed:', result.error);
+          }
+        } catch (capiErr) {
+          console.error('Meta CAPI Lead exception:', capiErr);
+        }
+      })());
+    }
 
 
     await Promise.allSettled(notificationTasks);

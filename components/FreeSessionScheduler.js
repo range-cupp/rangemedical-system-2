@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
+import { readMetaAttribution, newMetaEventId } from '../lib/meta-pixel-client';
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -365,6 +366,21 @@ export default function FreeSessionScheduler({
             onBook={async (paymentMethodId) => {
               setBookError('');
               setPhase('booking');
+              const sessionValue = trialLabel === 'Hyperbaric Oxygen' ? 185 : 85;
+              const metaAttr = readMetaAttribution();
+              const eventId = newMetaEventId('schedule');
+
+              // Fire browser pixel before the API call so Meta sees the conversion fast.
+              // CAPI on the server fires the same eventId for dedup.
+              if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+                window.fbq('track', 'Schedule', {
+                  content_name: `${trialLabel} free session booked`,
+                  value: sessionValue,
+                  currency: 'USD',
+                }, { eventID: eventId });
+                window.fbq('trackCustom', 'FreeSessionBooked', { trial_label: trialLabel, value: sessionValue });
+              }
+
               try {
                 const res = await fetch('/api/free-session/book', {
                   method: 'POST',
@@ -374,6 +390,13 @@ export default function FreeSessionScheduler({
                     slotStart: selectedSlot,
                     paymentMethodId,
                     noShowAgreed: true,
+                    meta: {
+                      eventId,
+                      fbp: metaAttr.fbp,
+                      fbc: metaAttr.fbc,
+                      fbclid: metaAttr.fbclid,
+                      eventSourceUrl: typeof window !== 'undefined' ? window.location.href : '',
+                    },
                   }),
                 });
                 const data = await res.json().catch(() => ({}));
@@ -390,11 +413,6 @@ export default function FreeSessionScheduler({
                 }
                 setBookedStart(data.scheduledStart || selectedSlot);
                 setPhase('done');
-                // Meta Pixel conversion — only fires on a real booking (card on file)
-                if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-                  window.fbq('track', 'Schedule', { content_name: `${trialLabel} free session booked` });
-                  window.fbq('trackCustom', 'FreeSessionBooked', { trial_label: trialLabel });
-                }
               } catch (err) {
                 setBookError(err.message || 'Could not book. Please try again.');
                 setPhase('pay');

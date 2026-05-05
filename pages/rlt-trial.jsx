@@ -10,8 +10,10 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import FreeSessionScheduler from '../components/FreeSessionScheduler';
 import { formatPhone } from '../lib/format-utils';
+import { readMetaAttribution, newMetaEventId } from '../lib/meta-pixel-client';
 
 const META_PIXEL_ID = '4295373617400545';
+const SESSION_VALUE = 85; // RLT — used as Meta optimization signal
 
 const ACCENT = '#dc2626';
 const ACCENT_BG = '#fef2f2';
@@ -72,6 +74,19 @@ export default function RLTTrial() {
     setTopError('');
     setSubmitting(true);
     try {
+      const metaAttr = readMetaAttribution();
+      const eventId = newMetaEventId('lead_rlt');
+
+      // Fire browser pixel BEFORE the server call so Meta sees the event quickly
+      // even if the API is slow. Server-side CAPI uses the same eventId for dedup.
+      if (typeof fbq === 'function') {
+        fbq('track', 'Lead', {
+          content_name: 'rlt-free-session',
+          value: SESSION_VALUE,
+          currency: 'USD',
+        }, { eventID: eventId });
+      }
+
       const res = await fetch('/api/free-session/enter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,6 +103,13 @@ export default function RLTTrial() {
           importance90d: null,
           budgetAnswer: null,
           source,
+          meta: {
+            eventId,
+            fbp: metaAttr.fbp,
+            fbc: metaAttr.fbc,
+            fbclid: metaAttr.fbclid,
+            eventSourceUrl: window.location.href,
+          },
         }),
       });
 
@@ -97,9 +119,6 @@ export default function RLTTrial() {
       }
 
       const data = await res.json();
-      if (typeof fbq === 'function') {
-        fbq('track', 'Lead', { content_name: 'rlt-free-session' });
-      }
       setTrialId(data.trialId || null);
       setEventTypeId(data.eventTypeId || null);
       setSetupClientSecret(data.setupClientSecret || null);

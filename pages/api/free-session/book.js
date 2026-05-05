@@ -14,6 +14,7 @@ import { logComm } from '../../../lib/comms-log';
 import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
 import stripe from '../../../lib/stripe';
 import { moveCard } from '../../../lib/pipelines-server';
+import { sendMetaCapiEvent, getClientIp } from '../../../lib/meta-capi';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { trialId, slotStart, paymentMethodId, noShowAgreed } = req.body || {};
+    const { trialId, slotStart, paymentMethodId, noShowAgreed, meta: metaInput = {} } = req.body || {};
 
     if (!trialId || !slotStart) {
       return res.status(400).json({
@@ -250,6 +251,42 @@ export default async function handler(req, res) {
       });
     } catch (emailErr) {
       console.error('Booking staff email error:', emailErr);
+    }
+
+    // Meta Conversions API — server-side Schedule event, deduped against
+    // the browser pixel via the matching event_id.
+    if (metaInput?.eventId) {
+      try {
+        const sessionValue = trial.trial_type === 'hbot' ? 185 : 85;
+        const result = await sendMetaCapiEvent({
+          eventName: 'Schedule',
+          eventId: metaInput.eventId,
+          eventSourceUrl: metaInput.eventSourceUrl || `https://range-medical.com/${trial.trial_type}-trial`,
+          user: {
+            email: trial.email || undefined,
+            phone: trial.phone || undefined,
+            firstName: trial.first_name || undefined,
+            lastName: trial.last_name || undefined,
+            fbp: metaInput.fbp,
+            fbc: metaInput.fbc,
+            clientIp: getClientIp(req),
+            clientUserAgent: req.headers['user-agent'] || '',
+          },
+          custom: {
+            value: sessionValue,
+            currency: 'USD',
+            content_name: `${typeCfg.label} Free Session Booked`,
+            content_category: trial.trial_type,
+          },
+        });
+        if (result.skipped) {
+          console.log(`Meta CAPI Schedule skipped: ${result.skipped}`);
+        } else if (!result.ok) {
+          console.error('Meta CAPI Schedule failed:', result.error);
+        }
+      } catch (capiErr) {
+        console.error('Meta CAPI Schedule exception:', capiErr);
+      }
     }
 
     return res.status(200).json({

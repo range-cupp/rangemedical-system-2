@@ -1183,7 +1183,7 @@ function CheckoutInner() {
 
   function hrtBuilderReady() {
     if (!hrtPrimaryMedKey || !hrtPrimaryDose || !hrtPrimaryFrequency) return false;
-    if (hrtMedNeedsSupplyType(hrtPrimaryMedKey) && !hrtSupplyType) return false;
+    if (hrtMedNeedsSupplyType(hrtPrimaryMedKey) && hrtDeliveryMethod !== 'in_clinic' && !hrtSupplyType) return false;
     // Each added secondary must be fully filled in
     for (const s of hrtSecondaries) {
       if (!s.medKey || !s.dose || !s.frequency) return false;
@@ -5890,6 +5890,24 @@ function CheckoutInner() {
 
                 {/* Body */}
                 <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+                  {/* Delivery method — first choice, drives supply visibility */}
+                  <div style={{ marginBottom: '18px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>DELIVERY METHOD</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {[{ value: 'take_home', label: 'Take Home' }, { value: 'in_clinic', label: 'In Clinic' }].map(opt => (
+                        <button
+                          key={opt.value}
+                          onClick={() => setHrtDeliveryMethod(opt.value)}
+                          style={{
+                            padding: '10px 14px', fontSize: '14px', fontWeight: 600,
+                            border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
+                            ...(hrtDeliveryMethod === opt.value ? { border: '2px solid #C47B2B', background: '#FDF6EE', color: '#C47B2B' } : { color: '#333' }),
+                          }}
+                        >{opt.label}</button>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Primary medication */}
                   <div style={{ marginBottom: '18px' }}>
                     <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>PRIMARY MEDICATION</label>
@@ -5952,8 +5970,8 @@ function CheckoutInner() {
                     </div>
                   )}
 
-                  {/* Supply type — only for injectable testosterone */}
-                  {needsSupply && (
+                  {/* Supply type — take-home only, injectable testosterone only */}
+                  {needsSupply && hrtDeliveryMethod === 'take_home' && (
                     <div style={{ marginBottom: '18px' }}>
                       <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>SUPPLY TYPE</label>
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -5972,10 +5990,8 @@ function CheckoutInner() {
                     </div>
                   )}
 
-                  {/* Dispense quantity — pre-filled syringes only. Auto-derived from
-                      frequency (1-month supply) but operator can override. Drives
-                      next_expected_date / supply tracking on the protocol. */}
-                  {needsSupply && hrtSupplyType === 'prefilled' && (
+                  {/* Pre-filled: editable syringe count + day supply */}
+                  {needsSupply && hrtDeliveryMethod === 'take_home' && hrtSupplyType === 'prefilled' && (
                     <div style={{ marginBottom: '18px' }}>
                       <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>SYRINGES TO DISPENSE TODAY</label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -5998,23 +6014,35 @@ function CheckoutInner() {
                     </div>
                   )}
 
-                  {/* Delivery method */}
-                  <div style={{ marginBottom: '18px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>DELIVERY METHOD</label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      {[{ value: 'take_home', label: 'Take Home' }, { value: 'in_clinic', label: 'In Clinic' }].map(opt => (
-                        <button
-                          key={opt.value}
-                          onClick={() => setHrtDeliveryMethod(opt.value)}
-                          style={{
-                            padding: '10px 14px', fontSize: '14px', fontWeight: 600,
-                            border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
-                            ...(hrtDeliveryMethod === opt.value ? { border: '2px solid #C47B2B', background: '#FDF6EE', color: '#C47B2B' } : { color: '#333' }),
-                          }}
-                        >{opt.label}</button>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Vial: 1 vial dispensed, auto-calculated day supply */}
+                  {needsSupply && hrtDeliveryMethod === 'take_home' && (hrtSupplyType === 'vial_5ml' || hrtSupplyType === 'vial_10ml') && (() => {
+                    const vialMl = hrtSupplyType === 'vial_5ml' ? 5 : 10;
+                    const doseMatch = (hrtPrimaryDose || '').match(/^([\d.]+)ml\//i);
+                    const doseMl = doseMatch ? parseFloat(doseMatch[1]) : null;
+                    const freqLower = (hrtPrimaryFrequency || '').toLowerCase();
+                    let injPerWeek = 2;
+                    if (freqLower.includes('weekly') && !freqLower.includes('twice') && !freqLower.includes('bi')) injPerWeek = 1;
+                    else if (freqLower.includes('twice')) injPerWeek = 2;
+                    else if (freqLower.includes('biweekly') || freqLower.includes('bi-weekly') || freqLower.includes('every 2 week')) injPerWeek = 0.5;
+                    else if (freqLower.includes('3x')) injPerWeek = 3;
+                    const supplyDays = doseMl && doseMl > 0 ? Math.max(1, Math.round((vialMl / (doseMl * injPerWeek)) * 7)) : 30;
+                    const refillDate = new Date();
+                    refillDate.setDate(refillDate.getDate() + supplyDays);
+                    return (
+                      <div style={{ marginBottom: '18px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>DISPENSING TODAY</label>
+                        <div style={{ padding: '12px 16px', background: '#f5f3ff', border: '1px solid #e0d9ff', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <span style={{ fontSize: '22px', fontWeight: 700, color: '#7c3aed' }}>1</span>
+                          <div>
+                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a1a' }}>Vial ({vialMl}ml)</div>
+                            <div style={{ fontSize: '13px', color: '#666' }}>
+                              ≈ {supplyDays} day supply · refill due {refillDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Secondary medications */}
                   <div style={{ marginTop: '24px', paddingTop: '18px', borderTop: '1px solid #eee' }}>

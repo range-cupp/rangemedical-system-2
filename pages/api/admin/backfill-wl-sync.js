@@ -27,7 +27,7 @@ export default async function handler(req, res) {
 
   const { data: notes, error } = await supabase
     .from('patient_notes')
-    .select('id, patient_id, body, structured_data, encounter_service, source, note_date, created_by, appointment_id, status')
+    .select('id, patient_id, body, encounter_service, source, note_date, created_by, appointment_id, status')
     .eq('source', 'encounter')
     .gte('note_date', sinceISO)
     .order('note_date');

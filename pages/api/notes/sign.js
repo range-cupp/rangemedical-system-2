@@ -132,7 +132,7 @@ export default async function handler(req, res) {
     try {
       const { data: fullNote } = await supabase
         .from('patient_notes')
-        .select('id, patient_id, body, structured_data, encounter_service, source, note_date, created_by, appointment_id')
+        .select('id, patient_id, body, encounter_service, source, note_date, created_by, appointment_id')
         .eq('id', note_id)
         .single();
       if (fullNote) {

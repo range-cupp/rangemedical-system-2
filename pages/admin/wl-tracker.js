@@ -184,6 +184,7 @@ export default function WLTrackerPage() {
     // take_home (default)
     const needsAttention = [];
     const completedToday = [];
+    const completedEarlier = []; // responded earlier this cycle, no action needed today
     const autoSentToday = [];
     const autoNudgedToday = [];
     const autoFinalToday = [];
@@ -198,7 +199,7 @@ export default function WLTrackerPage() {
         case 'missed':
           needsAttention.push(p); break;
         case 'completed_today':       completedToday.push(p); break;
-        case 'completed_in_cycle':    completedToday.push(p); break;  // already responded — same bucket so they show as done
+        case 'completed_in_cycle':    completedEarlier.push(p); break;  // separate section so "today" actually means today
         case 'auto_sent_today':       autoSentToday.push(p); break;
         case 'auto_nudged_today':     autoNudgedToday.push(p); break;
         case 'auto_final_today':      autoFinalToday.push(p); break;
@@ -208,7 +209,7 @@ export default function WLTrackerPage() {
     }
 
     return {
-      needsAttention, completedToday,
+      needsAttention, completedToday, completedEarlier,
       autoSentToday, autoNudgedToday, autoFinalToday,
       willSendToday, waiting,
     };
@@ -791,6 +792,15 @@ function DailyView({ mode, buckets, todayDayName, today, onSelect, onAction, onS
       list: buckets.completedToday,
       accent: '#166534',
       tone: 'good',
+    },
+    {
+      key: 'completedEarlier',
+      title: '✅ Already responded earlier this cycle',
+      subtitle: 'No action needed — they checked in before today',
+      list: buckets.completedEarlier,
+      accent: '#666',
+      tone: 'good',
+      collapsedByDefault: true,
     },
     {
       key: 'willSendToday',

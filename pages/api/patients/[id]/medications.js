@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
   // POST — add new medication
   if (req.method === 'POST') {
-    const { medication_name, strength, form, route, sig, start_date, source, is_active, last_pickup_date, last_pickup_quantity, quantity_unit } = req.body;
+    const { medication_name, strength, form, route, sig, start_date, source, is_active, last_pickup_date, last_pickup_quantity, quantity_unit, day_supply, quantity_prescribed, notes } = req.body;
     if (!medication_name) return res.status(400).json({ error: 'Medication name required' });
 
     const { data, error } = await supabase
@@ -33,6 +33,9 @@ export default async function handler(req, res) {
         last_pickup_date: last_pickup_date && last_pickup_date !== '' ? last_pickup_date : null,
         last_pickup_quantity: last_pickup_quantity && last_pickup_quantity !== '' ? parseInt(last_pickup_quantity, 10) : null,
         quantity_unit: quantity_unit && quantity_unit !== '' ? quantity_unit : 'pills',
+        day_supply: day_supply && day_supply !== '' ? parseInt(day_supply, 10) : null,
+        quantity_prescribed: quantity_prescribed && quantity_prescribed !== '' ? parseInt(quantity_prescribed, 10) : null,
+        notes: notes || null,
       })
       .select()
       .single();
@@ -59,8 +62,14 @@ export default async function handler(req, res) {
     if ('stop_date' in updates) {
       updates.stop_date = updates.stop_date || null;
     }
+    if ('day_supply' in updates) {
+      updates.day_supply = updates.day_supply ? parseInt(updates.day_supply, 10) : null;
+    }
+    if ('quantity_prescribed' in updates) {
+      updates.quantity_prescribed = updates.quantity_prescribed ? parseInt(updates.quantity_prescribed, 10) : null;
+    }
     // Clean empty strings to null for text fields
-    ['strength', 'form', 'route', 'sig', 'source', 'quantity_unit'].forEach(k => {
+    ['strength', 'form', 'route', 'sig', 'source', 'quantity_unit', 'notes'].forEach(k => {
       if (k in updates && updates[k] === '') updates[k] = null;
     });
 

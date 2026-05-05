@@ -685,7 +685,7 @@ export default function PatientProfile() {
   // Medication add/edit modal (admin only)
   const [showMedEditModal, setShowMedEditModal] = useState(false);
   const [medEditMode, setMedEditMode] = useState('add'); // 'add' | 'edit'
-  const [medEditForm, setMedEditForm] = useState({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: '', last_pickup_date: '', last_pickup_quantity: '', quantity_unit: 'pills', route: '', quick_category: '', quick_gender: '', quick_medication_key: '', quick_dose: '', quick_frequency: '' });
+  const [medEditForm, setMedEditForm] = useState({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: '', last_pickup_date: '', last_pickup_quantity: '', quantity_unit: 'pills', route: '', day_supply: '', quantity_prescribed: '', notes: '', quick_category: '', quick_gender: '', quick_medication_key: '', quick_dose: '', quick_frequency: '' });
   const [medEditSaving, setMedEditSaving] = useState(false);
   // Print medication list modal — captures editable Sig + dispense quantity per med
   const [printRxModalOpen, setPrintRxModalOpen] = useState(false);
@@ -6810,7 +6810,7 @@ export default function PatientProfile() {
                       </button>
                     )}
                     {employee?.is_admin && (
-                      <button className="btn-primary-sm" onClick={() => { setMedEditMode('add'); setMedEditForm({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: 'Range Medical', last_pickup_date: '', last_pickup_quantity: '', quantity_unit: 'pills', route: '', quick_category: '', quick_gender: (patient?.gender || '').toLowerCase(), quick_medication_key: '', quick_dose: '', quick_frequency: '' }); setShowMedEditModal(true); }}>
+                      <button className="btn-primary-sm" onClick={() => { setMedEditMode('add'); setMedEditForm({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: 'Range Medical', last_pickup_date: '', last_pickup_quantity: '', quantity_unit: 'pills', route: '', day_supply: '', quantity_prescribed: '', notes: '', quick_category: '', quick_gender: (patient?.gender || '').toLowerCase(), quick_medication_key: '', quick_dose: '', quick_frequency: '' }); setShowMedEditModal(true); }}>
                         + Add Medication
                       </button>
                     )}
@@ -7945,12 +7945,52 @@ export default function PatientProfile() {
                                 </div>
                               )}
 
+                              {/* Coverage Summary — single source of truth for paid vs administered */}
+                              {isWeightLoss && protocol.status === 'active' && (() => {
+                                const paid = protocol.total_sessions || 0;
+                                const administered = sessionsCompleted || 0;
+                                const delta = administered - paid;
+                                let chip, chipColor, chipBg, chipBorder;
+                                if (delta > 0) {
+                                  chip = `⚠️ ${delta} past prepaid — Payment Due`;
+                                  chipColor = '#991b1b'; chipBg = '#fef2f2'; chipBorder = '#fecaca';
+                                } else if (delta === 0 && paid > 0) {
+                                  chip = '✓ Paid up — purchase next block before next visit';
+                                  chipColor = '#92400e'; chipBg = '#fffbeb'; chipBorder = '#fde68a';
+                                } else if (delta < 0) {
+                                  const remaining = Math.abs(delta);
+                                  chip = `✓ ${remaining} prepaid dose${remaining === 1 ? '' : 's'} remaining`;
+                                  chipColor = '#166534'; chipBg = '#f0fdf4'; chipBorder = '#bbf7d0';
+                                } else {
+                                  chip = 'No purchases linked yet';
+                                  chipColor = '#475569'; chipBg = '#f8fafc'; chipBorder = '#cbd5e1';
+                                }
+                                return (
+                                  <div style={{
+                                    display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+                                    padding: '8px 12px', margin: '0 0 8px',
+                                    background: chipBg, border: `1px solid ${chipBorder}`,
+                                    fontSize: 13,
+                                  }}>
+                                    <span style={{ color: '#334155' }}>
+                                      <strong style={{ color: '#0f172a' }}>{paid}</strong> paid
+                                    </span>
+                                    <span style={{ color: '#cbd5e1' }}>·</span>
+                                    <span style={{ color: '#334155' }}>
+                                      <strong style={{ color: '#0f172a' }}>{administered}</strong> administered
+                                    </span>
+                                    <span style={{ color: '#cbd5e1' }}>·</span>
+                                    <span style={{ color: chipColor, fontWeight: 600 }}>{chip}</span>
+                                  </div>
+                                );
+                              })()}
+
                               {/* Injection Schedule Table */}
                               <div className="wl-history">
                                 <table className="wl-table">
                                   <thead>
                                     <tr>
-                                      <th style={{ width: 28, color: '#9ca3af' }}>#</th>
+                                      <th style={{ width: 92, color: '#9ca3af' }}>#</th>
                                       <th>Date</th>
                                       <th>Dose</th>
                                       <th>Weight</th>
@@ -8027,7 +8067,35 @@ export default function PatientProfile() {
                                         return blockIdx < purchaseBoundaries.length ? blockIdx : null;
                                       };
 
-                                      // Helper: render a block header row (always 4 injections; shows purchase if matched, else "Unpaid")
+                                      // Per-row paid/unpaid badge — slot N is paid iff N <= total paid doses.
+                                      // Returns a tiny chip rendered inline in the # cell.
+                                      const paidDoses = protocol.total_sessions || 0;
+                                      const renderPaidBadge = (slotNum) => {
+                                        if (!isWeightLoss || !paidDoses) return null;
+                                        const isPaid = slotNum <= paidDoses;
+                                        return (
+                                          <span style={{
+                                            marginLeft: 6,
+                                            padding: '1px 6px',
+                                            fontSize: 9,
+                                            fontWeight: 700,
+                                            letterSpacing: '0.04em',
+                                            color: isPaid ? '#166534' : '#991b1b',
+                                            background: isPaid ? '#dcfce7' : '#fee2e2',
+                                            borderRadius: 3,
+                                            verticalAlign: 'middle',
+                                            whiteSpace: 'nowrap',
+                                          }} title={isPaid ? 'Covered by a purchase' : 'Not yet paid for'}>
+                                            {isPaid ? '$ PAID' : 'UNPAID'}
+                                          </span>
+                                        );
+                                      };
+
+                                      // Helper: render a block header row. Headers describe CLINICAL structure
+                                      // only — fulfillment chips (in-clinic / take-home / overnighted) and action
+                                      // buttons. Payment info lives in the Coverage summary above the schedule and
+                                      // in the per-row Paid/Unpaid badges. Decoupling keeps the 4-injection block
+                                      // visualization independent of how doses were paid for.
                                       const renderGroupHeader = (blockIdx) => {
                                         if (blockIdx == null || blockIdx < 0 || blockIdx >= purchaseBoundaries.length) return null;
                                         const boundary = purchaseBoundaries[blockIdx];
@@ -8035,11 +8103,8 @@ export default function PatientProfile() {
                                         const blockNum = blockIdx + 1;
                                         const injRange = `Injections ${boundary.startIdx + 1}–${boundary.endIdx + 1}`;
                                         if (purchase) {
-                                          const pDate = new Date(purchase.purchase_date + 'T12:00:00');
-                                          const dateLabel = pDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' , timeZone: 'America/Los_Angeles' });
                                           const paidAmount = purchase.amount_paid != null ? parseFloat(purchase.amount_paid) : null;
                                           const isComp = paidAmount === 0 || purchase.payment_method === 'comp';
-                                          const amount = paidAmount != null ? `$${paidAmount.toFixed(0)}` : 'No amount';
                                           const blockPickup = boundary.pickup;
                                           const pickupQty = blockPickup ? (blockPickup.quantity || 0) : 0;
                                           const isOvernight = blockPickup?.fulfillment_method === 'overnight';
@@ -8054,15 +8119,12 @@ export default function PatientProfile() {
                                           const headerBg = isComp ? '#f0fdf4' : '#f1f5f9';
                                           const headerBorder = isComp ? '#bbf7d0' : '#cbd5e1';
                                           const headerColor = isComp ? '#15803d' : '#334155';
-                                          const subColor = isComp ? '#166534' : '#64748b';
                                           return (
                                             <tr key={'group-' + blockIdx + '-' + purchase.id} style={{ background: headerBg, borderTop: blockIdx > 0 ? `2px solid ${headerBorder}` : 'none' }}>
                                               <td colSpan={7} style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: headerColor }}>
-                                                <span style={{ marginRight: 6 }}>{isComp ? '🎁' : '💳'}</span>
-                                                Block {blockNum} · {injRange} — {isComp ? `Complimentary ${dateLabel}` : `Paid ${dateLabel}`}
-                                                {!isComp && (
-                                                  <span style={{ fontWeight: 500, color: subColor, marginLeft: 6 }}>({amount})</span>
-                                                )}
+                                                <span style={{ marginRight: 6 }}>{isComp ? '🎁' : '📋'}</span>
+                                                Block {blockNum} · {injRange}
+                                                {isComp && <span style={{ fontWeight: 500, color: '#166534', marginLeft: 6 }}>· Complimentary</span>}
                                                 {chips.length > 0 && (
                                                   <>
                                                     <span style={{ color: '#cbd5e1', margin: '0 8px' }}>·</span>
@@ -8112,18 +8174,20 @@ export default function PatientProfile() {
                                             <tr key={'group-' + blockIdx + '-comp'} style={{ background: '#f0fdf4', borderTop: blockIdx > 0 ? '2px solid #bbf7d0' : 'none' }}>
                                               <td colSpan={7} style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: '#15803d' }}>
                                                 <span style={{ marginRight: 6 }}>🎁</span>
-                                                Block {blockNum} · {injRange} — Complimentary
+                                                Block {blockNum} · {injRange} · Complimentary
                                               </td>
                                             </tr>
                                           );
                                         }
-                                        // Unpaid block
+                                        // Unlinked block — clinical structure exists, no purchase yet linked.
+                                        // The Coverage line above tells the user how many doses are paid for;
+                                        // this header just notes the link gap and offers the action button.
                                         return (
-                                          <tr key={'group-' + blockIdx + '-unpaid'} style={{ background: '#fef2f2', borderTop: blockIdx > 0 ? '2px solid #fecaca' : 'none' }}>
-                                            <td colSpan={7} style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: '#b91c1c' }}>
-                                              <span style={{ marginRight: 6 }}>⚠️</span>
-                                              Block {blockNum} · {injRange} — <span style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Unpaid</span>
-                                              <span style={{ fontWeight: 500, color: '#991b1b', marginLeft: 6 }}>(no purchase linked)</span>
+                                          <tr key={'group-' + blockIdx + '-unpaid'} style={{ background: '#f8fafc', borderTop: blockIdx > 0 ? '2px solid #cbd5e1' : 'none' }}>
+                                            <td colSpan={7} style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: '#475569' }}>
+                                              <span style={{ marginRight: 6 }}>📋</span>
+                                              Block {blockNum} · {injRange}
+                                              <span style={{ fontWeight: 500, color: '#94a3b8', marginLeft: 6 }}>· No purchase linked yet</span>
                                               <button
                                                 onClick={(e) => { e.stopPropagation(); setLinkPurchaseModal({ protocol, blockNum }); }}
                                                 style={{ marginLeft: 10, padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#fff', color: '#b91c1c', border: '1px solid #fca5a5', borderRadius: 4, cursor: 'pointer' }}
@@ -8183,7 +8247,7 @@ export default function PatientProfile() {
                                           if (groupHeader) elements.push(groupHeader);
                                           elements.push(...[
                                             <tr key={log.id} className="wl-editable-row" onClick={() => openEditInjection(log)} title="Click to edit" style={isFirstRow ? { background: '#f0f9ff', borderLeft: '3px solid #3b82f6' } : {}}>
-                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{i + 1}</td>
+                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{i + 1}{renderPaidBadge(i + 1)}</td>
                                               <td>{formatShortDate(log.entry_date)}</td>
                                               <td>{log.dosage || '\u2014'}</td>
                                               <td style={isFirstRow ? { fontWeight: 700 } : {}}>{curWeight ? <>{curWeight} lbs{isFirstRow && <span style={{ fontSize: 9, color: '#3b82f6', marginLeft: 4, fontWeight: 600 }}>START</span>}{vitW && <span style={{ color: '#3b82f6', fontSize: 9, marginLeft: 4 }} title="From vitals flowsheet">V</span>}</> : '\u2014'}</td>
@@ -8344,7 +8408,7 @@ export default function PatientProfile() {
                                           const fulfillment = shipLog?.fulfillment_method;
                                           const dispensedRow = (
                                             <tr key={'dispensed-' + slot.num} style={{ background: '#f0fdf4' }}>
-                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
+                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}{renderPaidBadge(slot.num)}</td>
                                               <td>{formatShortDate(slot.expStr)}</td>
                                               <td>{doseLabel}</td>
                                               <td colSpan={3} style={{ color: '#16a34a', fontSize: 12 }}>
@@ -8359,7 +8423,7 @@ export default function PatientProfile() {
                                         if (slot.log && (slot.log.entry_type === 'missed' || (slot.log.notes || '').includes('MISSED WEEK'))) {
                                           const missedRow = (
                                             <tr key={slot.log.id} className="wl-editable-row" onClick={() => openEditInjection(slot.log)} title="Click to edit" style={{ background: '#fffbeb', borderLeft: '3px solid #f59e0b' }}>
-                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
+                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}{renderPaidBadge(slot.num)}</td>
                                               <td style={{ color: '#92400e' }}>{formatShortDate(slot.log.entry_date)}</td>
                                               <td style={{ color: '#9ca3af' }}>{parseDose(slot.log.dosage) || protocol.selected_dose || '\u2014'}</td>
                                               <td style={{ color: '#9ca3af' }}>{'\u2014'}</td>
@@ -8391,7 +8455,7 @@ export default function PatientProfile() {
                                           const slotSideEffects = parseSideEffects(slot.log.notes);
                                           const rowElements = [
                                             <tr key={slot.log.id} className="wl-editable-row" onClick={() => openEditInjection(slot.log)} title="Click to edit or delete" style={isFirstSlot ? { background: '#f0f9ff', borderLeft: '3px solid #3b82f6' } : {}}>
-                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
+                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}{renderPaidBadge(slot.num)}</td>
                                               <td>{formatShortDate(slot.log.entry_date)}{fulfillment === 'overnight' ? <span style={{ marginLeft: 4, fontSize: 11 }}>📦</span> : fulfillment === 'in_clinic' ? <span style={{ marginLeft: 4, fontSize: 11 }}>🏥</span> : ''}</td>
                                               <td>{parseDose(slot.log.dosage) || slot.log.dosage || '\u2014'}</td>
                                               <td style={isFirstSlot ? { fontWeight: 700 } : {}}>{effectiveWeight ? <>{effectiveWeight} lbs{isFirstSlot && <span style={{ fontSize: 9, color: '#3b82f6', marginLeft: 4, fontWeight: 600 }}>START</span>}{vitalsWeight && <span style={{ color: '#3b82f6', fontSize: 9, marginLeft: 4 }} title="From vitals flowsheet">V</span>}</> : '\u2014'}</td>
@@ -8427,7 +8491,7 @@ export default function PatientProfile() {
                                               onClick={() => openQuickWeightModal(protocol, slot.expStr)}
                                               title={projTitle}
                                               className="wl-editable-row">
-                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
+                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}{renderPaidBadge(slot.num)}</td>
                                               <td style={{ color: slot._projectedPast ? '#6b7280' : '#9ca3af' }}>
                                                 {formatShortDate(slot.expStr)}
                                                 <span style={{ marginLeft: 4, fontSize: 11 }}>🏠</span>
@@ -8452,7 +8516,7 @@ export default function PatientProfile() {
                                               <tr key={'empty-' + slot.num} style={{ background: '#f9fafb', cursor: 'pointer' }}
                                                 onClick={() => openQuickWeightModal(protocol, slot.expStr)}
                                                 title="Click to log weight for this session">
-                                                <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
+                                                <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}{renderPaidBadge(slot.num)}</td>
                                                 <td style={{ color: '#6b7280' }}>{formatShortDate(slot.expStr)}</td>
                                                 <td style={{ color: '#9ca3af' }}>{currentDose || '\u2014'}</td>
                                                 <td>{emptyVitalsWeight ? <span style={{ color: '#3b82f6' }}>{emptyVitalsWeight} lbs <span style={{ fontSize: 9 }} title="From vitals flowsheet">V</span></span> : <span style={{ color: '#9ca3af' }}>{'\u2014'}</span>}</td>
@@ -8468,7 +8532,7 @@ export default function PatientProfile() {
                                               <tr key={'noshow-' + slot.num} style={{ background: '#f0f9ff', cursor: 'pointer' }}
                                                 onClick={() => openQuickWeightModal(protocol, slot.expStr)}
                                                 title="Click to log injection for this session">
-                                                <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
+                                                <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}{renderPaidBadge(slot.num)}</td>
                                                 <td style={{ color: '#1e40af' }}>{formatShortDate(slot.expStr)}</td>
                                                 <td style={{ color: '#1e40af' }}>{currentDose || '\u2014'}</td>
                                                 <td>{emptyVitalsWeight ? <span style={{ color: '#3b82f6' }}>{emptyVitalsWeight} lbs <span style={{ fontSize: 9 }} title="From vitals flowsheet">V</span></span> : <span style={{ color: '#6b7280' }}>{'\u2014'}</span>}</td>
@@ -12673,6 +12737,30 @@ export default function PatientProfile() {
                     </select>
                   </div>
                 </div>
+                {!medEditForm.from_protocol && (
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Day Supply</label>
+                      <input
+                        type="number"
+                        value={medEditForm.day_supply || ''}
+                        onChange={e => setMedEditForm(f => ({ ...f, day_supply: e.target.value }))}
+                        placeholder="e.g., 30"
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Quantity</label>
+                      <input
+                        type="number"
+                        value={medEditForm.quantity_prescribed || ''}
+                        onChange={e => setMedEditForm(f => ({ ...f, quantity_prescribed: e.target.value }))}
+                        placeholder="e.g., 30"
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
+                      />
+                    </div>
+                  </div>
+                )}
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Sig (Directions)</label>
                   <input
@@ -12710,6 +12798,16 @@ export default function PatientProfile() {
                           style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
                         />
                       </div>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Notes</label>
+                      <textarea
+                        value={medEditForm.notes || ''}
+                        onChange={e => setMedEditForm(f => ({ ...f, notes: e.target.value }))}
+                        placeholder="Optional comments about this medication"
+                        rows={2}
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, resize: 'vertical' }}
+                      />
                     </div>
                     <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 14, marginTop: 2 }}>
                       <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#166534', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Last Pickup</label>

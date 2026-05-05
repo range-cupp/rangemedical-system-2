@@ -8,8 +8,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { isWeightLossType } from '../../../lib/protocol-config';
 import { todayPacific, nowPacificISO } from '../../../lib/date-utils';
 import { buildAdaptiveHRTSchedule, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
-import { guardDoseChange } from '../../../lib/dose-change-guard';
 import { extractWLFields } from '../../../lib/wl-note-parser';
+import { syncWLNoteToServiceLog, isWLEncounter } from '../../../lib/wl-note-sync';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -279,9 +279,7 @@ export default async function handler(req, res) {
     // ── Weight Loss: Sync note data → service_logs, protocol, vitals ──
     // Detect weight loss encounter by encounter_service string or form type
     const esLower = (encounter_service || '').toLowerCase();
-    const isWLEncounter = isWeightLossType(esLower) ||
-      esLower.includes('weight') ||
-      esLower === 'weight_loss' ||
+    const isWLNote = isWLEncounter(encounter_service) ||
       structured_data?.form_type === 'weight_loss';
 
     // Surfaces back to the UI if we stripped a dose write; the client should
@@ -289,303 +287,37 @@ export default async function handler(req, res) {
     let doseGuardBlocked = false;
     let doseGuardReason = null;
 
-    if (isWLEncounter) {
+    if (isWLNote) {
       try {
-        // Pull dose/weight/medication from structured_data when present, fall
-        // back to parsing the rendered body markdown. extractWLFields returns
-        // null when neither source carries any recognizable WL fields, in
-        // which case there's nothing to sync (e.g. an addendum-only note).
-        const wl = extractWLFields(structured_data, noteBody);
-        if (!wl) {
-          console.warn(
-            `[wl-sync] WL encounter note ${data.id} carries no parseable dose/weight/medication — skipping service_log sync. Body preview: ${(noteBody || '').slice(0, 120)}`
-          );
-        }
+        const syncResult = await syncWLNoteToServiceLog(supabase, {
+          id: data.id,
+          patient_id,
+          body: noteBody,
+          structured_data,
+          encounter_service,
+          source: 'encounter',
+          note_date,
+          created_by,
+          appointment_id: data.appointment_id || appointment_id,
+        }, {
+          approvedDoseChangeRequestId: req.body.approved_dose_change_request_id,
+        });
 
-        const dose = wl?.dose || null;
-        const medication = wl?.medication || null;
-        const weight = wl?.weight ?? null;
-        const hasWeight = weight !== null && !isNaN(weight);
-        const logDate = note_date
-          ? new Date(note_date).toISOString().split('T')[0]
-          : todayPacific();
-
-        // Find the patient's active weight loss protocol.
-        // program_type + category MUST be selected — guardDoseChange() reads
-        // both to identify WL/HRT. Without them every protocol looks "other"
-        // and the guard silently lets dose writes through (the Lily/Claudia
-        // 6→8mg incident on 2026-04-28).
-        const { data: protocols } = wl ? await supabase
-          .from('protocols')
-          .select('id, starting_weight, sessions_used, total_sessions, selected_dose, dose, dose_per_injection, injections_per_week, patient_id, medication, program_type, category')
-          .eq('patient_id', patient_id)
-          .ilike('program_type', 'weight_loss%')
-          .in('status', ['active', 'in_progress'])
-          .order('created_at', { ascending: false })
-          .limit(1)
-          : { data: null };
-
-        const activeProtocol = protocols?.[0];
-
-        if (wl && activeProtocol) {
-          // 1. Create or update service_logs entry. Linkage priority:
-          //    a) note_id — direct link, used when re-syncing an edit
-          //    b) appointment_id matched via patient_notes — same visit, same row
-          //    c) (patient_id, category, entry_date) — legacy fallback
-          // The first path that returns a row wins. This stops same-visit
-          // notes from clobbering each other and stops repeated edits from
-          // creating dup rows on a different day.
-          let existingServiceLog = null;
-
-          // (a) by note_id
-          {
-            const { data: byNote } = await supabase
-              .from('service_logs')
-              .select('id, entry_date, entry_type')
-              .eq('note_id', data.id)
-              .maybeSingle();
-            if (byNote) existingServiceLog = byNote;
+        if (syncResult.synced) {
+          if (syncResult.doseGuardBlocked) {
+            doseGuardBlocked = true;
+            doseGuardReason = syncResult.doseGuardReason;
           }
-
-          // (b) by appointment — find any service_log already linked to a
-          // note that points at this appointment
-          if (!existingServiceLog && (data.appointment_id || appointment_id)) {
-            const apptId = data.appointment_id || appointment_id;
-            const { data: notesForAppt } = await supabase
-              .from('patient_notes')
-              .select('id')
-              .eq('appointment_id', apptId);
-            const noteIds = (notesForAppt || []).map(n => n.id);
-            if (noteIds.length > 0) {
-              const { data: byAppt } = await supabase
-                .from('service_logs')
-                .select('id, entry_date, entry_type')
-                .in('note_id', noteIds)
-                .neq('entry_type', 'pickup')
-                .limit(1)
-                .maybeSingle();
-              if (byAppt) existingServiceLog = byAppt;
-            }
-          }
-
-          // (c) date fallback (legacy notes with no note_id link yet)
-          if (!existingServiceLog) {
-            const { data: byDate } = await supabase
-              .from('service_logs')
-              .select('id, entry_date, entry_type')
-              .eq('patient_id', patient_id)
-              .eq('category', 'weight_loss')
-              .eq('entry_date', logDate)
-              .neq('entry_type', 'pickup')
-              .is('note_id', null)
-              .maybeSingle();
-            if (byDate) existingServiceLog = byDate;
-          }
-
-          const serviceLogFields = {
-            dosage: dose,
-            medication: medication,
-            notes: `Via encounter note by ${created_by || 'Staff'}`,
-            updated_at: new Date().toISOString(),
-          };
-          if (hasWeight) serviceLogFields.weight = weight;
-
-          if (existingServiceLog) {
-            // Promote any pre-existing non-injection row (e.g. an auto-created
-            // 'weight_check' from an earlier flow) to a real injection now
-            // that a provider has documented one.
-            const updateFields = {
-              ...serviceLogFields,
-              note_id: data.id,
-              entry_date: logDate,
-            };
-            if (existingServiceLog.entry_type !== 'injection' && dose) {
-              updateFields.entry_type = 'injection';
-            }
-            await supabase
-              .from('service_logs')
-              .update(updateFields)
-              .eq('id', existingServiceLog.id);
-            console.log(`Updated service_log ${existingServiceLog.id} for ${logDate} (linked to note ${data.id})`);
-          } else {
-            // Create new service log entry, linked back to this note.
-            await supabase
-              .from('service_logs')
-              .insert({
-                patient_id,
-                protocol_id: activeProtocol.id,
-                category: 'weight_loss',
-                entry_type: 'injection',
-                entry_date: logDate,
-                note_id: data.id,
-                ...serviceLogFields,
-                administered_by: created_by || null,
-              });
-            console.log(`Created service_log for weight loss on ${logDate} (linked to note ${data.id})`);
-          }
-
-          // 2. Update protocol: dose + sessions_used + starting_weight
-          const protocolUpdates = {
-            updated_at: new Date().toISOString(),
-          };
-
-          // Update dose on protocol if provided + track escalation
-          let doseChangeBlocked = false;
-          if (dose) {
-            const previousDose = activeProtocol.selected_dose || activeProtocol.dose || null;
-
-            // WL/HRT increases can't change dose from an encounter note — those
-            // must go through the Dose Change modal → Burgess SMS approval.
-            // We still write an audit log below so staff intent is captured.
-            const guard = await guardDoseChange(
-              supabase,
-              activeProtocol,
-              { selected_dose: dose, dose, current_dose: dose },
-              { mode: 'strip', approvedRequestId: req.body.approved_dose_change_request_id }
-            );
-
-            if (!guard.blocked || guard.blocked.length === 0) {
-              // Either non-gated category, or an approved request was provided.
-              protocolUpdates.selected_dose = dose;
-              protocolUpdates.dose = dose;
-              protocolUpdates.current_dose = dose;
-            } else {
-              // Dose write stripped — stamp a warning for the UI to surface.
-              doseChangeBlocked = true;
-              doseGuardBlocked = true;
-              doseGuardReason = guard.reason;
-              console.warn(
-                `[dose-guard] Stripped dose write on protocol ${activeProtocol.id} from note by ${created_by || 'Staff'}: ${previousDose} → ${dose}`
-              );
-            }
-
-            // Log dose change if different from previous dose — record intent
-            // regardless of whether the dose was actually applied.
-            if (previousDose && previousDose !== dose) {
-              const plan = wl.plan || '';
-              const isIncrease = plan.toLowerCase().includes('increase');
-              const isDecrease = plan.toLowerCase().includes('decrease');
-              const direction = isIncrease ? 'increased' : (isDecrease ? 'decreased' : 'changed');
-              const blockedTag = doseChangeBlocked ? ' [BLOCKED — requires Dr. Burgess approval via Dose Change modal]' : '';
-
-              await supabase.from('protocol_logs').insert({
-                protocol_id: activeProtocol.id,
-                patient_id,
-                log_type: doseChangeBlocked ? 'dose_change_blocked' : 'dose_change',
-                log_date: logDate,
-                dose: dose,
-                weight: weight || null,
-                notes: `Dose ${direction}: ${previousDose} → ${dose}.${blockedTag} ${plan}${wl.additional_notes ? ' — ' + wl.additional_notes : ''}`,
-                logged_by: created_by || 'Staff',
-              }).then(({ error: doseLogErr }) => {
-                if (doseLogErr) console.error('Dose change log error:', doseLogErr);
-              });
-            }
-          }
-
-          // Increment sessions_used only if we created a new service log (not updating existing)
-          if (!existingServiceLog) {
-            protocolUpdates.sessions_used = (activeProtocol.sessions_used || 0) + 1;
-          }
-
-          // Update next_expected_date to +7 days from this injection
-          // This keeps the "Next" date on the protocol card accurate for in-clinic patients
-          const nextDate = new Date(logDate + 'T12:00:00');
-          nextDate.setDate(nextDate.getDate() + 7);
-          protocolUpdates.next_expected_date = nextDate.toISOString().split('T')[0];
-          protocolUpdates.last_visit_date = logDate;
-
-          // Set starting weight if not already set
-          if (!activeProtocol.starting_weight && wl.starting_weight != null) {
-            protocolUpdates.starting_weight = wl.starting_weight;
-          }
-
-          // Sync goal weight from encounter note (always update to latest)
-          if (wl.goal_weight != null) {
-            protocolUpdates.goal_weight = wl.goal_weight;
-          }
-
-          await supabase
-            .from('protocols')
-            .update(protocolUpdates)
-            .eq('id', activeProtocol.id);
-
-          console.log(`Protocol ${activeProtocol.id} updated: dose=${dose}, weight=${weight}`);
-
-          // 3. Also log to weight_logs for backwards compatibility (only if weight present)
-          if (hasWeight) {
-            const { data: existingWeightLog } = await supabase
-              .from('weight_logs')
-              .select('id')
-              .eq('protocol_id', activeProtocol.id)
-              .eq('log_date', logDate)
-              .maybeSingle();
-
-            if (existingWeightLog) {
-              await supabase
-                .from('weight_logs')
-                .update({ weight, notes: `Via encounter note by ${created_by || 'Staff'}` })
-                .eq('id', existingWeightLog.id);
-            } else {
-              await supabase
-                .from('weight_logs')
-                .insert({
-                  protocol_id: activeProtocol.id,
-                  log_date: logDate,
-                  weight,
-                  notes: `Via encounter note by ${created_by || 'Staff'}`,
-                });
-            }
-          }
+          console.log(`[wl-sync] note ${data.id} → service_log ${syncResult.serviceLogId} (sessions ${syncResult.sessionsUsed}/${syncResult.totalSessions})`);
         } else {
-          console.log(`No active weight loss protocol found for patient ${patient_id}`);
-        }
-
-        // 4. Save to patient_vitals (only if weight present)
-        if (hasWeight) {
-          try {
-            const vitalsData = {
-              patient_id,
-              weight_lbs: weight,
-              recorded_by: created_by || 'Staff',
-              recorded_at: new Date().toISOString(),
-            };
-
-            // If there's an appointment_id, upsert by appointment
-            if (appointment_id) {
-              vitalsData.appointment_id = appointment_id;
-              const { data: existingVitals } = await supabase
-                .from('patient_vitals')
-                .select('id')
-                .eq('appointment_id', appointment_id)
-                .maybeSingle();
-
-              if (existingVitals) {
-                await supabase
-                  .from('patient_vitals')
-                  .update(vitalsData)
-                  .eq('id', existingVitals.id);
-              } else {
-                await supabase
-                  .from('patient_vitals')
-                  .insert(vitalsData);
-              }
-            } else {
-              // No appointment — create standalone vitals record
-              await supabase
-                .from('patient_vitals')
-                .insert(vitalsData);
-            }
-            console.log(`Vitals saved: weight=${weight} lbs for patient ${patient_id}`);
-          } catch (vitalsErr) {
-            console.error('Vitals save error (non-fatal):', vitalsErr.message);
-          }
+          console.warn(`[wl-sync] note ${data.id} not synced: ${syncResult.reason}`);
         }
       } catch (syncErr) {
         // Don't fail the note save if sync fails
         console.error('Weight loss sync error (non-fatal):', syncErr.message);
       }
     }
+
 
     // ── Blood Draw: Auto-log follow-up lab on HRT protocol ──
     // Check both encounter_service AND note body for blood draw keywords

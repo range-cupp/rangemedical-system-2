@@ -184,13 +184,12 @@ export default async function handler(req, res) {
 
         if (wlProtocol) {
           const logDate = todayPacific();
-          const isInClinic = wlProtocol.delivery_method === 'in_clinic';
 
-          // Stamp the weight onto today's service_log if one already exists
-          // (e.g. a real injection logged from an encounter note). We never
-          // create a fresh row from a vitals entry — vitals belong in
-          // patient_vitals (already saved above), and the protocol injection
-          // table only shows actual services rendered.
+          // Stamp the weight onto today's service_log if one already exists.
+          // Vitals NEVER create new service_log rows — only the encounter
+          // note (via lib/wl-note-sync.js) is allowed to create injection
+          // entries. This is the single-source-of-truth rule for clinical
+          // injection tracking.
           const { data: existingLog } = await supabase
             .from('service_logs')
             .select('id, entry_type')
@@ -205,34 +204,10 @@ export default async function handler(req, res) {
               .from('service_logs')
               .update({ weight: w, updated_at: new Date().toISOString() })
               .eq('id', existingLog.id);
-          } else if (isInClinic) {
-            // In-clinic patients have an injection happening on the visit
-            // even before staff opens the encounter form, so the weight
-            // implies an injection occurred today.
-            await supabase
-              .from('service_logs')
-              .insert({
-                patient_id,
-                protocol_id: wlProtocol.id,
-                category: 'weight_loss',
-                entry_type: 'injection',
-                entry_date: logDate,
-                medication: wlProtocol.medication || null,
-                dosage: wlProtocol.selected_dose || null,
-                weight: w,
-                notes: `Via vitals by ${recorded_by || 'Staff'}`,
-              });
-            await supabase
-              .from('protocols')
-              .update({
-                sessions_used: (wlProtocol.sessions_used || 0) + 1,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', wlProtocol.id);
           }
-          // Take-home patients: weight stays in patient_vitals only. The
-          // injection row will land when the patient self-checks in (SMS
-          // weekly reminder) or when a provider documents an encounter.
+          // No existing log → weight stays in patient_vitals only. The
+          // injection row will land when the provider signs the encounter
+          // note (or saves with a body), which calls syncWLNoteToServiceLog.
 
           // Auto-set starting_weight if missing
           if (!wlProtocol.starting_weight) {

@@ -5321,17 +5321,11 @@ export default function PatientProfile() {
             const isWL = proto.category === 'weight_loss';
             const isHRT = proto.category === 'hrt';
             const isPeptide = proto.category === 'peptide';
-            // For WL, total = paid blocks × 4 (each linked purchase = one block).
-            // protocol.total_sessions drifts when purchases are linked manually,
-            // so we derive from billing — same source of truth as the protocol card.
-            let totalSessions = proto.total_sessions || 0;
-            if (isWL) {
-              const WL_BLOCK_SIZE = 4;
-              const linkedPurchaseCount = (allPurchases || []).filter(p => p.protocol_id === proto.id && p.purchase_date).length;
-              if (linkedPurchaseCount > 0) {
-                totalSessions = Math.max(totalSessions, linkedPurchaseCount * WL_BLOCK_SIZE);
-              }
-            }
+            // total_sessions is the stored count of paid injections. For WL,
+            // it's incremented at medication-checkout (purchaseQty per purchase).
+            // We don't derive from purchase-count × 4 anymore — that overstated
+            // partial purchases (e.g. a "× 2" pack got counted as a 4-pack).
+            const totalSessions = proto.total_sessions || 0;
             const sessionsUsed = proto.sessions_used || 0;
             const protoName = proto.program_name || proto.medication || proto.category;
 
@@ -7291,24 +7285,17 @@ export default function PatientProfile() {
                       const lastActivity = protoServiceLogs[0]; // most recent of any type
                       const lastInClinic = protoServiceLogs.find(l => l.fulfillment_method === 'in_clinic' || l.entry_type === 'session' || (l.entry_type === 'injection' && l.fulfillment_method !== 'overnight'));
                       const lastTakeHome = protoServiceLogs.find(l => l.entry_type === 'pickup' || l.fulfillment_method === 'overnight');
-                      // Session count: for WL, count actual logged entries (excludes missed/pickup)
-                      // as the DB counter can drift. For other categories, DB counter is primary.
-                      const wlActualCount = wlLogs.filter(l => l.entry_type !== 'missed' && l.entry_type !== 'pickup').length;
+                      // Session count: only count injection/session entries. Pickups,
+                      // weight_checks, self_administered, and missed don't count toward
+                      // the clinical injection total.
+                      const wlActualCount = wlLogs.filter(l => ['injection', 'session'].includes(l.entry_type)).length;
                       const sessionsCompleted = isWeightLoss
                         ? (wlActualCount || protocol.sessions_used || 0)
                         : (protocol.sessions_used || protocol.sessions_completed || protoServiceLogs.filter(l => ['injection', 'session'].includes(l.entry_type)).length);
-                      let sessionsTotal = protocol.total_sessions || protocol.sessions_total;
-                      // WL: total injections = paid blocks × 4. Each linked purchase = one block.
-                      // Derive from billing instead of trusting protocol.total_sessions, which drifts
-                      // when purchases are linked manually (link-purchase API doesn't bump total_sessions).
-                      // This stays in sync with the block-renderer below, which uses the same logic.
-                      if (isWeightLoss) {
-                        const WL_BLOCK_SIZE = 4;
-                        const linkedPurchaseCount = (allPurchases || []).filter(p => p.protocol_id === protocol.id && p.purchase_date).length;
-                        if (linkedPurchaseCount > 0) {
-                          sessionsTotal = Math.max(linkedPurchaseCount, Math.ceil(wlLogs.length / WL_BLOCK_SIZE)) * WL_BLOCK_SIZE;
-                        }
-                      }
+                      // total_sessions is the stored count of paid injections, incremented
+                      // at medication-checkout. We trust the stored value rather than
+                      // deriving from purchase-count × 4 (which overstates partial purchases).
+                      const sessionsTotal = protocol.total_sessions || protocol.sessions_total;
                       // Aggregate side effects from all service logs
                       const logsWithSideEffects = protoServiceLogs
                         .filter(l => parseSideEffects(l.notes))

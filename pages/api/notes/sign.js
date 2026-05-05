@@ -10,6 +10,7 @@ const supabase = createClient(
 
 import { isNoteAuthor } from '../../../lib/staff-config';
 import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
+import { syncWLNoteToServiceLog } from '../../../lib/wl-note-sync';
 
 const BURGESS_EMAIL = 'burgess@range-medical.com';
 const EVAN_EMAIL = 'evan@range-medical.com';
@@ -123,6 +124,25 @@ export default async function handler(req, res) {
       await maybeCreateReviewTask(updated);
     } catch (taskErr) {
       console.error('maybeCreateReviewTask failed:', taskErr);
+    }
+
+    // WL note → service_log sync. Catches notes that were created without
+    // a body and only populated at sign time, or where the create-time sync
+    // missed (e.g. older code paths that never called the helper).
+    try {
+      const { data: fullNote } = await supabase
+        .from('patient_notes')
+        .select('id, patient_id, body, structured_data, encounter_service, source, note_date, created_by, appointment_id')
+        .eq('id', note_id)
+        .single();
+      if (fullNote) {
+        const result = await syncWLNoteToServiceLog(supabase, fullNote);
+        if (result.synced) {
+          console.log(`[note-sign] Synced note ${fullNote.id} → service_log ${result.serviceLogId}`);
+        }
+      }
+    } catch (syncErr) {
+      console.error('[note-sign] WL sync error (non-fatal):', syncErr.message);
     }
 
     return res.status(200).json({ success: true, note: updated });

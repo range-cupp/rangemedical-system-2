@@ -1,22 +1,19 @@
 // pages/api/free-session/enter.js
-// Handles free single-session trial opt-ins (HBOT + RLT) with BANT qualification.
-// Mirrors /api/giveaway/enter pattern: scoring, tiering, SMS + email notifications.
+// Handles free single-session trial opt-ins (HBOT + RLT). Patient gets a
+// confirmation SMS; staff get a single chat message in the "Free Session
+// Alerts" channel (Damon, Tara, Chris) with push notifications.
 
 import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import stripe from '../../../lib/stripe';
 import { createCard } from '../../../lib/pipelines-server';
-import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
+import { postToStaffChannel } from '../../../lib/post-to-staff-channel';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const OWNER_PHONE = '+19496900339';
 
 const TRIAL_CONFIG = {
   hbot: {
@@ -244,46 +241,6 @@ export default async function handler(req, res) {
       console.error('Free session pipeline card create error:', cardErr);
     }
 
-    // 4c. Create a follow-up task for Damon and SMS him.
-    // Non-blocking — log and continue if it fails.
-    try {
-      const { data: damon } = await supabase
-        .from('employees')
-        .select('id')
-        .eq('email', 'damon@range-medical.com')
-        .single();
-      if (damon?.id) {
-        const taskTitle = `Schedule free ${config.shortLabel}: ${customerName}`;
-        const description = [
-          `${customerName} signed up for a free ${config.label} session and needs to be scheduled.`,
-          `Phone: ${phone.trim()}`,
-          `Email: ${normalizedEmail}`,
-          `Tier: ${leadTier.toUpperCase()} (score ${leadScore})`,
-          `Struggle: ${struggleLabel}`,
-          '',
-          'Text them a link to pick a time.',
-        ].join('\n');
-        const priority = leadTier === 'green' ? 'high' : 'medium';
-        await supabase.from('tasks').insert({
-          title: taskTitle,
-          description,
-          assigned_to: damon.id,
-          assigned_by: damon.id,
-          patient_id: patientId,
-          patient_name: customerName,
-          priority,
-          status: 'pending',
-        });
-        notifyTaskAssignee(damon.id, {
-          assignerName: 'Range Medical',
-          taskTitle,
-          priority,
-        }).catch((err) => console.error('Damon free-session task SMS error:', err));
-      }
-    } catch (taskErr) {
-      console.error('Damon free-session task insert error:', taskErr);
-    }
-
     // 5. Resolve legacy event type ID for the slot picker (kept for
     // back-compat with the client; the booking endpoint also accepts
     // serviceSlug directly so this is optional). Read from local services
@@ -387,67 +344,33 @@ export default async function handler(req, res) {
 
     notificationTasks.push((async () => {
       try {
-        const alertParts = [`New FREE ${config.shortLabel} session: ${customerName} (${phone.trim()}).`];
-        if (struggleLabel) alertParts.push(struggleLabel);
-        if (importance90d) alertParts.push(`${importance90d}/10`);
-        alertParts.push(`${leadTier.toUpperCase()}. Text them to schedule.`);
-        const alertMsg = alertParts.join(' \u00b7 ');
-        const alertResult = await sendSMS({ to: OWNER_PHONE, message: alertMsg });
-        await logComm({
-          channel: 'sms',
-          messageType: `free_session_${trialType}_staff_alert`,
-          message: alertMsg,
-          source: 'free-session-enter',
-          recipient: OWNER_PHONE,
-          status: alertResult.success ? 'sent' : 'error',
-          errorMessage: alertResult.error || null,
-          twilioMessageSid: alertResult.messageSid || null,
-          provider: alertResult.provider || null,
+        const lines = [
+          `\ud83c\udd95 New FREE ${config.label} session`,
+          '',
+          customerName,
+          `\ud83d\udcde ${phone.trim()}`,
+          `\u2709\ufe0f ${normalizedEmail}`,
+        ];
+        if (struggleLabel) lines.push(`Hoping it helps: ${struggleLabel}${struggleOther ? ` \u2014 ${struggleOther}` : ''}`);
+        if (badDayDescription) lines.push(`Bad day: ${badDayDescription}`);
+        if (importance90d) lines.push(`Importance (90d): ${importance90d}/10`);
+        lines.push('', "They'll pick a time on the next step. If they don't finish, reach out and help them schedule.");
+        const content = lines.join('\n');
+
+        await postToStaffChannel({
+          channelName: 'Free Session Alerts',
+          memberEmails: ['damon@range-medical.com', 'tara@range-medical.com'],
+          content,
+          pushPayload: {
+            title: `New FREE ${config.shortLabel} session`,
+            body: `${customerName} \u00b7 ${phone.trim()}`,
+          },
         });
-      } catch (alertErr) {
-        console.error('Free session staff alert error:', alertErr);
+      } catch (chatErr) {
+        console.error('Free session staff chat error:', chatErr);
       }
     })());
 
-    notificationTasks.push((async () => {
-      try {
-      const tierColor = leadTier === 'green' ? '#16A34A' : leadTier === 'yellow' ? '#D97706' : '#DC2626';
-      const now = new Date().toLocaleString('en-US', {
-        timeZone: 'America/Los_Angeles',
-        weekday: 'short', month: 'short', day: 'numeric',
-        hour: 'numeric', minute: '2-digit', hour12: true,
-      });
-
-      const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 20px;"><tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;">
-<tr><td style="background:${config.accentColor};padding:24px 32px;">
-<h1 style="margin:0;color:#fff;font-size:20px;font-weight:600;">New Free ${config.label} Session</h1>
-<p style="margin:4px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">${now}</p>
-</td></tr>
-<tr><td style="padding:32px;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#737373;width:160px;">Name</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;font-weight:600;">${escapeHtml(customerName)}</td></tr>
-<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#737373;">Email</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;">${escapeHtml(normalizedEmail)}</td></tr>
-<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#737373;">Phone</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;">${escapeHtml(phone)}</td></tr>
-<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#737373;">Struggle</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;">${escapeHtml(struggleLabel)}${struggleOther ? ` — ${escapeHtml(struggleOther)}` : ''}</td></tr>
-<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#737373;">Importance (90d)</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;font-weight:700;">${importance90d}/10</td></tr>
-<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#737373;">Budget</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;">${escapeHtml(budgetLabel)}</td></tr>
-<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#737373;">Tier</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;"><span style="display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;font-weight:700;color:#fff;background:${tierColor};">${leadTier.toUpperCase()}</span> <span style="color:#737373;margin-left:8px;">score ${leadScore}</span></td></tr>
-<tr><td style="padding:10px 0;font-size:14px;color:#737373;vertical-align:top;">Bad day</td><td style="padding:10px 0;font-size:14px;line-height:1.5;">${escapeHtml(badDayDescription)}</td></tr>
-</table>
-</td></tr></table></td></tr></table></body></html>`;
-
-      await resend.emails.send({
-        from: 'Range Medical <hello@range-medical.com>',
-        to: ['chris@range-medical.com', 'damon@range-medical.com'],
-        subject: `Free ${config.shortLabel} Session: ${customerName} — ${leadTier.toUpperCase()} (${leadScore})`,
-        html,
-      });
-      } catch (emailErr) {
-        console.error('Free session staff email error:', emailErr);
-      }
-    })());
 
     await Promise.allSettled(notificationTasks);
 

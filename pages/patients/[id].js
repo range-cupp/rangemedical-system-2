@@ -3005,6 +3005,42 @@ export default function PatientProfile() {
     setConfirmDeleteInjection(false);
   };
 
+  const handleInitiateDispense = async (protocol, blockNum, purchase, totalInBlock = 4) => {
+    try {
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+      const slots = Array.from({ length: totalInBlock }, () => 'in_clinic');
+      const res = await fetch('/api/service-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: id,
+          category: 'weight_loss',
+          entry_type: 'pickup',
+          entry_date: today,
+          medication: protocol.medication || protocol.selected_medication || null,
+          dosage: protocol.dosage || null,
+          quantity: 0,
+          protocol_id: protocol.id,
+          fulfillment_method: 'in_clinic',
+          force: true,
+        }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const newLog = data.log;
+      if (!newLog?.id) return;
+      newLog.slot_fulfillment = slots;
+      await fetch(`/api/service-log?id=${newLog.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entry_type: 'pickup', slot_fulfillment: slots, quantity: 0, fulfillment_method: 'in_clinic' }),
+      });
+      openEditInjection(newLog, { blockNum, totalInBlock, purchase });
+    } catch (err) {
+      console.error('Error creating dispense pickup:', err);
+    }
+  };
+
   const handleEditInjection = async () => {
     if (!editInjectionModal?.id) return;
     setEditInjectionSaving(true);
@@ -8163,13 +8199,21 @@ export default function PatientProfile() {
                                                     ))}
                                                   </>
                                                 )}
-                                                {blockPickup && (
+                                                {blockPickup ? (
                                                   <button
                                                     onClick={(e) => { e.stopPropagation(); openEditInjection(blockPickup, { blockNum, totalInBlock: BLOCK_SIZE, purchase }); }}
                                                     style={{ marginLeft: 10, padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#fff', color: '#334155', border: '1px solid #cbd5e1', borderRadius: 4, cursor: 'pointer' }}
                                                     title="Rebalance in-clinic vs dispensed for this block"
                                                   >
                                                     Edit Dispense
+                                                  </button>
+                                                ) : (
+                                                  <button
+                                                    onClick={(e) => { e.stopPropagation(); handleInitiateDispense(protocol, blockNum, purchase, BLOCK_SIZE); }}
+                                                    style={{ marginLeft: 10, padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#fff', color: '#334155', border: '1px solid #cbd5e1', borderRadius: 4, cursor: 'pointer' }}
+                                                    title="Dispense injections from this block as take-home"
+                                                  >
+                                                    Dispense
                                                   </button>
                                                 )}
                                                 {blockPickup && (blockPickup.quantity || 0) > 0 && (

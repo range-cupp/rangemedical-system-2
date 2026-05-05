@@ -11666,7 +11666,7 @@ export default function PatientProfile() {
                         const totalDollars = (inv.total_cents || 0) / 100;
                         const items = inv.items || [];
                         const itemSummary = items.length > 0
-                          ? items.map(it => it.display_name || it.name).join(', ')
+                          ? items.map(it => it.name || it.display_name).join(', ')
                           : (inv.description || 'Invoice');
                         return (
                           <div key={inv.id} style={{ padding: '12px 14px', borderBottom: '1px solid #f1f5f9' }}>
@@ -11683,7 +11683,7 @@ export default function PatientProfile() {
                                   <div style={{ marginTop: 6 }}>
                                     {items.map((it, idx) => (
                                       <div key={idx} style={{ fontSize: 12, color: '#64748b', display: 'flex', justifyContent: 'space-between', maxWidth: 320 }}>
-                                        <span>{it.display_name || it.name}{it.quantity > 1 ? ` x${it.quantity}` : ''}</span>
+                                        <span>{it.name || it.display_name}{it.quantity > 1 ? ` x${it.quantity}` : ''}</span>
                                         <span>${((it.price_cents * (it.quantity || 1)) / 100).toFixed(2)}</span>
                                       </div>
                                     ))}

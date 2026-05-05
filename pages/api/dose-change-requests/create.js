@@ -63,9 +63,7 @@ export default async function handler(req, res) {
 
     let changeType = 'increase';
     if (proposedVal !== null && currentVal !== null) {
-      const currentWeekly = currentVal * (currentIpw || 1);
-      const proposedWeekly = proposedVal * (proposedIpw || 1);
-      changeType = proposedWeekly >= currentWeekly ? 'increase' : 'decrease';
+      changeType = proposedVal >= currentVal ? 'increase' : 'decrease';
     }
 
     // Generate a secure approval token

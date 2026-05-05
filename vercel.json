@@ -112,6 +112,10 @@
     {
       "path": "/api/cron/daily-tip",
       "schedule": "7 14 * * *"
+    },
+    {
+      "path": "/api/cron/free-session-followup",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

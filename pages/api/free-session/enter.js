@@ -118,21 +118,18 @@ export default async function handler(req, res) {
     if (!consentMarketing) {
       return res.status(400).json({ error: 'Marketing consent is required' });
     }
-    if (!Array.isArray(struggleMains) || struggleMains.length === 0 || !badDayDescription) {
-      return res.status(400).json({ error: 'Missing required story fields' });
-    }
-    if (!importance90d || !budgetAnswer) {
-      return res.status(400).json({ error: 'Missing required qualification fields' });
-    }
 
     const normalizedEmail = String(email).toLowerCase().trim();
     const normalizedPhone = normalizePhone(phone);
     const customerName = `${firstName} ${lastName}`.trim();
 
-    const leadScore = computeLeadScore({ importance90d, budgetAnswer });
-    const leadTier = computeTier({ importance90d, budgetAnswer });
-    const struggleLabel = struggleMains.map((v) => STRUGGLE_LABELS[v] || v).join(', ');
-    const budgetLabel = BUDGET_LABELS[budgetAnswer] || budgetAnswer;
+    const hasBant = Array.isArray(struggleMains) && struggleMains.length > 0 && importance90d && budgetAnswer;
+    const leadScore = hasBant ? computeLeadScore({ importance90d, budgetAnswer }) : 0;
+    const leadTier = hasBant ? computeTier({ importance90d, budgetAnswer }) : 'yellow';
+    const struggleLabel = Array.isArray(struggleMains) && struggleMains.length > 0
+      ? struggleMains.map((v) => STRUGGLE_LABELS[v] || v).join(', ')
+      : '';
+    const budgetLabel = budgetAnswer ? (BUDGET_LABELS[budgetAnswer] || budgetAnswer) : '';
 
     // 1. Find or create patient
     let patientId = null;
@@ -166,14 +163,13 @@ export default async function handler(req, res) {
     }
 
     // 2. Build qualification notes blob
-    const notesBlob = [
-      `Free ${config.label} session — BANT`,
-      `Struggle: ${struggleLabel}${struggleOther ? ` (${struggleOther})` : ''}`,
-      `Bad day: ${badDayDescription}`,
-      `Importance 90d: ${importance90d}/10`,
-      `Budget: ${budgetLabel}`,
-      `Tier: ${leadTier.toUpperCase()} (score ${leadScore})`,
-    ].join('\n');
+    const noteLines = [`Free ${config.label} session`];
+    if (struggleLabel) noteLines.push(`Struggle: ${struggleLabel}${struggleOther ? ` (${struggleOther})` : ''}`);
+    if (badDayDescription) noteLines.push(`Bad day: ${badDayDescription}`);
+    if (importance90d) noteLines.push(`Importance 90d: ${importance90d}/10`);
+    if (budgetLabel) noteLines.push(`Budget: ${budgetLabel}`);
+    noteLines.push(`Tier: ${leadTier.toUpperCase()} (score ${leadScore})`);
+    const notesBlob = noteLines.join('\n');
 
     // 3. Create sales_pipeline lead
     const { data: lead } = await supabase
@@ -193,23 +189,25 @@ export default async function handler(req, res) {
       .single();
 
     // 4. Create trial_passes row
+    const trialRow = {
+      patient_id: patientId,
+      sales_pipeline_id: lead?.id || null,
+      first_name: firstName.trim(),
+      last_name: lastName.trim(),
+      email: normalizedEmail,
+      phone: phone.trim(),
+      payment_status: 'free',
+      status: 'purchased',
+      trial_type: trialType,
+      purchased_at: new Date().toISOString(),
+      source: config.source,
+    };
+    if (struggleLabel) trialRow.main_problem = struggleLabel;
+    if (importance90d) trialRow.importance_1_10 = Number(importance90d);
+
     const { data: trial, error: trialErr } = await supabase
       .from('trial_passes')
-      .insert({
-        patient_id: patientId,
-        sales_pipeline_id: lead?.id || null,
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        email: normalizedEmail,
-        phone: phone.trim(),
-        payment_status: 'free',
-        status: 'purchased',
-        trial_type: trialType,
-        main_problem: struggleLabel,
-        importance_1_10: Number(importance90d),
-        purchased_at: new Date().toISOString(),
-        source: config.source,
-      })
+      .insert(trialRow)
       .select('id')
       .single();
 
@@ -389,7 +387,11 @@ export default async function handler(req, res) {
 
     notificationTasks.push((async () => {
       try {
-        const alertMsg = `New FREE ${config.shortLabel} session: ${customerName} (${phone.trim()}). ${struggleLabel} \u00b7 ${importance90d}/10 \u00b7 ${leadTier.toUpperCase()}. Text them to schedule.`;
+        const alertParts = [`New FREE ${config.shortLabel} session: ${customerName} (${phone.trim()}).`];
+        if (struggleLabel) alertParts.push(struggleLabel);
+        if (importance90d) alertParts.push(`${importance90d}/10`);
+        alertParts.push(`${leadTier.toUpperCase()}. Text them to schedule.`);
+        const alertMsg = alertParts.join(' \u00b7 ');
         const alertResult = await sendSMS({ to: OWNER_PHONE, message: alertMsg });
         await logComm({
           channel: 'sms',

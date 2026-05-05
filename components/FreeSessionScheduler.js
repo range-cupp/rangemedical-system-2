@@ -225,6 +225,9 @@ export default function FreeSessionScheduler({
   accentColor = '#171717',
   accentBg = '#fafafa',
   firstName = 'there',
+  scheduleLabel,
+  scheduleTitle,
+  scheduleSubtitle,
 }) {
   const [phase, setPhase] = useState('schedule');
   const days = useMemoDays();
@@ -275,12 +278,12 @@ export default function FreeSessionScheduler({
     <section style={{ maxWidth: 680, margin: '0 auto', padding: '48px 2rem 4rem' }}>
       {phase === 'schedule' && (
         <>
-          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#a3a3a3', margin: '0 0 6px' }}>Final step</p>
+          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#a3a3a3', margin: '0 0 6px' }}>{scheduleLabel || 'Final step'}</p>
           <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 1.75rem)', fontWeight: 800, letterSpacing: '-0.01em', margin: 0 }}>
-            Pick a time that works for you
+            {scheduleTitle || 'Pick a time that works for you'}
           </h2>
           <p style={{ fontSize: 14, color: '#525252', margin: '8px 0 22px', lineHeight: 1.5 }}>
-            Pacific time · {sessionDurationMinutes} minutes · Newport Beach. On the next step you&apos;ll add a card for a $25 no-show hold (only charged if you miss it).
+            {scheduleSubtitle || `Pacific time · ${sessionDurationMinutes} minutes · Newport Beach. On the next step you'll add a card for a $25 no-show hold (only charged if you miss it).`}
           </p>
 
           <DaySelector days={days.slice(0, 7)} selectedDate={selectedDate} onChange={(d) => { setSelectedDate(d); setSelectedSlot(null); }} accent={accentColor} />

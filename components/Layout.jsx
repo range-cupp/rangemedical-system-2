@@ -2,7 +2,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useState } from 'react';
 
-export default function Layout({ children, title, description }) {
+export default function Layout({ children, title, description, logoOnly }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileTreatmentsOpen, setMobileTreatmentsOpen] = useState(false);
@@ -22,113 +22,128 @@ export default function Layout({ children, title, description }) {
       {/* Header */}
       <header className="rm-header">
         <div className="rm-header-inner">
-          <Link href="/" className="rm-wordmark">
-            <img
-              src="https://www.range-medical.com/brand/range_logo_transparent_black.png"
-              alt="Range Medical"
-              style={{ height: '56px' }}
-            />
-          </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="rm-nav">
-            <div className="rm-nav-links">
-              <Link href="/injury-recovery" className="rm-nav-link">Recovery</Link>
-
-              {/* How We Treat Dropdown */}
-              <div
-                className="rm-dropdown"
-                onMouseEnter={() => setDropdownOpen(true)}
-                onMouseLeave={() => setDropdownOpen(false)}
-              >
-                <button className="rm-nav-link rm-dropdown-trigger">
-                  Treatments
-                  <svg width="8" height="5" viewBox="0 0 10 6" fill="none">
-                    <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
-                <div className={`rm-dropdown-menu ${dropdownOpen ? 'open' : ''}`}>
-                  <Link href="/hormone-optimization">Hormone Optimization</Link>
-                  <Link href="/weight-loss">Weight Loss</Link>
-                  <Link href="/peptide-therapy">Peptide Therapy</Link>
-                  <Link href="/nad-therapy">NAD+ Therapy</Link>
-                  <Link href="/iv-therapy">IV Therapy</Link>
-                  <Link href="/injection-therapy">Injection Therapy</Link>
-                  <Link href="/cellular-energy-reset">Cellular Reset</Link>
-                  <Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link>
-                  <Link href="/red-light-therapy">Red Light Therapy</Link>
-                  <Link href="/prp-therapy">PRP Therapy</Link>
-                  <Link href="/exosome-therapy">Exosome Therapy</Link>
-                  <Link href="/methylene-blue">Methylene Blue</Link>
-                  <div className="rm-dropdown-divider"></div>
-                  <Link href="/services" className="rm-dropdown-all">View All Services →</Link>
-                </div>
-              </div>
-
-              <Link href="/lab-panels" className="rm-nav-link">Labs</Link>
-              <Link href="/reviews" className="rm-nav-link">Reviews</Link>
-              <Link href="/grand-opening" className="rm-nav-link">Grand Opening</Link>
-            </div>
-
-            <Link href="/assessment" className="rm-nav-cta">
-              Book Your Range Assessment
+          {logoOnly ? (
+            <span className="rm-wordmark" style={{ cursor: 'default' }}>
+              <img
+                src="https://www.range-medical.com/brand/range_logo_transparent_black.png"
+                alt="Range Medical"
+                style={{ height: '56px' }}
+              />
+            </span>
+          ) : (
+            <Link href="/" className="rm-wordmark">
+              <img
+                src="https://www.range-medical.com/brand/range_logo_transparent_black.png"
+                alt="Range Medical"
+                style={{ height: '56px' }}
+              />
             </Link>
-          </nav>
-
-          {/* Mobile Menu Toggle */}
-          <button
-            className="rm-mobile-toggle"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            <span></span>
-            <span></span>
-          </button>
-        </div>
-
-        {/* Mobile Menu */}
-        <div className={`rm-mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
-          <Link href="/injury-recovery" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Recovery</Link>
-          <button
-            className="rm-mobile-accordion"
-            onClick={() => setMobileTreatmentsOpen(!mobileTreatmentsOpen)}
-          >
-            <span>Treatments</span>
-            <svg
-              width="10" height="6" viewBox="0 0 12 7" fill="none"
-              style={{ transform: mobileTreatmentsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
-            >
-              <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          {mobileTreatmentsOpen && (
-            <div className="rm-mobile-sub">
-              <Link href="/hormone-optimization" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hormone Optimization</Link>
-              <Link href="/weight-loss" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Weight Loss</Link>
-              <Link href="/peptide-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Peptide Therapy</Link>
-              <Link href="/nad-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>NAD+ Therapy</Link>
-              <Link href="/iv-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>IV Therapy</Link>
-              <Link href="/injection-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Injection Therapy</Link>
-              <Link href="/cellular-energy-reset" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Cellular Reset</Link>
-              <Link href="/hyperbaric-oxygen-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hyperbaric Oxygen</Link>
-              <Link href="/red-light-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Red Light Therapy</Link>
-              <Link href="/prp-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>PRP Therapy</Link>
-              <Link href="/exosome-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Exosome Therapy</Link>
-              <Link href="/methylene-blue" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Methylene Blue</Link>
-              <Link href="/services" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)} style={{ fontWeight: 600, color: '#1a1a1a', marginTop: '0.25rem' }}>View All Services →</Link>
-            </div>
           )}
-          <Link href="/lab-panels" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Labs & Testing</Link>
-          <Link href="/reviews" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Reviews</Link>
-          <Link href="/grand-opening" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Grand Opening</Link>
-          <Link href="/assessment" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Book Your Range Assessment</Link>
+
+          {!logoOnly && (
+            <>
+              {/* Desktop Navigation */}
+              <nav className="rm-nav">
+                <div className="rm-nav-links">
+                  <Link href="/injury-recovery" className="rm-nav-link">Recovery</Link>
+
+                  {/* How We Treat Dropdown */}
+                  <div
+                    className="rm-dropdown"
+                    onMouseEnter={() => setDropdownOpen(true)}
+                    onMouseLeave={() => setDropdownOpen(false)}
+                  >
+                    <button className="rm-nav-link rm-dropdown-trigger">
+                      Treatments
+                      <svg width="8" height="5" viewBox="0 0 10 6" fill="none">
+                        <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                    <div className={`rm-dropdown-menu ${dropdownOpen ? 'open' : ''}`}>
+                      <Link href="/hormone-optimization">Hormone Optimization</Link>
+                      <Link href="/weight-loss">Weight Loss</Link>
+                      <Link href="/peptide-therapy">Peptide Therapy</Link>
+                      <Link href="/nad-therapy">NAD+ Therapy</Link>
+                      <Link href="/iv-therapy">IV Therapy</Link>
+                      <Link href="/injection-therapy">Injection Therapy</Link>
+                      <Link href="/cellular-energy-reset">Cellular Reset</Link>
+                      <Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link>
+                      <Link href="/red-light-therapy">Red Light Therapy</Link>
+                      <Link href="/prp-therapy">PRP Therapy</Link>
+                      <Link href="/exosome-therapy">Exosome Therapy</Link>
+                      <Link href="/methylene-blue">Methylene Blue</Link>
+                      <div className="rm-dropdown-divider"></div>
+                      <Link href="/services" className="rm-dropdown-all">View All Services →</Link>
+                    </div>
+                  </div>
+
+                  <Link href="/lab-panels" className="rm-nav-link">Labs</Link>
+                  <Link href="/reviews" className="rm-nav-link">Reviews</Link>
+                  <Link href="/grand-opening" className="rm-nav-link">Grand Opening</Link>
+                </div>
+
+                <Link href="/assessment" className="rm-nav-cta">
+                  Book Your Range Assessment
+                </Link>
+              </nav>
+
+              {/* Mobile Menu Toggle */}
+              <button
+                className="rm-mobile-toggle"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label="Toggle menu"
+              >
+                <span></span>
+                <span></span>
+              </button>
+            </>
+          )}
         </div>
+
+        {!logoOnly && (
+          <div className={`rm-mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
+            <Link href="/injury-recovery" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Recovery</Link>
+            <button
+              className="rm-mobile-accordion"
+              onClick={() => setMobileTreatmentsOpen(!mobileTreatmentsOpen)}
+            >
+              <span>Treatments</span>
+              <svg
+                width="10" height="6" viewBox="0 0 12 7" fill="none"
+                style={{ transform: mobileTreatmentsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
+              >
+                <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            {mobileTreatmentsOpen && (
+              <div className="rm-mobile-sub">
+                <Link href="/hormone-optimization" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hormone Optimization</Link>
+                <Link href="/weight-loss" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Weight Loss</Link>
+                <Link href="/peptide-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Peptide Therapy</Link>
+                <Link href="/nad-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>NAD+ Therapy</Link>
+                <Link href="/iv-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>IV Therapy</Link>
+                <Link href="/injection-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Injection Therapy</Link>
+                <Link href="/cellular-energy-reset" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Cellular Reset</Link>
+                <Link href="/hyperbaric-oxygen-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hyperbaric Oxygen</Link>
+                <Link href="/red-light-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Red Light Therapy</Link>
+                <Link href="/prp-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>PRP Therapy</Link>
+                <Link href="/exosome-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Exosome Therapy</Link>
+                <Link href="/methylene-blue" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Methylene Blue</Link>
+                <Link href="/services" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)} style={{ fontWeight: 600, color: '#1a1a1a', marginTop: '0.25rem' }}>View All Services →</Link>
+              </div>
+            )}
+            <Link href="/lab-panels" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Labs & Testing</Link>
+            <Link href="/reviews" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Reviews</Link>
+            <Link href="/grand-opening" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Grand Opening</Link>
+            <Link href="/assessment" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Book Your Range Assessment</Link>
+          </div>
+        )}
       </header>
 
       {/* Main Content */}
       <main>{children}</main>
 
-      {/* Footer */}
+      {!logoOnly && (
       <footer className="rm-footer">
         <div className="rm-footer-inner">
           <div className="rm-footer-brand">
@@ -191,6 +206,7 @@ export default function Layout({ children, title, description }) {
           </div>
         </div>
       </footer>
+      )}
 
       <style jsx>{`
         /* ── HEADER ── */

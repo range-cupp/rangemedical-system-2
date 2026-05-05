@@ -194,33 +194,28 @@ export default async function handler(req, res) {
       console.error('Assessment purchase creation threw:', purchaseCatch.message);
     }
 
-    // --- Send SMS notification to Chris ---
+    // --- Staff chat alert — replaces prior SMS to Chris ---
     try {
+      const { postToStaffChannel } = await import('../../../lib/post-to-staff-channel');
       const name = patientName || 'Unknown';
       const path = lead?.assessment_path || 'assessment';
       const amount = (paymentIntent.amount / 100).toFixed(2);
-      const message = `New assessment paid! ${name} just paid $${amount} for a ${path} assessment via range-medical.com.`;
-
-      const smsResult = await sendSMS({ to: '+19496900339', message });
-
-      if (smsResult.success) {
-        await logComm({
-          channel: 'sms',
-          messageType: 'admin_assessment_payment_notification',
-          message,
-          source: 'confirm-payment',
-          recipient: '+19496900339',
-          twilioMessageSid: smsResult.messageSid,
-          direction: 'outbound',
-          provider: smsResult.provider || null,
-        });
-        console.log(`Assessment payment notification sent to Chris for lead ${leadId}`);
-      } else {
-        console.error('Assessment payment notification SMS failed:', smsResult.error);
-      }
+      await postToStaffChannel({
+        channelName: 'Sales Alerts',
+        memberEmails: ['damon@range-medical.com', 'tara@range-medical.com'],
+        content: [
+          `🩺 Assessment paid — $${amount}`,
+          '',
+          name,
+          `Path: ${path}`,
+        ].join('\n'),
+        pushPayload: {
+          title: `Assessment paid — $${amount}`,
+          body: name,
+        },
+      });
     } catch (notifyErr) {
-      console.error('Assessment payment notification error:', notifyErr);
-      // Non-blocking — don't fail the payment confirmation
+      console.error('Assessment payment chat error:', notifyErr);
     }
 
     return res.status(200).json({ success: true });

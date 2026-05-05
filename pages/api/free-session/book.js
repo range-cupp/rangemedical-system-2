@@ -6,23 +6,19 @@
 // Stripe Elements + SetupIntent.
 
 import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
 import { createAppointment } from '../../../lib/create-appointment';
 import { pickProviderForSlot } from '../../../lib/scheduling';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
-import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
 import stripe from '../../../lib/stripe';
 import { moveCard } from '../../../lib/pipelines-server';
 import { sendMetaCapiEvent, getClientIp } from '../../../lib/meta-capi';
+import { postToStaffChannel } from '../../../lib/post-to-staff-channel';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-const OWNER_PHONE = '+19496900339';
 
 const TYPE_LABELS = {
   hbot: { label: 'Hyperbaric Oxygen', shortLabel: 'HBOT', duration: 60, slug: 'hbot', category: 'hbot' },
@@ -183,74 +179,30 @@ export default async function handler(req, res) {
       }
     }
 
-    // Damon follow-up task
+    // Staff chat alert — replaces the prior SMS + Damon task + staff email.
     try {
-      const { data: damon } = await supabase
-        .from('employees')
-        .select('id')
-        .eq('email', 'damon@range-medical.com')
-        .single();
-      if (damon?.id) {
-        const taskTitle = `Free ${typeCfg.shortLabel} booked: ${customerName}`;
-        await supabase.from('tasks').insert({
-          title: taskTitle,
-          description: `${customerName} self-booked a free ${typeCfg.label} session for ${prettyWhen}.\nPhone: ${trial.phone || 'n/a'}\nEmail: ${trial.email || 'n/a'}\n$25 no-show card is on file (trial_pass ${trialId}).`,
-          assigned_to: damon.id,
-          assigned_by: damon.id,
-          patient_id: trial.patient_id,
-          patient_name: customerName,
-          priority: 'medium',
-          status: 'pending',
-        });
-        notifyTaskAssignee(damon.id, {
-          assignerName: 'Range Medical',
-          taskTitle,
-          priority: 'medium',
-        }).catch(err => console.error('Damon task SMS error:', err));
-      }
-    } catch (taskErr) {
-      console.error('Damon task insert error:', taskErr);
-    }
-
-    // Staff alert SMS
-    try {
-      const alertMsg = `Free ${typeCfg.shortLabel} booked: ${customerName} (${trial.phone}) — ${prettyWhen}. $25 no-show card on file.`;
-      const alertResult = await sendSMS({ to: OWNER_PHONE, message: alertMsg });
-      await logComm({
-        channel: 'sms',
-        messageType: `free_session_${trial.trial_type}_booking_staff_alert`,
-        message: alertMsg,
-        source: 'free-session-book',
-        recipient: OWNER_PHONE,
-        status: alertResult.success ? 'sent' : 'error',
-        errorMessage: alertResult.error || null,
-        twilioMessageSid: alertResult.messageSid || null,
-        provider: alertResult.provider || null,
+      const lines = [
+        `✅ Free ${typeCfg.label} session BOOKED`,
+        '',
+        customerName,
+        `📞 ${trial.phone || 'n/a'}`,
+        `✉️ ${trial.email || 'n/a'}`,
+        `📅 ${prettyWhen}`,
+        `⏱ ${typeCfg.duration} min`,
+        '',
+        `$25 no-show card is on file (trial_pass ${trialId}). Charge from Stripe if they no-show.`,
+      ];
+      await postToStaffChannel({
+        channelName: 'Free Session Alerts',
+        memberEmails: ['damon@range-medical.com', 'tara@range-medical.com'],
+        content: lines.join('\n'),
+        pushPayload: {
+          title: `Free ${typeCfg.shortLabel} booked`,
+          body: `${customerName} · ${prettyWhen}`,
+        },
       });
-    } catch (alertErr) {
-      console.error('Booking staff alert error:', alertErr);
-    }
-
-    // Staff email
-    try {
-      const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 20px;"><tr><td align="center">
-<table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;">
-<tr><td style="background:#0A0A0A;padding:20px 28px;"><h1 style="margin:0;color:#fff;font-size:18px;">Free ${typeCfg.label} Session Booked</h1></td></tr>
-<tr><td style="padding:24px 28px;">
-<p style="margin:0 0 12px;font-size:15px;"><strong>${escapeHtml(customerName)}</strong> · ${escapeHtml(trial.phone || '')} · ${escapeHtml(trial.email || '')}</p>
-<p style="margin:0 0 12px;font-size:15px;"><strong>When:</strong> ${escapeHtml(prettyWhen)}</p>
-<p style="margin:0 0 12px;font-size:15px;"><strong>Duration:</strong> ${typeCfg.duration} min</p>
-<p style="margin:0 0 0;font-size:13px;color:#737373;">$25 no-show card saved on trial_pass ${trialId}. Charge from Stripe if they no-show.</p>
-</td></tr></table></td></tr></table></body></html>`;
-      await resend.emails.send({
-        from: 'Range Medical <hello@range-medical.com>',
-        to: ['chris@range-medical.com', 'damon@range-medical.com'],
-        subject: `Free ${typeCfg.shortLabel} booked: ${customerName} — ${prettyWhen}`,
-        html,
-      });
-    } catch (emailErr) {
-      console.error('Booking staff email error:', emailErr);
+    } catch (chatErr) {
+      console.error('Booking staff chat error:', chatErr);
     }
 
     // Meta Conversions API — server-side Schedule event, deduped against
@@ -299,14 +251,4 @@ export default async function handler(req, res) {
     console.error('Free session book error:', err);
     return res.status(500).json({ error: err.message || 'Internal server error' });
   }
-}
-
-function escapeHtml(str) {
-  if (str == null) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }

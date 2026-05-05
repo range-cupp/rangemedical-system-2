@@ -5,13 +5,12 @@ import { createClient } from '@supabase/supabase-js';
 import stripe from '../../../lib/stripe';
 import { sendSMS } from '../../../lib/send-sms';
 import { todayPacific } from '../../../lib/date-utils';
+import { postToStaffChannel } from '../../../lib/post-to-staff-channel';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const OWNER_PHONE = '+19496900339';
 
 function formatPhoneE164(phone) {
   if (!phone) return null;
@@ -167,11 +166,25 @@ export default async function handler(req, res) {
       console.error('Energy pack creation error:', packError);
     }
 
-    // SMS notification to owner
-    await sendSMS({
-      to: OWNER_PHONE,
-      message: `Energy & Recovery Pack Sold!\n\n${customerName}\n${normalizedEmail}\n${phone || 'No phone'}\n\n$500 paid — $750 balance activated\nPacks sold: ${(count || 0) + 1} of ${config.max_packs}`,
-    }).catch(err => console.error('SMS notification error:', err));
+    // Staff chat alert — replaces prior SMS to owner.
+    postToStaffChannel({
+      channelName: 'Sales Alerts',
+      memberEmails: ['damon@range-medical.com', 'tara@range-medical.com'],
+      content: [
+        '⚡ Energy & Recovery Pack Sold — $500',
+        '',
+        customerName,
+        `📞 ${phone || 'No phone'}`,
+        `✉️ ${normalizedEmail}`,
+        '',
+        '$500 paid — $750 balance activated',
+        `Packs sold: ${(count || 0) + 1} of ${config.max_packs}`,
+      ].join('\n'),
+      pushPayload: {
+        title: 'Energy Pack Sold — $500',
+        body: customerName,
+      },
+    }).catch(err => console.error('Energy pack staff chat error:', err));
 
     // Confirmation text to patient
     if (formattedPhone) {

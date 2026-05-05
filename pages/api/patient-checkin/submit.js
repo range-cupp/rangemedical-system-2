@@ -13,19 +13,13 @@
 import { createClient } from '@supabase/supabase-js';
 import { sendSMS } from '../../../lib/send-sms';
 import { todayPacific } from '../../../lib/date-utils';
+import { postToStaffChannel } from '../../../lib/post-to-staff-channel';
 // Side effect guidance now lives on the support page at /wl-support
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-// Staff phone numbers for check-in notifications
-const STAFF_PHONES = [
-  '+19496900339', // Chris
-  '+19494244679', // Lily
-  '+17146187880', // Dr. Damien Burgess
-];
 
 export default async function handler(req, res) {
   // CORS headers
@@ -229,34 +223,39 @@ export default async function handler(req, res) {
     // Payment due when 2 or fewer injections remain (gives advance notice)
     const isPaymentDue = sessionsRemaining <= 2;
 
-    // ── Staff SMS notifications (direct via Blooio/Twilio) ──
-    let smsMessage = `📱 WL Check-in: ${patient.name}\n\nWeight: ${parsedWeight} lbs`;
-    if (weightChange) smsMessage += ` (${weightChange})`;
-    smsMessage += `\nInjection: ${newSessionsUsed}/${totalSessions}`;
+    // ── Staff chat alert — replaces prior SMS to staff phones ──
+    let chatMessage = `📱 WL Check-in: ${patient.name}\n\nWeight: ${parsedWeight} lbs`;
+    if (weightChange) chatMessage += ` (${weightChange})`;
+    chatMessage += `\nInjection: ${newSessionsUsed}/${totalSessions}`;
 
     if (side_effects && side_effects.length > 0) {
-      smsMessage += `\n⚠️ Side effects: ${side_effects.join(', ')}`;
+      chatMessage += `\n⚠️ Side effects: ${side_effects.join(', ')}`;
     }
 
     if (notes && notes.trim()) {
-      smsMessage += `\n📝 Notes: ${notes.trim()}`;
+      chatMessage += `\n📝 Notes: ${notes.trim()}`;
     }
 
     if (isPaymentDue) {
-      smsMessage += `\n\n💰 PAYMENT DUE`;
+      chatMessage += `\n\n💰 PAYMENT DUE`;
     }
 
-    for (const phone of STAFF_PHONES) {
-      try {
-        const result = await sendSMS({ to: phone, message: smsMessage });
-        if (result.success) {
-          console.log(`✓ Check-in SMS sent to ${phone} via ${result.provider}`);
-        } else {
-          console.error(`SMS to ${phone} failed:`, result.error);
-        }
-      } catch (smsError) {
-        console.error(`SMS notification error (${phone}):`, smsError);
-      }
+    try {
+      await postToStaffChannel({
+        channelName: 'WL Check-ins',
+        memberEmails: [
+          'damon@range-medical.com',
+          'tara@range-medical.com',
+          'burgess@range-medical.com',
+        ],
+        content: chatMessage,
+        pushPayload: {
+          title: `WL Check-in — ${patient.name}`,
+          body: `${parsedWeight} lbs${weightChange ? ` (${weightChange})` : ''}${isPaymentDue ? ' · PAYMENT DUE' : ''}`,
+        },
+      });
+    } catch (chatErr) {
+      console.error('WL check-in staff chat error:', chatErr);
     }
 
     // ── Patient thank-you SMS ──

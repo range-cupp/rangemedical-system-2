@@ -4,16 +4,13 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
-import { logComm } from '../../../lib/comms-log';
-import { sendSMS } from '../../../lib/send-sms';
 import { isInQuietHours } from '../../../lib/quiet-hours';
+import { postToStaffChannel } from '../../../lib/post-to-staff-channel';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const OWNER_PHONE = '+19496900339';
 
 export default async function handler(req, res) {
   // Verify cron authorization
@@ -80,32 +77,22 @@ export default async function handler(req, res) {
 
       const message = `📅 WL Mid-Point Check\n\n${patientName} is 2 weeks into their monthly ${medication} ${dose} supply.\n\n${daysRemaining} days until next pickup (${protocol.end_date}).\n\nConsider checking in with patient.`;
 
-      // Send to clinic owner via Twilio
-      const result = await sendSMS({ to: OWNER_PHONE, message });
-
-      await logComm({
-        channel: 'sms',
-        messageType: 'wl_midpoint',
-        message,
-        source: 'wl-midpoint-reminder',
-        patientId: protocol.patients?.id,
-        protocolId: protocol.id,
-        ghlContactId: protocol.patients?.ghl_contact_id,
-        patientName,
-        recipient: OWNER_PHONE,
-        status: result.success ? 'sent' : 'error',
-        errorMessage: result.error || null,
-        twilioMessageSid: result.messageSid || null,
-        provider: result.provider || null,
-        direction: 'outbound',
+      const result = await postToStaffChannel({
+        channelName: 'WL Check-ins',
+        memberEmails: ['damon@range-medical.com', 'tara@range-medical.com', 'burgess@range-medical.com'],
+        content: message,
+        pushPayload: {
+          title: `WL Mid-Point: ${patientName}`,
+          body: `${daysRemaining} days until pickup`,
+        },
       });
 
       reminders.push({
         patient: patientName,
-        sent: result.success
+        sent: !!result?.ok,
       });
 
-      console.log('Mid-point reminder for', patientName, result.success ? '✓' : '✗');
+      console.log('Mid-point reminder for', patientName, result?.ok ? '✓' : '✗');
     }
 
     return res.status(200).json({

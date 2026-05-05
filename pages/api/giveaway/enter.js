@@ -1,15 +1,14 @@
 // pages/api/giveaway/enter.js
 // Handles giveaway application submissions.
 // Saves entry, scores the lead, creates/updates patient, inserts to pipeline,
-// sends confirmation SMS to entrant, sends staff notification email.
+// sends confirmation SMS to entrant, posts staff alert to internal chat.
 
 import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import { insertIntoPipeline } from '../../../lib/pipeline-insert';
+import { postToStaffChannel } from '../../../lib/post-to-staff-channel';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = supabaseUrl && supabaseKey
@@ -17,7 +16,6 @@ const supabase = supabaseUrl && supabaseKey
   : null;
 
 const CAMPAIGN_KEY = 'cellular_reset_2026_04';
-const STAFF_ALERT_PHONE = '+19496900339'; // Chris — every new giveaway entry
 
 function computeLeadScore({ importance90d, budgetAnswer }) {
   // 0-100 scale. Importance contributes up to 70, budget up to 30.
@@ -219,81 +217,38 @@ export default async function handler(req, res) {
       console.error('Giveaway confirmation SMS error:', smsErr);
     }
 
-    // 5. Staff notification email
-    try {
-      const date = new Date().toLocaleString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        timeZone: 'America/Los_Angeles',
-      });
-      const tierColor = leadTier === 'green' ? '#16A34A' : leadTier === 'yellow' ? '#D97706' : '#DC2626';
-
-      const staffHtml = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 20px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;">
-        <tr><td style="background:#000;padding:24px 32px;">
-          <h1 style="margin:0;color:#fff;font-size:20px;font-weight:600;">New Giveaway Entry</h1>
-          <p style="margin:4px 0 0;color:#a3a3a3;font-size:13px;">6-Week Cellular Energy Reset</p>
-        </td></tr>
-        <tr><td style="padding:32px;">
-          <p style="margin:0 0 8px;font-size:14px;color:#737373;">${date}</p>
-          <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
-            <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#737373;width:160px;">Name</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;font-weight:600;">${escapeHtml(name)}</td></tr>
-            <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#737373;">Email</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;">${escapeHtml(normalizedEmail)}</td></tr>
-            <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#737373;">Phone</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;">${escapeHtml(phone)}</td></tr>
-            ${instagramHandle ? `<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#737373;">Instagram</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;">${escapeHtml(instagramHandle)}</td></tr>` : ''}
-            <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#737373;">Struggle</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;">${escapeHtml(STRUGGLE_LABELS[struggleMain] || struggleMain)}${struggleOther ? ` — ${escapeHtml(struggleOther)}` : ''}</td></tr>
-            <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#737373;">Importance (90d)</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;font-weight:700;">${importance90d}/10</td></tr>
-            <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#737373;">Budget</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;">${escapeHtml(BUDGET_LABELS[budgetAnswer] || budgetAnswer)}</td></tr>
-            <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#737373;">Tier</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;"><span style="display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;font-weight:700;color:#fff;background:${tierColor};">${leadTier.toUpperCase()}</span> <span style="color:#737373;margin-left:8px;">score ${leadScore}</span></td></tr>
-            <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#737373;vertical-align:top;">Bad day</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:14px;line-height:1.5;">${escapeHtml(badDayDescription)}</td></tr>
-            <tr><td style="padding:10px 0;font-size:14px;color:#737373;vertical-align:top;">What would change</td><td style="padding:10px 0;font-size:14px;line-height:1.5;">${escapeHtml(desiredChange)}</td></tr>
-          </table>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
-
-      await resend.emails.send({
-        from: 'Range Medical <hello@range-medical.com>',
-        to: ['chris@range-medical.com', 'damon@range-medical.com'],
-        subject: `Giveaway: ${name} — ${leadTier.toUpperCase()} (${leadScore})`,
-        html: staffHtml,
-      });
-    } catch (emailErr) {
-      console.error('Staff notification email error:', emailErr);
-    }
-
-    // 6. Staff alert SMS to Chris on every entry
+    // 5. Staff chat alert — replaces the prior SMS to owner + staff email.
     try {
       const struggleLabel = STRUGGLE_LABELS[struggleMain] || struggleMain;
-      const alertMsg = `New giveaway entry: ${name} (${phone.trim()}). ${struggleLabel} · ${importance90d}/10 · ${leadTier.toUpperCase()}. range-medical.com/admin/giveaway`;
+      const budgetLabel = BUDGET_LABELS[budgetAnswer] || budgetAnswer;
+      const lines = [
+        `🎁 New giveaway entry — ${leadTier.toUpperCase()} (score ${leadScore})`,
+        '',
+        name,
+        `📞 ${phone.trim()}`,
+        `✉️ ${normalizedEmail}`,
+      ];
+      if (instagramHandle) lines.push(`📸 ${instagramHandle}`);
+      lines.push(
+        `Struggle: ${struggleLabel}${struggleOther ? ` — ${struggleOther}` : ''}`,
+        `Importance (90d): ${importance90d}/10`,
+        `Budget: ${budgetLabel}`,
+      );
+      if (badDayDescription) lines.push('', `Bad day: ${badDayDescription}`);
+      if (desiredChange) lines.push('', `What would change: ${desiredChange}`);
+      lines.push('', 'Manage entries: range-medical.com/admin/giveaway');
 
-      const alertResult = await sendSMS({ to: STAFF_ALERT_PHONE, message: alertMsg });
-
-      await logComm({
-        channel: 'sms',
-        messageType: 'giveaway_staff_alert',
-        message: alertMsg,
-        source: 'giveaway-enter',
-        recipient: STAFF_ALERT_PHONE,
-        status: alertResult.success ? 'sent' : 'error',
-        errorMessage: alertResult.error || null,
-        twilioMessageSid: alertResult.messageSid || null,
-        provider: alertResult.provider || null,
+      await postToStaffChannel({
+        channelName: 'Giveaway Alerts',
+        memberEmails: ['damon@range-medical.com', 'tara@range-medical.com'],
+        content: lines.join('\n'),
+        pushPayload: {
+          title: `Giveaway entry — ${leadTier.toUpperCase()}`,
+          body: `${name} · ${phone.trim()}`,
+        },
       });
-    } catch (alertErr) {
-      console.error('Giveaway staff alert SMS error:', alertErr);
+    } catch (chatErr) {
+      console.error('Giveaway staff chat error:', chatErr);
     }
 
     return res.status(200).json({
@@ -306,14 +261,4 @@ export default async function handler(req, res) {
     console.error('Giveaway enter error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
-}
-
-function escapeHtml(str) {
-  if (str == null) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }

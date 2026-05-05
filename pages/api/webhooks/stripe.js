@@ -14,6 +14,7 @@ import { autoCreateOrExtendProtocol } from '../../../lib/auto-protocol';
 import { createProtocol } from '../../../lib/create-protocol';
 import { todayPacific } from '../../../lib/date-utils';
 import { sendMetaCapiEvent } from '../../../lib/meta-capi';
+import { postToStaffChannel } from '../../../lib/post-to-staff-channel';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -354,10 +355,15 @@ async function processHRTMembershipPerk(invoice) {
     .eq('id', patientId)
     .single();
 
-  const smsMessage = `💉 HRT Perk: Free Range IV credited for ${patient?.name || 'Unknown'}`;
-  await sendSMS({ to: OWNER_PHONE, message: smsMessage }).catch(err => {
-    console.error('HRT perk owner SMS failed:', err.message);
-  });
+  postToStaffChannel({
+    channelName: 'Sales Alerts',
+    memberEmails: ['damon@range-medical.com', 'tara@range-medical.com'],
+    content: `💉 HRT Perk: Free Range IV credited for ${patient?.name || 'Unknown'}`,
+    pushPayload: {
+      title: 'HRT Perk credited',
+      body: patient?.name || 'Unknown',
+    },
+  }).catch(err => console.error('HRT perk staff chat failed:', err.message));
 
   // Send patient scheduling prompt SMS
   if (patient?.phone) {
@@ -447,15 +453,26 @@ export default async function handler(req, res) {
       const customerPhone = session.customer_details?.phone || null;
       const amount = formatAmount(session.amount_total);
 
-      // Send SMS via Twilio
-      const smsMessage = `💰 New Purchase!\n\n${customerName}\n${items.join(', ')}\n${amount}\n\nvia range-medical.com`;
-      const smsResult = await sendSMS({ to: OWNER_PHONE, message: smsMessage });
-      const smsSent = smsResult.success;
+      // Staff chat alert — replaces prior SMS to owner.
+      const chatResult = await postToStaffChannel({
+        channelName: 'Sales Alerts',
+        memberEmails: ['damon@range-medical.com', 'tara@range-medical.com'],
+        content: [
+          `💰 New Purchase — ${amount}`,
+          '',
+          customerName,
+          items.join(', '),
+        ].join('\n'),
+        pushPayload: {
+          title: `New Purchase — ${amount}`,
+          body: customerName,
+        },
+      });
 
       // Also send email notification
       const emailSent = await sendNotificationEmail({ customerName, customerEmail, items, amount });
 
-      console.log(`Purchase notification: ${amount} — ${items.join(', ')} (SMS: ${smsSent ? 'sent' : 'failed'}, Email: ${emailSent ? 'sent' : 'failed'})`);
+      console.log(`Purchase notification: ${amount} — ${items.join(', ')} (Chat: ${chatResult?.ok ? 'sent' : 'failed'}, Email: ${emailSent ? 'sent' : 'failed'})`);
 
       // ================================================================
       // AUTO-CREATE PURCHASE RECORD + PROTOCOL

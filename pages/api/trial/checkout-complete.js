@@ -4,22 +4,18 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
 import stripe from '../../../lib/stripe';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import { sendTrialConfirmation } from '../../../lib/trial-sms';
 import { todayPacific } from '../../../lib/date-utils';
 import { hasBlooioOptIn, isBlooioProvider, queuePendingLinkMessage } from '../../../lib/blooio-optin';
+import { postToStaffChannel } from '../../../lib/post-to-staff-channel';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-const OWNER_PHONE = '+19496900339';
-const OWNER_EMAIL = 'chriscupp8181@gmail.com';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -220,40 +216,27 @@ export default async function handler(req, res) {
       }
     }
 
-    // Notify owner
-    const ownerSms = `New RLT Trial Purchase!\n\n${customerName}\n$49 — Red Light Trial (3 sessions / 7 days)\n${normalizedPhone || phone || 'No phone'}\n\nvia range-medical.com`;
-    await sendSMS({ to: OWNER_PHONE, message: ownerSms });
-
+    // Staff chat alert — replaces prior owner SMS + notification email.
     try {
-      const now = new Date().toLocaleString('en-US', {
-        timeZone: 'America/Los_Angeles',
-        weekday: 'short', month: 'short', day: 'numeric',
-        hour: 'numeric', minute: '2-digit', hour12: true,
+      await postToStaffChannel({
+        channelName: 'Sales Alerts',
+        memberEmails: ['damon@range-medical.com', 'tara@range-medical.com'],
+        content: [
+          '💸 New RLT Trial Purchase — $49',
+          '',
+          customerName,
+          `📞 ${normalizedPhone || phone || 'No phone'}`,
+          `✉️ ${normalizedEmail}`,
+          '',
+          'Red Light Trial (3 sessions / 7 days)',
+        ].join('\n'),
+        pushPayload: {
+          title: 'New RLT Trial — $49',
+          body: customerName,
+        },
       });
-
-      await resend.emails.send({
-        from: 'Range Medical <noreply@range-medical.com>',
-        to: OWNER_EMAIL,
-        subject: `New RLT Trial: $49 — ${customerName}`,
-        html: `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto;">
-            <div style="background: #dc2626; color: #fff; padding: 20px 24px; border-radius: 12px 12px 0 0;">
-              <h2 style="margin: 0; font-size: 20px;">New Red Light Trial</h2>
-            </div>
-            <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 12px 12px;">
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Customer</td><td style="padding: 8px 0; font-weight: 600; font-size: 14px; text-align: right;">${customerName}</td></tr>
-                <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Email</td><td style="padding: 8px 0; font-size: 14px; text-align: right;">${normalizedEmail}</td></tr>
-                <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Phone</td><td style="padding: 8px 0; font-size: 14px; text-align: right;">${phone || 'N/A'}</td></tr>
-                <tr style="border-top: 2px solid #e5e7eb;"><td style="padding: 12px 0; color: #6b7280; font-size: 16px; font-weight: 600;">Total</td><td style="padding: 12px 0; font-weight: 700; font-size: 20px; text-align: right; color: #16a34a;">$49.00</td></tr>
-              </table>
-              <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #f3f4f6; font-size: 12px; color: #9ca3af;">${now} · RLT Trial checkout</div>
-            </div>
-          </div>
-        `,
-      });
-    } catch (emailErr) {
-      console.error('Trial notification email error:', emailErr);
+    } catch (chatErr) {
+      console.error('Trial staff chat error:', chatErr);
     }
 
     console.log(`RLT trial checkout complete: ${customerName} → trial ${trialPassId}`);

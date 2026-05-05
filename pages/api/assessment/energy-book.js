@@ -128,24 +128,25 @@ export default async function handler(req, res) {
       console.error('Task creation error for energy booking:', taskErr);
     }
 
-    // Chris SMS
+    // Staff chat alert — replaces prior SMS to Chris.
     try {
-      const chrisMessage = `New online booking! ${patientName} just booked a ${panelLabel} via the website. Appointment: ${bookingTime} PT.`;
-      const chrisResult = await sendSMS({ to: '+19496900339', message: chrisMessage });
-      if (chrisResult.success) {
-        await logComm({
-          channel: 'sms',
-          messageType: 'admin_booking_notification',
-          message: chrisMessage,
-          source: 'energy-book',
-          recipient: '+19496900339',
-          twilioMessageSid: chrisResult.messageSid,
-          direction: 'outbound',
-          provider: chrisResult.provider || null,
-        });
-      }
+      const { postToStaffChannel } = await import('../../../lib/post-to-staff-channel');
+      await postToStaffChannel({
+        channelName: 'Bookings',
+        memberEmails: ['damon@range-medical.com', 'tara@range-medical.com'],
+        content: [
+          `📅 New online booking — ${panelLabel}`,
+          '',
+          patientName,
+          `When: ${bookingTime} PT`,
+        ].join('\n'),
+        pushPayload: {
+          title: `New booking — ${panelLabel}`,
+          body: `${patientName} · ${bookingTime} PT`,
+        },
+      });
     } catch (notifyErr) {
-      console.error('Admin notification error:', notifyErr);
+      console.error('Admin booking chat error:', notifyErr);
     }
 
     return res.status(200).json({

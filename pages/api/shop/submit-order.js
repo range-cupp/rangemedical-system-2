@@ -308,21 +308,30 @@ export default async function handler(req, res) {
     }
   }
 
-  // SMS notify staff
+  // Staff chat alert — replaces prior SMS to owner.
   try {
-    const { sendSMS } = require('../../../lib/send-sms');
+    const { postToStaffChannel } = require('../../../lib/post-to-staff-channel');
     const itemSummary = orderItems.map(i => `${i.quantity}x ${i.name}`).join(', ');
-    await sendSMS({
-      to: '+19496900339',
-      message: `New Peptide Order ${orderNumber}\n${patient.name}\n${itemSummary}\nTotal: $${(totalCents / 100).toFixed(2)}\n${isPickup ? 'Pickup' : 'Ship to: ' + addressData?.city + ', ' + addressData?.state}\n\nInvoice needed — check email`,
-      log: {
-        messageType: 'shop_order_notification',
-        source: 'shop-submit-order',
-        patientId: patient.id,
+    await postToStaffChannel({
+      channelName: 'Shop Orders',
+      memberEmails: ['damon@range-medical.com', 'tara@range-medical.com'],
+      content: [
+        `🛍️ New Peptide Order ${orderNumber}`,
+        '',
+        patient.name,
+        itemSummary,
+        `Total: $${(totalCents / 100).toFixed(2)}`,
+        isPickup ? 'Pickup' : `Ship to: ${addressData?.city || ''}, ${addressData?.state || ''}`,
+        '',
+        'Invoice needed — check email.',
+      ].join('\n'),
+      pushPayload: {
+        title: `Peptide Order ${orderNumber}`,
+        body: `${patient.name} · $${(totalCents / 100).toFixed(2)}`,
       },
     });
-  } catch (smsErr) {
-    console.error('SMS notify error:', smsErr);
+  } catch (chatErr) {
+    console.error('Shop submit-order staff chat error:', chatErr);
   }
 
   res.status(200).json({

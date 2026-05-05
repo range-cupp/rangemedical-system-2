@@ -177,8 +177,8 @@ export default async function handler(req, res) {
       status: 'sent',
     });
 
-    // ── 5. Send SMS with same numbers ────────────────────────────────────
-    const smsBody = buildReportSMS({
+    // ── 5. Post the same numbers to chat ────────────────────────────────
+    const chatBody = buildReportSMS({
       shortDate,
       totalRevenue,
       transactionCount,
@@ -189,31 +189,20 @@ export default async function handler(req, res) {
       returningPatientCount,
     });
 
-    const smsResult = await sendSMS({ to: '+19496900339', message: smsBody });
-
-    if (smsResult.success) {
-      await logComm({
-        channel: 'sms',
-        messageType: 'daily_sales_report',
-        message: smsBody,
-        source: 'cron/daily-sales-report',
-        recipient: '+19496900339',
-        status: 'sent',
-        provider: smsResult.provider || null,
+    try {
+      const { postToStaffChannel } = await import('../../../lib/post-to-staff-channel');
+      await postToStaffChannel({
+        channelName: 'Daily Reports',
+        memberEmails: [],
+        content: chatBody,
+        pushPayload: {
+          title: `Daily Sales — ${shortDate}`,
+          body: `$${totalRevenue.toFixed(2)} · ${sessionCount} sessions`,
+        },
       });
-      console.log('Daily Sales Report SMS sent to Chris');
-    } else {
-      console.error('Daily Sales Report SMS error:', smsResult.error);
-      await logComm({
-        channel: 'sms',
-        messageType: 'daily_sales_report',
-        message: smsBody,
-        source: 'cron/daily-sales-report',
-        recipient: '+19496900339',
-        status: 'error',
-        errorMessage: smsResult.error,
-        provider: smsResult.provider || null,
-      });
+      console.log('Daily Sales Report posted to chat');
+    } catch (chatErr) {
+      console.error('Daily Sales Report chat error:', chatErr);
     }
 
     console.log(`Daily Sales Report sent — $${totalRevenue.toFixed(2)}, ${sessionCount} sessions, ${newPatientCount} new patients`);

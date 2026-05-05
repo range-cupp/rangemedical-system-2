@@ -4,21 +4,15 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
 import stripe from '../../../lib/stripe';
-import { sendSMS } from '../../../lib/send-sms';
-import { logComm } from '../../../lib/comms-log';
 import { sendHBOTTrialConfirmation } from '../../../lib/hbot-trial-sms';
 import { todayPacific } from '../../../lib/date-utils';
+import { postToStaffChannel } from '../../../lib/post-to-staff-channel';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-const OWNER_PHONE = '+19496900339';
-const OWNER_EMAIL = 'chriscupp8181@gmail.com';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -189,42 +183,29 @@ export default async function handler(req, res) {
       }
     }
 
-    // Notify owner
-    const ownerSms = `New HBOT Trial Purchase!\n\n${customerName}\n$149 \u2014 Hyperbaric Recovery Trial (3 sessions / 10 days)\n${phone || 'No phone'}\n\nvia range-medical.com`;
-    await sendSMS({ to: OWNER_PHONE, message: ownerSms });
-
+    // Staff chat alert \u2014 replaces prior owner SMS + notification email.
     try {
-      const now = new Date().toLocaleString('en-US', {
-        timeZone: 'America/Los_Angeles',
-        weekday: 'short', month: 'short', day: 'numeric',
-        hour: 'numeric', minute: '2-digit', hour12: true,
+      const lines = [
+        '\ud83d\udcb8 New HBOT Trial Purchase \u2014 $149',
+        '',
+        customerName,
+        `\ud83d\udcde ${phone || 'No phone'}`,
+        `\u2709\ufe0f ${normalizedEmail}`,
+      ];
+      if (main_problem) lines.push(`Main problem: ${main_problem}`);
+      if (importance_1_10) lines.push(`Importance: ${importance_1_10}/10`);
+      lines.push('', 'Hyperbaric Recovery Trial (3 sessions / 10 days)');
+      await postToStaffChannel({
+        channelName: 'Sales Alerts',
+        memberEmails: ['damon@range-medical.com', 'tara@range-medical.com'],
+        content: lines.join('\n'),
+        pushPayload: {
+          title: 'New HBOT Trial \u2014 $149',
+          body: customerName,
+        },
       });
-
-      await resend.emails.send({
-        from: 'Range Medical <noreply@range-medical.com>',
-        to: OWNER_EMAIL,
-        subject: `New HBOT Trial: $149 \u2014 ${customerName}`,
-        html: `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto;">
-            <div style="background: #0891b2; color: #fff; padding: 20px 24px; border-radius: 12px 12px 0 0;">
-              <h2 style="margin: 0; font-size: 20px;">New Hyperbaric Recovery Trial</h2>
-            </div>
-            <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 12px 12px;">
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Customer</td><td style="padding: 8px 0; font-weight: 600; font-size: 14px; text-align: right;">${customerName}</td></tr>
-                <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Email</td><td style="padding: 8px 0; font-size: 14px; text-align: right;">${normalizedEmail}</td></tr>
-                <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Phone</td><td style="padding: 8px 0; font-size: 14px; text-align: right;">${phone || 'N/A'}</td></tr>
-                <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Main Problem</td><td style="padding: 8px 0; font-size: 14px; text-align: right;">${main_problem || 'N/A'}</td></tr>
-                <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Importance</td><td style="padding: 8px 0; font-size: 14px; text-align: right;">${importance_1_10 || 'N/A'}/10</td></tr>
-                <tr style="border-top: 2px solid #e5e7eb;"><td style="padding: 12px 0; color: #6b7280; font-size: 16px; font-weight: 600;">Total</td><td style="padding: 12px 0; font-weight: 700; font-size: 20px; text-align: right; color: #16a34a;">$149.00</td></tr>
-              </table>
-              <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #f3f4f6; font-size: 12px; color: #9ca3af;">${now} \u00b7 HBOT Trial checkout</div>
-            </div>
-          </div>
-        `,
-      });
-    } catch (emailErr) {
-      console.error('HBOT trial notification email error:', emailErr);
+    } catch (chatErr) {
+      console.error('HBOT trial staff chat error:', chatErr);
     }
 
     console.log(`HBOT trial checkout complete: ${customerName} \u2192 trial ${trialPassId}`);

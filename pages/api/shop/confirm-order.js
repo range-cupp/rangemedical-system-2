@@ -5,7 +5,7 @@ import { Resend } from 'resend';
 import { getVialById, getShippingOption } from '../../../lib/vial-catalog';
 import { todayPacific } from '../../../lib/date-utils';
 import { notifyTaskAssignee } from '../../../lib/notify-task-assignee';
-import { sendSMS } from '../../../lib/send-sms';
+import { postToStaffChannel } from '../../../lib/post-to-staff-channel';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -246,20 +246,28 @@ export default async function handler(req, res) {
     console.log('No patient email — skipping receipt');
   }
 
-  // SMS notify staff
+  // Staff chat alert — replaces prior SMS to owner. (Fulfillment task is
+  // still created below for Damon + Chris so the work is tracked.)
   try {
     const itemSummary = orderItems.map(i => `${i.quantity}x ${i.name}`).join(', ');
-    await sendSMS({
-      to: '+19496900339',
-      message: `Shop Order ${orderNumber}\n${patient.name}\n${itemSummary}\nTotal: $${(totalCents / 100).toFixed(2)}\n${isPickup ? 'Pickup' : 'Ship to: ' + addressData?.city + ', ' + addressData?.state}`,
-      log: {
-        messageType: 'shop_order_notification',
-        source: 'shop-confirm-order',
-        patientId: patient.id,
+    await postToStaffChannel({
+      channelName: 'Shop Orders',
+      memberEmails: ['damon@range-medical.com', 'tara@range-medical.com'],
+      content: [
+        `🛍️ New Shop Order ${orderNumber}`,
+        '',
+        patient.name,
+        itemSummary,
+        `Total: $${(totalCents / 100).toFixed(2)}`,
+        isPickup ? 'Pickup' : `Ship to: ${addressData?.city || ''}, ${addressData?.state || ''}`,
+      ].join('\n'),
+      pushPayload: {
+        title: `Shop Order ${orderNumber}`,
+        body: `${patient.name} · $${(totalCents / 100).toFixed(2)}`,
       },
     });
-  } catch (smsErr) {
-    console.error('SMS notify error:', smsErr);
+  } catch (chatErr) {
+    console.error('Shop staff chat error:', chatErr);
   }
 
   // Fulfillment tasks for Damon Durante and Chris Cupp (each task auto-fires an SMS via notifyTaskAssignee)

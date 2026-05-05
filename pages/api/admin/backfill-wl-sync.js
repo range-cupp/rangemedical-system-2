@@ -60,10 +60,13 @@ export default async function handler(req, res) {
       } else {
         results.skipped++;
         results.byReason[result.reason] = (results.byReason[result.reason] || 0) + 1;
+        if (req.query.verbose) {
+          errors.push({ note_id: note.id, note_date: note.note_date, encounter_service: note.encounter_service, skip_reason: result.reason });
+        }
       }
     } catch (err) {
       results.errored++;
-      errors.push({ note_id: note.id, error: err.message });
+      errors.push({ note_id: note.id, error: err.message, stack: err.stack?.split('\n').slice(0,3).join(' | ') });
     }
   }
 

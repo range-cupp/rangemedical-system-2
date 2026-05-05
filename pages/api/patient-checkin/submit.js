@@ -244,9 +244,8 @@ export default async function handler(req, res) {
       await postToStaffChannel({
         channelName: 'WL Check-ins',
         memberEmails: [
-          'damon@range-medical.com',
-          'tara@range-medical.com',
           'burgess@range-medical.com',
+          'lily@range-medical.com',
         ],
         content: chatMessage,
         pushPayload: {

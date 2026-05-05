@@ -5,8 +5,6 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
-import { sendHBOTTrialPostSession1, sendHBOTTrialEndCheckIn } from '../../../lib/hbot-trial-sms';
-import { normalizePhone } from '../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -80,27 +78,6 @@ export default async function handler(req, res) {
           .from('sales_pipeline')
           .update({ stage: newStage, updated_at: new Date().toISOString() })
           .eq('id', trial.sales_pipeline_id);
-      }
-    }
-
-    // SMS triggers
-    const phone = trial.phone ? normalizePhone(trial.phone) : null;
-
-    // After first session — log for cron follow-up
-    if (newSessionsUsed === 1 && phone) {
-      console.log(`HBOT Trial ${trialPassId}: first session logged, follow-up SMS will go via cron`);
-    }
-
-    // 3+ sessions — trigger end-of-trial check-in SMS
-    if (newSessionsUsed >= 3 && !trial.post_survey_completed && phone) {
-      try {
-        await sendHBOTTrialEndCheckIn({
-          phone,
-          firstName: trial.first_name,
-          trialId: trialPassId,
-        });
-      } catch (smsErr) {
-        console.error('HBOT end-of-trial SMS error:', smsErr);
       }
     }
 

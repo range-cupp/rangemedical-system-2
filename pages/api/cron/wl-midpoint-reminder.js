@@ -79,7 +79,7 @@ export default async function handler(req, res) {
 
       const result = await postToStaffChannel({
         channelName: 'WL Check-ins',
-        memberEmails: ['damon@range-medical.com', 'tara@range-medical.com', 'burgess@range-medical.com'],
+        memberEmails: ['burgess@range-medical.com', 'lily@range-medical.com'],
         content: message,
         pushPayload: {
           title: `WL Mid-Point: ${patientName}`,

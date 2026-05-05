@@ -6892,47 +6892,74 @@ export default function PatientProfile() {
                             >✓ Verify</button>
                           )}
                           {employee?.is_admin && med.from_protocol && (() => {
-                            // Only WL and HRT (primary or secondary) need provider approval.
-                            // Peptides and other categories edit dose directly from Business → Protocols.
                             const proto = (activeProtocols || []).find(p => p.id === med.protocol_id);
                             if (!proto) return null;
                             const isWL = proto.category === 'weight_loss' || isWeightLossType(proto.program_type);
                             const isHRT = proto.category === 'hrt' || (proto.program_type || '').includes('hrt');
-                            if (!isWL && !isHRT) return null;
                             return (
                               <>
-                                <button
-                                  onClick={() => openDoseChangeModal(proto, med.is_secondary_med ? {
-                                    isSecondary: true,
-                                    secondaryName: med.secondary_medication_name,
-                                    currentDose: med.strength,
-                                    currentSig: med.sig,
-                                  } : null)}
-                                  style={{
-                                    padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600,
-                                    background: '#fff', color: '#b45309', border: '1px solid #fde68a',
-                                    cursor: 'pointer', whiteSpace: 'nowrap',
-                                  }}
-                                  title="Request a dose change from a provider"
-                                >Change Dose</button>
-                                {/* Frequency edit — schedule-only, no approval. Targets the
-                                    primary protocol's frequency field, or for secondary HRT
-                                    meds the matching entry's free-text SIG inside the parent
-                                    protocol's secondary_medication_details JSON. */}
-                                <button
-                                  onClick={() => openFreqEditModal(
-                                    proto,
-                                    med.is_secondary_med ? {
+                                {(isWL || isHRT) && (
+                                  <button
+                                    onClick={() => openDoseChangeModal(proto, med.is_secondary_med ? {
+                                      isSecondary: true,
+                                      secondaryName: med.secondary_medication_name,
+                                      currentDose: med.strength,
+                                      currentSig: med.sig,
+                                    } : null)}
+                                    style={{
+                                      padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600,
+                                      background: '#fff', color: '#b45309', border: '1px solid #fde68a',
+                                      cursor: 'pointer', whiteSpace: 'nowrap',
+                                    }}
+                                    title="Request a dose change from a provider"
+                                  >Change Dose</button>
+                                )}
+                                {med.is_secondary_med ? (
+                                  // Secondary HRT meds live in the parent protocol's JSON, not a row of their own —
+                                  // edit them via the schedule-only freq edit modal.
+                                  <button
+                                    onClick={() => openFreqEditModal(proto, {
                                       secondaryName: med.secondary_medication_name,
                                       currentSig: med.sig,
-                                    } : null
-                                  )}
-                                  style={{
-                                    background: 'none', border: 'none', cursor: 'pointer',
-                                    fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
-                                  }}
-                                  title="Edit frequency (no approval needed)"
-                                >✏️</button>
+                                    })}
+                                    style={{
+                                      background: 'none', border: 'none', cursor: 'pointer',
+                                      fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
+                                    }}
+                                    title="Edit frequency"
+                                  >✏️</button>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      const route = proto.injection_method === 'subq' ? 'Subcutaneous'
+                                        : proto.injection_method === 'im' ? 'Intramuscular' : '';
+                                      const cat = proto.category || ((proto.program_type || '').includes('hrt') ? 'hrt'
+                                        : isWeightLossType(proto.program_type) ? 'weight_loss' : '');
+                                      setMedEditMode('edit');
+                                      setMedEditForm({
+                                        id: med.id,
+                                        protocol_id: med.protocol_id,
+                                        from_protocol: true,
+                                        medication_name: proto.medication || '',
+                                        strength: proto.selected_dose || proto.current_dose || proto.dose || '',
+                                        form: '',
+                                        route,
+                                        sig: proto.sig || '',
+                                        quick_category: cat,
+                                        quick_gender: proto.hrt_type || (patient?.gender || '').toLowerCase(),
+                                        quick_medication_key: '',
+                                        quick_dose: proto.selected_dose || '',
+                                        quick_frequency: proto.frequency || '',
+                                      });
+                                      setShowMedEditModal(true);
+                                    }}
+                                    style={{
+                                      background: 'none', border: 'none', cursor: 'pointer',
+                                      fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
+                                    }}
+                                    title="Edit medication"
+                                  >✏️</button>
+                                )}
                               </>
                             );
                           })()}
@@ -12539,13 +12566,13 @@ export default function PatientProfile() {
               <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {medEditForm.from_protocol && (
                   <div style={{ padding: '10px 12px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 0, fontSize: 12, color: '#475569' }}>
-                    This medication is generated from an active protocol. Only the <strong>SIG</strong> can be edited here. Dose, frequency, and other structured fields must be changed via the protocol itself.
+                    Edits here update the underlying <strong>protocol</strong>. For HRT or weight-loss <em>dose</em> changes, use <strong>Change Dose</strong> to send a provider-approval request — those require sign-off.
                   </div>
                 )}
 
                 {/* Quick Pick — guided dropdowns that auto-fill the fields below.
-                    Only shown for manual (non-protocol-derived) meds. */}
-                {!medEditForm.from_protocol && (
+                    Available for both manual entries and protocol-backed rows. */}
+                {(
                   <div style={{ padding: '12px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 0 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: '#0f172a', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quick Pick — auto-fills the fields below</div>
 
@@ -12692,8 +12719,7 @@ export default function PatientProfile() {
                     value={medEditForm.medication_name}
                     onChange={e => setMedEditForm(f => ({ ...f, medication_name: e.target.value }))}
                     placeholder="e.g., Testosterone Cypionate"
-                    disabled={medEditForm.from_protocol}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, background: medEditForm.from_protocol ? '#f9fafb' : '#fff' }}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, background: '#fff' }}
                   />
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>
@@ -12704,8 +12730,7 @@ export default function PatientProfile() {
                       value={medEditForm.strength}
                       onChange={e => setMedEditForm(f => ({ ...f, strength: e.target.value }))}
                       placeholder="e.g., 200mg/ml"
-                      disabled={medEditForm.from_protocol}
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, background: medEditForm.from_protocol ? '#f9fafb' : '#fff' }}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, background: '#fff' }}
                     />
                   </div>
                   <div style={{ flex: 1 }}>
@@ -12713,8 +12738,7 @@ export default function PatientProfile() {
                     <select
                       value={medEditForm.form || ''}
                       onChange={e => setMedEditForm(f => ({ ...f, form: e.target.value }))}
-                      disabled={medEditForm.from_protocol}
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, background: medEditForm.from_protocol ? '#f9fafb' : '#fff' }}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, background: '#fff' }}
                     >
                       <option value="">Select…</option>
                       {['Solution','Tablet','Capsule','Patch','Cream','Gel','Lozenge','Powder','Spray'].map(opt => (
@@ -12727,8 +12751,7 @@ export default function PatientProfile() {
                     <select
                       value={medEditForm.route || ''}
                       onChange={e => setMedEditForm(f => ({ ...f, route: e.target.value }))}
-                      disabled={medEditForm.from_protocol}
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, background: medEditForm.from_protocol ? '#f9fafb' : '#fff' }}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, background: '#fff' }}
                     >
                       <option value="">Select…</option>
                       {['Intramuscular','Subcutaneous','Oral','Transdermal','Topical','Sublingual'].map(opt => (
@@ -12888,13 +12911,37 @@ export default function PatientProfile() {
                       setMedEditSaving(true);
                       try {
                         if (medEditForm.from_protocol && medEditForm.protocol_id) {
-                          await fetch(`/api/protocols/${medEditForm.protocol_id}`, {
+                          // Map UI route → protocol injection_method (im / subq / null for oral & other)
+                          const route = medEditForm.route || '';
+                          const injectionMethod = route === 'Intramuscular' ? 'im'
+                            : route === 'Subcutaneous' ? 'subq'
+                            : null;
+                          const protocolPayload = {
+                            medication: medEditForm.medication_name.trim(),
+                            selected_dose: (medEditForm.strength || '').trim() || null,
+                            frequency: (medEditForm.quick_frequency || '').trim() || null,
+                            sig: (medEditForm.sig || '').trim() || null,
+                            injection_method: injectionMethod,
+                          };
+                          // Drop fields the user didn't touch so we don't accidentally clobber existing values
+                          if (!medEditForm.quick_frequency) delete protocolPayload.frequency;
+                          if (!route) delete protocolPayload.injection_method;
+                          const r = await fetch(`/api/protocols/${medEditForm.protocol_id}`, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ sig: (medEditForm.sig || '').trim() || null }),
+                            body: JSON.stringify(protocolPayload),
                           });
+                          if (!r.ok) {
+                            const err = await r.json().catch(() => ({}));
+                            if (err.requires_approval) {
+                              alert(err.error || 'This change requires provider approval. Use the Change Dose button instead.');
+                            } else {
+                              alert(err.error || 'Failed to save protocol changes');
+                            }
+                            return;
+                          }
                           setShowMedEditModal(false);
-                          // Refresh patient data so the new SIG flows back into protocol-derived meds
+                          // Refresh patient data so the protocol-derived row reflects the update
                           const res = await fetch(`/api/patients/${patient.id}`);
                           const data = await res.json();
                           if (data.activeProtocols) setActiveProtocols(data.activeProtocols);

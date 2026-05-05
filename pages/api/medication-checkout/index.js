@@ -209,7 +209,11 @@ export default async function handler(req, res) {
           secondaryMedSkip = isSecondaryMedicationOnProtocol(protoForSecCheck, medication);
         }
       }
-      const isHRTPickup = !isInClinicPurchase && category === 'testosterone' && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0 && !secondaryMedSkip;
+      // Skip auto-schedule for vials — quantity = number of vials, not doses.
+      // The patient self-draws doses from the vial; next_expected_date is computed
+      // from vial size + dose + frequency in updateProtocol (supplyDays branch).
+      const isVialSupply = (supply_type || '').startsWith('vial');
+      const isHRTPickup = !isInClinicPurchase && category === 'testosterone' && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0 && !secondaryMedSkip && !isVialSupply;
       if (isHRTPickup) {
         const hrtPickupQty = parseInt(quantity);
         const pickupDosage = dosage || '';

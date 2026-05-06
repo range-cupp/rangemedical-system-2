@@ -21,8 +21,8 @@ const supabase = createClient(
 );
 
 const TYPE_LABELS = {
-  hbot: { label: 'Hyperbaric Oxygen', shortLabel: 'HBOT', duration: 60, slug: 'hbot', category: 'hbot' },
-  rlt:  { label: 'Red Light',         shortLabel: 'RLT',  duration: 20, slug: 'red-light-therapy', category: 'rlt' },
+  hbot: { label: 'Hyperbaric Oxygen', shortLabel: 'HBOT', duration: 60, slug: 'hbot', category: 'hbot', requiresCard: true },
+  rlt:  { label: 'Red Light',         shortLabel: 'RLT',  duration: 20, slug: 'red-light-therapy', category: 'rlt', requiresCard: false },
 };
 
 function formatPacific(iso) {
@@ -47,12 +47,6 @@ export default async function handler(req, res) {
         debug: { hasTrialId: !!trialId, hasSlotStart: !!slotStart },
       });
     }
-    if (!paymentMethodId) {
-      return res.status(400).json({ error: 'A payment method is required to hold your session' });
-    }
-    if (noShowAgreed !== true) {
-      return res.status(400).json({ error: 'You must agree to the $25 no-show fee to continue' });
-    }
 
     const { data: trial, error: trialErr } = await supabase
       .from('trial_passes')
@@ -71,13 +65,22 @@ export default async function handler(req, res) {
     const customerName = `${trial.first_name || ''} ${trial.last_name || ''}`.trim();
     const normalizedPhone = normalizePhone(trial.phone);
 
-    // Attach payment method defensively (SetupIntent confirm usually does it).
-    if (trial.stripe_customer_id) {
-      try {
-        await stripe.paymentMethods.attach(paymentMethodId, { customer: trial.stripe_customer_id });
-      } catch (attachErr) {
-        if (attachErr?.code !== 'resource_already_exists' && !/already been attached/i.test(attachErr?.message || '')) {
-          console.error('Stripe attach error:', attachErr);
+    if (typeCfg.requiresCard) {
+      if (!paymentMethodId) {
+        return res.status(400).json({ error: 'A payment method is required to hold your session' });
+      }
+      if (noShowAgreed !== true) {
+        return res.status(400).json({ error: 'You must agree to the $25 no-show fee to continue' });
+      }
+
+      // Attach payment method defensively (SetupIntent confirm usually does it).
+      if (trial.stripe_customer_id) {
+        try {
+          await stripe.paymentMethods.attach(paymentMethodId, { customer: trial.stripe_customer_id });
+        } catch (attachErr) {
+          if (attachErr?.code !== 'resource_already_exists' && !/already been attached/i.test(attachErr?.message || '')) {
+            console.error('Stripe attach error:', attachErr);
+          }
         }
       }
     }
@@ -94,7 +97,9 @@ export default async function handler(req, res) {
     const startDate = new Date(slotStart);
     const endDate = new Date(startDate.getTime() + typeCfg.duration * 60000);
     const serviceName = `Free ${typeCfg.label} Trial`;
-    const bookingNotes = `Free ${typeCfg.label} trial — $25 no-show hold on file (pm_id on trial_pass ${trialId})`;
+    const bookingNotes = typeCfg.requiresCard
+      ? `Free ${typeCfg.label} trial — $25 no-show hold on file (pm_id on trial_pass ${trialId})`
+      : `Free ${typeCfg.label} trial — no card on file (ops-only flow)`;
 
     let appointmentResult;
     try {
@@ -120,18 +125,18 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Could not book this time. Please try again.' });
     }
 
-    // Update trial pass with booking + no-show hold
-    await supabase
-      .from('trial_passes')
-      .update({
-        scheduled_start_time: startDate.toISOString(),
-        calcom_booking_uid: appointmentResult.appointment.id,  // legacy column → appointment.id
-        no_show_payment_method_id: paymentMethodId,
-        no_show_agreed_at: new Date().toISOString(),
-        status: 'scheduled',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', trialId);
+    // Update trial pass with booking + (optional) no-show hold
+    const trialUpdate = {
+      scheduled_start_time: startDate.toISOString(),
+      calcom_booking_uid: appointmentResult.appointment.id,  // legacy column → appointment.id
+      status: 'scheduled',
+      updated_at: new Date().toISOString(),
+    };
+    if (typeCfg.requiresCard && paymentMethodId) {
+      trialUpdate.no_show_payment_method_id = paymentMethodId;
+      trialUpdate.no_show_agreed_at = new Date().toISOString();
+    }
+    await supabase.from('trial_passes').update(trialUpdate).eq('id', trialId);
 
     // Move the matching Free Sessions pipeline card to "scheduled".
     try {
@@ -159,7 +164,9 @@ export default async function handler(req, res) {
     const prettyWhen = formatPacific(startDate.toISOString());
     if (normalizedPhone) {
       try {
-        const message = `You’re booked for a free ${typeCfg.label} session at Range Medical on ${prettyWhen}. 1901 Westcliff Dr #10, Newport Beach. A card is on file for the $25 no-show fee — only charged if you miss without letting us know. Reply to reschedule.\n\n— Range Medical`;
+        const message = typeCfg.requiresCard
+          ? `You’re booked for a free ${typeCfg.label} session at Range Medical on ${prettyWhen}. 1901 Westcliff Dr #10, Newport Beach. A card is on file for the $25 no-show fee — only charged if you miss without letting us know. Reply to reschedule.\n\n— Range Medical`
+          : `You’re booked for a free ${typeCfg.label} session at Range Medical on ${prettyWhen}. 1901 Westcliff Dr #10, Newport Beach. Reply to reschedule or cancel — please give us a heads up if you can’t make it.\n\n— Range Medical`;
         const smsResult = await sendSMS({ to: normalizedPhone, message });
         await logComm({
           channel: 'sms',
@@ -189,9 +196,12 @@ export default async function handler(req, res) {
         `✉️ ${trial.email || 'n/a'}`,
         `📅 ${prettyWhen}`,
         `⏱ ${typeCfg.duration} min`,
-        '',
-        `$25 no-show card is on file (trial_pass ${trialId}). Charge from Stripe if they no-show.`,
       ];
+      if (typeCfg.requiresCard) {
+        lines.push('', `$25 no-show card is on file (trial_pass ${trialId}). Charge from Stripe if they no-show.`);
+      } else {
+        lines.push('', 'No card on file — please confirm with reminder texts (24h + same-day).');
+      }
       await postToStaffChannel({
         channelName: 'Free Session Alerts',
         memberEmails: ['damon@range-medical.com', 'tara@range-medical.com'],

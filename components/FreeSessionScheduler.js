@@ -166,7 +166,7 @@ function PaymentForm({
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-function BookedDone({ firstName, bookedStart, sessionDurationMinutes, trialLabel, accent, accentBg }) {
+function BookedDone({ firstName, bookedStart, sessionDurationMinutes, trialLabel, accent, accentBg, requiresCard }) {
   return (
     <section style={{ maxWidth: 560, margin: '0 auto', padding: '6rem 2rem 4rem', textAlign: 'center' }}>
       <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 72, height: 72, background: accent, borderRadius: '50%', marginBottom: 20 }}>
@@ -181,12 +181,18 @@ function BookedDone({ firstName, bookedStart, sessionDurationMinutes, trialLabel
       <p style={{ fontSize: 14, color: '#525252', margin: '0 0 12px', lineHeight: 1.6 }}>
         {sessionDurationMinutes}-minute {trialLabel} session · 1901 Westcliff Dr #10, Newport Beach
       </p>
-      <div style={{ background: accentBg, border: `1px solid ${accent}`, padding: '14px 18px', margin: '24px auto 0', textAlign: 'left', maxWidth: 480 }}>
-        <p style={{ fontSize: 12, fontWeight: 700, color: accent, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 4px' }}>Card on file</p>
-        <p style={{ fontSize: 13, color: '#404040', margin: 0, lineHeight: 1.5 }}>
-          We&apos;ll only charge $25 if you don&apos;t show and haven&apos;t texted us at least an hour ahead.
+      {requiresCard ? (
+        <div style={{ background: accentBg, border: `1px solid ${accent}`, padding: '14px 18px', margin: '24px auto 0', textAlign: 'left', maxWidth: 480 }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: accent, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 4px' }}>Card on file</p>
+          <p style={{ fontSize: 13, color: '#404040', margin: 0, lineHeight: 1.5 }}>
+            We&apos;ll only charge $25 if you don&apos;t show and haven&apos;t texted us at least an hour ahead.
+          </p>
+        </div>
+      ) : (
+        <p style={{ fontSize: 14, color: '#525252', margin: '20px auto 0', maxWidth: 480, lineHeight: 1.6 }}>
+          We&apos;ll text you a confirmation and a reminder. If your plans change, just reply and we&apos;ll re-slot you.
         </p>
-      </div>
+      )}
       <p style={{ marginTop: 24, fontSize: 14, color: '#737373' }}>
         Need to change or cancel? Call/text{' '}
         <a href="tel:9499973988" style={{ color: '#171717', fontWeight: 600, textDecoration: 'none' }}>(949) 997-3988</a>
@@ -230,6 +236,7 @@ export default function FreeSessionScheduler({
   scheduleTitle,
   scheduleSubtitle,
   scheduleFootnote,
+  requiresCard = true,
 }) {
   const [phase, setPhase] = useState('schedule');
   const days = useMemoDays();
@@ -257,8 +264,65 @@ export default function FreeSessionScheduler({
       .finally(() => setLoadingSlots(false));
   }, [eventTypeId, selectedDate]);
 
-  if (!eventTypeId || !setupClientSecret || !stripePromise) {
+  // Bail-out fallback. With requiresCard=false we don't need stripe at all.
+  if (!eventTypeId || (requiresCard && (!setupClientSecret || !stripePromise))) {
     return <FallbackDone firstName={firstName} accent={accentColor} />;
+  }
+
+  // Shared booking call — used by the cardless path (paymentMethodId=null) and
+  // the card path (after Stripe SetupIntent confirm).
+  async function bookSession(paymentMethodId) {
+    setBookError('');
+    setPhase('booking');
+    const sessionValue = trialLabel === 'Hyperbaric Oxygen' ? 185 : 85;
+    const metaAttr = readMetaAttribution();
+    const eventId = newMetaEventId('schedule');
+
+    if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+      window.fbq('track', 'Schedule', {
+        content_name: `${trialLabel} free session booked`,
+        value: sessionValue,
+        currency: 'USD',
+      }, { eventID: eventId });
+      window.fbq('trackCustom', 'FreeSessionBooked', { trial_label: trialLabel, value: sessionValue });
+    }
+
+    try {
+      const res = await fetch('/api/free-session/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trialId, eventTypeId,
+          slotStart: selectedSlot,
+          paymentMethodId: paymentMethodId || null,
+          noShowAgreed: requiresCard ? true : false,
+          meta: {
+            eventId,
+            fbp: metaAttr.fbp,
+            fbc: metaAttr.fbc,
+            fbclid: metaAttr.fbclid,
+            eventSourceUrl: typeof window !== 'undefined' ? window.location.href : '',
+          },
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setBookError(data.error || 'Could not book. Please try again.');
+        if (data.slotUnavailable) {
+          setSlotsByDate((prev) => { const n = { ...prev }; delete n[selectedDate]; return n; });
+          setSelectedSlot(null);
+          setPhase('schedule');
+        } else {
+          setPhase(requiresCard ? 'pay' : 'schedule');
+        }
+        return;
+      }
+      setBookedStart(data.scheduledStart || selectedSlot);
+      setPhase('done');
+    } catch (err) {
+      setBookError(err.message || 'Could not book. Please try again.');
+      setPhase(requiresCard ? 'pay' : 'schedule');
+    }
   }
 
   if (phase === 'done') {
@@ -270,6 +334,7 @@ export default function FreeSessionScheduler({
         trialLabel={trialLabel}
         accent={accentColor}
         accentBg={accentBg}
+        requiresCard={requiresCard}
       />
     );
   }
@@ -285,7 +350,9 @@ export default function FreeSessionScheduler({
             {scheduleTitle || 'Pick a time that works for you'}
           </h2>
           <p style={{ fontSize: 14, color: '#525252', margin: '8px 0 22px', lineHeight: 1.5 }}>
-            {scheduleSubtitle || `Pacific time · ${sessionDurationMinutes} minutes · Newport Beach. On the next step you'll add a card for a $25 no-show hold (only charged if you miss it).`}
+            {scheduleSubtitle || (requiresCard
+              ? `Pacific time · ${sessionDurationMinutes} minutes · Newport Beach. On the next step you'll add a card for a $25 no-show hold (only charged if you miss it).`
+              : `Pacific time · ${sessionDurationMinutes} minutes · Newport Beach. We'll send a confirmation text the moment you're booked.`)}
           </p>
 
           <DaySelector days={days.slice(0, 7)} selectedDate={selectedDate} onChange={(d) => { setSelectedDate(d); setSelectedSlot(null); }} accent={accentColor} />
@@ -328,7 +395,14 @@ export default function FreeSessionScheduler({
           )}
 
           <button type="button" disabled={!selectedSlot}
-            onClick={() => { setBookError(''); setPhase('pay'); }}
+            onClick={() => {
+              setBookError('');
+              if (requiresCard) {
+                setPhase('pay');
+              } else {
+                bookSession(null);
+              }
+            }}
             style={{
               width: '100%', padding: 18, marginTop: 18,
               background: selectedSlot ? accentColor : '#a3a3a3',
@@ -337,7 +411,9 @@ export default function FreeSessionScheduler({
               cursor: selectedSlot ? 'pointer' : 'not-allowed',
               fontFamily: 'inherit', opacity: selectedSlot ? 1 : 0.6,
             }}>
-            {selectedSlot ? 'Continue — add card & confirm' : 'Pick a time to continue'}
+            {selectedSlot
+              ? (requiresCard ? 'Continue — add card & confirm' : 'Book My Free Session')
+              : 'Pick a time to continue'}
           </button>
 
           {scheduleFootnote && (
@@ -352,7 +428,7 @@ export default function FreeSessionScheduler({
         </>
       )}
 
-      {phase === 'pay' && (
+      {phase === 'pay' && requiresCard && (
         <Elements stripe={stripePromise} options={{ clientSecret: setupClientSecret, appearance: { theme: 'stripe' } }}>
           <PaymentForm
             selectedSlot={selectedSlot}
@@ -363,61 +439,7 @@ export default function FreeSessionScheduler({
             sessionDurationMinutes={sessionDurationMinutes}
             onBack={() => setPhase('schedule')}
             errorMsg={bookError}
-            onBook={async (paymentMethodId) => {
-              setBookError('');
-              setPhase('booking');
-              const sessionValue = trialLabel === 'Hyperbaric Oxygen' ? 185 : 85;
-              const metaAttr = readMetaAttribution();
-              const eventId = newMetaEventId('schedule');
-
-              // Fire browser pixel before the API call so Meta sees the conversion fast.
-              // CAPI on the server fires the same eventId for dedup.
-              if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-                window.fbq('track', 'Schedule', {
-                  content_name: `${trialLabel} free session booked`,
-                  value: sessionValue,
-                  currency: 'USD',
-                }, { eventID: eventId });
-                window.fbq('trackCustom', 'FreeSessionBooked', { trial_label: trialLabel, value: sessionValue });
-              }
-
-              try {
-                const res = await fetch('/api/free-session/book', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    trialId, eventTypeId,
-                    slotStart: selectedSlot,
-                    paymentMethodId,
-                    noShowAgreed: true,
-                    meta: {
-                      eventId,
-                      fbp: metaAttr.fbp,
-                      fbc: metaAttr.fbc,
-                      fbclid: metaAttr.fbclid,
-                      eventSourceUrl: typeof window !== 'undefined' ? window.location.href : '',
-                    },
-                  }),
-                });
-                const data = await res.json().catch(() => ({}));
-                if (!res.ok) {
-                  setBookError(data.error || 'Could not book. Please try again.');
-                  if (data.slotUnavailable) {
-                    setSlotsByDate((prev) => { const n = { ...prev }; delete n[selectedDate]; return n; });
-                    setSelectedSlot(null);
-                    setPhase('schedule');
-                  } else {
-                    setPhase('pay');
-                  }
-                  return;
-                }
-                setBookedStart(data.scheduledStart || selectedSlot);
-                setPhase('done');
-              } catch (err) {
-                setBookError(err.message || 'Could not book. Please try again.');
-                setPhase('pay');
-              }
-            }}
+            onBook={(paymentMethodId) => bookSession(paymentMethodId)}
           />
         </Elements>
       )}
@@ -426,7 +448,9 @@ export default function FreeSessionScheduler({
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', textAlign: 'center' }}>
           <div style={{ width: 48, height: 48, border: `3px solid ${accentColor}33`, borderTopColor: accentColor, borderRadius: '50%', animation: 'fs-spin 0.8s linear infinite' }} />
           <p style={{ fontSize: 16, color: '#171717', fontWeight: 700, margin: '18px 0 4px' }}>Booking your session…</p>
-          <p style={{ fontSize: 13, color: '#737373', margin: 0 }}>Holding your time and saving your card — just a moment.</p>
+          <p style={{ fontSize: 13, color: '#737373', margin: 0 }}>
+            {requiresCard ? 'Holding your time and saving your card — just a moment.' : 'Holding your time — just a moment.'}
+          </p>
           <style>{`@keyframes fs-spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       )}

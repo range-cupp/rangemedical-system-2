@@ -25,6 +25,7 @@ const TRIAL_CONFIG = {
     source: 'hbot_free_session',
     accentColor: '#0891b2',
     calcomSlug: 'hbot',
+    requiresCard: true,
   },
   rlt: {
     label: 'Red Light',
@@ -34,6 +35,7 @@ const TRIAL_CONFIG = {
     source: 'rlt_free_session',
     accentColor: '#dc2626',
     calcomSlug: 'red-light-therapy',
+    requiresCard: false,
   },
 };
 
@@ -259,52 +261,56 @@ export default async function handler(req, res) {
       console.error('Service lookup error:', lookupErr);
     }
 
-    // 6. Stripe: find or create customer + SetupIntent for no-show card
+    // 6. Stripe: find or create customer + SetupIntent for no-show card.
+    // Skipped entirely for trials with requiresCard=false (RLT) — those use
+    // an ops-only flow (slot caps + reminders) instead of card-on-file.
     let stripeCustomerId = null;
     let setupClientSecret = null;
     let setupIntentId = null;
-    try {
-      const existingCustomers = await stripe.customers.list({ email: normalizedEmail, limit: 1 });
-      if (existingCustomers.data.length > 0) {
-        stripeCustomerId = existingCustomers.data[0].id;
-      } else {
-        const customer = await stripe.customers.create({
-          email: normalizedEmail,
-          name: customerName,
-          phone: phone.trim(),
+    if (config.requiresCard) {
+      try {
+        const existingCustomers = await stripe.customers.list({ email: normalizedEmail, limit: 1 });
+        if (existingCustomers.data.length > 0) {
+          stripeCustomerId = existingCustomers.data[0].id;
+        } else {
+          const customer = await stripe.customers.create({
+            email: normalizedEmail,
+            name: customerName,
+            phone: phone.trim(),
+            metadata: {
+              patient_id: patientId || '',
+              trial_id: trialPassId || '',
+              free_session_type: trialType,
+            },
+          });
+          stripeCustomerId = customer.id;
+        }
+
+        if (patientId && stripeCustomerId) {
+          await supabase
+            .from('patients')
+            .update({ stripe_customer_id: stripeCustomerId })
+            .eq('id', patientId);
+        }
+
+        const setupIntent = await stripe.setupIntents.create({
+          customer: stripeCustomerId,
+          automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
+          usage: 'off_session',
           metadata: {
-            patient_id: patientId || '',
+            purpose: 'free_session_no_show_hold',
             trial_id: trialPassId || '',
             free_session_type: trialType,
           },
         });
-        stripeCustomerId = customer.id;
+        setupClientSecret = setupIntent.client_secret;
+        setupIntentId = setupIntent.id;
+      } catch (stripeErr) {
+        console.error('Stripe SetupIntent error:', stripeErr);
       }
-
-      if (patientId && stripeCustomerId) {
-        await supabase
-          .from('patients')
-          .update({ stripe_customer_id: stripeCustomerId })
-          .eq('id', patientId);
-      }
-
-      const setupIntent = await stripe.setupIntents.create({
-        customer: stripeCustomerId,
-        automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
-        usage: 'off_session',
-        metadata: {
-          purpose: 'free_session_no_show_hold',
-          trial_id: trialPassId || '',
-          free_session_type: trialType,
-        },
-      });
-      setupClientSecret = setupIntent.client_secret;
-      setupIntentId = setupIntent.id;
-    } catch (stripeErr) {
-      console.error('Stripe SetupIntent error:', stripeErr);
     }
 
-    // 7. Update trial_passes with Stripe + Cal.com info
+    // 7. Update trial_passes with Stripe info (only when card flow ran)
     if (trialPassId && (stripeCustomerId || setupIntentId)) {
       await supabase
         .from('trial_passes')
@@ -422,6 +428,7 @@ export default async function handler(req, res) {
       eventTypeId,
       stripeCustomerId,
       setupClientSecret,
+      requiresCard: !!config.requiresCard,
       sessionDurationMinutes: trialType === 'hbot' ? 60 : 20,
     });
   } catch (err) {

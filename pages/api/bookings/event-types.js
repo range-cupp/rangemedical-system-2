@@ -20,29 +20,47 @@ export default async function handler(req, res) {
   try {
     const { data: services, error: svcErr } = await supabase
       .from('services')
-      .select('id, name, slug, duration_minutes, legacy_calcom_event_type_id, sort_order')
+      .select('id, name, slug, duration_minutes, legacy_calcom_event_type_id, sort_order, variants, price_cents, is_addon, category')
       .eq('is_active', true)
       .order('sort_order');
     if (svcErr) throw svcErr;
 
     const serviceIds = (services || []).map(s => s.id);
     let providerRowsByService = {};
+    let addonRowsByService = {};
     if (serviceIds.length > 0) {
-      const { data: providerRows, error: provErr } = await supabase
-        .from('service_providers')
-        .select(`
-          service_id, sort_order, display_label,
-          employee:employees!inner ( id, name, calcom_user_id, is_active )
-        `)
-        .in('service_id', serviceIds);
-      if (provErr) throw provErr;
+      const [providerRes, addonRes] = await Promise.all([
+        supabase
+          .from('service_providers')
+          .select(`
+            service_id, sort_order, display_label,
+            employee:employees!inner ( id, name, calcom_user_id, is_active )
+          `)
+          .in('service_id', serviceIds),
+        supabase
+          .from('service_addons')
+          .select('service_id, addon_service_id, sort_order')
+          .in('service_id', serviceIds)
+          .order('sort_order'),
+      ]);
+      if (providerRes.error) throw providerRes.error;
+      if (addonRes.error) throw addonRes.error;
 
-      for (const row of (providerRows || [])) {
+      for (const row of (providerRes.data || [])) {
         if (row.employee?.is_active === false) continue;
         if (!providerRowsByService[row.service_id]) providerRowsByService[row.service_id] = [];
         providerRowsByService[row.service_id].push(row);
       }
+      for (const row of (addonRes.data || [])) {
+        if (!addonRowsByService[row.service_id]) addonRowsByService[row.service_id] = [];
+        addonRowsByService[row.service_id].push(row.addon_service_id);
+      }
     }
+
+    // Build a lookup for add-on metadata so each parent service can include
+    // resolved add-on objects (not just IDs) in its response.
+    const serviceById = {};
+    for (const s of (services || [])) serviceById[s.id] = s;
 
     const FRIENDLY_USERNAME_BY_CALCOM_USER_ID = {
       2189658: 'chris',
@@ -53,26 +71,44 @@ export default async function handler(req, res) {
       2383086: 'brendyn',
     };
 
-    const simplified = (services || []).map(s => {
-      const provs = (providerRowsByService[s.id] || [])
-        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-      const hosts = provs.map(p => ({
-        userId: p.employee.calcom_user_id || null,
-        name: p.display_label || p.employee.name || '',
-        username: FRIENDLY_USERNAME_BY_CALCOM_USER_ID[p.employee.calcom_user_id] || '',
-      }));
-      return {
-        // Keep id as the legacy Cal.com event type id when available so
-        // existing CalendarView code that round-trips eventTypeId in URLs
-        // (e.g. via the slots endpoint) keeps working unchanged.
-        id: s.legacy_calcom_event_type_id || s.id,
-        title: s.name,
-        slug: s.slug,
-        length: s.duration_minutes,
-        description: null,
-        hosts,
-      };
-    });
+    const simplified = (services || [])
+      // Add-on services aren't directly bookable — they only show up under
+      // a parent service's "Add-ons" picker.
+      .filter(s => !s.is_addon)
+      .map(s => {
+        const provs = (providerRowsByService[s.id] || [])
+          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+        const hosts = provs.map(p => ({
+          userId: p.employee.calcom_user_id || null,
+          name: p.display_label || p.employee.name || '',
+          username: FRIENDLY_USERNAME_BY_CALCOM_USER_ID[p.employee.calcom_user_id] || '',
+        }));
+        const addons = (addonRowsByService[s.id] || [])
+          .map(addonId => serviceById[addonId])
+          .filter(Boolean)
+          .map(a => ({
+            id: a.id,
+            slug: a.slug,
+            name: a.name,
+            duration_minutes: a.duration_minutes,
+            price_cents: a.price_cents,
+            category: a.category,
+          }));
+        return {
+          // Keep id as the legacy Cal.com event type id when available so
+          // existing CalendarView code that round-trips eventTypeId in URLs
+          // (e.g. via the slots endpoint) keeps working unchanged.
+          id: s.legacy_calcom_event_type_id || s.id,
+          title: s.name,
+          slug: s.slug,
+          length: s.duration_minutes,
+          description: null,
+          hosts,
+          variants: Array.isArray(s.variants) ? s.variants : [],
+          price_cents: s.price_cents ?? null,
+          addons,
+        };
+      });
 
     return res.status(200).json({ success: true, eventTypes: simplified });
   } catch (e) {

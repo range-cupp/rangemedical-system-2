@@ -145,6 +145,24 @@ function needsCascading(slug) {
   return slug === 'range-injections' || slug === 'nad-injection' || slug === 'range-iv';
 }
 
+function hasVariants(service) {
+  return Array.isArray(service?.variants) && service.variants.length > 0;
+}
+
+function hasAddons(service) {
+  return Array.isArray(service?.addons) && service.addons.length > 0;
+}
+
+function findVariant(service, value) {
+  if (!hasVariants(service)) return null;
+  return service.variants.find(v => v.value === value) || null;
+}
+
+function fmtCents(cents) {
+  if (cents == null) return '';
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
 export default function BookingTab({ preselectedPatient = null }) {
   // Booking flow state
   const [step, setStep] = useState(preselectedPatient ? 2 : 1); // 1=patient, 2=service, 3=datetime, 4=confirm
@@ -167,6 +185,9 @@ export default function BookingTab({ preselectedPatient = null }) {
   const [injectionType, setInjectionType] = useState('');
   const [nadDose, setNadDose] = useState('');
   const [rangeIvFormula, setRangeIvFormula] = useState('');
+  // DB-driven variant + add-on state (replaces hardcoded cascades over time)
+  const [selectedVariant, setSelectedVariant] = useState('');     // variant.value
+  const [selectedAddonIds, setSelectedAddonIds] = useState([]);   // addon service ids
 
   // Data state
   const [patientSearch, setPatientSearch] = useState('');
@@ -312,9 +333,14 @@ export default function BookingTab({ preselectedPatient = null }) {
     setInjectionType('');
     setNadDose('');
     setRangeIvFormula('');
+    // Reset DB-driven variant + add-on selection
+    setSelectedVariant('');
+    setSelectedAddonIds([]);
 
-    if (needsCascading(service.slug)) {
-      // Stay on step 2 — show cascading dropdowns
+    const usesVariantsOrAddons = hasVariants(service) || hasAddons(service);
+
+    if (needsCascading(service.slug) || usesVariantsOrAddons) {
+      // Stay on step 2 — show cascading dropdowns / variant picker / add-ons
     } else {
       // If service has multiple hosts, stay on step 2 to pick provider
       // Otherwise advance to date/time
@@ -351,31 +377,63 @@ export default function BookingTab({ preselectedPatient = null }) {
     if (slug === 'range-injections') return injectionTier && injectionType;
     if (slug === 'nad-injection') return !!nadDose;
     if (slug === 'range-iv') return !!rangeIvFormula;
+    // DB-driven variants: variant required if service has any
+    if (hasVariants(selectedService) && !selectedVariant) return false;
     return true;
+  };
+
+  const getSelectedAddons = () => {
+    if (!selectedService || !hasAddons(selectedService)) return [];
+    return selectedService.addons.filter(a => selectedAddonIds.includes(a.id));
+  };
+
+  // Total minutes added by chosen add-ons.
+  const getAddonExtraMinutes = () => {
+    return getSelectedAddons().reduce((sum, a) => sum + (a.duration_minutes || 0), 0);
+  };
+
+  // Effective duration for the parent service (variant override → base).
+  const getEffectiveDuration = () => {
+    if (!selectedService) return 30;
+    const variant = findVariant(selectedService, selectedVariant);
+    if (variant?.duration_minutes) return variant.duration_minutes;
+    return selectedService.length || 30;
   };
 
   const getServiceDetailsForBooking = () => {
     if (!selectedService) return null;
     const slug = selectedService.slug;
+    const out = {};
     if (slug === 'range-injections' && injectionTier && injectionType) {
-      return { injectionTier, injectionType };
+      Object.assign(out, { injectionTier, injectionType });
     }
     if (slug === 'nad-injection' && nadDose) {
-      return { nadDose };
+      out.nadDose = nadDose;
     }
     if (slug === 'range-iv' && rangeIvFormula) {
-      return { rangeIvFormula };
+      out.rangeIvFormula = rangeIvFormula;
     }
-    return null;
+    const variant = findVariant(selectedService, selectedVariant);
+    if (variant) {
+      out.variant = { value: variant.value, label: variant.label, price_cents: variant.price_cents ?? null };
+    }
+    const addons = getSelectedAddons();
+    if (addons.length > 0) {
+      out.addons = addons.map(a => ({ id: a.id, slug: a.slug, name: a.name, price_cents: a.price_cents ?? null, duration_minutes: a.duration_minutes }));
+    }
+    return Object.keys(out).length ? out : null;
   };
 
   const getServiceDetailsSummary = () => {
     const details = getServiceDetailsForBooking();
     if (!details) return null;
-    if (details.injectionTier) return `${details.injectionTier} — ${details.injectionType}`;
-    if (details.nadDose) return `NAD+ ${details.nadDose}`;
-    if (details.rangeIvFormula) return `Range IV — ${details.rangeIvFormula}`;
-    return null;
+    const parts = [];
+    if (details.injectionTier) parts.push(`${details.injectionTier} — ${details.injectionType}`);
+    else if (details.nadDose) parts.push(`NAD+ ${details.nadDose}`);
+    else if (details.rangeIvFormula) parts.push(`Range IV — ${details.rangeIvFormula}`);
+    if (details.variant) parts.push(details.variant.label);
+    if (details.addons?.length) parts.push(`+ ${details.addons.map(a => a.name).join(', ')}`);
+    return parts.length ? parts.join(' · ') : null;
   };
 
   // ============================================
@@ -415,16 +473,24 @@ export default function BookingTab({ preselectedPatient = null }) {
 
       let res;
 
-      // Build services array for multi-service bookings
-      const servicesPayload = additionalServices.length > 0
+      // Effective parent duration honors a variant override. Add-ons stack on top.
+      const parentDuration = getEffectiveDuration();
+      const addonExtra = getAddonExtraMinutes();
+      const chosenAddons = getSelectedAddons();
+      const variant = findVariant(selectedService, selectedVariant);
+      const parentDisplayName = variant ? `${selectedService.title} — ${variant.label}` : selectedService.title;
+
+      // Build services array for multi-service bookings (includes add-ons + manually added services).
+      const hasMulti = additionalServices.length > 0 || chosenAddons.length > 0;
+      const servicesPayload = hasMulti
         ? [
-            { name: selectedService.title, category: getServiceCategory(selectedService.slug), duration: selectedService.length || 30 },
+            { name: parentDisplayName, category: getServiceCategory(selectedService.slug), duration: parentDuration },
+            ...chosenAddons.map(a => ({ name: `+ ${a.name}`, category: a.category || 'iv', duration: a.duration_minutes || 0 })),
             ...additionalServices.map(s => ({ name: s.title, category: getServiceCategory(s.slug), duration: s.length || 15 })),
           ]
         : null;
-      const totalDuration = additionalServices.length > 0
-        ? (selectedService.length || 30) + additionalServices.reduce((sum, s) => sum + (s.length || 15), 0)
-        : (selectedService.length || 30);
+      const totalDuration = parentDuration + addonExtra
+        + additionalServices.reduce((sum, s) => sum + (s.length || 15), 0);
 
       if (useCustomTime || servicesPayload) {
         // Override: bypass Cal.com, book directly in appointments table
@@ -442,7 +508,7 @@ export default function BookingTab({ preselectedPatient = null }) {
             patient_id: selectedPatient.id,
             patient_name: selectedPatient.name,
             patient_phone: selectedPatient.phone,
-            service_name: selectedService.title,
+            service_name: parentDisplayName,
             service_category: getServiceCategory(selectedService.slug),
             services: servicesPayload,
             provider: selectedProvider?.userId !== 'any' ? (selectedProvider?.name || null) : null,
@@ -467,9 +533,9 @@ export default function BookingTab({ preselectedPatient = null }) {
             patientName: selectedPatient.name,
             patientEmail: selectedPatient.email,
             patientPhone: selectedPatient.phone,
-            serviceName: selectedService.title,
+            serviceName: parentDisplayName,
             serviceSlug: selectedService.slug,
-            durationMinutes: selectedService.length,
+            durationMinutes: parentDuration,
             notes: fullNotes,
             serviceDetails,
             hostUserId: selectedProvider?.userId !== 'any' ? (selectedProvider?.userId || null) : null,
@@ -493,6 +559,8 @@ export default function BookingTab({ preselectedPatient = null }) {
         setInjectionType('');
         setNadDose('');
         setRangeIvFormula('');
+        setSelectedVariant('');
+        setSelectedAddonIds([]);
         setAdditionalServices([]);
         setShowAddServiceMenu(false);
         fetchUpcomingBookings();
@@ -767,8 +835,65 @@ export default function BookingTab({ preselectedPatient = null }) {
                   })}
 
                   {/* Cascading Dropdowns */}
-                  {selectedService && needsCascading(selectedService.slug) && (
+                  {selectedService && (needsCascading(selectedService.slug) || hasVariants(selectedService) || hasAddons(selectedService)) && (
                     <div style={styles.cascadingSection}>
+                      {/* DB-driven variant picker (dose/size) */}
+                      {hasVariants(selectedService) && (
+                        <>
+                          <label style={styles.label}>Dose / Variant</label>
+                          <select
+                            value={selectedVariant}
+                            onChange={(e) => setSelectedVariant(e.target.value)}
+                            style={styles.selectInput}
+                          >
+                            <option value="">Select an option…</option>
+                            {selectedService.variants.map(v => {
+                              const dur = v.duration_minutes ? ` · ${v.duration_minutes} min` : '';
+                              const price = v.price_cents != null ? ` · ${fmtCents(v.price_cents)}` : '';
+                              return (
+                                <option key={v.value} value={v.value}>
+                                  {v.label}{price}{dur}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </>
+                      )}
+
+                      {/* DB-driven add-ons (e.g. + Vitamin C, + Magnesium) */}
+                      {hasAddons(selectedService) && (
+                        <div style={{ marginTop: hasVariants(selectedService) ? '12px' : '0' }}>
+                          <label style={styles.label}>Add-ons (optional)</label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '8px 10px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '0' }}>
+                            {selectedService.addons.map(a => {
+                              const checked = selectedAddonIds.includes(a.id);
+                              const meta = [
+                                a.duration_minutes ? `+${a.duration_minutes} min` : null,
+                                a.price_cents != null ? fmtCents(a.price_cents) : null,
+                              ].filter(Boolean).join(' · ');
+                              return (
+                                <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => setSelectedAddonIds(prev =>
+                                      prev.includes(a.id) ? prev.filter(id => id !== a.id) : [...prev, a.id]
+                                    )}
+                                  />
+                                  <span style={{ fontWeight: 500 }}>{a.name}</span>
+                                  {meta && <span style={{ color: '#6b7280', fontSize: '12px' }}>· {meta}</span>}
+                                </label>
+                              );
+                            })}
+                          </div>
+                          {getSelectedAddons().length > 0 && (
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px' }}>
+                              Total duration: {getEffectiveDuration() + getAddonExtraMinutes()} min
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Range Injections: Tier + Type */}
                       {selectedService.slug === 'range-injections' && (
                         <>
@@ -1116,9 +1241,12 @@ export default function BookingTab({ preselectedPatient = null }) {
                   <span style={styles.summaryValue}>{selectedPatient?.name}</span>
                 </div>
                 <div style={styles.summaryRow}>
-                  <span style={styles.summaryLabel}>Service{additionalServices.length > 0 ? 's' : ''}</span>
+                  <span style={styles.summaryLabel}>Service{(additionalServices.length > 0 || getSelectedAddons().length > 0) ? 's' : ''}</span>
                   <span style={styles.summaryValue}>
                     {selectedService?.title}
+                    {getSelectedAddons().map(a => (
+                      <span key={a.id} style={{ display: 'block', fontSize: '12px', color: '#0369a1', marginTop: '2px' }}>+ {a.name}</span>
+                    ))}
                     {additionalServices.map(s => (
                       <span key={s.slug} style={{ display: 'block', fontSize: '12px', color: '#0369a1', marginTop: '2px' }}>+ {s.title}</span>
                     ))}
@@ -1139,8 +1267,8 @@ export default function BookingTab({ preselectedPatient = null }) {
                 <div style={styles.summaryRow}>
                   <span style={styles.summaryLabel}>Duration</span>
                   <span style={styles.summaryValue}>
-                    {(selectedService?.length || 30) + additionalServices.reduce((sum, s) => sum + (s.length || 15), 0)} min
-                    {additionalServices.length > 0 && <span style={{ fontSize: '11px', color: '#888', marginLeft: '4px' }}>(combined)</span>}
+                    {getEffectiveDuration() + getAddonExtraMinutes() + additionalServices.reduce((sum, s) => sum + (s.length || 15), 0)} min
+                    {(additionalServices.length > 0 || getSelectedAddons().length > 0) && <span style={{ fontSize: '11px', color: '#888', marginLeft: '4px' }}>(combined)</span>}
                   </span>
                 </div>
                 <div style={styles.summaryRow}>

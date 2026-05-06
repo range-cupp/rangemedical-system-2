@@ -136,13 +136,18 @@ export default async function handler(req, res) {
         .order('start_time', { ascending: true }),
 
       // Most recent past appointments (last 90 days)
-      supabase
-        .from('appointments')
-        .select('patient_id, start_time, service_name, status')
-        .lt('start_time', new Date().toISOString())
-        .in('status', ['completed', 'scheduled'])
-        .order('start_time', { ascending: false })
-        .limit(2000),
+      (() => {
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+        return supabase
+          .from('appointments')
+          .select('patient_id, start_time, service_name, status')
+          .gte('start_time', ninetyDaysAgo.toISOString())
+          .lt('start_time', new Date().toISOString())
+          .in('status', ['completed', 'scheduled'])
+          .order('start_time', { ascending: false })
+          .limit(2000);
+      })(),
 
       // Recent pickups from service_logs (pickups OR injections with pickup-like notes)
       supabase
@@ -473,6 +478,12 @@ export default async function handler(req, res) {
       console.error('Upcoming lab draws fetch error (non-fatal):', labDrawErr);
     }
 
+    // Cache the response on Vercel's edge for 30s and serve stale up to 2 min
+    // while revalidating. With 5+ staff tabs hitting this every page load, the
+    // un-cached version was queueing 12 parallel Supabase queries per request
+    // and saturating the connection pool — turning each request into a 15-25s
+    // wait. With s-maxage, only one request per 30s actually executes.
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
     return res.status(200).json({
       stats: {
         activeProtocols: activeProtocols.length,

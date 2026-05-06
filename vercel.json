@@ -1,5 +1,8 @@
 {
   "cleanUrls": true,
+  "functions": {
+    "pages/api/admin/dashboard-v3.js": { "maxDuration": 60 }
+  },
   "crons": [
     {
       "path": "/api/cron/staff-prep-alert",

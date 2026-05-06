@@ -85,6 +85,13 @@ function PaymentForm({ invoice, onSuccess }) {
           </div>
         )}
 
+        {invoice.shipping_cents > 0 && (
+          <div style={styles.discountRow}>
+            <span>Shipping</span>
+            <span>${(invoice.shipping_cents / 100).toFixed(2)}</span>
+          </div>
+        )}
+
         <div style={styles.totalRow}>
           <span>Total</span>
           <span>${total}</span>

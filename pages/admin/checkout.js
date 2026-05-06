@@ -2238,6 +2238,7 @@ function CheckoutInner() {
           items,
           subtotal_cents: getBaseAmount(),
           discount_cents: getTotalDiscountCents(),
+          shipping_cents: getShippingCents(),
           total_cents: getChargeAmount(),
           created_by: 'checkout_page',
         }),

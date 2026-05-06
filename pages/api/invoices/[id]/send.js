@@ -56,6 +56,7 @@ export default async function handler(req, res) {
                           timeZone: 'America/Los_Angeles',
             }),
             items: invoice.items,
+            shippingCents: invoice.shipping_cents || 0,
             totalCents: invoice.total_cents,
             paymentUrl,
             notes: invoice.notes,

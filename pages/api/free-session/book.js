@@ -188,8 +188,10 @@ export default async function handler(req, res) {
 
     // Staff chat alert — replaces the prior SMS + Damon task + staff email.
     try {
+      const nowStr = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) + ' PT';
       const lines = [
         `✅ Free ${typeCfg.label} session BOOKED`,
+        nowStr,
         '',
         customerName,
         `📞 ${trial.phone || 'n/a'}`,

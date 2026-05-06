@@ -139,14 +139,13 @@ async function handlePost(req, res, employee) {
       req,
     });
 
-    // Send SMS notification to assigned employee (if not self-assigned and they have a phone)
-    if (task.assigned_to !== employee.id) {
-      notifyTaskAssignee(task.assigned_to, {
-        assignerName: employee.name,
-        taskTitle: title,
-        priority,
-      }).catch(err => console.error('Task SMS notification error:', err));
-    }
+    // Post to the assignee's task channel (skip push for self-assigned)
+    notifyTaskAssignee(task.assigned_to, {
+      assignerName: employee.name,
+      taskTitle: title,
+      priority,
+      skipPush: task.assigned_to === employee.id,
+    }).catch(err => console.error('Task channel notification error:', err));
   }
 
   return res.status(201).json({ success: true, task: data[0], tasks: data });
@@ -207,13 +206,14 @@ async function handlePatch(req, res, employee) {
     req,
   });
 
-  // Send SMS if task was reassigned to a different person
-  if (assigned_to && assigned_to !== previousAssignee && assigned_to !== employee.id) {
+  // Post to new assignee's task channel on reassignment
+  if (assigned_to && assigned_to !== previousAssignee) {
     notifyTaskAssignee(assigned_to, {
       assignerName: employee.name,
       taskTitle: data.title,
       priority: data.priority,
-    }).catch(err => console.error('Task reassignment SMS notification error:', err));
+      skipPush: assigned_to === employee.id,
+    }).catch(err => console.error('Task reassignment notification error:', err));
   }
 
   // Pipeline automation: if this task is linked to a pipeline card and has an

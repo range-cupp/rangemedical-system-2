@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     // Find patient by token
     const { data: patient, error: patientError } = await supabase
       .from('patients')
-      .select('id, ghl_contact_id, first_name, last_name, full_name, email, phone, token_expires_at')
+      .select('*')
       .eq('login_token', token)
       .single();
 
@@ -34,6 +34,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
+    // Check token expiration (optional)
     if (patient.token_expires_at && new Date(patient.token_expires_at) < new Date()) {
       return res.status(401).json({ success: false, error: 'Token expired' });
     }
@@ -49,51 +50,23 @@ export default async function handler(req, res) {
       phone: patient.phone
     };
 
-    // Fan out independent fetches in parallel (was 5 sequential round-trips).
-    const [hrtRes, wlRes, protocolsRes, packsRes, challengesRes] = await Promise.all([
-      supabase
-        .from('hrt_memberships')
-        .select('id, status, membership_type, injection_frequency, next_lab_due')
-        .eq('patient_id', patient.id)
-        .eq('status', 'active')
-        .maybeSingle(),
-      supabase
-        .from('weight_loss_programs')
-        .select('status, medication, current_dose, current_weight, starting_weight, goal_weight, injection_frequency, injection_location, next_refill_date')
-        .eq('patient_id', patient.id)
-        .eq('status', 'active')
-        .maybeSingle(),
-      supabase
-        .from('protocols')
-        .select('id, program_name, medication, selected_dose, frequency, delivery_method, status, start_date, end_date, last_refill_date, notes, sessions_used')
-        .eq('patient_id', patient.id)
-        .eq('status', 'active'),
-      supabase
-        .from('session_packages')
-        .select('id, service_type, package_name, sessions_purchased, sessions_used, status, expiration_date')
-        .eq('patient_id', patient.id)
-        .eq('status', 'active'),
-      supabase
-        .from('challenges')
-        .select('id, challenge_name, start_date, end_date, hbot_sessions_included, hbot_sessions_used, rlt_sessions_included, rlt_sessions_used')
-        .eq('patient_id', patient.id)
-        .eq('status', 'active'),
-    ]);
-
-    const hrt = hrtRes.data;
-    const wl = wlRes.data;
-    const protocols = protocolsRes.data;
-    const packs = packsRes.data;
-    const challenges = challengesRes.data;
+    // Get HRT membership
+    const { data: hrt } = await supabase
+      .from('hrt_memberships')
+      .select('*')
+      .eq('patient_id', patient.id)
+      .eq('status', 'active')
+      .single();
 
     if (hrt) {
+      // Get current period
       const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
       const { data: period } = await supabase
         .from('hrt_monthly_periods')
-        .select('iv_used, period_end, period_label')
+        .select('*')
         .eq('membership_id', hrt.id)
         .gte('period_start', monthStart)
-        .maybeSingle();
+        .single();
 
       let ivDaysLeft = null;
       if (period && !period.iv_used) {
@@ -113,6 +86,14 @@ export default async function handler(req, res) {
       };
     }
 
+    // Get Weight Loss program
+    const { data: wl } = await supabase
+      .from('weight_loss_programs')
+      .select('*')
+      .eq('patient_id', patient.id)
+      .eq('status', 'active')
+      .single();
+
     if (wl) {
       patientData.weight_loss = {
         status: wl.status,
@@ -127,6 +108,13 @@ export default async function handler(req, res) {
       };
     }
 
+    // Get Protocols
+    const { data: protocols } = await supabase
+      .from('protocols')
+      .select('*')
+      .eq('patient_id', patient.id)
+      .eq('status', 'active');
+
     if (protocols?.length > 0) {
       patientData.protocols = protocols.map(p => {
         let daysRemaining = null;
@@ -138,10 +126,12 @@ export default async function handler(req, res) {
           id: p.id,
           protocol_name: p.program_name,
           program_name: p.program_name,
+          // Canonical names (real DB columns)
           medication: p.medication,
           selected_dose: p.selected_dose,
           frequency: p.frequency,
           delivery_method: p.delivery_method,
+          // Aliases for frontend backward compat (mirror real values)
           primary_peptide: p.medication,
           dose_amount: p.selected_dose,
           dose_frequency: p.frequency,
@@ -158,6 +148,13 @@ export default async function handler(req, res) {
       });
     }
 
+    // Get Session Packs
+    const { data: packs } = await supabase
+      .from('session_packages')
+      .select('*')
+      .eq('patient_id', patient.id)
+      .eq('status', 'active');
+
     if (packs?.length > 0) {
       patientData.session_packs = packs.map(p => ({
         id: p.id,
@@ -171,6 +168,13 @@ export default async function handler(req, res) {
       }));
     }
 
+    // Get Challenges
+    const { data: challenges } = await supabase
+      .from('challenges')
+      .select('*')
+      .eq('patient_id', patient.id)
+      .eq('status', 'active');
+
     if (challenges?.length > 0) {
       patientData.challenges = challenges.map(c => ({
         id: c.id,
@@ -182,12 +186,11 @@ export default async function handler(req, res) {
       }));
     }
 
-    // Fire-and-forget last login bump (don't block the response on it).
-    supabase
+    // Update last login
+    await supabase
       .from('patients')
       .update({ last_login_at: new Date().toISOString() })
-      .eq('id', patient.id)
-      .then(() => {}, () => {});
+      .eq('id', patient.id);
 
     return res.status(200).json({
       success: true,

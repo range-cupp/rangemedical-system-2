@@ -240,37 +240,40 @@ async function handleGetFallback(req, res) {
 
 // Helper: Add patient names to logs
 async function enrichLogsWithPatientNames(logs) {
-  const missingIds = Array.from(
-    new Set(
-      logs
-        .filter((log) => !log.patient_name && log.patient_id)
-        .map((log) => log.patient_id)
-    )
-  );
+  const formattedLogs = [];
 
-  const nameById = new Map();
-  if (missingIds.length > 0) {
-    const { data: patients } = await supabase
-      .from('patients')
-      .select('id, first_name, last_name, name, email')
-      .in('id', missingIds);
-    for (const p of patients || []) {
-      let name = '';
-      if (p.first_name || p.last_name) {
-        name = `${p.first_name || ''} ${p.last_name || ''}`.trim();
-      } else if (p.name) {
-        name = p.name;
-      } else if (p.email) {
-        name = p.email;
+  for (const log of logs) {
+    let patientName = log.patient_name || 'Unknown';
+
+    if (!log.patient_name && log.patient_id) {
+      try {
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('first_name, last_name, name, email')
+          .eq('id', log.patient_id)
+          .single();
+
+        if (patient) {
+          if (patient.first_name || patient.last_name) {
+            patientName = `${patient.first_name || ''} ${patient.last_name || ''}`.trim();
+          } else if (patient.name) {
+            patientName = patient.name;
+          } else if (patient.email) {
+            patientName = patient.email;
+          }
+        }
+      } catch (e) {
+        // Ignore lookup errors
       }
-      if (name) nameById.set(p.id, name);
     }
+
+    formattedLogs.push({
+      ...log,
+      patient_name: patientName
+    });
   }
 
-  return logs.map((log) => ({
-    ...log,
-    patient_name: log.patient_name || nameById.get(log.patient_id) || 'Unknown',
-  }));
+  return formattedLogs;
 }
 
 // POST - Create log entry with package/protocol automation

@@ -198,17 +198,12 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load logs whenever the category filter changes.
+  // Load data
   useEffect(() => {
     if (!autoOpen) fetchLogs();
-  }, [viewCategory]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Patients + employees only need to load once per mount — they don't depend
-  // on the active category.
-  useEffect(() => {
     fetchPatients();
     fetchEmployees();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [viewCategory]);
 
   // Debounced server-side search — re-fetches when search term changes
   useEffect(() => {
@@ -299,66 +294,52 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
     }
   };
 
-  // Patient search filtering — client-side first, then debounced server fallback.
+  // Patient search filtering — client-side first, then server-side fallback
   useEffect(() => {
-    if (!(patientSearch.length >= 1 && patients.length > 0)) {
-      setFilteredPatients([]);
-      setShowPatientDropdown(false);
-      return;
-    }
+    if (patientSearch.length >= 1 && patients.length > 0) {
+      const term = patientSearch.toLowerCase();
+      const filtered = patients.filter(p => {
+        const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().trim();
+        const nameField = (p.name || '').toLowerCase();
+        const phone = (p.phone || '').replace(/\D/g, '');
+        const email = (p.email || '').toLowerCase();
+        return fullName.includes(term) || nameField.includes(term) || phone.includes(term) || email.includes(term);
+      }).slice(0, 10);
 
-    const term = patientSearch.toLowerCase();
-    const filtered = patients.filter(p => {
-      const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase().trim();
-      const nameField = (p.name || '').toLowerCase();
-      const phone = (p.phone || '').replace(/\D/g, '');
-      const email = (p.email || '').toLowerCase();
-      return fullName.includes(term) || nameField.includes(term) || phone.includes(term) || email.includes(term);
-    }).slice(0, 10);
-
-    if (filtered.length > 0) {
-      setFilteredPatients(filtered);
-      setShowPatientDropdown(!selectedPatient);
-      return;
-    }
-
-    if (patientSearch.length < 2) {
-      setFilteredPatients([]);
-      setShowPatientDropdown(false);
-      return;
-    }
-
-    // Debounce server-side fallback so we don't fire one request per keystroke.
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      fetch(`/api/patients?search=${encodeURIComponent(patientSearch)}`)
-        .then(r => r.json())
-        .then(data => {
-          if (cancelled) return;
-          if (data.patients && data.patients.length > 0) {
-            setFilteredPatients(data.patients.slice(0, 10));
-            setShowPatientDropdown(!selectedPatient);
-            setPatients(prev => {
-              const existingIds = new Set(prev.map(p => p.id));
-              const newPatients = data.patients.filter(p => !existingIds.has(p.id));
-              return [...newPatients, ...prev];
-            });
-          } else {
+      if (filtered.length > 0) {
+        setFilteredPatients(filtered);
+        setShowPatientDropdown(!selectedPatient);
+      } else if (patientSearch.length >= 2) {
+        // No local results — try server-side search as fallback
+        fetch(`/api/patients?search=${encodeURIComponent(patientSearch)}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data.patients && data.patients.length > 0) {
+              setFilteredPatients(data.patients.slice(0, 10));
+              setShowPatientDropdown(!selectedPatient);
+              // Merge into local patient list so future searches find them
+              setPatients(prev => {
+                const existingIds = new Set(prev.map(p => p.id));
+                const newPatients = data.patients.filter(p => !existingIds.has(p.id));
+                return [...newPatients, ...prev];
+              });
+            } else {
+              setFilteredPatients([]);
+              setShowPatientDropdown(false);
+            }
+          })
+          .catch(() => {
             setFilteredPatients([]);
             setShowPatientDropdown(false);
-          }
-        })
-        .catch(() => {
-          if (cancelled) return;
-          setFilteredPatients([]);
-          setShowPatientDropdown(false);
-        });
-    }, 300);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
+          });
+      } else {
+        setFilteredPatients([]);
+        setShowPatientDropdown(false);
+      }
+    } else {
+      setFilteredPatients([]);
+      setShowPatientDropdown(false);
+    }
   }, [patientSearch, patients, selectedPatient]);
 
   // Modal functions

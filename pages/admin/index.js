@@ -1,5 +1,5 @@
 // /pages/admin/index.js
-// Dashboard - Labs Pipeline hero + appointments, revenue, comms
+// Dashboard - appointments, revenue, comms
 // Range Medical System V2
 
 import { useState, useEffect } from 'react';
@@ -7,23 +7,12 @@ import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
 import SMSComposeModal from '../../components/SMSComposeModal';
 
-const LAB_STAGES = [
-  { id: 'awaiting_results', label: 'Awaiting Results', shortLabel: 'Awaiting' },
-  { id: 'uploaded', label: 'Uploaded', shortLabel: 'Uploaded' },
-  { id: 'under_review', label: 'Under Review', shortLabel: 'Review' },
-  { id: 'ready_to_schedule', label: 'Ready to Schedule', shortLabel: 'Schedule' },
-  { id: 'consult_scheduled', label: 'Consult Booked', shortLabel: 'Consult' },
-  { id: 'in_treatment', label: 'In Treatment', shortLabel: 'Treatment' },
-];
-
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
-  const [labPipeline, setLabPipeline] = useState(null);
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [recentComms, setRecentComms] = useState([]);
   const [consentAlerts, setConsentAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [advancing, setAdvancing] = useState(null);
   const [smsTarget, setSmsTarget] = useState(null); // { phone, name, patientId }
   const [upcomingLabDraws, setUpcomingLabDraws] = useState([]);
 
@@ -37,7 +26,6 @@ export default function Dashboard() {
       const data = await res.json();
 
       setStats(data.stats || {});
-      setLabPipeline(data.labPipeline || null);
       setTodayAppointments(data.todayAppointments || []);
       setRecentComms(data.recentComms || []);
       setUpcomingLabDraws(data.upcomingLabDraws || []);
@@ -45,25 +33,6 @@ export default function Dashboard() {
       console.error('Dashboard error:', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const advanceLab = async (labId, currentStage) => {
-    const currentIndex = LAB_STAGES.findIndex(s => s.id === currentStage);
-    if (currentIndex < 0 || currentIndex >= LAB_STAGES.length - 1) return;
-    const nextStage = LAB_STAGES[currentIndex + 1].id;
-    setAdvancing(labId);
-    try {
-      await fetch('/api/admin/labs-pipeline', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: labId, newStage: nextStage })
-      });
-      await fetchDashboard();
-    } catch (err) {
-      console.error('Advance error:', err);
-    } finally {
-      setAdvancing(null);
     }
   };
 
@@ -98,16 +67,6 @@ export default function Dashboard() {
     return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' , timeZone: 'America/Los_Angeles' });
   };
 
-  const getDaysInStage = (updatedAt) => {
-    if (!updatedAt) return 0;
-    const updated = new Date(updatedAt);
-    const now = new Date();
-    return Math.floor((now - updated) / (1000 * 60 * 60 * 24));
-  };
-
-  // Active stages = everything except consult_complete
-  const activeStages = LAB_STAGES.filter(s => s.id !== 'consult_complete');
-
   const formatApptDate = (dateStr) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
@@ -120,119 +79,6 @@ export default function Dashboard() {
         <div style={styles.loading}>Loading...</div>
       ) : (
         <>
-          {/* ═══ LABS PIPELINE ═══ */}
-          <div style={styles.pipelineSection}>
-            <div style={styles.pipelineHeader}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <h2 style={styles.pipelineTitle}>Labs Pipeline</h2>
-                {labPipeline?.total > 0 && (
-                  <span style={styles.totalBadge}>{labPipeline.total} active</span>
-                )}
-              </div>
-              <Link href="/admin/command-center" style={styles.viewAllLink}>
-                Full Pipeline →
-              </Link>
-            </div>
-
-            {/* Stage counts bar */}
-            <div style={styles.stageCountsBar}>
-              {LAB_STAGES.map((stage, i) => {
-                const count = labPipeline?.counts?.[stage.id] || 0;
-                const isLast = i === LAB_STAGES.length - 1;
-                return (
-                  <div key={stage.id} style={styles.stageCountItem}>
-                    <div style={{
-                      ...styles.stageCountDot,
-                      background: count > 0 ? '#000' : '#d4d4d4',
-                    }} />
-                    <span style={{
-                      ...styles.stageCountNumber,
-                      color: count > 0 ? '#000' : '#a3a3a3',
-                    }}>{count}</span>
-                    <span style={styles.stageCountLabel}>{stage.shortLabel}</span>
-                    {!isLast && <div style={styles.stageCountLine} />}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Pipeline Kanban columns — only active (non-complete) stages */}
-            {labPipeline?.total > 0 && (
-              <div style={styles.kanbanGrid}>
-                {activeStages.map(stage => {
-                  const cards = labPipeline?.cards?.[stage.id] || [];
-                  const count = labPipeline?.counts?.[stage.id] || 0;
-                  return (
-                    <div key={stage.id} style={styles.kanbanColumn}>
-                      <div style={styles.kanbanColumnHeader}>
-                        <span style={styles.kanbanColumnTitle}>{stage.label}</span>
-                        {count > 0 && <span style={styles.kanbanColumnCount}>{count}</span>}
-                      </div>
-                      <div style={styles.kanbanColumnBody}>
-                        {cards.length === 0 ? (
-                          <div style={styles.kanbanEmpty}>—</div>
-                        ) : (
-                          cards.map(lab => {
-                            const daysIn = getDaysInStage(lab.updated_at);
-                            const isElite = (lab.medication || '').toLowerCase() === 'elite';
-                            return (
-                              <div key={lab.id} style={styles.kanbanCard}>
-                                <div style={styles.kanbanCardTop}>
-                                  <Link href={`/patients/${lab.patient_id}`} style={styles.kanbanPatientName}>
-                                    {lab.patient_name || 'Unknown'}
-                                  </Link>
-                                  {daysIn > 0 && (
-                                    <span style={{
-                                      ...styles.kanbanDays,
-                                      color: daysIn >= 7 ? '#dc2626' : daysIn >= 3 ? '#d97706' : '#737373',
-                                    }}>{daysIn}d</span>
-                                  )}
-                                </div>
-                                <div style={styles.kanbanCardMeta}>
-                                  <span style={{
-                                    ...styles.kanbanBadge,
-                                    background: isElite ? '#f0fdf4' : '#f5f5f5',
-                                    color: isElite ? '#15803d' : '#525252',
-                                  }}>
-                                    {isElite ? 'Elite' : 'Essential'}
-                                  </span>
-                                  {lab.delivery_method === 'follow_up' && (
-                                    <span style={{ ...styles.kanbanBadge, background: '#eff6ff', color: '#1d4ed8' }}>
-                                      Follow-up
-                                    </span>
-                                  )}
-                                  {lab.start_date && (
-                                    <span style={styles.kanbanDate}>{formatDate(lab.start_date)}</span>
-                                  )}
-                                </div>
-                                {stage.id !== 'consult_complete' && (
-                                  <button
-                                    onClick={() => advanceLab(lab.id, stage.id)}
-                                    disabled={advancing === lab.id}
-                                    style={styles.kanbanAdvanceBtn}
-                                  >
-                                    {advancing === lab.id ? '...' : `→ ${LAB_STAGES[LAB_STAGES.findIndex(s => s.id === stage.id) + 1]?.shortLabel || 'Next'}`}
-                                  </button>
-                                )}
-                              </div>
-                            );
-                          })
-                        )}
-                        {count > cards.length && (
-                          <div style={styles.kanbanMore}>+{count - cards.length} more</div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {!labPipeline?.total && (
-              <div style={styles.pipelineEmpty}>No active lab orders</div>
-            )}
-          </div>
-
           {/* ═══ UPCOMING LAB DRAWS ═══ */}
           {upcomingLabDraws.length > 0 && (
             <div style={styles.labDrawsSection}>
@@ -513,192 +359,6 @@ const styles = {
     textAlign: 'center',
     padding: '60px',
     color: '#666'
-  },
-
-  // ═══ Labs Pipeline ═══
-  pipelineSection: {
-    background: '#fff',
-    borderRadius: 0,
-    border: '1px solid #e5e5e5',
-    padding: '20px 24px',
-    marginBottom: 28,
-  },
-  pipelineHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  pipelineTitle: {
-    fontSize: 18,
-    fontWeight: 700,
-    margin: 0,
-  },
-  totalBadge: {
-    background: '#000',
-    color: '#fff',
-    padding: '3px 10px',
-    borderRadius: 0,
-    fontSize: 12,
-    fontWeight: 600,
-  },
-  pipelineEmpty: {
-    padding: '24px 0',
-    textAlign: 'center',
-    color: '#a3a3a3',
-    fontSize: 14,
-  },
-
-  // Stage counts bar
-  stageCountsBar: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 0,
-    marginBottom: 20,
-    padding: '12px 0',
-    background: '#fafafa',
-    borderRadius: 0,
-  },
-  stageCountItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    position: 'relative',
-    flex: 1,
-  },
-  stageCountDot: {
-    width: 10,
-    height: 10,
-    borderRadius: '50%',
-    marginBottom: 4,
-  },
-  stageCountNumber: {
-    fontSize: 18,
-    fontWeight: 700,
-    lineHeight: 1,
-  },
-  stageCountLabel: {
-    fontSize: 10,
-    color: '#737373',
-    fontWeight: 500,
-    textTransform: 'uppercase',
-    letterSpacing: '0.03em',
-    marginTop: 2,
-  },
-  stageCountLine: {
-    position: 'absolute',
-    top: 4,
-    right: 0,
-    width: 'calc(50%)',
-    height: 1,
-    background: '#d4d4d4',
-  },
-
-  // Kanban
-  kanbanGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(5, 1fr)',
-    gap: 12,
-  },
-  kanbanColumn: {
-    background: '#fafafa',
-    borderRadius: 0,
-    overflow: 'hidden',
-    minHeight: 80,
-  },
-  kanbanColumnHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '8px 10px',
-    borderBottom: '1px solid #e5e5e5',
-  },
-  kanbanColumnTitle: {
-    fontSize: 11,
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    color: '#525252',
-    letterSpacing: '0.03em',
-  },
-  kanbanColumnCount: {
-    fontSize: 11,
-    fontWeight: 600,
-    color: '#000',
-    background: '#e5e5e5',
-    padding: '1px 6px',
-    borderRadius: 0,
-  },
-  kanbanColumnBody: {
-    padding: 8,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-    maxHeight: 320,
-    overflowY: 'auto',
-  },
-  kanbanEmpty: {
-    textAlign: 'center',
-    color: '#d4d4d4',
-    fontSize: 13,
-    padding: '12px 0',
-  },
-  kanbanCard: {
-    background: '#fff',
-    borderRadius: 0,
-    padding: '10px 12px',
-    border: '1px solid #e5e5e5',
-  },
-  kanbanCardTop: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  kanbanPatientName: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: '#000',
-    textDecoration: 'none',
-  },
-  kanbanDays: {
-    fontSize: 11,
-    fontWeight: 600,
-  },
-  kanbanCardMeta: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 6,
-    flexWrap: 'wrap',
-  },
-  kanbanBadge: {
-    padding: '1px 6px',
-    borderRadius: 0,
-    fontSize: 10,
-    fontWeight: 600,
-  },
-  kanbanDate: {
-    fontSize: 11,
-    color: '#737373',
-  },
-  kanbanAdvanceBtn: {
-    width: '100%',
-    padding: '4px 0',
-    fontSize: 11,
-    fontWeight: 600,
-    color: '#000',
-    background: '#f5f5f5',
-    border: '1px solid #e5e5e5',
-    borderRadius: 0,
-    cursor: 'pointer',
-    textAlign: 'center',
-  },
-  kanbanMore: {
-    textAlign: 'center',
-    fontSize: 11,
-    color: '#737373',
-    padding: '4px 0',
   },
 
   // ═══ Upcoming Lab Draws ═══

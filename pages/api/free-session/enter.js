@@ -124,6 +124,44 @@ export default async function handler(req, res) {
     const normalizedPhone = normalizePhone(phone);
     const customerName = `${firstName} ${lastName}`.trim();
 
+    // One free session per person. Block if this email or phone already has
+    // a trial pass that's been booked or used. Abandoned 'purchased' rows
+    // don't count, so a lead who bounced step 2 can still come back and
+    // finish. Cancellations flip the status off 'scheduled' so a legit
+    // reschedule isn't blocked.
+    {
+      const { data: byEmail } = await supabase
+        .from('trial_passes')
+        .select('id')
+        .eq('trial_type', trialType)
+        .in('status', ['scheduled', 'used'])
+        .eq('email', normalizedEmail)
+        .limit(1);
+      let blocked = !!(byEmail && byEmail.length > 0);
+
+      // Phone fallback — stored phones may be formatted ("(949) 555-9999"),
+      // so normalize to last-10-digits in JS rather than relying on ILIKE.
+      if (!blocked) {
+        const phoneDigits = String(phone).replace(/\D/g, '').slice(-10);
+        if (phoneDigits.length === 10) {
+          const { data: actives } = await supabase
+            .from('trial_passes')
+            .select('phone')
+            .eq('trial_type', trialType)
+            .in('status', ['scheduled', 'used']);
+          blocked = (actives || []).some(
+            (p) => String(p.phone || '').replace(/\D/g, '').slice(-10) === phoneDigits,
+          );
+        }
+      }
+
+      if (blocked) {
+        return res.status(409).json({
+          error: `Looks like you already have a free ${config.label} session on file. Text or call (949) 997-3988 to reschedule.`,
+        });
+      }
+    }
+
     const hasBant = Array.isArray(struggleMains) && struggleMains.length > 0 && importance90d && budgetAnswer;
     const leadScore = hasBant ? computeLeadScore({ importance90d, budgetAnswer }) : 0;
     const leadTier = hasBant ? computeTier({ importance90d, budgetAnswer }) : 'yellow';

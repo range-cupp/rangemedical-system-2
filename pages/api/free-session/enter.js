@@ -25,7 +25,7 @@ const TRIAL_CONFIG = {
     source: 'hbot_free_session',
     accentColor: '#0891b2',
     calcomSlug: 'hbot',
-    requiresCard: true,
+    requiresCard: false,
   },
   rlt: {
     label: 'Red Light',

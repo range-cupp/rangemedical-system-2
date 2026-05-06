@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { getCategoryStyle, CATEGORY_COLORS } from '../lib/protocol-config';
 import { overlayClickProps } from './AdminLayout';
-import { APPOINTMENT_SERVICES, getAllServices, PROVIDERS, LOCATIONS, DEFAULT_LOCATION, LOCATION_ENABLED_CATEGORIES, REQUIRED_FORMS } from '../lib/appointment-services';
+import { APPOINTMENT_SERVICES, getAllServices, LOCATIONS, DEFAULT_LOCATION, LOCATION_ENABLED_CATEGORIES, REQUIRED_FORMS } from '../lib/appointment-services';
 import EncounterModal from './EncounterModal';
 import { useAuth } from './AuthProvider';
 import PatientAvatar from './PatientAvatar';
@@ -542,6 +542,18 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     return eventTypesMap[slug] ? { ...eventTypesMap[slug], slug } : null;
   }, [eventTypesMap, selectedLocation?.id]);
 
+  // Derive provider list for a service from event-types hosts (DB-driven).
+  // Replaces the legacy PROVIDERS-by-category map. Returns the same
+  // { name, label, calcomUsername } shape the wizard already uses.
+  const getProvidersForService = useCallback((svc) => {
+    const eventType = resolveEventType(svc?.calcomSlug);
+    return (eventType?.hosts || []).map(h => ({
+      name: h.name,
+      label: h.name,
+      calcomUsername: h.username,
+    }));
+  }, [resolveEventType]);
+
   // Check if a time slot falls within a provider's schedule hours for a given day
   // Accepts explicit provider username and location for per-provider column rendering
   const isSlotInSchedule = useCallback((timeStr, dayOfWeek, provUsername, locationId) => {
@@ -748,10 +760,10 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     }
   }, [preselectedId]);
 
-  // Auto-select provider for single-provider categories (e.g., consultations → Dr. Burgess)
+  // Auto-select provider for single-provider services (e.g., consultations → Dr. Burgess)
   useEffect(() => {
     if (wizardStep === 4 && selectedService && !selectedProvider) {
-      const providers = PROVIDERS[selectedService.category] || PROVIDERS['other'] || [];
+      const providers = getProvidersForService(selectedService);
       if (providers.length === 1) {
         setSelectedProvider(providers[0]);
       }
@@ -763,14 +775,14 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         let changed = false;
         selectedServices.forEach(svc => {
           if (!next[svc.name]) {
-            const opts = PROVIDERS[svc.category] || PROVIDERS['other'] || [];
+            const opts = getProvidersForService(svc);
             if (opts.length === 1) { next[svc.name] = opts[0]; changed = true; }
           }
         });
         return changed ? next : prev;
       });
     }
-  }, [wizardStep, selectedService, selectedProvider, selectedServices]);
+  }, [wizardStep, selectedService, selectedProvider, selectedServices, getProvidersForService]);
 
   // ===================== Patient Search =====================
   const searchPatients = async (q) => {
@@ -3521,7 +3533,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
           </p>
 
           {selectedServices.map(svc => {
-            const svcProviders = PROVIDERS[svc.category] || PROVIDERS['other'] || [];
+            const svcProviders = getProvidersForService(svc);
             const assigned = selectedProviders[svc.name];
             return (
               <div key={svc.name} style={{ marginBottom: '18px' }}>
@@ -3851,7 +3863,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
         // ── Single-service path (unchanged below) ───────────────────────────
         const hasCalcom = !!selectedService?.calcomSlug && resolveEventType(selectedService.calcomSlug);
-        const providers = PROVIDERS[selectedService?.category] || PROVIDERS['other'] || [];
+        const providers = getProvidersForService(selectedService);
         const locationId = selectedLocation?.id || 'newport';
 
         return (

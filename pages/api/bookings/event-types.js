@@ -84,6 +84,9 @@ export default async function handler(req, res) {
             duration_minutes: a.duration_minutes,
             price_cents: a.price_cents,
             category: a.category,
+            // An add-on can itself have dose variants (e.g., Vitamin C 25g–75g),
+            // surfaced as a per-addon dose dropdown in the booking wizard.
+            variants: Array.isArray(a.variants) ? a.variants : [],
           }));
         return {
           // Keep id as the legacy Cal.com event type id when available so

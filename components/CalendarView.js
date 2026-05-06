@@ -111,10 +111,12 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [servicesCatalog, setServicesCatalog] = useState(APPOINTMENT_SERVICES);
   // Per-service variant + add-on selection. Keyed by service name (since
   // selectedServices uses name-based identity throughout this component).
-  // variantSelections: { [serviceName]: variantValue }
-  // addonSelections:   { [serviceName]: [addonId, ...] }
+  // variantSelections:      { [serviceName]: variantValue }
+  // addonSelections:        { [serviceName]: [addonId, ...] }
+  // addonVariantSelections: { [serviceName]: { [addonId]: variantValue } }
   const [variantSelections, setVariantSelections] = useState({});
   const [addonSelections, setAddonSelections] = useState({});
+  const [addonVariantSelections, setAddonVariantSelections] = useState({});
 
   // Flat list of every service across all groups, with the group label attached.
   // Used by the search box on step 1 and by the change-service dropdown.
@@ -134,6 +136,14 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     return svc.variants.find(v => v.value === value) || null;
   };
 
+  // Resolve the chosen variant object for a chosen add-on (or null).
+  const getAddonVariant = (svc, addon) => {
+    if (!addon?.variants?.length) return null;
+    const value = addonVariantSelections[svc.name]?.[addon.id];
+    if (!value) return null;
+    return addon.variants.find(v => v.value === value) || null;
+  };
+
   // Effective duration for a service after applying its chosen variant + add-ons.
   const getEffectiveDurationFor = (svc) => {
     if (!svc) return 0;
@@ -143,7 +153,11 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     if (svc.addons?.length && chosenIds.length) {
       const addonMins = svc.addons
         .filter(a => chosenIds.includes(a.id))
-        .reduce((sum, a) => sum + (a.duration_minutes || 0), 0);
+        .reduce((sum, a) => {
+          const av = getAddonVariant(svc, a);
+          const dur = av?.duration_minutes != null ? av.duration_minutes : (a.duration_minutes || 0);
+          return sum + dur;
+        }, 0);
       base += addonMins;
     }
     return base;
@@ -891,14 +905,18 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         const chosenAddonIds = addonSelections[svc.name] || [];
         const chosenAddons = (svc.addons || []).filter(a => chosenAddonIds.includes(a.id));
         for (const a of chosenAddons) {
+          const av = getAddonVariant(svc, a);
+          const addonName = av ? `${a.name} — ${av.label}` : a.name;
+          const addonDur = av?.duration_minutes != null ? av.duration_minutes : (a.duration_minutes || 0);
+          const addonPrice = av?.price_cents != null ? av.price_cents : (a.price_cents ?? null);
           allServices.push({
             originalName: svc.name, // inherit parent's provider assignment
-            name: `+ ${a.name}`,
+            name: `+ ${addonName}`,
             category: a.category || svc.category,
-            duration: a.duration_minutes || 0,
+            duration: addonDur,
             calcomSlug: a.slug,
             isAddon: true,
-            priceCents: a.price_cents ?? null,
+            priceCents: addonPrice,
           });
         }
       }
@@ -1093,6 +1111,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     setServiceSearch('');
     setVariantSelections({});
     setAddonSelections({});
+    setAddonVariantSelections({});
     setSelectedLocation(DEFAULT_LOCATION);
     setApptDate('');
     setAdditionalDates([]);
@@ -3491,24 +3510,49 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {svc.addons.map(a => {
                       const chosen = (addonSelections[svc.name] || []).includes(a.id);
+                      const hasAddonVariants = a.variants?.length > 0;
                       const meta = [
-                        a.duration_minutes ? `+${a.duration_minutes} min` : null,
-                        a.price_cents != null ? formatPriceCents(a.price_cents) : null,
+                        !hasAddonVariants && a.duration_minutes ? `+${a.duration_minutes} min` : null,
+                        !hasAddonVariants && a.price_cents != null ? formatPriceCents(a.price_cents) : null,
                       ].filter(Boolean).join(' · ');
+                      const addonVariantValue = addonVariantSelections[svc.name]?.[a.id] || '';
                       return (
-                        <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                          <input
-                            type="checkbox"
-                            checked={chosen}
-                            onChange={() => setAddonSelections(prev => {
-                              const cur = prev[svc.name] || [];
-                              const next = cur.includes(a.id) ? cur.filter(id => id !== a.id) : [...cur, a.id];
-                              return { ...prev, [svc.name]: next };
-                            })}
-                          />
-                          <span style={{ fontWeight: 500 }}>{a.name}</span>
-                          {meta && <span style={{ color: '#6b7280', fontSize: '12px' }}>· {meta}</span>}
-                        </label>
+                        <div key={a.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                            <input
+                              type="checkbox"
+                              checked={chosen}
+                              onChange={() => setAddonSelections(prev => {
+                                const cur = prev[svc.name] || [];
+                                const next = cur.includes(a.id) ? cur.filter(id => id !== a.id) : [...cur, a.id];
+                                return { ...prev, [svc.name]: next };
+                              })}
+                            />
+                            <span style={{ fontWeight: 500 }}>{a.name}</span>
+                            {meta && <span style={{ color: '#6b7280', fontSize: '12px' }}>· {meta}</span>}
+                          </label>
+                          {chosen && hasAddonVariants && (
+                            <select
+                              value={addonVariantValue}
+                              onChange={(e) => setAddonVariantSelections(prev => ({
+                                ...prev,
+                                [svc.name]: { ...(prev[svc.name] || {}), [a.id]: e.target.value },
+                              }))}
+                              style={{ ...styles.input, marginLeft: '24px', width: 'calc(100% - 24px)' }}
+                            >
+                              <option value="">Select dose…</option>
+                              {a.variants.map(v => {
+                                const dur = v.duration_minutes ? ` · +${v.duration_minutes} min` : '';
+                                const price = v.price_cents != null ? ` · ${formatPriceCents(v.price_cents)}` : '';
+                                return (
+                                  <option key={v.value} value={v.value}>
+                                    {v.label}{price}{dur}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -3617,6 +3661,13 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               {selectedServices.some(s => s.variants?.length > 0 && !variantSelections[s.name]) && (
                 <div style={{ fontSize: '12px', color: '#dc2626', marginBottom: '8px' }}>Pick a dose / variant above to continue.</div>
               )}
+              {selectedServices.some(s =>
+                (s.addons || [])
+                  .filter(a => (addonSelections[s.name] || []).includes(a.id) && a.variants?.length > 0)
+                  .some(a => !addonVariantSelections[s.name]?.[a.id])
+              ) && (
+                <div style={{ fontSize: '12px', color: '#dc2626', marginBottom: '8px' }}>Pick a dose for each chosen add-on to continue.</div>
+              )}
               <button
                 onClick={() => {
                   const primary = selectedServices[0];
@@ -3626,6 +3677,12 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                   if (selectedServices.some(s => s.hasModality) && !modality) return;
                   // If a service has variants but the user hasn't picked one, stay on step
                   if (selectedServices.some(s => s.variants?.length > 0 && !variantSelections[s.name])) return;
+                  // If a chosen add-on has variants but no dose picked, stay on step
+                  if (selectedServices.some(s =>
+                    (s.addons || [])
+                      .filter(a => (addonSelections[s.name] || []).includes(a.id) && a.variants?.length > 0)
+                      .some(a => !addonVariantSelections[s.name]?.[a.id])
+                  )) return;
                   // If ANY service needs blood-draw panel and panel not yet set, stay on step
                   if (selectedServices.some(s => s.calcomSlug === 'new-patient-blood-draw') && !panelType) return;
                   if (selectedServices.length > 1) {

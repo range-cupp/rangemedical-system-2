@@ -341,16 +341,21 @@ function computeVisitStatus({ appointments, todayISO, cadenceDays }) {
     return d.toISOString().split('T')[0];
   })();
 
-  // Most recent visit that DID get a note attached. If it's newer than an
+  // Pickups don't need encounter notes and don't count as "the patient was
+  // weighed/dosed" — separate them from real injection visits for the
+  // unlogged + last_visit checks.
+  const pastInjections = past.filter(a => a.kind !== 'pickup');
+
+  // Most recent INJECTION that DID get a note attached. If it's newer than an
   // unlogged visit, that older gap is stale — the provider is clearly caught
   // up — so we don't keep nagging about it.
-  const lastLoggedDate = past
+  const lastLoggedDate = pastInjections
     .filter(a => a.has_note)
     .map(a => a.date)
     .sort()
     .pop() || null;
 
-  const recentUnlogged = past.filter(a =>
+  const recentUnlogged = pastInjections.filter(a =>
     a.date >= cutoff14 &&
     !a.has_note &&
     !['cancelled', 'no_show', 'rescheduled'].includes(a.status) &&
@@ -358,12 +363,14 @@ function computeVisitStatus({ appointments, todayISO, cadenceDays }) {
   );
   // Same suppression rule for no-shows: if there's a more recent logged visit,
   // the patient already came back, no reschedule needed.
-  const recentNoShows = past.filter(a =>
+  const recentNoShows = pastInjections.filter(a =>
     a.date >= cutoff14 &&
     a.status === 'no_show' &&
     (!lastLoggedDate || a.date > lastLoggedDate)
   );
-  const lastVisit = past.find(a => a.has_note) || null;
+  const lastVisit = pastInjections.find(a => a.has_note) || null;
+  // Future appointments includes pickups — a scheduled pickup IS the next
+  // visit on our calendar (vacation dispense flow).
   const upcomingThisWeek = future.slice(0, 5);
   const todayAppt = today[0] || null;
 
@@ -666,12 +673,22 @@ async function handleGet(req, res) {
         .lte('start_time', apptEnd + 'T23:59:59Z')
         .order('start_time', { ascending: true });
 
-      // Filter to WL-flavored appointments. service_category is canonical;
-      // service_name fallback catches older rows where category wasn't set.
-      const wlAppts = (appts || []).filter(a =>
-        a.service_category === 'weight_loss' ||
-        (a.service_name || '').toLowerCase().includes('weight loss')
-      );
+      // Filter to WL-flavored appointments + tag each with kind.
+      // - 'injection' = a real WL visit (gets weighed, dosed, encounter note)
+      // - 'pickup'    = patient picks up a take-home dispense (no encounter
+      //                 note needed, but still counts as next visit for the
+      //                 missed-cycle check — patients going on vacation get
+      //                 booked for a pickup so they're on our calendar).
+      const wlAppts = (appts || []).flatMap(a => {
+        const isInjection =
+          a.service_category === 'weight_loss' ||
+          (a.service_name || '').toLowerCase().includes('weight loss');
+        const isPickup =
+          a.service_category === 'medication_pickup' ||
+          (a.service_name || '').toLowerCase().includes('medication pickup');
+        if (!isInjection && !isPickup) return [];
+        return [{ ...a, kind: isInjection ? 'injection' : 'pickup' }];
+      });
 
       // Pull encounter notes for those appointments so we can flag visits that
       // happened but Lily didn't document yet.
@@ -699,6 +716,7 @@ async function handleGet(req, res) {
           provider: a.provider,
           status: a.status,
           has_note: notedAppointmentIds.has(a.id),
+          kind: a.kind,  // 'injection' or 'pickup' — used downstream
         });
       }
 

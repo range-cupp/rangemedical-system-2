@@ -390,8 +390,10 @@ export default async function handler(req, res) {
 
     notificationTasks.push((async () => {
       try {
+        const timeStr = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) + ' PT';
         const lines = [
           `\ud83c\udd95 New FREE ${config.label} session`,
+          timeStr,
           '',
           customerName,
           `\ud83d\udcde ${phone.trim()}`,

@@ -34,7 +34,7 @@ export default async function handler(req, res) {
           .from('service_providers')
           .select(`
             service_id, sort_order, display_label,
-            employee:employees!inner ( id, name, calcom_user_id, is_active )
+            employee:employees!inner ( id, name, username, calcom_user_id, is_active )
           `)
           .in('service_id', serviceIds),
         supabase
@@ -62,15 +62,6 @@ export default async function handler(req, res) {
     const serviceById = {};
     for (const s of (services || [])) serviceById[s.id] = s;
 
-    const FRIENDLY_USERNAME_BY_CALCOM_USER_ID = {
-      2189658: 'chris',
-      2197563: 'damien',
-      2197567: 'lily',
-      2197566: 'evan',
-      2197565: 'damon',
-      2383086: 'brendyn',
-    };
-
     const simplified = (services || [])
       // Add-on services aren't directly bookable — they only show up under
       // a parent service's "Add-ons" picker.
@@ -81,7 +72,7 @@ export default async function handler(req, res) {
         const hosts = provs.map(p => ({
           userId: p.employee.calcom_user_id || null,
           name: p.display_label || p.employee.name || '',
-          username: FRIENDLY_USERNAME_BY_CALCOM_USER_ID[p.employee.calcom_user_id] || '',
+          username: p.employee.username || '',
         }));
         const addons = (addonRowsByService[s.id] || [])
           .map(addonId => serviceById[addonId])

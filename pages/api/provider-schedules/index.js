@@ -27,15 +27,6 @@ const DAY_NAME_BY_NUM = {
   4: 'Thursday', 5: 'Friday', 6: 'Saturday',
 };
 
-const FRIENDLY_USERNAME_BY_CALCOM_USER_ID = {
-  2189658: 'chris',
-  2197563: 'damien',
-  2197567: 'lily',
-  2197566: 'evan',
-  2197565: 'damon',
-  2383086: 'brendyn',
-};
-
 function locationDisplayName(locationId) {
   if (locationId === 'newport') return 'Newport Beach';
   if (locationId === 'placentia') return 'Placentia - TLAB Wellness';
@@ -77,7 +68,7 @@ export default async function handler(req, res) {
     //    /admin/employees show up immediately for schedule editing.
     const { data: employees, error: empErr } = await supabase
       .from('employees')
-      .select('id, name, email, title, calcom_user_id')
+      .select('id, name, email, title, calcom_user_id, username')
       .eq('is_active', true)
       .order('name');
     if (empErr) throw empErr;
@@ -165,7 +156,7 @@ export default async function handler(req, res) {
         userId: emp.calcom_user_id || emp.id,
         employeeId: emp.id,
         name: emp.name,
-        username: FRIENDLY_USERNAME_BY_CALCOM_USER_ID[emp.calcom_user_id] || '',
+        username: emp.username || '',
         email: emp.email,
         role: 'OWNER',
         title: emp.title || '',

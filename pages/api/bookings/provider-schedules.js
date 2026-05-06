@@ -11,15 +11,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const FRIENDLY_USERNAME_BY_CALCOM_USER_ID = {
-  2189658: 'chris',
-  2197563: 'damien',
-  2197567: 'lily',
-  2197566: 'evan',
-  2197565: 'damon',
-  2383086: 'brendyn',
-};
-
 const DAY_NAME_BY_NUM = {
   0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
   4: 'thursday', 5: 'friday', 6: 'saturday',
@@ -31,13 +22,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get all active employees with a calcom_user_id (the friendly username
-    // bridge — used to key the response so the existing client code matches).
+    // Get all active bookable employees (the username is the slug used to
+    // key the response so the existing client code matches).
     const { data: employees, error: empErr } = await supabase
       .from('employees')
-      .select('id, name, calcom_user_id')
+      .select('id, name, username')
       .eq('is_active', true)
-      .not('calcom_user_id', 'is', null);
+      .not('username', 'is', null);
     if (empErr) throw empErr;
 
     const empById = {};
@@ -57,16 +48,14 @@ export default async function handler(req, res) {
 
     const schedulesByUsername = {};
     for (const emp of (employees || [])) {
-      const friendly = FRIENDLY_USERNAME_BY_CALCOM_USER_ID[emp.calcom_user_id];
-      if (!friendly) continue;
-      schedulesByUsername[friendly] = { newport: {}, locations: {} };
+      if (!emp.username) continue;
+      schedulesByUsername[emp.username] = { newport: {}, locations: {} };
     }
 
     for (const s of validSchedules) {
       const emp = empById[s.employee_id];
-      if (!emp) continue;
-      const friendly = FRIENDLY_USERNAME_BY_CALCOM_USER_ID[emp.calcom_user_id];
-      if (!friendly) continue;
+      if (!emp || !emp.username) continue;
+      const friendly = emp.username;
       const dayName = DAY_NAME_BY_NUM[s.day_of_week];
       if (!dayName) continue;
 

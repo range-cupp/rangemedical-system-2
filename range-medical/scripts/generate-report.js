@@ -16,7 +16,7 @@
  *
  * Optional env vars:
  *   COSTS_JSON_PATH  – override path to costs.json
- *                      default: ../pricing/costs 2.json (relative to this file)
+ *                      default: <repo>/data/costs.json
  *   TZ               – set to 'America/Los_Angeles' to keep dates in Pacific time
  */
 
@@ -31,7 +31,7 @@ const path = require('path');
 const SUPABASE_URL        = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const COSTS_JSON_PATH     = process.env.COSTS_JSON_PATH
-  || path.join(__dirname, '..', 'pricing', 'costs 2.json');
+  || path.join(__dirname, '..', '..', 'data', 'costs.json');
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error('❌  Missing SUPABASE_URL or SUPABASE_SERVICE_KEY env vars.');

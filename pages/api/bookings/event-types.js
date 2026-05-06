@@ -20,7 +20,7 @@ export default async function handler(req, res) {
   try {
     const { data: services, error: svcErr } = await supabase
       .from('services')
-      .select('id, name, slug, duration_minutes, legacy_calcom_event_type_id, sort_order, variants, price_cents, is_addon, category')
+      .select('id, name, slug, duration_minutes, legacy_calcom_event_type_id, sort_order, variants, price_cents, is_addon, category, group_label, subtype, requires_blood_work, has_modality, allowed_modalities')
       .eq('is_active', true)
       .order('sort_order');
     if (svcErr) throw svcErr;
@@ -95,6 +95,14 @@ export default async function handler(req, res) {
           length: s.duration_minutes,
           description: null,
           hosts,
+          // Extra fields needed by the calendar booking wizard
+          // (CalendarView.js consumes these alongside the legacy Cal.com fields).
+          category: s.category,
+          group_label: s.group_label || null,
+          subtype: s.subtype || null,
+          requires_blood_work: !!s.requires_blood_work,
+          has_modality: !!s.has_modality,
+          allowed_modalities: Array.isArray(s.allowed_modalities) ? s.allowed_modalities : null,
           variants: Array.isArray(s.variants) ? s.variants : [],
           price_cents: s.price_cents ?? null,
           addons,

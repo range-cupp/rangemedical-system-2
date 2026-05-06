@@ -182,6 +182,7 @@ export default function WLTrackerPage() {
           case 'visit_unlogged_recent':
           case 'no_show_recent':
           case 'missed_cadence':
+          case 'missed_cycle_severe':
           case 'needs_booking_soon':
             needsAttention.push(p); break;
           case 'visit_today_logged':    visitedToday.push(p); break;
@@ -1010,10 +1011,17 @@ function InClinicRow({ patient, sectionKey, onSelect, onAction, onSchedule, onSm
   // Booking-related statuses get the explicit Schedule + SMS buttons since the
   // remediation is "get this on the calendar." For everything else, stick with
   // Open chart + Details.
-  const needsBooking = v.today_action === 'missed_cadence' || v.today_action === 'needs_booking_soon';
+  const needsBooking =
+    v.today_action === 'missed_cadence' ||
+    v.today_action === 'missed_cycle_severe' ||
+    v.today_action === 'needs_booking_soon';
+  // Severe = full cycle missed. Tone shifts: instead of a transactional
+  // "let's book" SMS, send a personal outreach ("are you doing okay?").
+  const isSevere = v.today_action === 'missed_cycle_severe';
 
   // Open the SMS preview modal — staff edits/reviews before send.
   const sendBookingSMS = () => onSmsPreview(patient, 'booking');
+  const sendOutreach = () => onSmsPreview(patient, 'personal_outreach');
 
   return (
     <div style={{
@@ -1050,11 +1058,19 @@ function InClinicRow({ patient, sectionKey, onSelect, onAction, onSchedule, onSm
               style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall }}>
               📅 Schedule
             </button>
-            <button disabled={actionInProgress || !patient.phone} onClick={sendBookingSMS}
-              title={patient.phone ? `Text ${patient.phone}` : 'No phone on file'}
-              style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}>
-              💬 SMS
-            </button>
+            {isSevere ? (
+              <button disabled={actionInProgress || !patient.phone} onClick={sendOutreach}
+                title={patient.phone ? `Send personal outreach SMS to ${patient.phone}` : 'No phone on file'}
+                style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}>
+                🤝 Reach out
+              </button>
+            ) : (
+              <button disabled={actionInProgress || !patient.phone} onClick={sendBookingSMS}
+                title={patient.phone ? `Text ${patient.phone}` : 'No phone on file'}
+                style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}>
+                💬 SMS
+              </button>
+            )}
             <button disabled={actionInProgress}
               onClick={() => onSelect(patient)}
               style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}>
@@ -1238,8 +1254,14 @@ function visitDescription(visit) {
     }
     case 'missed_cadence':
       return (
+        <span style={{ color: '#9a3412' }}>
+          🟠 <strong>Running late</strong> — due {visit.days_overdue}d ago, no next visit booked
+        </span>
+      );
+    case 'missed_cycle_severe':
+      return (
         <span style={{ color: '#991b1b' }}>
-          ❌ <strong>Missed cycle</strong> — was due {visit.days_overdue}d ago, no next visit booked
+          🔴 <strong>Missed full cycle</strong> — {visit.days_overdue}d overdue · reach out personally
         </span>
       );
     case 'needs_booking_soon': {

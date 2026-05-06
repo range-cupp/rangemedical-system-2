@@ -326,7 +326,8 @@ function computeCycleEvents({ expectedDateISO, todayISO, cadenceDays, reminderLo
 //   - 'visit_today_pending'   appointment today, no note yet
 //   - 'visit_unlogged_recent' recent visit in past 14d, no encounter note
 //   - 'no_show_recent'        no-show in past 14d needs reschedule
-//   - 'missed_cadence'        last visit > cadence ago AND nothing booked next
+//   - 'missed_cadence'        last visit > 0 but < cadence days overdue, nothing booked
+//   - 'missed_cycle_severe'   last visit ≥ cadence days overdue → full cycle missed, personal outreach time
 //   - 'needs_booking_soon'    next due within 3d AND nothing booked
 //   - 'upcoming_this_week'    visit scheduled later this week
 //   - 'idle'                  no recent or upcoming visits in window
@@ -387,10 +388,14 @@ function computeVisitStatus({ appointments, todayISO, cadenceDays }) {
     days_overdue != null && days_overdue >= 1 &&
     future.length === 0
   ) {
-    // Last visit was > cadence days ago AND nothing booked → this patient
-    // missed their expected cycle (e.g., Gordon Gray: visit Apr 20, weekly
-    // cadence, today May 3, no booking → 6 days overdue).
-    today_action = 'missed_cadence';
+    // Last visit was > cadence days ago AND nothing booked → patient missed
+    // their cycle. Two severities:
+    //   - normal:  1 to (cadence-1) days overdue → still in "running late" zone,
+    //              booking SMS is the right outreach
+    //   - severe:  cadence+ days overdue → patient has fully missed a cycle.
+    //              Personal outreach is the right move (are you okay? any
+    //              concerns?), not just another scheduling nudge.
+    today_action = days_overdue >= cadenceDays ? 'missed_cycle_severe' : 'missed_cadence';
   } else if (
     days_overdue != null && days_overdue >= -3 && days_overdue < 1 &&
     future.length === 0

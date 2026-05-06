@@ -6,7 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth, hasPermission, logAction } from '../../../../lib/auth';
-import { writeRelations } from './index';
+import { writeRelations, normalizeVariants } from './index';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -41,7 +41,7 @@ async function handleGet(req, res, id) {
     if (error) throw error;
     if (!service) return res.status(404).json({ error: 'Service not found' });
 
-    const [providers, locations, forms, automations, prep] = await Promise.all([
+    const [providers, locations, forms, automations, prep, addons] = await Promise.all([
       supabase
         .from('service_providers')
         .select('id, employee_id, display_label, sort_order, employee:employees!inner(id, name, is_active)')
@@ -65,6 +65,11 @@ async function handleGet(req, res, id) {
         .select('sms_body, email_subject, email_body, send_hours_before, is_active')
         .eq('service_id', id)
         .maybeSingle(),
+      supabase
+        .from('service_addons')
+        .select('addon_service_id, sort_order')
+        .eq('service_id', id)
+        .order('sort_order'),
     ]);
 
     return res.status(200).json({
@@ -80,6 +85,7 @@ async function handleGet(req, res, id) {
       location_ids: (locations.data || []).map(l => l.location_id),
       form_ids: (forms.data || []).map(f => f.form_id),
       automation_actions: (automations.data || []).filter(a => a.is_active !== false).map(a => a.action),
+      addon_service_ids: (addons.data || []).map(a => a.addon_service_id),
       prep: prep.data || null,
     });
   } catch (e) {
@@ -94,8 +100,9 @@ async function handlePatch(req, res, id, employee) {
     duration_minutes, buffer_minutes,
     min_notice_hours, booking_window_days,
     description, has_modality, requires_blood_work, subtype, color,
-    is_active, is_public_bookable, sort_order,
-    providers, location_ids, form_ids, automation_actions, prep,
+    is_active, is_public_bookable, is_addon, sort_order,
+    variants, price_cents,
+    providers, location_ids, form_ids, automation_actions, addon_service_ids, prep,
   } = req.body || {};
 
   try {
@@ -117,7 +124,12 @@ async function handlePatch(req, res, id, employee) {
     setIfDefined('color', color);
     setIfDefined('is_active', is_active);
     setIfDefined('is_public_bookable', is_public_bookable);
+    setIfDefined('is_addon', is_addon);
     setIfDefined('sort_order', sort_order);
+    if (variants !== undefined) updates.variants = normalizeVariants(variants);
+    if (price_cents !== undefined) {
+      updates.price_cents = price_cents == null || price_cents === '' ? null : parseInt(price_cents, 10);
+    }
 
     if (Object.keys(updates).length > 0) {
       const { error } = await supabase
@@ -127,7 +139,7 @@ async function handlePatch(req, res, id, employee) {
       if (error) throw error;
     }
 
-    await writeRelations(id, { providers, location_ids, form_ids, automation_actions, prep });
+    await writeRelations(id, { providers, location_ids, form_ids, automation_actions, addon_service_ids, prep });
 
     await logAction({
       employeeId: employee.id,
@@ -141,6 +153,7 @@ async function handlePatch(req, res, id, employee) {
         wrote_locations: location_ids !== undefined,
         wrote_forms: form_ids !== undefined,
         wrote_automations: automation_actions !== undefined,
+        wrote_addons: addon_service_ids !== undefined,
         wrote_prep: prep !== undefined,
       },
       req,

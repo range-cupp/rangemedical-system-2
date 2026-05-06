@@ -30,7 +30,7 @@ async function handleList(req, res) {
   try {
     const { data: services, error } = await supabase
       .from('services')
-      .select('id, name, slug, category, group_label, duration_minutes, buffer_minutes, requires_blood_work, has_modality, is_active, is_public_bookable, sort_order')
+      .select('id, name, slug, category, group_label, duration_minutes, buffer_minutes, requires_blood_work, has_modality, is_active, is_public_bookable, is_addon, sort_order, variants, price_cents')
       .order('group_label', { ascending: true, nullsFirst: false })
       .order('sort_order', { ascending: true });
     if (error) throw error;
@@ -40,12 +40,13 @@ async function handleList(req, res) {
     }
     const ids = services.map(s => s.id);
 
-    const [providers, locations, forms, automations, prep] = await Promise.all([
+    const [providers, locations, forms, automations, prep, addons] = await Promise.all([
       supabase.from('service_providers').select('service_id').in('service_id', ids),
       supabase.from('service_locations').select('service_id').in('service_id', ids),
       supabase.from('service_required_forms').select('service_id').in('service_id', ids),
       supabase.from('service_automations').select('service_id, action').in('service_id', ids),
       supabase.from('service_prep_instructions').select('service_id, sms_body, is_active').in('service_id', ids),
+      supabase.from('service_addons').select('service_id').in('service_id', ids),
     ]);
 
     const countBy = (rows, key = 'service_id') => {
@@ -56,6 +57,7 @@ async function handleList(req, res) {
     const providerCount = countBy(providers);
     const locationCount = countBy(locations);
     const formCount = countBy(forms);
+    const addonCount = countBy(addons);
 
     const automationsByService = {};
     for (const a of (automations.data || [])) {
@@ -72,6 +74,8 @@ async function handleList(req, res) {
       provider_count: providerCount[s.id] || 0,
       location_count: locationCount[s.id] || 0,
       form_count: formCount[s.id] || 0,
+      addon_count: addonCount[s.id] || 0,
+      variant_count: Array.isArray(s.variants) ? s.variants.length : 0,
       automation_actions: automationsByService[s.id] || [],
       has_prep: !!prepByService[s.id],
     }));
@@ -89,11 +93,13 @@ async function handleCreate(req, res, employee) {
     duration_minutes, buffer_minutes,
     min_notice_hours, booking_window_days,
     description, has_modality, requires_blood_work, subtype, color,
-    is_active, is_public_bookable, sort_order,
+    is_active, is_public_bookable, is_addon, sort_order,
+    variants, price_cents,
     providers,
     location_ids,
     form_ids,
     automation_actions,
+    addon_service_ids,
     prep,
   } = req.body || {};
 
@@ -122,13 +128,16 @@ async function handleCreate(req, res, employee) {
         color: color || null,
         is_active: is_active !== false,
         is_public_bookable: !!is_public_bookable,
+        is_addon: !!is_addon,
         sort_order: sort_order ?? 0,
+        variants: normalizeVariants(variants),
+        price_cents: price_cents == null || price_cents === '' ? null : parseInt(price_cents, 10),
       })
       .select()
       .single();
     if (createErr) throw createErr;
 
-    await writeRelations(created.id, { providers, location_ids, form_ids, automation_actions, prep });
+    await writeRelations(created.id, { providers, location_ids, form_ids, automation_actions, addon_service_ids, prep });
 
     await logAction({
       employeeId: employee.id,
@@ -147,9 +156,45 @@ async function handleCreate(req, res, employee) {
   }
 }
 
+// Coerce variants to the canonical shape the booking wizard expects.
+// Drops malformed entries silently rather than 400-ing the whole save.
+export function normalizeVariants(variants) {
+  if (!Array.isArray(variants)) return [];
+  return variants
+    .map(v => {
+      const value = String(v?.value ?? '').trim();
+      const label = String(v?.label ?? value).trim();
+      if (!value || !label) return null;
+      const price = v?.price_cents == null || v?.price_cents === ''
+        ? null : parseInt(v.price_cents, 10);
+      const dur = v?.duration_minutes == null || v?.duration_minutes === ''
+        ? null : parseInt(v.duration_minutes, 10);
+      return {
+        value,
+        label,
+        ...(Number.isFinite(price) ? { price_cents: price } : {}),
+        ...(Number.isFinite(dur) ? { duration_minutes: dur } : {}),
+      };
+    })
+    .filter(Boolean);
+}
+
 // Shared by create + update — replace nested rows in place.
 export async function writeRelations(serviceId, payload = {}) {
-  const { providers, location_ids, form_ids, automation_actions, prep } = payload;
+  const { providers, location_ids, form_ids, automation_actions, addon_service_ids, prep } = payload;
+
+  if (Array.isArray(addon_service_ids)) {
+    await supabase.from('service_addons').delete().eq('service_id', serviceId);
+    if (addon_service_ids.length > 0) {
+      const rows = addon_service_ids
+        .filter(id => id && id !== serviceId)
+        .map((addonId, idx) => ({ service_id: serviceId, addon_service_id: addonId, sort_order: idx }));
+      if (rows.length > 0) {
+        const { error } = await supabase.from('service_addons').insert(rows);
+        if (error) throw error;
+      }
+    }
+  }
 
   if (Array.isArray(providers)) {
     await supabase.from('service_providers').delete().eq('service_id', serviceId);

@@ -34,11 +34,15 @@ const EMPTY_FORM = {
   requires_blood_work: false,
   is_active: true,
   is_public_bookable: false,
+  is_addon: false,
   sort_order: 0,
+  price_cents: '',
+  variants: [],           // [{ value, label, price_cents, duration_minutes }]
   providers: [],          // [{ employee_id, display_label, sort_order }]
   location_ids: [],
   form_ids: [],
   automation_actions: [], // ['decrement', ...]
+  addon_service_ids: [],  // service IDs (must be is_addon=true)
   prep: { sms_body: '', email_subject: '', email_body: '', send_hours_before: 24, is_active: true },
 };
 
@@ -59,7 +63,7 @@ export default function ServicesPage() {
 export function ServicesContent() {
   const { session, hasPermission } = useAuth();
   const [services, setServices] = useState([]);
-  const [options, setOptions] = useState({ employees: [], locations: [], forms: [], automation_actions: [] });
+  const [options, setOptions] = useState({ employees: [], locations: [], forms: [], automation_actions: [], addon_services: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
@@ -105,6 +109,7 @@ export function ServicesContent() {
         locations: data.locations || [],
         forms: data.forms || [],
         automation_actions: data.automation_actions || [],
+        addon_services: data.addon_services || [],
       });
     } catch (e) {
       console.error('Failed to load options:', e);
@@ -138,7 +143,7 @@ export function ServicesContent() {
     setActiveSection('basics');
     setEditorOpen(true);
     setAutoSlug(false);
-    setForm({ ...EMPTY_FORM, ...svc, prep: EMPTY_FORM.prep, providers: [], location_ids: [], form_ids: [], automation_actions: [] }); // placeholder while loading
+    setForm({ ...EMPTY_FORM, ...svc, prep: EMPTY_FORM.prep, providers: [], location_ids: [], form_ids: [], automation_actions: [], addon_service_ids: [], variants: [] }); // placeholder while loading
 
     try {
       const res = await fetch(`/api/admin/services/${svc.id}`, { headers: authHeaders() });
@@ -147,6 +152,8 @@ export function ServicesContent() {
         setForm({
           ...EMPTY_FORM,
           ...data.service,
+          variants: Array.isArray(data.service?.variants) ? data.service.variants : [],
+          price_cents: data.service?.price_cents == null ? '' : data.service.price_cents,
           providers: (data.providers || []).map(p => ({
             employee_id: p.employee_id,
             display_label: p.display_label || '',
@@ -156,6 +163,7 @@ export function ServicesContent() {
           location_ids: data.location_ids || [],
           form_ids: data.form_ids || [],
           automation_actions: data.automation_actions || [],
+          addon_service_ids: data.addon_service_ids || [],
           prep: data.prep || EMPTY_FORM.prep,
         });
       }
@@ -241,7 +249,15 @@ export function ServicesContent() {
       requires_blood_work: !!form.requires_blood_work,
       is_active: !!form.is_active,
       is_public_bookable: !!form.is_public_bookable,
+      is_addon: !!form.is_addon,
       sort_order: parseInt(form.sort_order || 0, 10),
+      price_cents: form.price_cents === '' || form.price_cents == null ? null : parseInt(form.price_cents, 10),
+      variants: (form.variants || []).map(v => ({
+        value: String(v.value || '').trim(),
+        label: String(v.label || v.value || '').trim(),
+        price_cents: v.price_cents === '' || v.price_cents == null ? null : parseInt(v.price_cents, 10),
+        duration_minutes: v.duration_minutes === '' || v.duration_minutes == null ? null : parseInt(v.duration_minutes, 10),
+      })).filter(v => v.value),
       providers: (form.providers || []).map((p, idx) => ({
         employee_id: p.employee_id,
         display_label: p.display_label?.trim() || null,
@@ -250,6 +266,7 @@ export function ServicesContent() {
       location_ids: form.location_ids || [],
       form_ids: form.form_ids || [],
       automation_actions: form.automation_actions || [],
+      addon_service_ids: form.addon_service_ids || [],
       prep: (form.prep?.sms_body?.trim() || form.prep?.email_body?.trim())
         ? form.prep
         : null,  // null = clear prep
@@ -386,9 +403,12 @@ export function ServicesContent() {
                       </div>
                     </div>
                     <div style={styles.serviceCounts}>
+                      {s.variant_count > 0 && <CountChip label="Variants" count={s.variant_count} />}
+                      {s.addon_count > 0 && <CountChip label="Add-ons" count={s.addon_count} />}
                       <CountChip label="Providers" count={s.provider_count} />
                       {s.location_count > 0 && <CountChip label="Locations" count={s.location_count} />}
                       <CountChip label="Forms" count={s.form_count} />
+                      {s.is_addon && <span style={styles.prepChip}>add-on</span>}
                       {s.automation_actions.length > 0 && (
                         <span style={styles.actionChip}>{s.automation_actions.join(' + ')}</span>
                       )}
@@ -413,13 +433,13 @@ export function ServicesContent() {
 
             {/* Section tabs */}
             <div style={styles.tabBar}>
-              {['basics', 'providers', 'locations', 'forms', 'automations', 'prep'].map(s => (
+              {['basics', 'variants', 'addons', 'providers', 'locations', 'forms', 'automations', 'prep'].map(s => (
                 <button
                   key={s}
                   onClick={() => setActiveSection(s)}
                   style={{ ...styles.tab, ...(activeSection === s ? styles.tabActive : {}) }}
                 >
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                  {s === 'addons' ? 'Add-ons' : s.charAt(0).toUpperCase() + s.slice(1)}
                 </button>
               ))}
             </div>
@@ -427,6 +447,12 @@ export function ServicesContent() {
             <div style={{ flex: 1, overflow: 'auto', padding: '20px 24px' }}>
               {activeSection === 'basics' && (
                 <BasicsSection form={form} setField={setField} autoSlug={autoSlug} setAutoSlug={setAutoSlug} />
+              )}
+              {activeSection === 'variants' && (
+                <VariantsSection form={form} setField={setField} />
+              )}
+              {activeSection === 'addons' && (
+                <AddonsSection form={form} options={options} editingId={editingId} toggleInList={toggleInList} />
               )}
               {activeSection === 'providers' && (
                 <ProvidersSection
@@ -511,12 +537,144 @@ function BasicsSection({ form, setField, autoSlug, setAutoSlug }) {
       <Field label="Description" hint="Internal note (not shown to patients)">
         <textarea value={form.description || ''} onChange={e => setField('description', e.target.value)} rows={2} style={{ ...styles.input, resize: 'vertical' }} />
       </Field>
+      <Field label="Base price (cents)" hint="Used when there are no variants. Leave blank for free / not-for-sale.">
+        <input
+          type="number"
+          min="0"
+          step="1"
+          value={form.price_cents}
+          onChange={e => setField('price_cents', e.target.value)}
+          placeholder="e.g. 22500 for $225.00"
+          style={styles.input}
+        />
+      </Field>
       <div style={styles.toggleRow}>
         <Toggle label="Active" checked={form.is_active} onChange={v => setField('is_active', v)} />
         <Toggle label="Public bookable" checked={form.is_public_bookable} onChange={v => setField('is_public_bookable', v)} />
         <Toggle label="Has modality" checked={form.has_modality} onChange={v => setField('has_modality', v)} />
         <Toggle label="Requires blood work" checked={form.requires_blood_work} onChange={v => setField('requires_blood_work', v)} />
+        <Toggle label="Is add-on" checked={form.is_addon} onChange={v => setField('is_addon', v)} />
       </div>
+    </div>
+  );
+}
+
+function VariantsSection({ form, setField }) {
+  const variants = Array.isArray(form.variants) ? form.variants : [];
+
+  const updateVariant = (idx, key, value) => {
+    const next = variants.map((v, i) => i === idx ? { ...v, [key]: value } : v);
+    setField('variants', next);
+  };
+  const addVariant = () => {
+    setField('variants', [...variants, { value: '', label: '', price_cents: '', duration_minutes: '' }]);
+  };
+  const removeVariant = (idx) => {
+    setField('variants', variants.filter((_, i) => i !== idx));
+  };
+  const moveVariant = (idx, dir) => {
+    const j = idx + dir;
+    if (j < 0 || j >= variants.length) return;
+    const next = [...variants];
+    [next[idx], next[j]] = [next[j], next[idx]];
+    setField('variants', next);
+  };
+
+  return (
+    <div style={styles.section}>
+      <p style={styles.sectionHelp}>
+        Variants let one service cover multiple doses, sizes, or flavors (e.g., Vitamin C IV → 25g / 50g / 75g).
+        At booking, the patient picks one — its price and (optional) duration override the base service.
+        Leave empty for a single-option service.
+      </p>
+
+      {variants.length === 0 && (
+        <div style={{ padding: '20px', background: '#f9fafb', border: '1px dashed #d1d5db', borderRadius: '6px', color: '#6b7280', fontSize: '13px', marginBottom: '12px' }}>
+          No variants yet — booking will use the base price + duration.
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {variants.map((v, idx) => (
+          <div key={idx} style={{ display: 'grid', gridTemplateColumns: '24px 1fr 1fr 110px 110px auto', gap: '8px', alignItems: 'center', padding: '10px', border: '1px solid #e5e7eb', borderRadius: '6px', background: '#fff' }}>
+            <span style={{ color: '#9ca3af', fontSize: '12px', textAlign: 'center' }}>{idx + 1}</span>
+            <input
+              type="text"
+              placeholder="Value (e.g. 500mg)"
+              value={v.value || ''}
+              onChange={e => updateVariant(idx, 'value', e.target.value)}
+              style={styles.input}
+            />
+            <input
+              type="text"
+              placeholder="Label (defaults to value)"
+              value={v.label || ''}
+              onChange={e => updateVariant(idx, 'label', e.target.value)}
+              style={styles.input}
+            />
+            <input
+              type="number"
+              min="0"
+              placeholder="Price (¢)"
+              value={v.price_cents ?? ''}
+              onChange={e => updateVariant(idx, 'price_cents', e.target.value)}
+              style={styles.input}
+            />
+            <input
+              type="number"
+              min="0"
+              placeholder="Mins"
+              value={v.duration_minutes ?? ''}
+              onChange={e => updateVariant(idx, 'duration_minutes', e.target.value)}
+              style={styles.input}
+            />
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button onClick={() => moveVariant(idx, -1)} disabled={idx === 0} style={styles.iconBtn}>↑</button>
+              <button onClick={() => moveVariant(idx, 1)} disabled={idx === variants.length - 1} style={styles.iconBtn}>↓</button>
+              <button onClick={() => removeVariant(idx)} style={{ ...styles.iconBtn, color: '#dc2626' }}>×</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button onClick={addVariant} style={{ ...styles.primaryBtn, marginTop: '12px' }}>+ Add Variant</button>
+    </div>
+  );
+}
+
+function AddonsSection({ form, options, editingId, toggleInList }) {
+  const selectedIds = new Set(form.addon_service_ids || []);
+  const choices = (options.addon_services || []).filter(s => s.id !== editingId);
+  const fmtPrice = (cents) => cents == null ? '—' : `$${(cents / 100).toFixed(2)}`;
+
+  return (
+    <div style={styles.section}>
+      <p style={styles.sectionHelp}>
+        Add-ons are optional extras the patient can tack on while booking this service (e.g., Methylene Blue IV +
+        Vitamin C add-on). Only services flagged as <strong>Is add-on</strong> in their Basics tab show up here.
+      </p>
+
+      {choices.length === 0 ? (
+        <div style={{ padding: '20px', background: '#f9fafb', border: '1px dashed #d1d5db', borderRadius: '6px', color: '#6b7280', fontSize: '13px' }}>
+          No add-on services exist yet. Create a service, flip <strong>Is add-on</strong> on, and it&rsquo;ll appear here.
+        </div>
+      ) : (
+        <div style={styles.checklist}>
+          {choices.map(s => (
+            <label key={s.id} style={styles.checklistItem}>
+              <input
+                type="checkbox"
+                checked={selectedIds.has(s.id)}
+                onChange={() => toggleInList('addon_service_ids', s.id)}
+              />
+              <span style={{ fontWeight: 600 }}>{s.name}</span>
+              <span style={{ color: '#999', fontSize: '12px' }}>
+                · {s.category} · {s.duration_minutes} min · {fmtPrice(s.price_cents)}
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

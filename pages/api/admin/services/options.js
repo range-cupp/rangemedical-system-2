@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   if (!employee) return;
 
   try {
-    const [employees, locations] = await Promise.all([
+    const [employees, locations, addonServices] = await Promise.all([
       supabase
         .from('employees')
         .select('id, name, title')
@@ -37,6 +37,13 @@ export default async function handler(req, res) {
         .select('id, short_name, name, is_active')
         .eq('is_active', true)
         .order('sort_order'),
+      supabase
+        .from('services')
+        .select('id, name, category, duration_minutes, price_cents')
+        .eq('is_active', true)
+        .eq('is_addon', true)
+        .order('category')
+        .order('name'),
     ]);
 
     const forms = Object.entries(FORM_DEFINITIONS).map(([id, info]) => ({
@@ -51,6 +58,7 @@ export default async function handler(req, res) {
       locations: locations.data || [],
       forms,
       automation_actions: AUTOMATION_ACTIONS,
+      addon_services: addonServices.data || [],
     });
   } catch (e) {
     console.error('[admin/services/options] error:', e);

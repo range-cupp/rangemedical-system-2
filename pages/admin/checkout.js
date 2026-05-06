@@ -5162,19 +5162,46 @@ function CheckoutInner() {
                     </div>
                   )}
 
+                  {/* Shipping */}
+                  {(cartItems.length > 0 || (activeSubCategory === 'custom' && parseFloat(customAmount) > 0)) && (
+                    <div style={styles.promoSection}>
+                      <div style={styles.cartDiscountLabel}>Shipping</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '13px', color: '#888' }}>$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={shippingAmount}
+                          onChange={e => setShippingAmount(e.target.value)}
+                          placeholder="0.00"
+                          style={{ ...styles.miniInput, flex: 1, width: 'auto' }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Cart totals */}
                   {(cartItems.length > 0 || (activeSubCategory === 'custom' && parseFloat(customAmount) > 0)) && (
                     <div style={styles.cartTotals}>
-                      {totalDiscount > 0 && (
+                      {(totalDiscount > 0 || getShippingCents() > 0) && (
                         <>
                           <div style={styles.cartTotalRow}>
                             <span>Subtotal</span>
                             <span>{formatPrice(baseAmount)}</span>
                           </div>
-                          <div style={{ ...styles.cartTotalRow, color: '#16a34a' }}>
-                            <span>Discount</span>
-                            <span>−{formatPrice(totalDiscount)}</span>
-                          </div>
+                          {totalDiscount > 0 && (
+                            <div style={{ ...styles.cartTotalRow, color: '#16a34a' }}>
+                              <span>Discount</span>
+                              <span>−{formatPrice(totalDiscount)}</span>
+                            </div>
+                          )}
+                          {getShippingCents() > 0 && (
+                            <div style={styles.cartTotalRow}>
+                              <span>Shipping</span>
+                              <span>{formatPrice(getShippingCents())}</span>
+                            </div>
+                          )}
                         </>
                       )}
                       <div style={styles.cartTotalFinal}>

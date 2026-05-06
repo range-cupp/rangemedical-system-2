@@ -301,6 +301,7 @@ async function handlePost(req, res) {
     injection_frequency, // injections per week (e.g. 2, 3, 7)
     fulfillment_method, // in_clinic or overnight
     tracking_number, // shipping tracking number for overnighted pickups
+    slot_fulfillment, // per-slot fulfillment array for WL pickups
     is_secondary_med, // true when logging a secondary medication pickup (e.g. HCG on an HRT protocol)
     secondary_med_details, // { num_vials, dosage, frequency } for secondary med supply tracking
   } = req.body;
@@ -366,6 +367,7 @@ async function handlePost(req, res) {
       signed_at: signature_url ? new Date().toISOString() : null,
       fulfillment_method: fulfillment_method || null,
       tracking_number: tracking_number || null,
+      slot_fulfillment: Array.isArray(slot_fulfillment) ? slot_fulfillment : null,
     };
 
     // Try service_logs first, fall back to injection_logs
@@ -378,9 +380,10 @@ async function handlePost(req, res) {
       .single();
 
     // If fulfillment columns don't exist yet, retry without them
-    if (serviceLogError && serviceLogError.message?.includes('fulfillment_method')) {
+    if (serviceLogError && (serviceLogError.message?.includes('fulfillment_method') || serviceLogError.message?.includes('slot_fulfillment'))) {
       delete logData.fulfillment_method;
       delete logData.tracking_number;
+      delete logData.slot_fulfillment;
       ({ data: serviceLog, error: serviceLogError } = await supabase
         .from('service_logs')
         .insert([logData])
@@ -409,6 +412,20 @@ async function handlePost(req, res) {
     // ── Sync weight to patient_vitals (bidirectional sync) ──
     if (weight) {
       await syncWeightToVitals(patient_id, weight, logDate, administered_by);
+    }
+
+    // ── Spawn take-home injection rows for WL pickups created with a per-slot plan ──
+    // Mirrors what medication-checkout does, so pickups created via the patient-page
+    // Dispense flow get spawned rows and the weekly check-in cron fires.
+    if (log?.entry_type === 'pickup' && category === 'weight_loss' && Array.isArray(slot_fulfillment) && slot_fulfillment.some(s => s === 'take_home' || s === 'overnight') && log.protocol_id) {
+      const { data: protoRow } = await supabase
+        .from('protocols')
+        .select('*')
+        .eq('id', log.protocol_id)
+        .single();
+      if (protoRow) {
+        await spawnTakeHomeInjections(supabase, log, protoRow);
+      }
     }
 
     // Weight-loss multi-injection auto-log was removed: it created phantom future

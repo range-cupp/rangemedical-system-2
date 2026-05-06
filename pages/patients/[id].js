@@ -3005,40 +3005,23 @@ export default function PatientProfile() {
     setConfirmDeleteInjection(false);
   };
 
-  const handleInitiateDispense = async (protocol, blockNum, purchase, totalInBlock = 4) => {
-    try {
-      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-      const slots = Array.from({ length: totalInBlock }, () => 'in_clinic');
-      const res = await fetch('/api/service-log', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patient_id: id,
-          category: 'weight_loss',
-          entry_type: 'pickup',
-          entry_date: today,
-          medication: protocol.medication || protocol.selected_medication || null,
-          dosage: protocol.dosage || null,
-          quantity: 0,
-          protocol_id: protocol.id,
-          fulfillment_method: 'in_clinic',
-          force: true,
-        }),
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      const newLog = data.log;
-      if (!newLog?.id) return;
-      newLog.slot_fulfillment = slots;
-      await fetch(`/api/service-log?id=${newLog.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entry_type: 'pickup', slot_fulfillment: slots, quantity: 0, fulfillment_method: 'in_clinic' }),
-      });
-      openEditInjection(newLog, { blockNum, totalInBlock, purchase });
-    } catch (err) {
-      console.error('Error creating dispense pickup:', err);
-    }
+  const handleInitiateDispense = (protocol, blockNum, purchase, totalInBlock = 4) => {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    const slots = Array.from({ length: totalInBlock }, () => 'in_clinic');
+    const tempLog = {
+      id: '__new__',
+      patient_id: id,
+      protocol_id: protocol.id,
+      category: 'weight_loss',
+      entry_type: 'pickup',
+      entry_date: today,
+      medication: protocol.medication || protocol.selected_medication || null,
+      dosage: protocol.dosage || null,
+      quantity: 0,
+      fulfillment_method: 'in_clinic',
+      slot_fulfillment: slots,
+    };
+    openEditInjection(tempLog, { blockNum, totalInBlock, purchase });
   };
 
   const handleEditInjection = async () => {
@@ -3057,22 +3040,43 @@ export default function PatientProfile() {
         const overnightCount = slots.filter(s => s === 'overnight').length;
         derivedFulfillment = overnightCount > 0 ? 'overnight' : 'in_clinic';
       }
-      const res = await fetch(`/api/service-log?id=${editInjectionModal.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          entry_type: editInjectionModal.entry_type || 'injection',
-          entry_date: editInjectionForm.entry_date,
-          dosage: editInjectionForm.dosage,
-          weight: editInjectionForm.weight || null,
-          quantity: derivedQty,
-          medication: editInjectionModal.medication,
-          notes: editInjectionForm.notes || null,
-          fulfillment_method: derivedFulfillment,
-          tracking_number: derivedFulfillment === 'overnight' ? (editInjectionForm.tracking_number || null) : null,
-          slot_fulfillment: slots,
-        }),
-      });
+      const isNew = editInjectionModal.id === '__new__';
+      const res = isNew
+        ? await fetch('/api/service-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              patient_id: editInjectionModal.patient_id,
+              category: editInjectionModal.category || 'weight_loss',
+              entry_type: editInjectionModal.entry_type || 'pickup',
+              entry_date: editInjectionForm.entry_date,
+              dosage: editInjectionForm.dosage,
+              quantity: derivedQty,
+              medication: editInjectionModal.medication,
+              notes: editInjectionForm.notes || null,
+              protocol_id: editInjectionModal.protocol_id,
+              fulfillment_method: derivedFulfillment,
+              tracking_number: derivedFulfillment === 'overnight' ? (editInjectionForm.tracking_number || null) : null,
+              slot_fulfillment: slots,
+              force: true,
+            }),
+          })
+        : await fetch(`/api/service-log?id=${editInjectionModal.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              entry_type: editInjectionModal.entry_type || 'injection',
+              entry_date: editInjectionForm.entry_date,
+              dosage: editInjectionForm.dosage,
+              weight: editInjectionForm.weight || null,
+              quantity: derivedQty,
+              medication: editInjectionModal.medication,
+              notes: editInjectionForm.notes || null,
+              fulfillment_method: derivedFulfillment,
+              tracking_number: derivedFulfillment === 'overnight' ? (editInjectionForm.tracking_number || null) : null,
+              slot_fulfillment: slots,
+            }),
+          });
       if (res.ok) {
         // Auto-enable check-in reminders when any slot is take-home, so the
         // weekly cron texts the patient on take-home weeks even on in-clinic

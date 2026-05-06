@@ -2210,6 +2210,23 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </div>
             )}
 
+            {/* Vitals reminder for provider consultation/lab review appointments */}
+            {['Damien', 'Brendyn Reed', 'Brendyn'].includes(appt.provider) &&
+             ['Initial Consultation', 'Follow-Up Consultation', 'Initial Lab Review', 'Follow-Up Lab Review', 'Initial Conversation'].includes(appt.service_name) && (
+              <div style={{
+                margin: '12px 0',
+                padding: '12px 14px',
+                background: '#fef2f2',
+                border: '2px solid #ef4444',
+                borderRadius: '0',
+                textAlign: 'center',
+              }}>
+                <span style={{ fontSize: '16px', fontWeight: 800, color: '#dc2626', letterSpacing: '0.5px' }}>
+                  NEED TO GET VITALS
+                </span>
+              </div>
+            )}
+
             {/* Forms / Consent checklist — compute live status for use in prep checklist too */}
             {(() => {
               // Compute live form completion (used by both form display and prep checklist)

@@ -3074,6 +3074,20 @@ export default function PatientProfile() {
         }),
       });
       if (res.ok) {
+        // Auto-enable check-in reminders when any slot is take-home, so the
+        // weekly cron texts the patient on take-home weeks even on in-clinic
+        // protocols. Existing reminder_opt_out is respected by the cron query.
+        const protocolId = editInjectionModal.protocol_id || dispenseContext?.purchase?.protocol_id;
+        const hasTakeHome = Array.isArray(slots) && slots.some(s => s === 'take_home' || s === 'overnight');
+        if (protocolId && hasTakeHome) {
+          try {
+            await fetch(`/api/admin/protocols/${protocolId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ checkin_reminder_enabled: true }),
+            });
+          } catch {}
+        }
         setEditInjectionModal(null);
         fetchPatient();
       }

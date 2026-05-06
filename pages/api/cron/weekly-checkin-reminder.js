@@ -29,6 +29,26 @@ function getPacificMidnight() {
   return pst;
 }
 
+function getPacificDateStr() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+}
+
+// For in-clinic WL protocols, only send a check-in when this week's slot was
+// dispensed as take-home. Detected via spawnTakeHomeInjections, which writes
+// an unweighed injection row dated for the take-home day with notes
+// "via pickup <id>". Take-home protocols always qualify.
+async function isTakeHomeSlotForToday(protocol, todayDateStr) {
+  if (protocol.delivery_method !== 'in_clinic') return true;
+  const { data: rows } = await supabase
+    .from('service_logs')
+    .select('id, weight, notes, fulfillment_method')
+    .eq('protocol_id', protocol.id)
+    .eq('entry_type', 'injection')
+    .eq('entry_date', todayDateStr)
+    .is('weight', null);
+  return (rows || []).some(r => typeof r.notes === 'string' && r.notes.includes('via pickup'));
+}
+
 function isWithinAllowedHours() {
   const hr = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })).getHours();
   return hr >= 8 && hr <= 10;
@@ -131,6 +151,7 @@ export default async function handler(req, res) {
   const results = { sent: [], skipped: [], errors: [] };
   const todayDayName = getPacificDayOfWeek();
   const todayMidnight = getPacificMidnight();
+  const todayDateStr = getPacificDateStr();
 
   try {
     const forceRun = req.query.force === 'true';
@@ -154,8 +175,7 @@ export default async function handler(req, res) {
       .eq('status', 'active')
       .ilike('program_type', 'weight_loss%')
       .eq('checkin_reminder_enabled', true)
-      .eq('reminder_opt_out', false)
-      .or('delivery_method.neq.in_clinic,delivery_method.is.null');
+      .eq('reminder_opt_out', false);
 
     if (protocolsError) {
       throw new Error('Protocols query error: ' + protocolsError.message);
@@ -201,6 +221,14 @@ export default async function handler(req, res) {
       })();
 
       if (shouldSendOriginal) {
+        const slotIsTakeHome = await isTakeHomeSlotForToday(protocol, todayDateStr);
+        if (!slotIsTakeHome) {
+          results.skipped.push({
+            patient: patient.name,
+            reason: 'in-clinic protocol; today\'s slot is administered at clinic',
+          });
+          continue;
+        }
         const message = buildOriginalMessage(firstName, cadenceWord, checkinUrl);
         await sendAndLog({
           protocol, patient, message, nudgeLevel: 0,

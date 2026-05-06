@@ -284,12 +284,13 @@ export default function SendFormsPage() {
     }
     if (getSelectedCount() === 0) return false;
 
-    // Manual entry: require first name, last name, valid phone, and email if sending via email
+    // Manual entry: require first + last name; require the contact field that matches delivery method
     if (mode === 'manual') {
       if (!manualFirstName.trim() || !manualLastName.trim()) return false;
-      if (manualPhone.replace(/\D/g, '').length < 10) return false;
-      if (deliveryMethod === 'email' && !manualEmail.includes('@')) return false;
-      return true;
+      if (deliveryMethod === 'sms') {
+        return manualPhone.replace(/\D/g, '').length >= 10;
+      }
+      return manualEmail.includes('@');
     }
 
     const recipient = getRecipient();
@@ -714,7 +715,7 @@ export default function SendFormsPage() {
             ) : (
               <div style={styles.manualFields}>
                 <p style={{ margin: '0 0 4px', fontSize: '12px', color: '#666' }}>
-                  We&apos;ll create a patient profile (or match an existing one by phone) so you can add notes, purchases, and history later.
+                  We&apos;ll create a patient profile (or match an existing one by phone or email) so you can add notes, purchases, and history later.
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <input
@@ -736,13 +737,13 @@ export default function SendFormsPage() {
                   type="tel"
                   value={manualPhone}
                   onChange={e => { setManualPhone(formatPhone(e.target.value)); setManualMatchNotice(null); }}
-                  placeholder="Phone number *"
+                  placeholder={deliveryMethod === 'sms' ? 'Phone number *' : 'Phone number (optional)'}
                   style={styles.input}
                 />
                 <input
                   type="email"
                   value={manualEmail}
-                  onChange={e => setManualEmail(e.target.value)}
+                  onChange={e => { setManualEmail(e.target.value); setManualMatchNotice(null); }}
                   placeholder={deliveryMethod === 'email' ? 'Email address *' : 'Email address (optional)'}
                   style={styles.input}
                 />

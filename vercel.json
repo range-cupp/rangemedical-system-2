@@ -1,5 +1,19 @@
 {
   "cleanUrls": true,
+  "functions": {
+    "pages/api/cron/generate-follow-ups.js":   { "maxDuration": 300 },
+    "pages/api/cron/daily-sales-report.js":    { "maxDuration": 120 },
+    "pages/api/cron/wl-daily-report.js":       { "maxDuration": 120 },
+    "pages/api/cron/data-audit-digest.js":     { "maxDuration": 120 },
+    "pages/api/cron/lab-review-followup.js":   { "maxDuration": 120 },
+    "pages/api/cron/complete-protocols.js":    { "maxDuration": 120 },
+    "pages/api/cron/hrt-pickup-due-sweep.js":  { "maxDuration": 120 },
+    "pages/api/cron/link-forms.js":            { "maxDuration": 120 },
+    "pages/api/cron/sync-google-reviews.js":   { "maxDuration": 120 },
+    "pages/api/cron/task-digest.js":           { "maxDuration": 60 },
+    "pages/api/cron/send-notifications.js":    { "maxDuration": 60 },
+    "pages/api/cron/free-session-followup.js": { "maxDuration": 60 }
+  },
   "crons": [
     {
       "path": "/api/cron/staff-prep-alert",
@@ -19,7 +33,7 @@
     },
     {
       "path": "/api/cron/lab-review-followup",
-      "schedule": "15 3 * * *"
+      "schedule": "30 3 * * *"
     },
     {
       "path": "/api/cron/link-forms",
@@ -27,7 +41,7 @@
     },
     {
       "path": "/api/cron/sync-google-reviews",
-      "schedule": "0 6 * * *"
+      "schedule": "30 6 * * *"
     },
     {
       "path": "/api/cron/complete-protocols",
@@ -35,63 +49,63 @@
     },
     {
       "path": "/api/cron/hrt-pickup-due-sweep",
-      "schedule": "10 7 * * *"
+      "schedule": "30 7 * * *"
     },
     {
       "path": "/api/cron/data-audit-digest",
       "schedule": "0 14 * * *"
     },
     {
+      "path": "/api/cron/generate-follow-ups",
+      "schedule": "30 14 * * *"
+    },
+    {
       "path": "/api/cron/oxygen-daily",
-      "schedule": "10 15 * * *"
+      "schedule": "0 15 * * *"
     },
     {
       "path": "/api/cron/send-notifications",
-      "schedule": "15 15 * * *"
+      "schedule": "30 15 * * *"
     },
     {
       "path": "/api/cron/wl-midpoint-reminder",
-      "schedule": "50 15 * * *"
+      "schedule": "45 15 * * *"
     },
     {
       "path": "/api/cron/hrt-injection-reminders",
       "schedule": "0 16 * * *"
     },
     {
-      "path": "/api/cron/hrt-lab-reminders",
-      "schedule": "5 16 * * *"
-    },
-    {
       "path": "/api/cron/hrt-iv-reminders",
-      "schedule": "10 16 * * *"
-    },
-    {
-      "path": "/api/cron/lab-prep-reminder",
       "schedule": "15 16 * * *"
     },
     {
+      "path": "/api/cron/hrt-lab-reminders",
+      "schedule": "30 16 * * *"
+    },
+    {
+      "path": "/api/cron/lab-prep-reminder",
+      "schedule": "45 16 * * *"
+    },
+    {
       "path": "/api/cron/weekly-checkin-reminder",
-      "schedule": "20 16 * * *"
-    },
-    {
-      "path": "/api/cron/peptide-weekly-checkin",
-      "schedule": "25 16 * * *"
-    },
-    {
-      "path": "/api/cron/birthday-sms",
       "schedule": "0 17 * * *"
     },
     {
+      "path": "/api/cron/peptide-weekly-checkin",
+      "schedule": "15 17 * * *"
+    },
+    {
+      "path": "/api/cron/birthday-sms",
+      "schedule": "30 17 * * *"
+    },
+    {
       "path": "/api/cron/appointment-reminder",
-      "schedule": "10 17 * * *"
+      "schedule": "45 17 * * *"
     },
     {
       "path": "/api/cron/iv-followup",
       "schedule": "0 18 * * *"
-    },
-    {
-      "path": "/api/cron/generate-follow-ups",
-      "schedule": "15 14 * * *"
     },
     {
       "path": "/api/cron/giveaway-scholarships",
@@ -115,7 +129,7 @@
     },
     {
       "path": "/api/cron/free-session-followup",
-      "schedule": "*/5 * * * *"
+      "schedule": "*/10 * * * *"
     }
   ]
 }

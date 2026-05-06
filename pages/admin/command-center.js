@@ -4,20 +4,23 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
+import dynamic from 'next/dynamic';
 import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
-import EmailComposeModal from '../../components/EmailComposeModal';
 import { useAuth } from '../../components/AuthProvider';
-import ServiceLogContent from '../../components/ServiceLogContent';
-import LabsPipelineTab from '../../components/LabsPipelineTab';
-import BookingTab from '../../components/BookingTab';
-import CalendarView from '../../components/CalendarView';
-import LabDashboard from '../../components/labs/LabDashboard';
 import { formatCategoryName, WEIGHT_LOSS_MEDICATIONS, WEIGHT_LOSS_DOSAGES, PEPTIDE_OPTIONS, HRT_MEDICATIONS, HRT_SECONDARY_MEDICATIONS, TESTOSTERONE_DOSES } from '../../lib/protocol-config';
 import { getHRTMedication, getHRTConcentration } from '../../lib/protocol-types';
 import { formatPhone } from '../../lib/format-utils';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 import { loadStripe } from '@stripe/stripe-js';
-import POSChargeModal from '../../components/POSChargeModal';
+
+// Heavy tab/modal components — loaded on demand to keep the initial bundle small.
+const ServiceLogContent  = dynamic(() => import('../../components/ServiceLogContent'),  { ssr: false });
+const LabsPipelineTab    = dynamic(() => import('../../components/LabsPipelineTab'),    { ssr: false });
+const BookingTab         = dynamic(() => import('../../components/BookingTab'),         { ssr: false });
+const CalendarView       = dynamic(() => import('../../components/CalendarView'),       { ssr: false });
+const LabDashboard       = dynamic(() => import('../../components/labs/LabDashboard'),  { ssr: false });
+const EmailComposeModal  = dynamic(() => import('../../components/EmailComposeModal'),  { ssr: false });
+const POSChargeModal     = dynamic(() => import('../../components/POSChargeModal'),     { ssr: false });
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)

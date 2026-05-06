@@ -5384,7 +5384,7 @@ export default function PatientProfile() {
             const protoName = proto.program_name || proto.medication || proto.category;
 
             // Check exhausted sessions (all sessions used up)
-            if (totalSessions > 0 && sessionsUsed >= totalSessions) {
+            if (totalSessions > 0 && sessionsUsed >= totalSessions && !proto.comp) {
               banners.push({
                 key: `exhausted-${proto.id}`,
                 type: 'payment',

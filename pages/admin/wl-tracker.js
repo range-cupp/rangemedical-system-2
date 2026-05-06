@@ -85,6 +85,18 @@ function defaultBookingMessage(patient) {
   );
 }
 
+// Personal outreach: used when the auto-system already exhausted itself
+// (original + 1st + final nudge all sent, patient never responded). Tone is
+// human and concerned, not just another reminder.
+function defaultOutreachMessage(patient) {
+  const firstName = patient.first_name || patient.name?.split(' ')[0] || 'there';
+  return (
+    `Hi ${firstName}, this is Range Medical. We've sent your weekly check-in a few times this week ` +
+    `but haven't heard back. Just want to make sure you're doing okay — any side effects, questions, ` +
+    `or anything we can help with? Reply here or give us a call at (949) 997-3988.`
+  );
+}
+
 export default function WLTrackerPage() {
   const { session } = useAuth();
   const [mode, setMode] = useState('take_home'); // 'take_home' | 'in_clinic'
@@ -197,6 +209,7 @@ export default function WLTrackerPage() {
         case 'needs_setup':
         case 'cron_skipped_today':
         case 'missed':
+        case 'final_nudge_ignored':
           needsAttention.push(p); break;
         case 'completed_today':       completedToday.push(p); break;
         case 'completed_in_cycle':    completedEarlier.push(p); break;  // separate section so "today" actually means today
@@ -326,7 +339,12 @@ export default function WLTrackerPage() {
             onAction={handleAction}
             onSchedule={setBookingPatient}
             onSmsPreview={(patient, kind) => {
-              const builder = kind === 'booking' ? defaultBookingMessage : defaultManualCheckinMessage;
+              const builder =
+                kind === 'booking'           ? defaultBookingMessage :
+                kind === 'personal_outreach' ? defaultOutreachMessage :
+                                               defaultManualCheckinMessage;
+              // personal_outreach piggybacks on send_now since it's still
+              // a manual SMS to the patient — just with different copy.
               const action = kind === 'booking' ? 'send_booking_sms' : 'send_now';
               setSmsDraft({ patient, kind, action, message: builder(patient), defaultBuilder: builder });
             }}
@@ -354,7 +372,12 @@ export default function WLTrackerPage() {
             actionInProgress={actionInProgress}
             onSchedule={() => setBookingPatient(selectedPatient)}
             onSmsPreview={(kind) => {
-              const builder = kind === 'booking' ? defaultBookingMessage : defaultManualCheckinMessage;
+              const builder =
+                kind === 'booking'           ? defaultBookingMessage :
+                kind === 'personal_outreach' ? defaultOutreachMessage :
+                                               defaultManualCheckinMessage;
+              // personal_outreach piggybacks on send_now since it's still
+              // a manual SMS to the patient — just with different copy.
               const action = kind === 'booking' ? 'send_booking_sms' : 'send_now';
               setSmsDraft({ patient: selectedPatient, kind, action, message: builder(selectedPatient), defaultBuilder: builder });
             }}
@@ -426,10 +449,12 @@ function SmsPreviewModal({ draft, actionInProgress, onClose, onResetDefault, onS
   const titleByKind = {
     manual_checkin: '📊 Send manual check-in',
     booking: '📅 Send booking outreach',
+    personal_outreach: '🤝 Send personal outreach',
   };
   const subtitleByKind = {
     manual_checkin: 'The system already auto-sends originals + nudges on schedule. Use this only if the patient lost the link or asked for a fresh one.',
     booking: 'Asks the patient to reply with times that work, or call to schedule.',
+    personal_outreach: 'For patients who ignored the original + both nudges. Tone is human and concerned, not another reminder.',
   };
 
   return (
@@ -894,7 +919,7 @@ function DailySection({ section, today, mode, onSelect, onAction, onSchedule, on
                   ? <InClinicRow key={p.protocol_id} patient={p} sectionKey={section.key}
                       onSelect={onSelect} onAction={onAction} onSchedule={onSchedule} onSmsPreview={onSmsPreview} actionInProgress={actionInProgress} />
                   : <DailyRow key={p.protocol_id} patient={p} today={today} sectionKey={section.key}
-                      onSelect={onSelect} onAction={onAction} actionInProgress={actionInProgress} />
+                      onSelect={onSelect} onAction={onAction} onSmsPreview={onSmsPreview} actionInProgress={actionInProgress} />
               ))}
             </div>
           </>
@@ -929,12 +954,17 @@ function ColumnHeader({ sectionKey, mode }) {
   );
 }
 
-function DailyRow({ patient, sectionKey, onSelect, onAction, actionInProgress }) {
+function DailyRow({ patient, sectionKey, onSelect, onAction, onSmsPreview, actionInProgress }) {
   const isAttention = sectionKey === 'needsAttention';
+  const action = patient.cycle?.today_action;
+  // Patients who ignored every auto-message of the cycle get a personal-outreach
+  // shortcut button — that's the action staff will take 95% of the time.
+  const showOutreach = action === 'final_nudge_ignored' || action === 'missed';
+
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '40px 1.4fr 1fr 0.9fr 0.9fr 130px',
+      gridTemplateColumns: '40px 1.4fr 1fr 0.9fr 0.9fr 180px',
       gap: '12px', alignItems: 'center',
       padding: '12px 18px', borderBottom: '1px solid #f0f0f0',
       background: isAttention ? '#fef9f3' : '#fff',
@@ -955,7 +985,15 @@ function DailyRow({ patient, sectionKey, onSelect, onAction, actionInProgress })
         <div style={{ fontSize: '11px', color: '#999' }}>{fmtDate(patient.last_checkin_date) || '—'}</div>
       </div>
       <StatusStack payment={patient.payment} dispense={patient.dispense} />
-      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        {showOutreach && onSmsPreview && (
+          <button disabled={actionInProgress || !patient.phone}
+            onClick={() => onSmsPreview(patient, 'personal_outreach')}
+            title={patient.phone ? 'Send a personal outreach SMS (preview & edit)' : 'No phone on file'}
+            style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall }}>
+            🤝 Reach out
+          </button>
+        )}
         <button disabled={actionInProgress}
           onClick={() => onSelect(patient)}
           style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}>
@@ -1258,8 +1296,17 @@ function todayActionDescription(patient) {
       return <span style={{ color: '#9a3412' }}>⚠️ Cron should have sent today, didn&rsquo;t — investigate</span>;
     case 'needs_setup':
       return <span style={{ color: '#9a3412' }}>⚠️ No injection day set — reminders can&rsquo;t fire</span>;
+    case 'final_nudge_ignored': {
+      const days = c.days_since_final_nudge;
+      const finalDate = c.nudge2?.sent_date ? fmtDate(c.nudge2.sent_date) : 'recently';
+      return (
+        <span style={{ color: '#991b1b' }}>
+          🚨 <strong>Final nudge ignored</strong> — sent {finalDate} ({days}d ago) · reach out personally
+        </span>
+      );
+    }
     case 'missed':
-      return <span style={{ color: '#9a3412' }}>❌ Cycle missed — no response after final nudge</span>;
+      return <span style={{ color: '#991b1b' }}>❌ <strong>Cycle missed</strong> — no response all week · contact patient</span>;
     case 'reminders_off':
       return <span style={{ color: '#888' }}>Reminders OFF</span>;
     case 'opted_out':
@@ -1506,9 +1553,14 @@ function PatientPanel({ patient, onClose, onAction, actionInProgress, onSchedule
               style={{ ...sharedStyles.btnSecondary, width: '100%' }}>
               📅 Booking outreach (preview & edit)
             </button>
+            <button disabled={actionInProgress || !patient.phone}
+              onClick={() => onSmsPreview('personal_outreach')}
+              style={{ ...sharedStyles.btnSecondary, width: '100%' }}>
+              🤝 Personal outreach (preview & edit)
+            </button>
           </div>
           <div style={{ fontSize: '11px', color: '#888', marginTop: '8px', lineHeight: 1.5 }}>
-            Both open a preview modal so you can edit the text before sending.
+            Each opens a preview modal so you can edit the text before sending.
           </div>
         </Section>
 

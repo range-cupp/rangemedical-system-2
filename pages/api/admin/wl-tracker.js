@@ -219,12 +219,13 @@ function computeDispenseStatus(cadenceDays, lastPurchase, todayISO) {
 //   - 'completed_today'       patient logged a check-in today
 //   - 'completed_in_cycle'    patient already responded earlier in this cycle (not today)
 //   - 'waiting'               sent earlier in cycle, no response yet
+//   - 'final_nudge_ignored'   final nudge sent ≥1 day ago, no response — needs personal outreach
 //   - 'will_send_today'       today is the injection day, cron hasn't run yet (before ~10am PT)
 //   - 'cron_skipped_today'    today is the injection day, cron should have run, didn't
 //   - 'needs_setup'           reminders enabled but no injection_day set
 //   - 'reminders_off'         reminders disabled (intentionally or not)
 //   - 'opted_out'             patient explicitly declined SMS
-//   - 'missed'                cycle expired without a check-in
+//   - 'missed'                cycle fully expired without a check-in
 //   - 'idle'                  upcoming this week, nothing to do today
 function computeCycleEvents({ expectedDateISO, todayISO, cadenceDays, reminderLogs, checkinLogs, protocol }) {
   // Current LA hour, formatted directly from the UTC instant to avoid the
@@ -289,9 +290,23 @@ function computeCycleEvents({ expectedDateISO, todayISO, cadenceDays, reminderLo
     };
   }
 
-  // Past final nudge with no response = missed
+  // Past final nudge with no response = missed (cycle fully expired)
   if (todayISO > cycleEndISO && !cycleCheckin) {
     return { today_action: 'missed', original, nudge1, nudge2 };
+  }
+
+  // Final nudge sent ≥1 day ago and still no response → escalate to staff so
+  // they can do personal outreach (call / text) before the cycle expires.
+  // Only matters if the cron actually got to nudge_level=2.
+  if (nudge2 && !cycleCheckin) {
+    const daysSinceFinalNudge = daysBetween(nudge2.sent_date, todayISO);
+    if (daysSinceFinalNudge >= 1) {
+      return {
+        today_action: 'final_nudge_ignored',
+        original, nudge1, nudge2,
+        days_since_final_nudge: daysSinceFinalNudge,
+      };
+    }
   }
 
   // Sent earlier this cycle, in flight, nothing happening today

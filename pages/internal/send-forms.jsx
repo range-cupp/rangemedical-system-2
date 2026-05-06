@@ -40,6 +40,8 @@ export default function SendForms() {
   
   const [phone, setPhone] = useState('');
   const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [matchNotice, setMatchNotice] = useState(null); // { name } when find-or-create matches existing patient
   const [selectedForms, setSelectedForms] = useState(['intake', 'hipaa']);
   const [status, setStatus] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(false);
@@ -84,13 +86,15 @@ export default function SendForms() {
     setSelectedPatient(patient);
     setSearchQuery(patient.name);
     setShowDropdown(false);
+    setMatchNotice(null);
     // Auto-fill phone and name
     if (patient.phone) {
       setPhone(formatPhone(patient.phone));
     }
     if (patient.name) {
-      const nameParts = patient.name.split(' ');
+      const nameParts = patient.name.trim().split(/\s+/);
       setFirstName(nameParts[0] || '');
+      setLastName(nameParts.slice(1).join(' ') || '');
     }
   };
 
@@ -99,6 +103,8 @@ export default function SendForms() {
     setSearchQuery('');
     setPhone('');
     setFirstName('');
+    setLastName('');
+    setMatchNotice(null);
   };
 
   const toggleForm = (formId) => {
@@ -128,10 +134,16 @@ export default function SendForms() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    setMatchNotice(null);
+
     const digits = phone.replace(/\D/g, '');
     if (digits.length !== 10) {
       setStatus({ type: 'error', message: 'Please enter a valid 10-digit phone number' });
+      return;
+    }
+
+    if (!firstName.trim() || !lastName.trim()) {
+      setStatus({ type: 'error', message: 'First name and last name are required' });
       return;
     }
 
@@ -144,37 +156,65 @@ export default function SendForms() {
     setStatus({ type: 'loading', message: 'Sending forms...' });
 
     try {
+      // Manual entry: find-or-create patient profile so notes/purchases can be tracked.
+      // Search mode already has a patient record; skip the lookup.
+      let resolvedPatient = selectedPatient;
+      if (entryMode === 'manual' || !selectedPatient) {
+        const focResp = await fetch('/api/patient/find-or-create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            phone: digits,
+          }),
+        });
+        const focData = await focResp.json();
+        if (!focResp.ok) {
+          setStatus({ type: 'error', message: focData.error || 'Failed to resolve patient' });
+          setLoading(false);
+          return;
+        }
+        resolvedPatient = focData.patient;
+        if (focData.isExisting) {
+          setMatchNotice({ name: focData.patient.name });
+        }
+      }
+
       const sortedForms = getSortedForms(selectedForms);
-      
+
       const response = await fetch('/api/send-forms-sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           phone: digits,
           firstName: firstName.trim() || null,
-          formIds: sortedForms
+          formIds: sortedForms,
+          patientId: resolvedPatient?.id || null,
+          patientName: resolvedPatient?.name || `${firstName.trim()} ${lastName.trim()}`.trim(),
         })
       });
 
       const result = await response.json();
 
       if (response.ok) {
-        const formNames = sortedForms.map(id => 
+        const formNames = sortedForms.map(id =>
           AVAILABLE_FORMS.find(f => f.id === id)?.name
         ).join(', ');
-        
+
         setStatus({ type: 'success', message: `✓ ${selectedForms.length} form(s) sent to ${phone}` });
         setRecentSends(prev => [{
           phone,
-          firstName: firstName.trim() || selectedPatient?.name || 'Patient',
+          firstName: `${firstName.trim()} ${lastName.trim()}`.trim() || resolvedPatient?.name || 'Patient',
           forms: formNames,
           count: selectedForms.length,
           time: new Date().toLocaleTimeString()
         }, ...prev.slice(0, 9)]);
-        
+
         // Reset form
         setPhone('');
         setFirstName('');
+        setLastName('');
         setSelectedPatient(null);
         setSearchQuery('');
       } else {
@@ -725,6 +765,35 @@ export default function SendForms() {
 
             {entryMode === 'manual' && (
               <>
+                <p style={{ fontSize: '0.8125rem', color: '#525252', marginBottom: '0.75rem' }}>
+                  We&apos;ll create a patient profile (or match an existing one by phone) so you can track notes, purchases, and history.
+                </p>
+
+                <div className="form-group">
+                  <label className="label">First Name *</label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="First name"
+                    value={firstName}
+                    onChange={(e) => { setFirstName(e.target.value); setMatchNotice(null); }}
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="label">Last Name *</label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="Last name"
+                    value={lastName}
+                    onChange={(e) => { setLastName(e.target.value); setMatchNotice(null); }}
+                    required
+                  />
+                </div>
+
                 <div className="form-group">
                   <label className="label">Phone Number *</label>
                   <input
@@ -732,23 +801,25 @@ export default function SendForms() {
                     className="input input-phone"
                     placeholder="(555) 555-5555"
                     value={phone}
-                    onChange={handlePhoneChange}
+                    onChange={(e) => { handlePhoneChange(e); setMatchNotice(null); }}
                     maxLength={14}
                     required
-                    autoFocus
                   />
                 </div>
 
-                <div className="form-group">
-                  <label className="label">First Name (optional)</label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="For personalized message"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                  />
-                </div>
+                {matchNotice && (
+                  <div style={{
+                    padding: '0.75rem 1rem',
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    color: '#1e40af',
+                    fontSize: '0.8125rem',
+                    fontWeight: 500,
+                    marginBottom: '1rem',
+                  }}>
+                    Matched existing patient: <strong>{matchNotice.name}</strong>. Sending to that profile — no duplicate created.
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -806,10 +877,10 @@ export default function SendForms() {
           </div>
 
           {/* Submit */}
-          <button 
-            type="submit" 
-            className="btn" 
-            disabled={loading || selectedForms.length === 0 || !phone}
+          <button
+            type="submit"
+            className="btn"
+            disabled={loading || selectedForms.length === 0 || !phone || !firstName.trim() || !lastName.trim()}
           >
             {loading ? 'Sending...' : `Send ${selectedForms.length} Form${selectedForms.length !== 1 ? 's' : ''}`}
           </button>

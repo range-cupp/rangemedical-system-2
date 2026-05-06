@@ -114,9 +114,11 @@ export default function SendFormsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [manualName, setManualName] = useState('');
+  const [manualFirstName, setManualFirstName] = useState('');
+  const [manualLastName, setManualLastName] = useState('');
   const [manualPhone, setManualPhone] = useState('');
   const [manualEmail, setManualEmail] = useState('');
+  const [manualMatchNotice, setManualMatchNotice] = useState(null); // { name } if find-or-create matched an existing patient
   const searchTimeout = useRef(null);
 
   // Form selection
@@ -262,7 +264,7 @@ export default function SendFormsPage() {
 
   const getFirstName = () => {
     if (mode === 'search' && selectedPatient) return selectedPatient.firstName;
-    return manualName.split(' ')[0] || '';
+    return manualFirstName.trim();
   };
 
   const getSelectedCount = () => {
@@ -281,6 +283,15 @@ export default function SendFormsPage() {
       return recipient.includes('@');
     }
     if (getSelectedCount() === 0) return false;
+
+    // Manual entry: require first name, last name, valid phone, and email if sending via email
+    if (mode === 'manual') {
+      if (!manualFirstName.trim() || !manualLastName.trim()) return false;
+      if (manualPhone.replace(/\D/g, '').length < 10) return false;
+      if (deliveryMethod === 'email' && !manualEmail.includes('@')) return false;
+      return true;
+    }
+
     const recipient = getRecipient();
     if (!recipient) return false;
     if (deliveryMethod === 'sms') {
@@ -293,11 +304,40 @@ export default function SendFormsPage() {
     if (!canSend()) return;
     setSending(true);
     setResult(null);
+    setManualMatchNotice(null);
 
-    const firstName = getFirstName();
-    const patient = mode === 'search' ? selectedPatient : null;
+    let firstName = getFirstName();
+    let patient = mode === 'search' ? selectedPatient : null;
 
     try {
+      // Manual entry: find existing patient by phone or create a new patient record so every send is profile-linked
+      if (mode === 'manual' && pageMode !== 'questionnaire') {
+        const res = await fetch('/api/patient/find-or-create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName: manualFirstName.trim(),
+            lastName: manualLastName.trim(),
+            phone: manualPhone,
+            email: manualEmail.trim() || null,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to resolve patient');
+
+        patient = {
+          id: data.patient.id,
+          name: data.patient.name,
+          firstName: data.patient.first_name || manualFirstName.trim(),
+          phone: data.patient.phone || manualPhone,
+          email: data.patient.email || manualEmail || '',
+        };
+        firstName = patient.firstName;
+        if (data.isExisting) {
+          setManualMatchNotice({ name: data.patient.name });
+        }
+      }
+
       if (pageMode === 'questionnaire') {
         await sendQuestionnaire(patient);
       } else if (pageMode === 'forms') {
@@ -327,7 +367,7 @@ export default function SendFormsPage() {
           firstName: firstName || null,
           formIds: sortedForms,
           patientId: patient?.id || null,
-          patientName: patient?.name || manualName || null,
+          patientName: patient?.name || null,
           ghlContactId: patient?.ghl_contact_id || null,
         }),
       });
@@ -335,7 +375,7 @@ export default function SendFormsPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to send email');
 
       setResult({ success: true, message: `${selectedForms.length} form${selectedForms.length > 1 ? 's' : ''} sent via email` });
-      addRecentSend(patient?.name || manualName || email, 'email', selectedForms.length, 'forms');
+      addRecentSend(patient?.name || email, 'email', selectedForms.length, 'forms');
     } else {
       const phone = mode === 'search' ? selectedPatient.phone : manualPhone;
       const digits = phone.replace(/\D/g, '');
@@ -347,7 +387,7 @@ export default function SendFormsPage() {
           firstName: firstName || null,
           formIds: sortedForms,
           patientId: patient?.id || null,
-          patientName: patient?.name || manualName || null,
+          patientName: patient?.name || null,
           ghlContactId: patient?.ghl_contact_id || null,
         }),
       });
@@ -356,10 +396,10 @@ export default function SendFormsPage() {
 
       if (data.twoStep) {
         setResult({ success: true, message: `Opt-in message sent. ${selectedForms.length} form${selectedForms.length > 1 ? 's' : ''} will deliver when patient replies.` });
-        addRecentSend(patient?.name || manualName || phone, 'sms', selectedForms.length, 'forms (pending reply)');
+        addRecentSend(patient?.name || phone, 'sms', selectedForms.length, 'forms (pending reply)');
       } else {
         setResult({ success: true, message: `${selectedForms.length} form${selectedForms.length > 1 ? 's' : ''} sent via SMS` });
-        addRecentSend(patient?.name || manualName || phone, 'sms', selectedForms.length, 'forms');
+        addRecentSend(patient?.name || phone, 'sms', selectedForms.length, 'forms');
       }
     }
 
@@ -377,7 +417,7 @@ export default function SendFormsPage() {
           firstName: firstName || null,
           guideIds: selectedGuides,
           patientId: patient?.id || null,
-          patientName: patient?.name || manualName || null,
+          patientName: patient?.name || null,
           ghlContactId: patient?.ghl_contact_id || null,
         }),
       });
@@ -385,7 +425,7 @@ export default function SendFormsPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to send email');
 
       setResult({ success: true, message: `${selectedGuides.length} guide${selectedGuides.length > 1 ? 's' : ''} sent via email` });
-      addRecentSend(patient?.name || manualName || email, 'email', selectedGuides.length, 'guides');
+      addRecentSend(patient?.name || email, 'email', selectedGuides.length, 'guides');
     } else {
       const phone = mode === 'search' ? selectedPatient.phone : manualPhone;
       const digits = phone.replace(/\D/g, '');
@@ -397,7 +437,7 @@ export default function SendFormsPage() {
           firstName: firstName || null,
           guideIds: selectedGuides,
           patientId: patient?.id || null,
-          patientName: patient?.name || manualName || null,
+          patientName: patient?.name || null,
           ghlContactId: patient?.ghl_contact_id || null,
         }),
       });
@@ -406,10 +446,10 @@ export default function SendFormsPage() {
 
       if (data.twoStep) {
         setResult({ success: true, message: `Opt-in message sent. ${selectedGuides.length} guide${selectedGuides.length > 1 ? 's' : ''} will deliver when patient replies.` });
-        addRecentSend(patient?.name || manualName || phone, 'sms', selectedGuides.length, 'guides (pending reply)');
+        addRecentSend(patient?.name || phone, 'sms', selectedGuides.length, 'guides (pending reply)');
       } else {
         setResult({ success: true, message: `${selectedGuides.length} guide${selectedGuides.length > 1 ? 's' : ''} sent via SMS` });
-        addRecentSend(patient?.name || manualName || phone, 'sms', selectedGuides.length, 'guides');
+        addRecentSend(patient?.name || phone, 'sms', selectedGuides.length, 'guides');
       }
     }
 
@@ -427,7 +467,7 @@ export default function SendFormsPage() {
           firstName: firstName || null,
           videoSlugs: selectedVideos,
           patientId: patient?.id || null,
-          patientName: patient?.name || manualName || null,
+          patientName: patient?.name || null,
           ghlContactId: patient?.ghl_contact_id || null,
         }),
       });
@@ -435,7 +475,7 @@ export default function SendFormsPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to send email');
 
       setResult({ success: true, message: `${selectedVideos.length} video${selectedVideos.length > 1 ? 's' : ''} sent via email` });
-      addRecentSend(patient?.name || manualName || email, 'email', selectedVideos.length, 'videos');
+      addRecentSend(patient?.name || email, 'email', selectedVideos.length, 'videos');
     } else {
       const phone = mode === 'search' ? selectedPatient.phone : manualPhone;
       const digits = phone.replace(/\D/g, '');
@@ -447,7 +487,7 @@ export default function SendFormsPage() {
           firstName: firstName || null,
           videoSlugs: selectedVideos,
           patientId: patient?.id || null,
-          patientName: patient?.name || manualName || null,
+          patientName: patient?.name || null,
           ghlContactId: patient?.ghl_contact_id || null,
         }),
       });
@@ -456,10 +496,10 @@ export default function SendFormsPage() {
 
       if (data.twoStep) {
         setResult({ success: true, message: `Opt-in message sent. ${selectedVideos.length} video${selectedVideos.length > 1 ? 's' : ''} will deliver when patient replies.` });
-        addRecentSend(patient?.name || manualName || phone, 'sms', selectedVideos.length, 'videos (pending reply)');
+        addRecentSend(patient?.name || phone, 'sms', selectedVideos.length, 'videos (pending reply)');
       } else {
         setResult({ success: true, message: `${selectedVideos.length} video${selectedVideos.length > 1 ? 's' : ''} sent via SMS` });
-        addRecentSend(patient?.name || manualName || phone, 'sms', selectedVideos.length, 'videos');
+        addRecentSend(patient?.name || phone, 'sms', selectedVideos.length, 'videos');
       }
     }
 
@@ -673,27 +713,51 @@ export default function SendFormsPage() {
               </div>
             ) : (
               <div style={styles.manualFields}>
-                <input
-                  type="text"
-                  value={manualName}
-                  onChange={e => setManualName(e.target.value)}
-                  placeholder="Patient name (optional)"
-                  style={styles.input}
-                />
+                <p style={{ margin: '0 0 4px', fontSize: '12px', color: '#666' }}>
+                  We&apos;ll create a patient profile (or match an existing one by phone) so you can add notes, purchases, and history later.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <input
+                    type="text"
+                    value={manualFirstName}
+                    onChange={e => { setManualFirstName(e.target.value); setManualMatchNotice(null); }}
+                    placeholder="First name *"
+                    style={styles.input}
+                  />
+                  <input
+                    type="text"
+                    value={manualLastName}
+                    onChange={e => { setManualLastName(e.target.value); setManualMatchNotice(null); }}
+                    placeholder="Last name *"
+                    style={styles.input}
+                  />
+                </div>
                 <input
                   type="tel"
                   value={manualPhone}
-                  onChange={e => setManualPhone(formatPhone(e.target.value))}
-                  placeholder="Phone number"
+                  onChange={e => { setManualPhone(formatPhone(e.target.value)); setManualMatchNotice(null); }}
+                  placeholder="Phone number *"
                   style={styles.input}
                 />
                 <input
                   type="email"
                   value={manualEmail}
                   onChange={e => setManualEmail(e.target.value)}
-                  placeholder="Email address"
+                  placeholder={deliveryMethod === 'email' ? 'Email address *' : 'Email address (optional)'}
                   style={styles.input}
                 />
+                {manualMatchNotice && (
+                  <div style={{
+                    padding: '8px 12px',
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    color: '#1e40af',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                  }}>
+                    Matched existing patient: <strong>{manualMatchNotice.name}</strong>. Sending to that profile — no duplicate created.
+                  </div>
+                )}
               </div>
             )}
           </div>

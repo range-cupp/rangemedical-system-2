@@ -54,10 +54,11 @@ async function run() {
       if (error) { console.error(`Failed to create ${channelName}:`, error); continue; }
       channelId = ch.id;
 
-      const memberIds = [...new Set([chris.id, emp.id])];
-      await s.from('staff_channel_members').insert(
-        memberIds.map(employee_id => ({ channel_id: channelId, employee_id }))
-      );
+      // Only the assignee is a member — Chris is the sender but not in the channel
+      // so other employees' task channels don't clutter his chat list.
+      await s
+        .from('staff_channel_members')
+        .insert({ channel_id: channelId, employee_id: emp.id });
       console.log(`${channelName}: created (${channelId.slice(0, 8)})`);
     }
 

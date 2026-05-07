@@ -665,26 +665,17 @@ export default function Assessment() {
                 {ctaButton()}
               </div>
 
-              {/* ── Cost & Guarantee ── */}
+              {/* ── Cost ── */}
               <div style={s.section}>
                 <div style={s.label}>
-                  <span style={s.dot} /> WHAT IT COSTS & OUR GUARANTEE
+                  <span style={s.dot} /> WHAT IT COSTS
                 </div>
                 <div style={s.rule} />
                 <p style={s.body}>
                   The Range Assessment is <strong>$197</strong>. Every dollar is credited toward any treatment plan you start with Range Medical.
                 </p>
-                <p style={s.body}>
+                <p style={{ ...s.body, marginBottom: 0 }}>
                   That means if you move forward, the assessment is essentially free.
-                </p>
-                <div style={s.guaranteeBox}>
-                  <div style={s.guaranteeLabel}>Our Energy Guarantee</div>
-                  <p style={s.guaranteeText}>
-                    If you move into our Cellular Energy Reset program, we check your energy by week 3. If your self-rated energy has not improved by at least 2 points on a 10-point scale, we add 2 extra weeks of red light therapy sessions at no additional charge.
-                  </p>
-                </div>
-                <p style={{ ...s.body, marginTop: 20, marginBottom: 0 }}>
-                  We&apos;re not interested in selling you something that doesn&apos;t work. If you don&apos;t feel a real difference, we make it right.
                 </p>
               </div>
 

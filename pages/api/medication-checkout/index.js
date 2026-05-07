@@ -77,7 +77,7 @@ export default async function handler(req, res) {
   }
 
   // ── Controlled substance logging (testosterone) ──
-  // Dose changes require Dr. Burgess approval via SMS (handled by dose-change-requests API).
+  // Dose changes require provider approval via SMS (handled by dose-change-requests API).
   // Dispensing is logged with administered_by and verified_by when provided,
   // but does not block the checkout — the approval gate is on the dose change, not here.
 

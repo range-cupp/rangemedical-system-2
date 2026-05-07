@@ -141,7 +141,7 @@ export default async function handler(req, res) {
 
       updateData.updated_at = new Date().toISOString();
 
-      // Gate WL/HRT dose changes — must go through Dose Change modal → Burgess SMS approval.
+      // Gate WL/HRT dose changes — must go through Dose Change modal → provider SMS approval.
       const wantsDoseWrite =
         updateData.selected_dose !== undefined ||
         updateData.dose_per_injection !== undefined ||

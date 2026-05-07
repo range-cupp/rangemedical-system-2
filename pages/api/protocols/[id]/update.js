@@ -91,7 +91,7 @@ export default async function handler(req, res) {
     if (doses_per_vial !== undefined) updateData.doses_per_vial = doses_per_vial ? parseInt(doses_per_vial) : null;
     if (comp !== undefined) updateData.comp = !!comp;
 
-    // Gate WL/HRT dose changes — must go through the Dose Change modal → Burgess SMS approval.
+    // Gate WL/HRT dose changes — must go through the Dose Change modal → provider SMS approval.
     const wantsDoseWrite =
       updateData.selected_dose !== undefined ||
       updateData.dose_per_injection !== undefined ||

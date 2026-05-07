@@ -272,7 +272,7 @@ async function updateProtocol(id, updates, res, req) {
   }
 
   // Gate WL/HRT dose changes — protocol PATCH is not the right path for clinical
-  // dose changes. Those must go through the Dose Change modal → Burgess SMS approval.
+  // dose changes. Those must go through the Dose Change modal → provider SMS approval.
   const wantsDoseWrite =
     updateData.selected_dose !== undefined ||
     updateData.dose !== undefined ||

@@ -143,7 +143,7 @@ export default async function handler(req, res) {
     // Normalize supply_type for storage
     const normalizedSupplyType = supply_type === 'vial' ? 'vial_10ml' : supply_type;
 
-    // Gate HRT dose increases — must go through the Dose Change modal → Burgess SMS approval.
+    // Gate HRT dose increases — must go through the Dose Change modal → provider SMS approval.
     // Refills should come in at the current dose; if different, that's a clinical dose change.
     const refillUpdate = {
       supply_type: normalizedSupplyType,

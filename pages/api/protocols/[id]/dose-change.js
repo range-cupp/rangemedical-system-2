@@ -107,8 +107,8 @@ export default async function handler(req, res) {
         if (!approved_dose_change_request_id) {
           return res.status(400).json({
             error: isWL
-              ? 'Weight-loss dose changes require Dr. Burgess approval. Use the Dose Change modal on the patient profile to send an approval request.'
-              : 'HRT dose increases require Dr. Burgess approval. Use the Dose Change modal on the patient profile to send an approval request.',
+              ? 'Weight-loss dose changes require provider approval. Use the Dose Change modal on the patient profile to send an approval request to Dr. Burgess or Brendyn Reed NP.'
+              : 'HRT dose changes require provider approval. Use the Dose Change modal on the patient profile to send an approval request to Dr. Burgess or Brendyn Reed NP.',
             requires_approval: true,
           });
         }

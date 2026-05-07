@@ -1689,7 +1689,7 @@ function CheckoutInner() {
       if (failures.length > 0) message += `\n\nDispense errors: ${failures.map(f => `${f.name}: ${f.error}`).join(', ')}`;
       const blockedDose = dispResults.find(r => r.success && r.data?.dose_change_blocked);
       if (blockedDose) {
-        alert(`Dispense complete — but the dose on ${patient.name}'s protocol was NOT updated.\n\n${blockedDose.data.dose_change_blocked_reason || 'Weight-loss and HRT dose changes require Dr. Burgess approval.'}\n\nOpen the patient's profile and use the Dose Change button to send an approval request.`);
+        alert(`Dispense complete — but the dose on ${patient.name}'s protocol was NOT updated.\n\n${blockedDose.data.dose_change_blocked_reason || 'Weight-loss and HRT dose changes require provider approval (Dr. Burgess or Brendyn Reed NP).'}\n\nOpen the patient's profile and use the Dose Change button to send an approval request.`);
       }
       fetch(`/api/protocols?patient_id=${patient.id}&status=active`)
         .then(r => r.json())
@@ -2803,7 +2803,7 @@ function CheckoutInner() {
       } else if (blockedDose) {
         setResultStatus('success');
         const dispensedNames = results.map(r => r.name).join(', ');
-        setResultMessage(`Dispensed for ${patient.name}:\n${dispensedNames}\n\n⚠️ Dose on protocol NOT updated. ${blockedDose.data.dose_change_blocked_reason || 'Weight-loss and HRT dose changes require Dr. Burgess approval.'} Use the Dose Change button on the patient's profile.`);
+        setResultMessage(`Dispensed for ${patient.name}:\n${dispensedNames}\n\n⚠️ Dose on protocol NOT updated. ${blockedDose.data.dose_change_blocked_reason || 'Weight-loss and HRT dose changes require provider approval (Dr. Burgess or Brendyn Reed NP).'} Use the Dose Change button on the patient's profile.`);
       } else {
         setResultStatus('success');
         const dispensedNames = results.map(r => r.name).join(', ');

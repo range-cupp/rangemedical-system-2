@@ -693,7 +693,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
         stopDictation();
         if (onRefresh) onRefresh();
         if (data.dose_change_blocked) {
-          alert(`Note saved — but the dose on this patient's protocol was NOT updated.\n\n${data.dose_change_blocked_reason || 'Weight-loss and HRT dose changes require Dr. Burgess approval.'}\n\nOpen the patient's profile and use the Dose Change button to send an approval request.`);
+          alert(`Note saved — but the dose on this patient's protocol was NOT updated.\n\n${data.dose_change_blocked_reason || 'Weight-loss and HRT dose changes require provider approval (Dr. Burgess or Brendyn Reed NP).'}\n\nOpen the patient's profile and use the Dose Change button to send an approval request.`);
         }
         // If there are more services in queue, advance
         if (multiServiceQueue.length > 0) {
@@ -1828,7 +1828,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                           setInteractiveFormType(null);
                           if (onRefresh) onRefresh();
                           if (data.dose_change_blocked) {
-                            alert(`Note saved — but the dose on this patient's protocol was NOT updated.\n\n${data.dose_change_blocked_reason || 'Weight-loss and HRT dose changes require Dr. Burgess approval.'}\n\nOpen the patient's profile and use the Dose Change button to send an approval request.`);
+                            alert(`Note saved — but the dose on this patient's protocol was NOT updated.\n\n${data.dose_change_blocked_reason || 'Weight-loss and HRT dose changes require provider approval (Dr. Burgess or Brendyn Reed NP).'}\n\nOpen the patient's profile and use the Dose Change button to send an approval request.`);
                           }
                           // If there are more services in queue, advance
                           if (multiServiceQueue.length > 0) {

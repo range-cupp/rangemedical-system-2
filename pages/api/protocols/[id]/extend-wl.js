@@ -96,7 +96,7 @@ export default async function handler(req, res) {
     const oldDose = protocol.selected_dose;
     let doseChanged = false;
     if (newDose && newDose !== oldDose) {
-      // Gate WL dose changes — must go through Dose Change modal → Burgess SMS approval.
+      // Gate WL dose changes — must go through Dose Change modal → provider SMS approval.
       // Exception: setting a dose for the first time (starting_dose is null/TBD) is NOT
       // a dose change — it's onboarding.
       const isOnboarding = !protocol.starting_dose || protocol.starting_dose === 'TBD' || oldDose === 'TBD' || !oldDose;

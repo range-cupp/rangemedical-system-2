@@ -85,7 +85,7 @@ export default async function handler(req, res) {
 
     console.log('Final updateData:', JSON.stringify(updateData, null, 2));
 
-    // Gate WL/HRT dose changes — must go through Dose Change modal → Burgess SMS approval.
+    // Gate WL/HRT dose changes — must go through Dose Change modal → provider SMS approval.
     if (updateData.selected_dose !== undefined) {
       const { data: current } = await supabase
         .from('protocols')

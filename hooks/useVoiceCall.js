@@ -26,7 +26,7 @@ export const CALL_STATE = {
 
 const HEARTBEAT_INTERVAL_MS = 30 * 1000;
 
-export default function useVoiceCall({ employeeId } = {}) {
+export default function useVoiceCall({ employeeId, outboundOnly } = {}) {
   const [callState, setCallState]   = useState(CALL_STATE.IDLE);
   const [activeCall, setActiveCall] = useState(null);   // Twilio Call object
   const [callInfo, setCallInfo]     = useState(null);   // { to, name, duration, direction }
@@ -40,6 +40,7 @@ export default function useVoiceCall({ employeeId } = {}) {
 
   // ── Heartbeat (tells inbound TwiML router we're still online) ────────────────
   const startHeartbeat = useCallback(() => {
+    if (outboundOnly) return;
     if (!employeeId || heartbeatRef.current) return;
     const beat = () => {
       fetch('/api/app/voice-presence', {
@@ -194,7 +195,9 @@ export default function useVoiceCall({ employeeId } = {}) {
 
   // ── Auto-init on mount if the employee has opted in ──────────────────────────
   // Fetches settings, then registers only if voice_browser_enabled = true.
+  // Skipped in outboundOnly mode — device inits on-demand when user taps call.
   useEffect(() => {
+    if (outboundOnly) return;
     if (!employeeId) return;
     let cancelled = false;
 
@@ -215,7 +218,7 @@ export default function useVoiceCall({ employeeId } = {}) {
     })();
 
     return () => { cancelled = true; };
-  }, [employeeId, initDevice]);
+  }, [employeeId, initDevice, outboundOnly]);
 
   // ── Start duration timer ─────────────────────────────────────────────────────
   const startTimer = useCallback(() => {
@@ -275,7 +278,7 @@ export default function useVoiceCall({ employeeId } = {}) {
 
   // ── Make outbound call ───────────────────────────────────────────────────────
   const call = useCallback(async ({ to, name }) => {
-    if (callState === CALL_STATE.DISABLED) {
+    if (!outboundOnly && callState === CALL_STATE.DISABLED) {
       setError('Browser phone is off. Enable it in More → Browser Phone.');
       return;
     }

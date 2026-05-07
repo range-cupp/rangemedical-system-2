@@ -36,7 +36,7 @@ export default function AppMessages() {
     fetchConversations();
   }, []);
 
-  const voice = useVoiceCall({ employeeId: staff?.id });
+  const voice = useVoiceCall({ employeeId: staff?.id, outboundOnly: true });
 
   const handleCallPatient = () => {
     if (!activeThread?.phone || voice.isActive) return;

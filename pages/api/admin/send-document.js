@@ -5,6 +5,7 @@
 import { Resend } from 'resend';
 import { sendSMS } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
+import { shortenIfSupabaseUrl } from '../../../lib/short-link';
 
 function generateDocumentEmailHtml({ firstName, documentName, documentUrl, documents }) {
   // Multi-document support
@@ -128,8 +129,24 @@ export default async function handler(req, res) {
   const firstName = patientName ? patientName.split(' ')[0] : 'there';
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.range-medical.com';
   const resolveUrl = (url) => url.startsWith('http') ? url : `${baseUrl}${url}`;
-  const fullUrl = !isMulti ? resolveUrl(documentUrl) : null;
-  const resolvedDocs = isMulti ? documents.map(d => ({ name: d.name, url: resolveUrl(d.url) })) : null;
+
+  // Replace long Supabase signed URLs with short redirect URLs. The short
+  // link mints a fresh signed URL on each click so the link never expires.
+  const shortenOpts = {
+    description: isMulti ? `${documents.length} guides for ${patientName || 'patient'}` : `${documentName} for ${patientName || 'patient'}`,
+    patientId: patientId || null,
+    createdBy: 'send-document',
+    baseUrl,
+  };
+
+  const rawFullUrl = !isMulti ? resolveUrl(documentUrl) : null;
+  const fullUrl = !isMulti ? await shortenIfSupabaseUrl(rawFullUrl, shortenOpts) : null;
+  const resolvedDocs = isMulti
+    ? await Promise.all(documents.map(async d => ({
+        name: d.name,
+        url: await shortenIfSupabaseUrl(resolveUrl(d.url), shortenOpts),
+      })))
+    : null;
   const displayName = isMulti ? `${documents.length} guides` : documentName;
 
   try {

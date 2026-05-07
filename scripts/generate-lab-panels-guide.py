@@ -350,7 +350,7 @@ addon1_header.setStyle(TableStyle([
     ('ALIGN',(1,0),(1,0),'RIGHT'),
 ]))
 addon1.append(addon1_header)
-addon1.append(Paragraph("Test Code: L072 • Specimen: Whole Blood • Method: ICP-MS/MS", body_sm_s))
+addon1.append(Paragraph("Whole Blood • ICP-MS/MS", body_sm_s))
 addon1.append(Spacer(1, 8))
 addon1.append(Paragraph(
     "Screens for the three most common toxic heavy metals. Ideal for patients with "
@@ -402,7 +402,7 @@ addon2_header.setStyle(TableStyle([
     ('ALIGN',(1,0),(1,0),'RIGHT'),
 ]))
 addon2.append(addon2_header)
-addon2.append(Paragraph("Test Code: 5520 • Specimen: Urine • Method: ICP-MS/MS", body_sm_s))
+addon2.append(Paragraph("Urine Collection • ICP-MS/MS", body_sm_s))
 addon2.append(Spacer(1, 8))
 addon2.append(Paragraph(
     "The most comprehensive toxic metals screen we offer. Tests 21 metals via "
@@ -478,7 +478,7 @@ addon3_header.setStyle(TableStyle([
     ('ALIGN',(1,0),(1,0),'RIGHT'),
 ]))
 addon3.append(addon3_header)
-addon3.append(Paragraph("Test Code: 6327 • Specimen: Serum • Method: Immunoassay + Calc.", body_sm_s))
+addon3.append(Paragraph("Blood Draw • Immunoassay", body_sm_s))
 addon3.append(Spacer(1, 8))
 addon3.append(Paragraph(
     "Screens for IgE-mediated allergic sensitivity to six common indoor molds. "

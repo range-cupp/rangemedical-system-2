@@ -338,11 +338,11 @@ async function handleInboundMessage(body) {
             .single();
 
           const linkParams = new URLSearchParams();
+          linkParams.set('pid', patient.id);
           const displayName = patientDetails?.first_name || patientDetails?.name || patient.name || '';
           if (displayName) linkParams.set('name', displayName);
           if (patientDetails?.email) linkParams.set('email', patientDetails.email);
-          const queryStr = linkParams.toString();
-          const scheduleLink = `https://app.range-medical.com/schedule-iv${queryStr ? '?' + queryStr : ''}`;
+          const scheduleLink = `https://app.range-medical.com/schedule-iv?${linkParams.toString()}`;
           const linkMessage = `Here’s your link to schedule your Range IV: ${scheduleLink}\n\n— Range Medical`;
 
           const linkResult = await sendBlooioMessage({ to: senderPhone, message: linkMessage });

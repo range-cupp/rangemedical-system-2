@@ -392,11 +392,18 @@ export default function CommunicationsPage() {
   const needsResponseTotal = patients.filter(p => p.needsResponseCount > 0).length;
 
   // Filter patients by search and response filter
-  let allFilteredPatients = patientSearch
-    ? patients.filter(p => (p.name || '').toLowerCase().includes(patientSearch.toLowerCase()))
+  // When searching, bypass the response filter so every matching patient is visible
+  const isSearching = patientSearch.length > 0;
+  let allFilteredPatients = isSearching
+    ? patients.filter(p => {
+        const q = patientSearch.toLowerCase();
+        const nameMatch = (p.name || '').toLowerCase().includes(q);
+        const phoneMatch = (p.recipient || p.phone || '').replace(/\D/g, '').includes(q.replace(/\D/g, ''));
+        return nameMatch || phoneMatch;
+      })
     : patients;
 
-  if (responseFilter === 'needs_response') {
+  if (!isSearching && responseFilter === 'needs_response') {
     allFilteredPatients = allFilteredPatients.filter(p => p.needsResponseCount > 0 ||
       (selectedPatient && ((p.id && p.id === selectedPatient.id) || (!p.id && (p.phone || p.recipient) === (selectedPatient.phone || selectedPatient.recipient))))
     );
@@ -471,7 +478,7 @@ export default function CommunicationsPage() {
                 type="text"
                 value={patientSearch}
                 onChange={e => handleSearchChange(e.target.value)}
-                placeholder="Search patients..."
+                placeholder="Search by name or phone..."
                 style={styles.searchInput}
               />
               {patients.some(p => p.unreadCount > 0) && (
@@ -497,7 +504,11 @@ export default function CommunicationsPage() {
             {loading ? (
               <div style={styles.loadingArea}>Loading conversations...</div>
             ) : allFilteredPatients.length === 0 ? (
-              <div style={styles.emptyArea}>No conversations yet. Search for a patient to start.</div>
+              <div style={styles.emptyArea}>
+                {isSearching
+                  ? `No conversations found for "${patientSearch}"`
+                  : 'No conversations yet. Search for a patient to start.'}
+              </div>
             ) : (
               <>
                 {paginatedPatients.map(p => {

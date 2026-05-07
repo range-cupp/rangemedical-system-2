@@ -8152,20 +8152,27 @@ export default function PatientProfile() {
                                         });
                                       }
 
-                                      // Assign purchases to blocks sequentially: 1st purchase → Block 1, 2nd → Block 2, etc.
-                                      // Purchases are sorted by date — each purchase covers one block of 4 injections.
+                                      // Vial-based: one purchase covers all injections in the vial (multiple blocks)
+                                      const vialMg = protocol.vial_size ? parseFloat(protocol.vial_size) : 0;
+                                      const doseMg = protocol.selected_dose ? parseFloat(protocol.selected_dose) : 0;
+                                      const isVialProtocol = isTakeHome && vialMg > 0 && doseMg > 0;
+                                      const blocksPerVial = isVialProtocol ? Math.ceil(Math.floor(vialMg / doseMg) / BLOCK_SIZE) : 1;
+
+                                      // Assign purchases to blocks sequentially.
+                                      // Standard: 1 purchase = 1 block. Vial: 1 purchase = blocksPerVial blocks.
                                       protoLinkedPurchases.forEach((p, idx) => {
-                                        if (idx < purchaseBoundaries.length) {
-                                          purchaseBoundaries[idx].purchase = p;
+                                        const startBlock = idx * blocksPerVial;
+                                        for (let b = startBlock; b < startBlock + blocksPerVial && b < purchaseBoundaries.length; b++) {
+                                          purchaseBoundaries[b].purchase = p;
                                         }
                                       });
 
-                                      // Assign take-home pickups to blocks sequentially (same rule as purchases).
-                                      // One pickup log per block is the common case — multi-pickup blocks are rare.
+                                      // Assign take-home pickups to blocks sequentially (same spread for vials).
                                       const sortedPickupsForBlocks = [...wlDeliveryLogs].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
                                       sortedPickupsForBlocks.forEach((pk, idx) => {
-                                        if (idx < purchaseBoundaries.length) {
-                                          purchaseBoundaries[idx].pickup = pk;
+                                        const startBlock = idx * blocksPerVial;
+                                        for (let b = startBlock; b < startBlock + blocksPerVial && b < purchaseBoundaries.length; b++) {
+                                          purchaseBoundaries[b].pickup = pk;
                                         }
                                       });
 
@@ -8215,7 +8222,8 @@ export default function PatientProfile() {
                                           const paidAmount = purchase.amount_paid != null ? parseFloat(purchase.amount_paid) : null;
                                           const isComp = paidAmount === 0 || purchase.payment_method === 'comp';
                                           const blockPickup = boundary.pickup;
-                                          const pickupQty = blockPickup ? (blockPickup.quantity || 0) : 0;
+                                          const rawPickupQty = blockPickup ? (blockPickup.quantity || 0) : 0;
+                                          const pickupQty = isVialProtocol && blockPickup ? BLOCK_SIZE : rawPickupQty;
                                           const isOvernight = blockPickup?.fulfillment_method === 'overnight';
                                           const overnightedQty = isOvernight ? pickupQty : 0;
                                           const takeHomeQty = !isOvernight ? pickupQty : 0;

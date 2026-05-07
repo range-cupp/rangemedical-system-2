@@ -279,6 +279,7 @@ export default function AppLayout({ title, children, unreadMessages = 0, voiceHo
           incomingCall={voice.incomingCall}
           onAnswer={voice.answer}
           onReject={voice.reject}
+          onSendDigits={voice.sendDigits}
         />
 
         {/* Bottom tabs */}

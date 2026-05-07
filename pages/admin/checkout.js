@@ -1571,6 +1571,22 @@ function CheckoutInner() {
         wlFulfillment = 'in_clinic';
       }
 
+      // Cart-level qty multiplies a builder line. Scale builder configs so
+      // the recorded quantity and protocol total_sessions reflect actual
+      // doses paid for. Without this, a "1× 2mg" builder with cart qty 4
+      // becomes "Retatrutide — 1x 2mg x4" with quantity=1 (Keely Julian, 2026-04-30).
+      const scaledWlConfig = isWlBuilder
+        ? {
+            ...item.wlConfig,
+            totalInjections: item.wlConfig.totalInjections * qty,
+            groups: (item.wlConfig.groups || []).map(g => ({ ...g, quantity: (g.quantity || 0) * qty })),
+          }
+        : undefined;
+      const scaledPeptideConfig = isPeptideBuilder
+        ? { ...item.peptideConfig, totalInjections: (item.peptideConfig.totalInjections || 1) * qty }
+        : undefined;
+      const scaledInjQty = isInjBuilder ? (item.injConfig.quantity || 1) * qty : undefined;
+
       const res = await fetch('/api/stripe/record-purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1582,15 +1598,15 @@ function CheckoutInner() {
           payment_method: 'stripe',
           service_category: item.category,
           service_name: serviceName,
-          quantity: isWlBuilder ? item.wlConfig.totalInjections : isInjBuilder ? item.injConfig.quantity : isPeptideBuilder ? item.peptideConfig.totalInjections : qty,
+          quantity: isWlBuilder ? scaledWlConfig.totalInjections : isInjBuilder ? scaledInjQty : isPeptideBuilder ? scaledPeptideConfig.totalInjections : qty,
           delivery_method: item.delivery_method || null,
           duration_days: isPeptideBuilder ? item.peptideConfig.durationDays : (item.duration_days || null),
           shipping: amount_override ? 0 : itemShipping,
           fulfillment_method: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) ? wlFulfillment : null,
           tracking_number: item.category === 'weight_loss' && fulfillmentMethod === 'overnight' ? trackingNumber : null,
           wl_frequency_days: item.category === 'weight_loss' ? (isWlBuilder ? item.wlConfig.frequency : wlFrequencyDays) : undefined,
-          wl_config: isWlBuilder ? item.wlConfig : undefined,
-          peptide_config: isPeptideBuilder ? item.peptideConfig : undefined,
+          wl_config: scaledWlConfig,
+          peptide_config: scaledPeptideConfig,
           hrt_config: item.hrtConfig || undefined,
           injection_frequency: isInjBuilder ? item.injConfig.frequency : undefined,
           skip_receipt: skipNotification || cartItems.length > 1,

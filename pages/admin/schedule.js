@@ -6,9 +6,11 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import AdminLayout from '../../components/AdminLayout';
+import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
 import EncounterModal from '../../components/EncounterModal';
 import { useAuth } from '../../components/AuthProvider';
+import { formatPhone } from '../../lib/format-utils';
+import { getRenewalStatus } from '../../lib/protocol-tracking';
 
 // Dynamic import CalendarView (it uses browser APIs)
 const CalendarView = dynamic(() => import('../../components/CalendarView'), { ssr: false });
@@ -37,6 +39,11 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(true);
   const [renewalMap, setRenewalMap] = useState({}); // patient_id -> [renewals]
   const [encounterAppt, setEncounterAppt] = useState(null);
+  const [drawerData, setDrawerData] = useState(null);
+  const [drawerLoading, setDrawerLoading] = useState(false);
+  const [drawerSmsText, setDrawerSmsText] = useState('');
+  const [drawerSmsSending, setDrawerSmsSending] = useState(false);
+  const [drawerSmsStatus, setDrawerSmsStatus] = useState(null);
   const router = useRouter();
 
   const today = toPacificDateStr(new Date());
@@ -77,6 +84,49 @@ export default function SchedulePage() {
       console.error('Error fetching appointments:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openPatientDrawer = (patientId) => {
+    if (!patientId) return;
+    setDrawerLoading(true);
+    setDrawerData(null);
+    fetch(`/api/patients/${patientId}`)
+      .then(r => r.json())
+      .then(data => { setDrawerData(data); setDrawerLoading(false); })
+      .catch(() => setDrawerLoading(false));
+  };
+
+  const closeDrawer = () => { setDrawerData(null); setDrawerLoading(false); setDrawerSmsText(''); setDrawerSmsStatus(null); };
+
+  const sendDrawerSms = async () => {
+    const pt = drawerData?.patient;
+    if (!pt?.phone || !drawerSmsText.trim()) return;
+    setDrawerSmsSending(true);
+    setDrawerSmsStatus(null);
+    try {
+      const res = await fetch('/api/twilio/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: pt.id,
+          patient_name: `${pt.first_name} ${pt.last_name}`,
+          to: pt.phone,
+          message: drawerSmsText.trim(),
+          message_type: 'staff_drawer',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setDrawerSmsStatus({ ok: true, msg: 'Sent ✓' });
+        setDrawerSmsText('');
+      } else {
+        setDrawerSmsStatus({ ok: false, msg: data.error || 'Failed to send' });
+      }
+    } catch (e) {
+      setDrawerSmsStatus({ ok: false, msg: e.message });
+    } finally {
+      setDrawerSmsSending(false);
     }
   };
 
@@ -186,9 +236,18 @@ export default function SchedulePage() {
                     )}
                   </td>
                   <td style={styles.td}>
-                    <span style={{ fontWeight: '500' }}>
-                      {apt.patient_name || apt.attendee_name || 'Unknown'}
-                    </span>
+                    {apt.patient_id ? (
+                      <span
+                        onClick={() => openPatientDrawer(apt.patient_id)}
+                        style={{ fontWeight: '500', cursor: 'pointer', color: '#111', borderBottom: '1px dashed #ccc' }}
+                      >
+                        {apt.patient_name || apt.attendee_name || 'Unknown'}
+                      </span>
+                    ) : (
+                      <span style={{ fontWeight: '500' }}>
+                        {apt.patient_name || apt.attendee_name || 'Unknown'}
+                      </span>
+                    )}
                   </td>
                   <td style={styles.td}>{apt.service_name || apt.title || '-'}</td>
                   <td style={styles.td}>
@@ -398,6 +457,480 @@ export default function SchedulePage() {
           onRefresh={fetchAppointments}
         />
       )}
+
+      {/* Patient slide-out drawer */}
+      {(drawerData || drawerLoading) && (() => {
+        const pt = drawerData?.patient;
+        const activeProtos = drawerData?.activeProtocols || [];
+        const completedProtos = drawerData?.completedProtocols || [];
+        const logs = drawerData?.serviceLogs || [];
+        const drawerAppts = drawerData?.appointments || [];
+        const labs = drawerData?.labs || [];
+        const docs = drawerData?.medicalDocuments || [];
+        const consents = drawerData?.consents || [];
+        const notes = drawerData?.notes || [];
+        const wlLogs = drawerData?.weightLossLogs || [];
+        const purchases = drawerData?.allPurchases || [];
+        const upcomingAppts = drawerAppts.filter(a => new Date(a.start_time) >= new Date());
+        const pastAppts = drawerAppts.filter(a => new Date(a.start_time) < new Date());
+
+        const sectionHead = { margin: '0 0 10px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888' };
+        const card = { background: '#f9fafb', borderRadius: '0', padding: '14px 16px', marginBottom: '16px' };
+
+        const STATUS_COLORS = {
+          scheduled: { bg: '#dbeafe', text: '#1e40af' },
+          confirmed: { bg: '#dcfce7', text: '#166534' },
+          checked_in: { bg: '#fef3c7', text: '#92400e' },
+          in_progress: { bg: '#e0e7ff', text: '#3730a3' },
+          completed: { bg: '#dcfce7', text: '#166534' },
+          cancelled: { bg: '#fee2e2', text: '#dc2626' },
+          no_show: { bg: '#fee2e2', text: '#dc2626' },
+        };
+
+        function stripNoteHtml(html) {
+          if (!html) return '';
+          return html
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+            .replace(/<\/div>\s*<div[^>]*>/gi, '\n')
+            .replace(/<[^>]+>/g, '')
+            .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+            .replace(/&nbsp;/g, ' ').replace(/&#39;/g, "'").replace(/&quot;/g, '"')
+            .trim();
+        }
+
+        return (
+          <>
+            <div {...overlayClickProps(closeDrawer)} style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 9998
+            }} />
+            <div style={{
+              position: 'fixed', top: 0, right: 0, bottom: 0, width: '440px', maxWidth: '92vw',
+              background: '#fff', zIndex: 9999, boxShadow: '-4px 0 24px rgba(0,0,0,0.18)',
+              display: 'flex', flexDirection: 'column', overflow: 'hidden'
+            }}>
+              {/* Header */}
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#000', flexShrink: 0 }}>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '600', color: '#fff' }}>
+                  {pt ? `${pt.first_name} ${pt.last_name}` : 'Patient'}
+                </h3>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {pt && (
+                    <a href={`/patients/${pt.id}`}
+                      style={{ fontSize: '12px', color: '#fff', textDecoration: 'none', padding: '4px 12px', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '0' }}>
+                      Full Profile →
+                    </a>
+                  )}
+                  <button onClick={closeDrawer}
+                    style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#fff', padding: '0 4px', lineHeight: 1 }}>
+                    ×
+                  </button>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+                {drawerLoading && !pt ? (
+                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>Loading patient...</div>
+                ) : pt ? (
+                  <>
+                    {/* Demographics */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '13px', color: '#666' }}>
+                        {pt.date_of_birth && (
+                          <span style={{ background: '#f3f4f6', padding: '3px 8px' }}>
+                            DOB: {new Date(pt.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', timeZone: 'America/Los_Angeles' })}
+                          </span>
+                        )}
+                        {pt.gender && <span style={{ background: '#f3f4f6', padding: '3px 8px' }}>{pt.gender}</span>}
+                        {pt.created_at && (
+                          <span style={{ background: '#f3f4f6', padding: '3px 8px' }}>
+                            Since {new Date(pt.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'America/Los_Angeles' })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Contact */}
+                    <div style={card}>
+                      <h4 style={sectionHead}>Contact</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {pt.phone ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span>📱</span>
+                            <a href={`tel:${pt.phone}`} style={{ fontSize: '15px', color: '#111', textDecoration: 'none', fontWeight: '500' }}>
+                              {formatPhone(pt.phone)}
+                            </a>
+                          </div>
+                        ) : <span style={{ fontSize: '13px', color: '#bbb' }}>No phone</span>}
+                        {pt.email ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span>✉️</span>
+                            <a href={`mailto:${pt.email}`} style={{ fontSize: '14px', color: '#111', textDecoration: 'none' }}>{pt.email}</a>
+                          </div>
+                        ) : <span style={{ fontSize: '13px', color: '#bbb' }}>No email</span>}
+                        {(pt.address || pt.city) && (
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginTop: '2px' }}>
+                            <span>📍</span>
+                            <span style={{ fontSize: '13px', color: '#555' }}>
+                              {pt.address && <>{pt.address}<br/></>}
+                              {[pt.city, pt.state, pt.zip_code].filter(Boolean).join(', ')}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* SMS composer */}
+                      {pt.phone && (
+                        <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
+                          <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', marginBottom: '6px' }}>
+                            Send Text Message
+                          </div>
+                          <textarea
+                            value={drawerSmsText}
+                            onChange={e => setDrawerSmsText(e.target.value)}
+                            placeholder={`Text ${pt.first_name}…`}
+                            rows={3}
+                            style={{
+                              width: '100%', boxSizing: 'border-box', padding: '8px 10px',
+                              border: '1px solid #d1d5db', borderRadius: 0, fontSize: '13px',
+                              fontFamily: 'inherit', resize: 'vertical', background: '#fff',
+                            }}
+                          />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', gap: '8px' }}>
+                            <span style={{ fontSize: '11px', color: drawerSmsStatus ? (drawerSmsStatus.ok ? '#16a34a' : '#dc2626') : '#aaa' }}>
+                              {drawerSmsStatus ? drawerSmsStatus.msg : `${drawerSmsText.length} chars`}
+                            </span>
+                            <button
+                              onClick={sendDrawerSms}
+                              disabled={!drawerSmsText.trim() || drawerSmsSending}
+                              style={{
+                                padding: '6px 14px', fontSize: '12px', fontWeight: '600',
+                                background: !drawerSmsText.trim() || drawerSmsSending ? '#9ca3af' : '#000',
+                                color: '#fff', border: 'none', borderRadius: 0,
+                                cursor: !drawerSmsText.trim() || drawerSmsSending ? 'not-allowed' : 'pointer',
+                              }}
+                            >
+                              {drawerSmsSending ? 'Sending…' : 'Send Text'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Active Protocols */}
+                    <div style={card}>
+                      <h4 style={sectionHead}>Active Protocols ({activeProtos.length})</h4>
+                      {activeProtos.length > 0 ? activeProtos.map((proto, i) => {
+                        const isWL = proto.category === 'weight_loss' || proto.program_type === 'weight_loss' || ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => (proto.medication || '').toLowerCase().includes(m));
+                        const wlActualCount = isWL ? wlLogs.filter(l => l.entry_type !== 'missed' && l.entry_type !== 'pickup').length : 0;
+                        const total = proto.total_sessions || proto.sessions_total || proto.duration_days || 0;
+                        const used = isWL ? (wlActualCount || proto.sessions_used || 0) : (proto.sessions_used || 0);
+                        const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+                        const renewal = getRenewalStatus({ ...proto, status: 'active' });
+                        return (
+                          <div key={proto.id || i} style={{ padding: '10px 0', borderBottom: i < activeProtos.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <div style={{ fontSize: '14px', fontWeight: '600', color: '#111' }}>{proto.program_name || proto.medication || 'Protocol'}</div>
+                                {renewal.renewal_label && (
+                                  <span style={{
+                                    fontSize: '10px', fontWeight: '600', padding: '2px 6px',
+                                    background: renewal.renewal_urgency_color.bg, color: renewal.renewal_urgency_color.text
+                                  }}>
+                                    {renewal.renewal_label}
+                                  </span>
+                                )}
+                              </div>
+                              <span style={{ fontSize: '12px', color: '#666' }}>{used}/{total}</span>
+                            </div>
+                            {proto.medication && proto.medication !== proto.program_name && (
+                              <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>{proto.medication} {proto.dosage ? `· ${proto.dosage}` : ''}</div>
+                            )}
+                            {total > 0 && (
+                              <div style={{ marginTop: '6px', background: '#e5e7eb', height: '6px', overflow: 'hidden' }}>
+                                <div style={{ width: `${pct}%`, height: '100%', background: pct >= 100 ? '#16a34a' : '#1e40af', transition: 'width 0.3s' }} />
+                              </div>
+                            )}
+                            <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>
+                              Started {new Date(proto.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })}
+                              {proto.frequency ? ` · ${proto.frequency}` : ''}
+                            </div>
+                          </div>
+                        );
+                      }) : <span style={{ fontSize: '13px', color: '#bbb' }}>No active protocols</span>}
+                    </div>
+
+                    {/* Weight Loss Snapshot */}
+                    {(() => {
+                      const wlProtos = activeProtos.filter(p => p.category === 'weight_loss' || p.program_type === 'weight_loss' || ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => (p.medication || '').toLowerCase().includes(m)));
+                      if (wlProtos.length === 0) return null;
+                      const wlActualCount = wlLogs.filter(l => l.entry_type !== 'missed' && l.entry_type !== 'pickup').length;
+                      const injections = wlLogs.filter(l => l.entry_type === 'injection').sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date));
+                      const weightEntries = wlLogs.filter(l => l.weight).sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date));
+                      const startWeight = weightEntries.length > 0 ? weightEntries[0].weight : null;
+                      const currentWeight = weightEntries.length > 0 ? weightEntries[weightEntries.length - 1].weight : null;
+                      const weightChange = startWeight && currentWeight ? (currentWeight - startWeight).toFixed(1) : null;
+
+                      const doseTimeline = [];
+                      injections.forEach(inj => {
+                        const dose = inj.dosage || 'Unknown';
+                        const last = doseTimeline[doseTimeline.length - 1];
+                        if (last && last.dose === dose) {
+                          last.count++;
+                          last.lastDate = inj.entry_date;
+                        } else {
+                          doseTimeline.push({ dose, count: 1, firstDate: inj.entry_date, lastDate: inj.entry_date });
+                        }
+                      });
+
+                      return wlProtos.map(proto => (
+                        <div key={`wl-${proto.id}`} style={{ ...card, border: '1px solid #e0e7ff', background: '#f8f9ff' }}>
+                          <h4 style={sectionHead}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#6366f1', flexShrink: 0 }} />
+                              Weight Loss — {proto.medication || 'Protocol'}
+                            </span>
+                          </h4>
+                          <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                            <div style={{ flex: 1, background: '#fff', padding: '10px 12px', border: '1px solid #e5e7eb' }}>
+                              <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#888', letterSpacing: '0.04em', marginBottom: '2px' }}>Current Dose</div>
+                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#111' }}>
+                                {injections.length > 0 ? injections[injections.length - 1].dosage || '—' : proto.selected_dose || proto.dosage || '—'}
+                              </div>
+                            </div>
+                            {(() => {
+                              const sessionsCompleted = wlActualCount || proto.sessions_used || 0;
+                              const sessionsTotal = proto.total_sessions || proto.sessions_total;
+                              return (
+                                <div style={{ flex: 1, background: '#fff', padding: '10px 12px', border: '1px solid #e5e7eb' }}>
+                                  <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#888', letterSpacing: '0.04em', marginBottom: '2px' }}>Injections</div>
+                                  <div style={{ fontSize: '16px', fontWeight: '700', color: '#111' }}>
+                                    {sessionsCompleted}{sessionsTotal ? ` / ${sessionsTotal}` : ''}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                          {startWeight && currentWeight && (
+                            <div style={{ background: '#fff', padding: '10px 12px', border: '1px solid #e5e7eb', marginBottom: '12px' }}>
+                              <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#888', letterSpacing: '0.04em', marginBottom: '4px' }}>Weight</div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '14px', color: '#666' }}>{startWeight} lbs</span>
+                                <span style={{ fontSize: '12px', color: '#aaa' }}>→</span>
+                                <span style={{ fontSize: '16px', fontWeight: '700', color: '#111' }}>{currentWeight} lbs</span>
+                                {weightChange && (
+                                  <span style={{
+                                    fontSize: '13px', fontWeight: '600', marginLeft: 'auto',
+                                    color: parseFloat(weightChange) < 0 ? '#16a34a' : parseFloat(weightChange) > 0 ? '#dc2626' : '#666'
+                                  }}>
+                                    {parseFloat(weightChange) <= 0 ? weightChange : `+${weightChange}`} lbs
+                                  </span>
+                                )}
+                              </div>
+                              {weightEntries.length >= 3 && (
+                                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'flex-end', gap: '2px', height: '32px' }}>
+                                  {(() => {
+                                    const weights = weightEntries.slice(-12).map(e => parseFloat(e.weight));
+                                    const min = Math.min(...weights);
+                                    const max = Math.max(...weights);
+                                    const range = max - min || 1;
+                                    return weights.map((w, i) => (
+                                      <div key={i} style={{
+                                        flex: 1, minWidth: '4px', maxWidth: '12px',
+                                        height: `${Math.max(4, ((w - min) / range) * 28 + 4)}px`,
+                                        background: i === weights.length - 1 ? '#6366f1' : '#c7d2fe',
+                                        borderRadius: '1px'
+                                      }} title={`${w} lbs`} />
+                                    ));
+                                  })()}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {doseTimeline.length > 0 && (
+                            <div>
+                              <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#888', letterSpacing: '0.04em', marginBottom: '6px' }}>Dose History</div>
+                              {doseTimeline.map((step, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+                                  <div style={{
+                                    width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
+                                    background: i === doseTimeline.length - 1 ? '#6366f1' : '#d1d5db'
+                                  }} />
+                                  <span style={{ fontSize: '13px', fontWeight: i === doseTimeline.length - 1 ? '600' : '400', color: i === doseTimeline.length - 1 ? '#111' : '#666', minWidth: '50px' }}>
+                                    {step.dose}
+                                  </span>
+                                  <span style={{ fontSize: '11px', color: '#aaa' }}>
+                                    {step.count} inj · {new Date(step.firstDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })}
+                                    {step.count > 1 ? ` – ${new Date(step.lastDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })}` : ''}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ));
+                    })()}
+
+                    {/* Completed Protocols */}
+                    {completedProtos.length > 0 && (
+                      <div style={card}>
+                        <h4 style={sectionHead}>Completed Protocols ({completedProtos.length})</h4>
+                        {completedProtos.slice(0, 5).map((proto, i) => (
+                          <div key={proto.id || i} style={{ padding: '6px 0', borderBottom: i < Math.min(completedProtos.length, 5) - 1 ? '1px solid #e5e7eb' : 'none', display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '13px', color: '#555' }}>{proto.program_name || proto.medication || 'Protocol'}</span>
+                            <span style={{ fontSize: '12px', color: '#16a34a' }}>✓ Done</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Upcoming Appointments */}
+                    <div style={card}>
+                      <h4 style={sectionHead}>Upcoming Appointments ({upcomingAppts.length})</h4>
+                      {upcomingAppts.length === 0 ? (
+                        <span style={{ fontSize: '13px', color: '#bbb' }}>No upcoming appointments</span>
+                      ) : (
+                        upcomingAppts.slice(0, 4).map((apt, i) => (
+                          <div key={apt.id || i} style={{ padding: '8px 0', borderBottom: i < Math.min(upcomingAppts.length, 4) - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '13px', fontWeight: '500', color: '#111' }}>{apt.calendar_name || apt.service_name || apt.title || 'Appointment'}</span>
+                              <span style={{ fontSize: '12px', padding: '1px 6px', background: STATUS_COLORS[apt.status]?.bg || '#f3f4f6', color: STATUS_COLORS[apt.status]?.text || '#333' }}>
+                                {(apt.status || 'scheduled').replace(/_/g, ' ')}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
+                              {new Date(apt.start_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })} at {new Date(apt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })}
+                              {apt.provider ? ` · ${apt.provider}` : ''}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Recent Transactions */}
+                    {purchases.length > 0 && (
+                      <div style={card}>
+                        <h4 style={sectionHead}>Recent Transactions ({purchases.length})</h4>
+                        {purchases.slice(0, 6).map((p, i) => {
+                          const paid = parseFloat(p.amount_paid);
+                          const displayAmt = !isNaN(paid) ? paid : (parseFloat(p.amount) || 0);
+                          return (
+                            <div key={p.id || i} style={{ padding: '8px 0', borderBottom: i < Math.min(purchases.length, 6) - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '13px', fontWeight: '500', color: '#111', flex: 1, marginRight: '8px' }}>
+                                  {p.item_name || p.service_name || p.description || 'Payment'}
+                                </span>
+                                <span style={{ fontSize: '13px', fontWeight: '600', color: '#111', whiteSpace: 'nowrap' }}>
+                                  ${displayAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', display: 'flex', justifyContent: 'space-between' }}>
+                                <span>{p.payment_method ? p.payment_method.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : ''}</span>
+                                <span>{p.purchase_date ? new Date(p.purchase_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' }) : ''}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Recent Visits */}
+                    <div style={card}>
+                      <h4 style={sectionHead}>Recent Visits ({logs.length})</h4>
+                      {logs.length > 0 ? logs.slice(0, 8).map((log, i) => (
+                        <div key={log.id || i} style={{ padding: '6px 0', borderBottom: i < Math.min(logs.length, 8) - 1 ? '1px solid #e5e7eb' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontSize: '13px', color: '#333' }}>
+                              {log.category ? log.category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Visit'}
+                            </div>
+                            {log.medication && <div style={{ fontSize: '11px', color: '#888' }}>{log.medication} {log.dosage || ''}</div>}
+                          </div>
+                          <span style={{ fontSize: '12px', color: '#888', whiteSpace: 'nowrap' }}>
+                            {new Date(log.entry_date || log.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })}
+                          </span>
+                        </div>
+                      )) : <span style={{ fontSize: '13px', color: '#bbb' }}>No visits recorded</span>}
+                    </div>
+
+                    {/* Labs */}
+                    {labs.length > 0 && (
+                      <div style={card}>
+                        <h4 style={sectionHead}>Labs ({labs.length})</h4>
+                        {labs.slice(0, 5).map((lab, i) => (
+                          <div key={lab.id || i} style={{ padding: '6px 0', borderBottom: i < Math.min(labs.length, 5) - 1 ? '1px solid #e5e7eb' : 'none', display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '13px', color: '#333' }}>{lab.lab_type || 'Lab'} — {lab.lab_panel || ''}</span>
+                            <span style={{ fontSize: '12px', color: lab.status === 'completed' ? '#16a34a' : '#f59e0b' }}>
+                              {lab.status === 'completed' ? '✓ Done' : lab.status || 'Pending'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Past Appointments */}
+                    <div style={card}>
+                      <h4 style={sectionHead}>Past Appointments ({pastAppts.length})</h4>
+                      {pastAppts.length === 0 ? (
+                        <span style={{ fontSize: '13px', color: '#bbb' }}>No past appointments</span>
+                      ) : (
+                        pastAppts.slice(0, 6).map((apt, i) => (
+                          <div key={apt.id || i} style={{ padding: '6px 0', borderBottom: i < Math.min(pastAppts.length, 6) - 1 ? '1px solid #e5e7eb' : 'none', display: 'flex', justifyContent: 'space-between' }}>
+                            <div>
+                              <span style={{ fontSize: '13px', color: '#555' }}>{apt.calendar_name || apt.service_name || apt.title || 'Appointment'}</span>
+                              {apt.provider && <span style={{ fontSize: '11px', color: '#aaa' }}> · {apt.provider}</span>}
+                            </div>
+                            <span style={{ fontSize: '12px', color: '#888' }}>
+                              {new Date(apt.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Documents & Consents */}
+                    {(docs.length > 0 || consents.length > 0) && (
+                      <div style={card}>
+                        <h4 style={sectionHead}>Documents ({docs.length + consents.length})</h4>
+                        {consents.slice(0, 4).map((c, i) => (
+                          <div key={c.id || i} style={{ padding: '5px 0', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f0f0f0' }}>
+                            <span style={{ fontSize: '13px', color: '#333' }}>{c.form_type || 'Consent'}</span>
+                            <span style={{ fontSize: '11px', color: c.status === 'signed' ? '#16a34a' : '#f59e0b' }}>{c.status || '—'}</span>
+                          </div>
+                        ))}
+                        {docs.slice(0, 4).map((d, i) => (
+                          <div key={d.id || i} style={{ padding: '5px 0', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f0f0f0' }}>
+                            <span style={{ fontSize: '13px', color: '#333' }}>{d.document_name || d.document_type || 'Document'}</span>
+                            <span style={{ fontSize: '11px', color: '#888' }}>{d.document_type}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Notes */}
+                    {notes.length > 0 && (
+                      <div style={card}>
+                        <h4 style={sectionHead}>Notes ({notes.length})</h4>
+                        {notes.slice(0, 3).map((note, i) => (
+                          <div key={note.id || i} style={{ padding: '8px 0', borderBottom: i < Math.min(notes.length, 3) - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                            <div style={{ fontSize: '12px', color: '#888', marginBottom: '3px' }}>
+                              {new Date(note.note_date || note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })}
+                              {note.source && <> · {note.source}</>}
+                            </div>
+                            <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.4', maxHeight: '60px', overflow: 'hidden', whiteSpace: 'pre-line' }}>
+                              {stripNoteHtml(note.body)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : null}
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
     </AdminLayout>
   );

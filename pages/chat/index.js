@@ -577,11 +577,11 @@ export default function ChatApp() {
   const handleCallPatientSearch = useCallback((q) => {
     setCallPatientSearch(q);
     if (callSearchTimeout.current) clearTimeout(callSearchTimeout.current);
-    if (!q.trim()) { setCallPatientResults([]); return; }
+    if (!q.trim() || q.trim().length < 2) { setCallPatientResults([]); return; }
     callSearchTimeout.current = setTimeout(async () => {
       setSearchingCallPatients(true);
       try {
-        const res = await fetch(`/api/patient/search?q=${encodeURIComponent(q)}&limit=8`);
+        const res = await fetch(`/api/patients/search?q=${encodeURIComponent(q.trim())}`);
         if (res.ok) {
           const data = await res.json();
           setCallPatientResults(data.patients || []);
@@ -1769,7 +1769,7 @@ function CallsTabContent({
                     key={p.id}
                     onClick={() => {
                       if (p.phone) {
-                        onDial(p.phone, `${p.first_name} ${p.last_name}`);
+                        onDial(p.phone, p.name || `${p.first_name || ''} ${p.last_name || ''}`.trim());
                         onPatientSearch('');
                       }
                     }}
@@ -1782,10 +1782,10 @@ function CallsTabContent({
                     }}
                   >
                     <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#475569', flexShrink: 0 }}>
-                      {(p.first_name?.[0] || '') + (p.last_name?.[0] || '')}
+                      {(p.name || '').split(' ').map(n => n[0] || '').join('').slice(0, 2).toUpperCase()}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{p.first_name} {p.last_name}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{p.name || `${p.first_name || ''} ${p.last_name || ''}`.trim()}</div>
                       <div style={{ fontSize: 12, color: '#94a3b8' }}>{p.phone || 'No phone'}</div>
                     </div>
                     {p.phone && (

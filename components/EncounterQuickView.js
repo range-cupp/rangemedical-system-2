@@ -192,8 +192,9 @@ export default function EncounterQuickView({ appointments, notes, protocols, pat
           padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600;
         }
         .eqv-note-body {
-          white-space: pre-wrap; font-size: 14px; line-height: 1.7; color: #1f2937;
+          font-size: 14px; line-height: 1.7; color: #1f2937;
         }
+        .eqv-note-body div { margin-bottom: 4px; }
         .eqv-addendum-label {
           font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
           color: #b45309; margin-bottom: 6px;
@@ -379,7 +380,7 @@ export default function EncounterQuickView({ appointments, notes, protocols, pat
                                   : 'Draft'}
                               </span>
                             </div>
-                            <div className="eqv-note-body">{note.body}</div>
+                            <div className="eqv-note-body" dangerouslySetInnerHTML={{ __html: note.body }} />
                             <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
                               <button
                                 onClick={() => setTreatmentPlanNote(note)}

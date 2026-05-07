@@ -1,13 +1,16 @@
 """
-Generate three TRUE one-page (landscape, 2-column) one-pagers for Range Medical:
+Generate three single-page (landscape, 2-column) patient-path one-pagers using
+the Range Medical V2 editorial design system from styles/globals.css:
 
-  1. How Range Medical Works           (general intro / lobby handout)
-  2. Energy, Hormones & Weight Path    (optimization avatar)
-  3. Injury & Recovery Path            (rehab avatar — partners with Range Sports Therapy)
+  - Inter font family (Regular / Medium / SemiBold / Bold / ExtraBold / Black)
+  - Heavy uppercase headlines with negative tracking (matches h1/h2 on the site)
+  - Tracked-out small-cap eyebrow labels (matches .rm-section-label / .rm-nav-cta)
+  - Editorial palette: #1A1A1A text, #737373 body, #e8e8e8 hairlines
 
-Layout: landscape letter (11" × 8.5"), header band at top, full-width title band,
-two content columns separated by a hairline, footer band at bottom — all on one page.
-Visual style follows the Range Medical base template in CLAUDE.md.
+Outputs:
+  1. Range-How-It-Works-One-Pager.pdf
+  2. Range-Energy-Hormones-Weight-Path.pdf
+  3. Range-Injury-Recovery-Path.pdf
 """
 
 import os
@@ -19,56 +22,164 @@ from reportlab.platypus import (BaseDocTemplate, Frame, PageTemplate,
                                 Paragraph, Spacer, Table, TableStyle,
                                 HRFlowable, FrameBreak)
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase.pdfmetrics import registerFontFamily
 
+# ── Paths ────────────────────────────────────────────────────────────────────
 DOCS_DIR   = os.path.dirname(os.path.abspath(__file__))
-PUBLIC_DIR = os.path.abspath(os.path.join(DOCS_DIR, "..", "public"))
+ROOT_DIR   = os.path.abspath(os.path.join(DOCS_DIR, ".."))
+PUBLIC_DIR = os.path.join(ROOT_DIR, "public")
+FONTS_DIR  = os.path.join(ROOT_DIR, "scripts", ".fonts")
 
-# ── Palette ──────────────────────────────────────────────────────────────────
-BLACK      = HexColor('#0A0A0A')
-DARK_GRAY  = HexColor('#1A1A1A')
-MID_GRAY   = HexColor('#606060')
-LIGHT_GRAY = HexColor('#F4F4F4')
-RULE_GRAY  = HexColor('#DDDDDD')
-WHITE      = HexColor('#FFFFFF')
-GREEN      = HexColor('#2E6B35')
-ACCENT_BG  = HexColor('#F8F8F6')
+# ── Register Inter (matches the website's V2 typography) ────────────────────
+INTER_WEIGHTS = {
+    "Inter":             "Inter-Regular.ttf",
+    "Inter-Medium":      "Inter-Medium.ttf",
+    "Inter-SemiBold":    "Inter-SemiBold.ttf",
+    "Inter-Bold":        "Inter-Bold.ttf",
+    "Inter-ExtraBold":   "Inter-ExtraBold.ttf",
+    "Inter-Black":       "Inter-Black.ttf",
+    "Inter-Italic":      "Inter-Italic.ttf",
+    "Inter-BoldItalic":  "Inter-BoldItalic.ttf",
+}
+INTER_RELEASE_URL = "https://github.com/rsms/inter/releases/download/v4.0/Inter-4.0.zip"
+
+
+def _ensure_fonts_downloaded():
+    """Fetch the Inter v4 release zip on first run; static TTFs are gitignored."""
+    missing = [fn for fn in INTER_WEIGHTS.values()
+               if not os.path.exists(os.path.join(FONTS_DIR, fn))]
+    if not missing:
+        return
+
+    import urllib.request, zipfile, io
+    os.makedirs(FONTS_DIR, exist_ok=True)
+    print(f"Downloading Inter v4 ({len(missing)} weight(s) missing)…")
+    with urllib.request.urlopen(INTER_RELEASE_URL) as resp:
+        data = resp.read()
+    with zipfile.ZipFile(io.BytesIO(data)) as zf:
+        for fn in missing:
+            try:
+                with zf.open(f"extras/ttf/{fn}") as src, \
+                     open(os.path.join(FONTS_DIR, fn), "wb") as dst:
+                    dst.write(src.read())
+            except KeyError:
+                raise RuntimeError(f"Inter weight {fn} not found in release zip")
+    print("Fonts ready.")
+
+
+def _register_fonts():
+    _ensure_fonts_downloaded()
+    for name, fn in INTER_WEIGHTS.items():
+        pdfmetrics.registerFont(TTFont(name, os.path.join(FONTS_DIR, fn)))
+    # Make <b> / <i> in inline markup resolve correctly
+    registerFontFamily(
+        "Inter",
+        normal="Inter",
+        bold="Inter-Bold",
+        italic="Inter-Italic",
+        boldItalic="Inter-BoldItalic",
+    )
+
+_register_fonts()
+
+# ── V2 palette (mirrors styles/globals.css) ──────────────────────────────────
+TEXT      = HexColor('#1A1A1A')   # h1, h2, .rm-wordmark color
+BODY      = HexColor('#737373')   # default p color
+MUTED     = HexColor('#a0a0a0')   # subtler labels
+BORDER    = HexColor('#e8e8e8')   # .rm-header border-bottom
+RULE_HEAD = HexColor('#1A1A1A')   # heavy editorial rule under header
+SUBTLE_BG = HexColor('#fafafa')   # editorial off-white card fill
+WHITE     = HexColor('#FFFFFF')
+GREEN     = HexColor('#2E6B35')
 
 # ── Page geometry ────────────────────────────────────────────────────────────
 PAGE_W, PAGE_H = landscape(letter)        # 11" × 8.5"
-MARGIN         = 0.45 * inch
-HEADER_H       = 0.50 * inch              # band for clinic name + rule
-TITLE_H        = 0.65 * inch              # band for title + subtitle
-FOOTER_H       = 0.42 * inch              # band for bottom rule + small text
-COL_GAP        = 0.35 * inch
+MARGIN         = 0.42 * inch
+HEADER_H       = 0.48 * inch
+TITLE_H        = 1.18 * inch              # 2-line Inter Black headline + deck
+FOOTER_H       = 0.40 * inch
+COL_GAP        = 0.40 * inch
 COL_W          = (PAGE_W - 2 * MARGIN - COL_GAP) / 2
 
-# ── Styles ───────────────────────────────────────────────────────────────────
+# ── Tracking helper (CSS letter-spacing → ReportLab charSpace) ──────────────
+def track(font_size_pt, em):
+    """Return ReportLab charSpace for a given CSS letter-spacing in em."""
+    return font_size_pt * em
+
+# ── Styles (mapped 1:1 from globals.css) ────────────────────────────────────
 def st(name, **kw):
     return ParagraphStyle(name, **kw)
 
-clinic_s    = st('Clinic',  fontName='Helvetica-Bold',    fontSize=13,  textColor=BLACK,     leading=15)
-contact_s   = st('Cont',    fontName='Helvetica',         fontSize=8,   textColor=MID_GRAY,  leading=11, alignment=TA_RIGHT)
-title_s     = st('Title',   fontName='Helvetica-Bold',    fontSize=22,  textColor=BLACK,     leading=26, spaceAfter=2)
-subtitle_s  = st('Sub',     fontName='Helvetica-Oblique', fontSize=11,  textColor=MID_GRAY,  leading=14)
-intro_s     = st('Intro',   fontName='Helvetica',         fontSize=9.5, textColor=DARK_GRAY, leading=14, spaceAfter=4)
-sec_s       = st('Sec',     fontName='Helvetica-Bold',    fontSize=8,   textColor=MID_GRAY,  leading=11, spaceBefore=10, spaceAfter=3)
-body_s      = st('Body',    fontName='Helvetica',         fontSize=9.5, textColor=DARK_GRAY, leading=14, spaceAfter=3)
-bullet_s    = st('Bul',     fontName='Helvetica',         fontSize=9.5, textColor=DARK_GRAY, leading=14, leftIndent=12, firstLineIndent=-10, spaceAfter=1)
-step_s      = st('Step',    fontName='Helvetica',         fontSize=9.5, textColor=DARK_GRAY, leading=14, leftIndent=16, firstLineIndent=-16, spaceAfter=3)
-path_t_s    = st('PathT',   fontName='Helvetica-Bold',    fontSize=10.5,textColor=BLACK,     leading=13, spaceAfter=1)
-path_b_s    = st('PathB',   fontName='Helvetica',         fontSize=9.5, textColor=DARK_GRAY, leading=13, spaceAfter=1)
-foot_s      = st('Foot',    fontName='Helvetica-Oblique', fontSize=8,   textColor=MID_GRAY,  leading=11)
-foot_bold_s = st('FootB',   fontName='Helvetica-Bold',    fontSize=8.5, textColor=DARK_GRAY, leading=11)
-cta_s       = st('CTA',     fontName='Helvetica-Bold',    fontSize=10.5,textColor=BLACK,     leading=14, spaceBefore=8, spaceAfter=2)
-reassure_s  = st('Reas',    fontName='Helvetica-Oblique', fontSize=10,  textColor=GREEN,     leading=13, spaceBefore=4, spaceAfter=4)
+# h1 → 28pt Inter Black, uppercase, line-height 0.95, letter-spacing -0.03em
+title_s     = st('Title',
+                 fontName='Inter-Black',  fontSize=30, leading=29,
+                 textColor=TEXT, charSpace=track(30, -0.03),
+                 spaceAfter=4)
+
+# Subtitle / deck — 11pt Inter Medium gray
+subtitle_s  = st('Sub',
+                 fontName='Inter-Medium', fontSize=11, leading=14,
+                 textColor=BODY)
+
+# Lead/intro paragraph — slightly larger, body color
+intro_s     = st('Intro',
+                 fontName='Inter',        fontSize=10, leading=14.5,
+                 textColor=BODY, spaceAfter=4)
+
+# Section eyebrow — Inter ExtraBold 8pt, uppercase, tracked-out 0.14em
+sec_s       = st('Sec',
+                 fontName='Inter-ExtraBold', fontSize=7.5, leading=10,
+                 textColor=BODY, charSpace=track(7.5, 0.14),
+                 spaceBefore=10, spaceAfter=4)
+
+# Body paragraph — Inter Regular 9.5pt, gray
+body_s      = st('Body',
+                 fontName='Inter',        fontSize=9.5, leading=14,
+                 textColor=BODY, spaceAfter=3)
+
+# Bullet — Inter Regular, en-dash leader
+bullet_s    = st('Bul',
+                 fontName='Inter',        fontSize=9.5, leading=14,
+                 textColor=BODY,
+                 leftIndent=12, firstLineIndent=-10, spaceAfter=2)
+
+# Numbered step — bold leader, gray body
+step_s      = st('Step',
+                 fontName='Inter',        fontSize=9.5, leading=14,
+                 textColor=BODY,
+                 leftIndent=16, firstLineIndent=-16, spaceAfter=3)
+
+# Card title — Inter ExtraBold uppercase with light positive tracking
+path_t_s    = st('PathT',
+                 fontName='Inter-ExtraBold', fontSize=10, leading=12,
+                 textColor=TEXT, charSpace=track(10, 0.06),
+                 spaceAfter=3)
+
+# Card body — Inter Regular, body gray
+path_b_s    = st('PathB',
+                 fontName='Inter',        fontSize=9.5, leading=13,
+                 textColor=BODY)
+
+# Reassurance — italic green
+reassure_s  = st('Reas',
+                 fontName='Inter-Italic', fontSize=10, leading=13,
+                 textColor=GREEN, spaceBefore=6, spaceAfter=4)
+
+# CTA — Inter ExtraBold uppercase, tracked 0.10em
+cta_s       = st('CTA',
+                 fontName='Inter-ExtraBold', fontSize=9.5, leading=13,
+                 textColor=TEXT, charSpace=track(9.5, 0.10),
+                 spaceBefore=10, spaceAfter=2)
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
-def section_label(text, space_before=8):
+def section_label(text, space_before=10):
     s = ParagraphStyle('SecOv', parent=sec_s, spaceBefore=space_before)
     return [
         Paragraph(text.upper(), s),
-        HRFlowable(width="100%", thickness=0.75, color=RULE_GRAY, spaceAfter=4),
+        HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=5),
     ]
 
 
@@ -81,69 +192,89 @@ def step(num, text):
 
 
 def path_card(title, body, width=None):
-    """Soft card to highlight a path or program type."""
+    """Editorial card: thin black rule on top, heavy uppercase title, body text."""
     if width is None:
         width = COL_W
-    title_p = Paragraph(title, path_t_s)
+    title_p = Paragraph(title.upper(), path_t_s)
     body_p  = Paragraph(body, path_b_s)
-    inner = Table([[title_p], [body_p]], colWidths=[width])
+    rule    = HRFlowable(width=width - 12, thickness=1.5, color=TEXT,
+                         spaceBefore=0, spaceAfter=4)
+    inner = Table([[rule], [title_p], [body_p]], colWidths=[width])
     inner.setStyle(TableStyle([
-        ('BACKGROUND',    (0, 0), (-1, -1), ACCENT_BG),
-        ('BOX',           (0, 0), (-1, -1), 0.5, RULE_GRAY),
-        ('LEFTPADDING',   (0, 0), (-1, -1), 10),
-        ('RIGHTPADDING',  (0, 0), (-1, -1), 10),
-        ('TOPPADDING',    (0, 0), (-1, -1), 6),
+        ('BACKGROUND',    (0, 0), (-1, -1), SUBTLE_BG),
+        ('TOPPADDING',    (0, 0), (-1, -1), 0),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 12),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 12),
     ]))
     return inner
 
 
-# ── Page-level header / footer / column rule (drawn directly on canvas) ─────
+# ── Page chrome (header / footer / column rule, drawn on canvas) ────────────
+def _tracked_text(canvas, x, y, text, font, size, em, color, align='left'):
+    """Draw text with CSS-style letter-spacing using a text object."""
+    canvas.saveState()
+    canvas.setFillColor(color)
+    if align == 'right':
+        # Measure tracked width and shift left
+        spacing = size * em
+        width = canvas.stringWidth(text, font, size) + spacing * (len(text) - 1)
+        x = x - width
+    t = canvas.beginText(x, y)
+    t.setFont(font, size)
+    t.setCharSpace(size * em)
+    t.setFillColor(color)
+    t.textOut(text)
+    canvas.drawText(t)
+    canvas.restoreState()
+
+
 def draw_page_chrome(canvas, doc):
     canvas.saveState()
 
-    # ── Header band ──────────────────────────────────────────────────────────
+    # ── Header ───────────────────────────────────────────────────────────────
     top_y = PAGE_H - MARGIN
-    # Clinic name (left)
-    canvas.setFillColor(BLACK)
-    canvas.setFont('Helvetica-Bold', 13)
-    canvas.drawString(MARGIN, top_y - 13, "RANGE MEDICAL")
 
-    # Contact info (right, two lines)
-    canvas.setFillColor(MID_GRAY)
-    canvas.setFont('Helvetica', 8)
-    canvas.drawRightString(PAGE_W - MARGIN, top_y - 9,
+    # Wordmark — matches .rm-wordmark: ExtraBold 12pt, letter-spacing 0.15em
+    _tracked_text(canvas, MARGIN, top_y - 12,
+                  "RANGE MEDICAL", "Inter-ExtraBold", 12, 0.15, TEXT)
+
+    # Contact info — right side, two lines, Inter Regular 8pt body gray
+    canvas.setFillColor(BODY)
+    canvas.setFont('Inter', 8)
+    canvas.drawRightString(PAGE_W - MARGIN, top_y - 7,
                            "range-medical.com  •  (949) 997-3988")
-    canvas.drawRightString(PAGE_W - MARGIN, top_y - 20,
+    canvas.drawRightString(PAGE_W - MARGIN, top_y - 18,
                            "1901 Westcliff Drive, Suite 10, Newport Beach, CA")
 
-    # Header rule
-    rule_y = top_y - HEADER_H + 4
-    canvas.setStrokeColor(BLACK)
-    canvas.setLineWidth(1.5)
+    # Header hairline — matches site border #e8e8e8
+    rule_y = top_y - HEADER_H + 6
+    canvas.setStrokeColor(BORDER)
+    canvas.setLineWidth(1.0)
     canvas.line(MARGIN, rule_y, PAGE_W - MARGIN, rule_y)
 
-    # ── Column separator (hairline between left & right) ─────────────────────
+    # ── Column separator ─────────────────────────────────────────────────────
     sep_x = MARGIN + COL_W + COL_GAP / 2
     sep_top    = PAGE_H - MARGIN - HEADER_H - TITLE_H - 4
-    sep_bottom = MARGIN + FOOTER_H + 4
-    canvas.setStrokeColor(RULE_GRAY)
+    sep_bottom = MARGIN + FOOTER_H + 6
+    canvas.setStrokeColor(BORDER)
     canvas.setLineWidth(0.5)
     canvas.line(sep_x, sep_top, sep_x, sep_bottom)
 
-    # ── Footer band ──────────────────────────────────────────────────────────
+    # ── Footer ───────────────────────────────────────────────────────────────
     foot_top_y = MARGIN + FOOTER_H
-    canvas.setStrokeColor(RULE_GRAY)
+    canvas.setStrokeColor(BORDER)
     canvas.setLineWidth(0.5)
     canvas.line(MARGIN, foot_top_y, PAGE_W - MARGIN, foot_top_y)
 
-    canvas.setFillColor(DARK_GRAY)
-    canvas.setFont('Helvetica-Bold', 8.5)
-    canvas.drawString(MARGIN, foot_top_y - 13,
-                      "Questions or ready to start?  Call or text (949) 997-3988  •  range-medical.com")
+    # Left foot — bold dark, tracked-out per .rm-nav-cta style
+    _tracked_text(canvas, MARGIN, foot_top_y - 13,
+                  "READY TO START?  CALL OR TEXT (949) 997-3988",
+                  "Inter-ExtraBold", 8, 0.10, TEXT)
 
-    canvas.setFillColor(MID_GRAY)
-    canvas.setFont('Helvetica-Oblique', 8)
+    # Right foot — small gray italic disclaimer
+    canvas.setFillColor(BODY)
+    canvas.setFont('Inter-Italic', 7.5)
     canvas.drawRightString(PAGE_W - MARGIN, foot_top_y - 13,
                            "Cash-pay clinic.  All meds and labs are as medically indicated and require provider approval.")
 
@@ -160,17 +291,15 @@ def make_doc(path, title):
         title=title, author="Range Medical",
     )
 
-    # Title frame: full-width band just below the header
-    title_y      = PAGE_H - MARGIN - HEADER_H - TITLE_H
-    title_frame  = Frame(
+    title_y     = PAGE_H - MARGIN - HEADER_H - TITLE_H
+    title_frame = Frame(
         MARGIN, title_y, PAGE_W - 2 * MARGIN, TITLE_H,
-        leftPadding=0, rightPadding=0, topPadding=2, bottomPadding=0,
+        leftPadding=0, rightPadding=0, topPadding=4, bottomPadding=0,
         showBoundary=0, id='title',
     )
 
-    # Two content frames below the title, above the footer
     content_top    = title_y - 4
-    content_bottom = MARGIN + FOOTER_H + 4
+    content_bottom = MARGIN + FOOTER_H + 6
     content_h      = content_top - content_bottom
 
     left_frame  = Frame(
@@ -195,11 +324,9 @@ def make_doc(path, title):
 # ── PAGE 1: How Range Medical Works ──────────────────────────────────────────
 def story_how_it_works():
     s = []
-
-    # ── Title band ───────────────────────────────────────────────────────────
-    s.append(Paragraph("One Assessment. One Plan.", title_s))
+    s.append(Paragraph("ONE ASSESSMENT.<br/>ONE PLAN.", title_s))
     s.append(Paragraph("Feel like yourself again.", subtitle_s))
-    s.append(FrameBreak())  # → left column
+    s.append(FrameBreak())
 
     # ── LEFT COLUMN ──────────────────────────────────────────────────────────
     s.append(Paragraph(
@@ -232,7 +359,7 @@ def story_how_it_works():
     ]:
         s.append(bullet(line))
 
-    s.append(FrameBreak())  # → right column
+    s.append(FrameBreak())
 
     # ── RIGHT COLUMN ─────────────────────────────────────────────────────────
     s += section_label("Step 2 — Choose your path with your provider", space_before=0)
@@ -242,7 +369,7 @@ def story_how_it_works():
         "going on inside your body and build a plan to help you feel like "
         "yourself again.",
     ))
-    s.append(Spacer(1, 5))
+    s.append(Spacer(1, 6))
     s.append(path_card(
         "Injury &amp; Recovery",
         "For people healing from an injury or surgery. We work alongside "
@@ -263,10 +390,7 @@ def story_how_it_works():
         reassure_s,
     ))
 
-    s.append(Paragraph(
-        "Ask the front desk about scheduling your Range Assessment today.",
-        cta_s,
-    ))
+    s.append(Paragraph("ASK THE FRONT DESK ABOUT SCHEDULING YOUR RANGE ASSESSMENT TODAY.", cta_s))
 
     return s
 
@@ -274,9 +398,8 @@ def story_how_it_works():
 # ── PAGE 2: Energy, Hormones & Weight ────────────────────────────────────────
 def story_energy_hormones_weight():
     s = []
-
-    s.append(Paragraph("Feel Like Yourself Again", title_s))
-    s.append(Paragraph("Energy, Hormones &amp; Weight", subtitle_s))
+    s.append(Paragraph("FEEL LIKE<br/>YOURSELF AGAIN.", title_s))
+    s.append(Paragraph("Energy, Hormones &amp; Weight.", subtitle_s))
     s.append(FrameBreak())
 
     # ── LEFT COLUMN ──────────────────────────────────────────────────────────
@@ -317,17 +440,17 @@ def story_energy_hormones_weight():
         "Hormone Optimization",
         "Steady support for energy, mood, and drive when your levels are off.",
     ))
-    s.append(Spacer(1, 4))
+    s.append(Spacer(1, 5))
     s.append(path_card(
         "Medical Weight Loss",
         "Medication, labs, and guidance to help your body respond to weight loss again.",
     ))
-    s.append(Spacer(1, 4))
+    s.append(Spacer(1, 5))
     s.append(path_card(
         "Peptide Therapy",
         "Targeted support for energy, sleep, and recovery.",
     ))
-    s.append(Spacer(1, 4))
+    s.append(Spacer(1, 5))
     s.append(Paragraph(
         "<i>Your provider recommends what fits you. These are tools — not a menu.</i>",
         body_s,
@@ -343,8 +466,7 @@ def story_energy_hormones_weight():
         s.append(bullet(line))
 
     s.append(Paragraph(
-        "Talk with your provider or the front desk about starting the "
-        "Energy, Hormones &amp; Weight path with a Range Assessment.",
+        "TALK WITH YOUR PROVIDER ABOUT STARTING THIS PATH WITH A RANGE ASSESSMENT.",
         cta_s,
     ))
 
@@ -354,8 +476,7 @@ def story_energy_hormones_weight():
 # ── PAGE 3: Injury & Recovery (with Range Sports Therapy) ────────────────────
 def story_injury_recovery():
     s = []
-
-    s.append(Paragraph("Injury Recovery", title_s))
+    s.append(Paragraph("INJURY<br/>RECOVERY.", title_s))
     s.append(Paragraph("When time and rehab aren’t enough.", subtitle_s))
     s.append(FrameBreak())
 
@@ -383,11 +504,15 @@ def story_injury_recovery():
         "<b>Range Sports Therapy</b> focuses on hands-on care, movement, and rehab. "
         "<b>Range Medical</b> focuses on what’s happening inside your body — "
         "healing, inflammation, and recovery. Both are in the same building, and "
-        "we often share patients.",
+        "we often share patients. The goal: support your body from the inside and "
+        "outside at the same time.",
         body_s,
     ))
 
-    s += section_label("Your recovery path")
+    s.append(FrameBreak())
+
+    # ── RIGHT COLUMN ─────────────────────────────────────────────────────────
+    s += section_label("Your recovery path", space_before=0)
     s.append(step(1, "<b>Range Assessment.</b> We review your injury, your goals, "
                      "and your current care."))
     s.append(step(2, "<b>Plan with your providers.</b> We coordinate with your "
@@ -396,36 +521,23 @@ def story_injury_recovery():
                      "exosomes, IVs, red light, or hyperbaric oxygen."))
     s.append(step(4, "<b>Track progress.</b> We check in and adjust as you heal."))
 
-    s.append(FrameBreak())
-
-    # ── RIGHT COLUMN ─────────────────────────────────────────────────────────
-    s += section_label("Recovery tools we may use", space_before=0)
+    s += section_label("Recovery tools we may use")
     for line in [
-        "<b>Peptide Therapy</b> — targeted support that may help your body’s natural repair process.",
-        "<b>PRP &amp; Exosomes</b> — concentrated treatments applied to the injury area to support tissue recovery.",
-        "<b>IV Therapy</b> — nutrients delivered directly to help your body recover and reduce fatigue.",
-        "<b>Red Light Therapy</b> — light energy that may help reduce inflammation and support healing.",
+        "<b>Peptide Therapy</b> — may help your body’s natural repair process.",
+        "<b>PRP &amp; Exosomes</b> — concentrated treatments applied to the injury area.",
+        "<b>IV Therapy</b> — nutrients delivered directly to help your body recover.",
+        "<b>Red Light Therapy</b> — may help reduce inflammation and support healing.",
         "<b>Hyperbaric Oxygen</b> — higher-pressure oxygen that may support tissue healing.",
     ]:
         s.append(bullet(line))
 
-    s += section_label("How this fits with your PT or chiro care")
     s.append(Paragraph(
-        "We do <b>not</b> replace your physical therapy or chiropractic work — we "
-        "support it. Your provider can coordinate with your Range Sports Therapy "
-        "team so everything works together. One team, one building, one goal: "
-        "get you back to what you love.",
+        "<i>We do <b>not</b> replace your PT or chiro work — we support it.</i>",
         body_s,
     ))
 
     s.append(Paragraph(
-        "“Better support from the inside and outside at the same time.”",
-        reassure_s,
-    ))
-
-    s.append(Paragraph(
-        "Ask your therapist or the Range Medical front desk about starting the "
-        "Injury &amp; Recovery path with a Range Assessment.",
+        "ASK YOUR THERAPIST OR FRONT DESK ABOUT STARTING WITH A RANGE ASSESSMENT.",
         cta_s,
     ))
 

@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     const ln = (lastName || '').trim();
     const em = (email || '').trim().toLowerCase() || null;
     const normalized = normalizePhone(phone || '');
-    const hasPhone = normalized && normalized.length === 10;
+    const hasPhone = !!normalized;
 
     if (!fn) return res.status(400).json({ error: 'First name is required' });
     if (!ln) return res.status(400).json({ error: 'Last name is required' });
@@ -34,13 +34,14 @@ export default async function handler(req, res) {
     }
 
     let existing = null;
+    const last10 = hasPhone ? normalized.replace(/\D/g, '').slice(-10) : '';
 
     // Prefer phone match (more reliable dedup key); fall back to email
     if (hasPhone) {
       const { data: phoneMatches, error: phoneErr } = await supabase
         .from('patients')
         .select('id, first_name, last_name, name, phone, email')
-        .or(`phone.eq.${normalized},phone.ilike.%${normalized}`)
+        .or(`phone.eq.${normalized},phone.ilike.%${last10}`)
         .limit(5);
       if (phoneErr) {
         console.error('find-or-create phone lookup error:', phoneErr);
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
       }
       existing = (phoneMatches || []).find(p => {
         const digits = (p.phone || '').replace(/\D/g, '').slice(-10);
-        return digits === normalized;
+        return digits === last10;
       }) || null;
     }
 
@@ -66,6 +67,26 @@ export default async function handler(req, res) {
     }
 
     if (existing) {
+      // Backfill missing fields on the existing patient record
+      const updates = {};
+      if (!existing.phone && hasPhone) updates.phone = normalized;
+      if (!existing.email && em) updates.email = em;
+      if (!existing.first_name && fn) updates.first_name = fn;
+      if (!existing.last_name && ln) updates.last_name = ln;
+      if (!existing.name && fn) updates.name = `${fn} ${ln}`.trim();
+
+      if (Object.keys(updates).length > 0) {
+        const { error: updateErr } = await supabase
+          .from('patients')
+          .update(updates)
+          .eq('id', existing.id);
+        if (updateErr) {
+          console.error('find-or-create backfill error:', updateErr);
+        } else {
+          Object.assign(existing, updates);
+        }
+      }
+
       const displayName = existing.name
         || [existing.first_name, existing.last_name].filter(Boolean).join(' ').trim()
         || 'Patient';
@@ -74,8 +95,8 @@ export default async function handler(req, res) {
         patient: {
           id: existing.id,
           name: displayName,
-          first_name: existing.first_name || null,
-          last_name: existing.last_name || null,
+          first_name: existing.first_name || fn || null,
+          last_name: existing.last_name || ln || null,
           phone: existing.phone || null,
           email: existing.email || null,
         },

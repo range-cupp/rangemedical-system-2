@@ -430,6 +430,17 @@ export default async function handler(req, res) {
                 }
               }
 
+              // Advance pipeline card: labs_scheduled → awaiting_results
+              try {
+                const { ensureLabsCardAtAwaitingResults } = await import('../../../lib/pipeline-automations');
+                await ensureLabsCardAtAwaitingResults({
+                  patientId: patient_id,
+                  reason: 'blood_draw_completed',
+                });
+              } catch (pipelineErr) {
+                console.error('Pipeline card advance error (non-fatal):', pipelineErr.message);
+              }
+
               console.log(`Blood draw encounter: logged ${nextDraw.label} for HRT protocol ${protocol.id}`);
             }
           }

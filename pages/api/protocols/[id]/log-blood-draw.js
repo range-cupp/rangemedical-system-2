@@ -132,6 +132,25 @@ export default async function handler(req, res) {
           console.error('Lab undo sync error (non-fatal):', syncErr);
         }
 
+        // Revert pipeline card: awaiting_results → labs_scheduled
+        try {
+          const { findActiveCard, moveCard } = await import('../../../../lib/pipelines-server');
+          for (const pKey of ['energy_workup', 'follow_up_labs']) {
+            const card = await findActiveCard({ patient_id: protocol.patient_id, pipeline: pKey });
+            if (card && card.stage === 'awaiting_results') {
+              await moveCard({
+                card_id: card.id,
+                to_stage: 'labs_scheduled',
+                triggered_by: 'automation',
+                automation_reason: 'blood_draw_undone',
+              });
+              break;
+            }
+          }
+        } catch (pipelineErr) {
+          console.error('Pipeline card revert error (non-fatal):', pipelineErr.message);
+        }
+
         console.log(`✓ Blood draw undone: ${drawLabel} for ${patientName}`);
 
         return res.status(200).json({
@@ -227,6 +246,17 @@ export default async function handler(req, res) {
       } catch (ghlError) {
         console.error('GHL note error (non-fatal):', ghlError);
       }
+    }
+
+    // Advance pipeline card: labs_scheduled → awaiting_results
+    try {
+      const { ensureLabsCardAtAwaitingResults } = await import('../../../../lib/pipeline-automations');
+      await ensureLabsCardAtAwaitingResults({
+        patientId: protocol.patient_id,
+        reason: 'blood_draw_completed',
+      });
+    } catch (pipelineErr) {
+      console.error('Pipeline card advance error (non-fatal):', pipelineErr.message);
     }
 
     console.log(`✓ Blood draw logged: ${drawLabel} for ${patientName} on ${logDate}`);

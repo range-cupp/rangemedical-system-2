@@ -537,7 +537,7 @@ def story_injury_recovery():
     ))
 
     s.append(Paragraph(
-        "ASK YOUR THERAPIST OR FRONT DESK ABOUT STARTING WITH A RANGE ASSESSMENT.",
+        "ASK THE FRONT DESK ABOUT STARTING WITH A RANGE ASSESSMENT.",
         cta_s,
     ))
 

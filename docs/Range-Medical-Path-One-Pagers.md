@@ -168,7 +168,7 @@ We do not replace your physical therapy or chiropractic work. We support it. You
 
 ---
 
-**Ask your therapist or the Range Medical front desk about starting the Injury & Recovery path with a Range Assessment.**
+**Ask the Range Medical front desk about starting the Injury & Recovery path with a Range Assessment.**
 
 *Range Medical -- 1901 Westcliff Drive, Suite 10, Newport Beach, CA*
 *(949) 997-3988 -- range-medical.com*

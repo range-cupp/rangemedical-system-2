@@ -63,6 +63,7 @@ const EncounterModal = dynamic(() => import('../../components/EncounterModal'), 
 const StandaloneEncounterModal = dynamic(() => import('../../components/StandaloneEncounterModal'), { ssr: false });
 const EncounterQuickView = dynamic(() => import('../../components/EncounterQuickView'), { ssr: false });
 const TreatmentPlanModal = dynamic(() => import('../../components/TreatmentPlanModal'), { ssr: false });
+const TreatmentPlanBuilderModal = dynamic(() => import('../../components/TreatmentPlanBuilderModal'), { ssr: false });
 const ServiceLogContent = dynamic(() => import('../../components/ServiceLogContent'), { ssr: false });
 const EmailComposeModal = dynamic(() => import('../../components/EmailComposeModal'), { ssr: false });
 const SMSComposeModal = dynamic(() => import('../../components/SMSComposeModal'), { ssr: false });
@@ -993,6 +994,7 @@ export default function PatientProfile() {
   const [isRecording, setIsRecording] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
   const [treatmentPlanNote, setTreatmentPlanNote] = useState(null);
+  const [showTreatmentPlanBuilder, setShowTreatmentPlanBuilder] = useState(false);
   const [editNoteBody, setEditNoteBody] = useState('');
   const [editNoteSaving, setEditNoteSaving] = useState(false);
   const editNoteRef = useRef(null);
@@ -10151,8 +10153,12 @@ export default function PatientProfile() {
                   .sort((a, b) => new Date(b.note_date || b.created_at) - new Date(a.note_date || a.created_at));
                 return (
                   <section className="card" style={{ marginBottom: 16 }}>
-                    <div className="card-header">
+                    <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <h3>Clinical Notes ({clinicalNotes.length})</h3>
+                      <button
+                        onClick={() => setShowTreatmentPlanBuilder(true)}
+                        style={{ background: '#111', border: '1px solid #111', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 4, lineHeight: 1.4 }}
+                      >Build Treatment Plan</button>
                     </div>
                     {clinicalNotes.length === 0 ? (
                       <div className="empty">No clinical encounter notes yet</div>
@@ -15803,6 +15809,17 @@ export default function PatientProfile() {
             noteId={treatmentPlanNote.id}
             provider={treatmentPlanNote.created_by || session?.user?.email}
             onClose={() => setTreatmentPlanNote(null)}
+          />
+        )}
+
+        {/* Treatment Plan Builder — standalone structured treatment plan */}
+        {showTreatmentPlanBuilder && patient && (
+          <TreatmentPlanBuilderModal
+            patientId={patient.id}
+            patientName={`${patient.first_name || ''} ${patient.last_name || ''}`.trim()}
+            patientEmail={patient.email}
+            provider={session?.user?.email}
+            onClose={() => setShowTreatmentPlanBuilder(false)}
           />
         )}
 

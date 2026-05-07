@@ -3702,7 +3702,7 @@ export default function PatientProfile() {
       const res = await fetch('/api/labs/send-results', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lab_id: matchedLab.id, patient_id: patient.id })
+        body: JSON.stringify({ lab_id: matchedLab.id, patient_id: patient.id, sent_by_employee_id: employee?.id || null, sent_by_employee_name: employee?.name || 'Staff' })
       });
       const data = await res.json();
       if (res.ok) {

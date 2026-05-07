@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { lab_id, patient_id } = req.body;
+  const { lab_id, patient_id, sent_by_employee_id, sent_by_employee_name } = req.body;
   if (!lab_id || !patient_id) {
     return res.status(400).json({ error: 'lab_id and patient_id are required' });
   }
@@ -83,6 +83,8 @@ export default async function handler(req, res) {
         errorMessage: smsResult.error || null,
         twilioMessageSid: smsResult.messageSid || null,
         provider: smsResult.provider || null,
+        sentByEmployeeId: sent_by_employee_id || null,
+        sentByEmployeeName: sent_by_employee_name || null,
       });
     } catch (logErr) {
       console.error('Lab results comms log error:', logErr);

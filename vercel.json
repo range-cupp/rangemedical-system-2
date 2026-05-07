@@ -41,6 +41,10 @@
       "schedule": "10 7 * * *"
     },
     {
+      "path": "/api/cron/wl-note-sync-reconcile",
+      "schedule": "30 7 * * *"
+    },
+    {
       "path": "/api/cron/data-audit-digest",
       "schedule": "0 14 * * *"
     },

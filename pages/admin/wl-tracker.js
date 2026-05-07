@@ -99,7 +99,7 @@ function defaultOutreachMessage(patient) {
 
 export default function WLTrackerPage() {
   const { session } = useAuth();
-  const [mode, setMode] = useState('take_home'); // 'take_home' | 'in_clinic'
+  const [mode, setMode] = useState('take_home'); // 'take_home' | 'in_clinic' | 'payment_due'
   const [viewDate, setViewDate] = useState(() => todayPacificISO()); // YYYY-MM-DD; defaults to real today
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -158,13 +158,15 @@ export default function WLTrackerPage() {
   const filteredPatients = useMemo(() => {
     return patients.filter(p => {
       if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
+      // Payment Due tab is auto-filtered to outreach-needed dispense states.
+      if (mode === 'payment_due' && !['send_now', 'due_now', 'due_soon'].includes(p.dispense.state)) return false;
       if (filterStatus === 'reminders_off' && p.reminder_enabled) return false;
       if (filterStatus === 'opted_out' && !p.reminder_opt_out) return false;
       if (filterStatus === 'dispatch_due' && !['send_now', 'due_now', 'due_soon'].includes(p.dispense.state)) return false;
       if (filterStatus === 'missed' && p.cell_status.status !== 'missed') return false;
       return true;
     });
-  }, [patients, search, filterStatus]);
+  }, [patients, search, filterStatus, mode]);
 
   // Bucket patients differently based on mode. Take-home is SMS-cycle driven;
   // in-clinic is appointment-driven. Both put "Needs manual attention" first
@@ -269,11 +271,12 @@ export default function WLTrackerPage() {
           </div>
         )}
 
-        {/* Mode toggle: Take-home vs In-clinic. Takes precedence as the primary nav. */}
+        {/* Mode toggle. Takes precedence as the primary nav. */}
         <div style={{ display: 'flex', gap: '0', marginBottom: '20px', borderBottom: '2px solid #e5e5e5' }}>
           {[
-            { value: 'take_home', label: '🏠 Take-home', sub: 'SMS check-ins' },
-            { value: 'in_clinic', label: '🏥 In-clinic', sub: 'Appointment-based' },
+            { value: 'take_home',   label: '🏠 Take-home',   sub: 'SMS check-ins' },
+            { value: 'in_clinic',   label: '🏥 In-clinic',   sub: 'Appointment-based' },
+            { value: 'payment_due', label: '💳 Payment Due', sub: 'Send next block / outreach' },
           ].map(m => {
             const active = mode === m.value;
             return (
@@ -294,43 +297,71 @@ export default function WLTrackerPage() {
           })}
         </div>
 
-        {/* Mode-specific banner */}
-        {mode === 'take_home' ? <AutomationBanner /> : <InClinicBanner />}
+        {/* Mode-specific banner — Payment Due skips the banner, the page is
+            already self-explanatory. */}
+        {mode === 'take_home' && <AutomationBanner />}
+        {mode === 'in_clinic' && <InClinicBanner />}
 
-        {/* Stats bar — just the two numbers worth surfacing at the top */}
+        {/* Stats bar — keep the same two cards on every tab so the totals
+            stay visible no matter where you are. */}
         {data && <StatsBar stats={data.stats} needsAttentionCount={dailyBuckets.needsAttention.length} />}
 
-        {/* Date picker + filters. Date defaults to real today; pick a past
-            date to look back at what happened that day. */}
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <DatePicker
-            viewDate={viewDate}
-            realToday={data?.real_today || todayPacificISO()}
-            onChange={setViewDate}
-          />
-          <div style={{ flex: 1 }} />
-          <input
-            type="text"
-            placeholder="Search patients..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ ...sharedStyles.searchInput, width: '240px' }}
-          />
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            style={sharedStyles.select}
-          >
-            <option value="all">All statuses</option>
-            <option value="missed">Missed</option>
-            <option value="dispatch_due">Needs dispatch soon</option>
-          </select>
-        </div>
+        {/* Date picker + filters. Hidden on Payment Due since it's not a
+            time-sliced view — it's "who needs money/dispense outreach now." */}
+        {mode !== 'payment_due' && (
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <DatePicker
+              viewDate={viewDate}
+              realToday={data?.real_today || todayPacificISO()}
+              onChange={setViewDate}
+            />
+            <div style={{ flex: 1 }} />
+            <input
+              type="text"
+              placeholder="Search patients..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ ...sharedStyles.searchInput, width: '240px' }}
+            />
+            <select
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value)}
+              style={sharedStyles.select}
+            >
+              <option value="all">All statuses</option>
+              <option value="missed">Missed</option>
+              <option value="dispatch_due">Needs dispatch soon</option>
+            </select>
+          </div>
+        )}
+
+        {/* Payment Due gets its own search bar */}
+        {mode === 'payment_due' && (
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px' }}>
+            <div style={{ flex: 1 }} />
+            <input
+              type="text"
+              placeholder="Search patients..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ ...sharedStyles.searchInput, width: '240px' }}
+            />
+          </div>
+        )}
 
         {loading && !data && <div style={{ padding: '60px', textAlign: 'center', color: '#666' }}>Loading...</div>}
 
-        {/* Main view — daily buckets, always */}
-        {data && (
+        {/* Main view */}
+        {data && mode === 'payment_due' && (
+          <PaymentDueView
+            patients={filteredPatients}
+            onSelect={(p) => setSelectedProtocolId(p.protocol_id)}
+            onAction={handleAction}
+            actionInProgress={actionInProgress}
+          />
+        )}
+
+        {data && mode !== 'payment_due' && (
           <DailyView
             mode={mode}
             buckets={dailyBuckets}
@@ -353,8 +384,8 @@ export default function WLTrackerPage() {
           />
         )}
 
-        {/* Roster table */}
-        {data && (
+        {/* Roster table — Payment Due uses its own focused list above instead. */}
+        {data && mode !== 'payment_due' && (
           <RosterTable
             mode={mode}
             patients={filteredPatients}
@@ -1336,6 +1367,184 @@ function todayActionDescription(patient) {
     default:
       return <span style={{ color: '#bbb' }}>—</span>;
   }
+}
+
+// ───────────────────── Payment Due View ─────────────────────
+
+// Cross-cutting view: every active WL patient whose dispense state needs
+// outreach right now. Sorted most urgent first (overdue → due in 7d → due
+// in 14d). Each row links straight to the patient's chart so staff can
+// verify the protocol details before reaching out.
+function PaymentDueView({ patients, onSelect, onAction, actionInProgress }) {
+  // Sort by urgency: send_now first (already overdue), then by days_until_due asc.
+  const URGENCY_RANK = { send_now: 0, due_now: 1, due_soon: 2 };
+  const sorted = [...patients].sort((a, b) => {
+    const ra = URGENCY_RANK[a.dispense.state] ?? 99;
+    const rb = URGENCY_RANK[b.dispense.state] ?? 99;
+    if (ra !== rb) return ra - rb;
+    return (a.dispense.days_until_due ?? 0) - (b.dispense.days_until_due ?? 0);
+  });
+
+  // Group by urgency for visual scanning
+  const overdue = sorted.filter(p => p.dispense.state === 'send_now');
+  const dueNow  = sorted.filter(p => p.dispense.state === 'due_now');
+  const dueSoon = sorted.filter(p => p.dispense.state === 'due_soon');
+
+  if (sorted.length === 0) {
+    return (
+      <div style={{ ...sharedStyles.card, padding: '40px', textAlign: 'center' }}>
+        <div style={{ fontSize: '40px', marginBottom: '12px' }}>✅</div>
+        <h3 style={{ ...sharedStyles.cardTitle, marginBottom: '6px' }}>All caught up</h3>
+        <div style={{ fontSize: '13px', color: '#666' }}>
+          No patients need a dispense or payment right now.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+      <PaymentSection
+        title="🔴 Overdue — send next block now"
+        subtitle="Patient's last dispensed block has run out"
+        list={overdue}
+        accent="#991b1b"
+        onSelect={onSelect}
+        onAction={onAction}
+        actionInProgress={actionInProgress}
+      />
+      <PaymentSection
+        title="🟠 Due in next 7 days"
+        subtitle="Reach out now so the next block ships in time"
+        list={dueNow}
+        accent="#9a3412"
+        onSelect={onSelect}
+        onAction={onAction}
+        actionInProgress={actionInProgress}
+      />
+      <PaymentSection
+        title="🟡 Due in 8–14 days"
+        subtitle="On the radar — no rush yet"
+        list={dueSoon}
+        accent="#92400e"
+        onSelect={onSelect}
+        onAction={onAction}
+        actionInProgress={actionInProgress}
+        collapsedByDefault
+      />
+    </div>
+  );
+}
+
+function PaymentSection({ title, subtitle, list, accent, onSelect, onAction, actionInProgress, collapsedByDefault }) {
+  const [expanded, setExpanded] = useState(!collapsedByDefault);
+  if (list.length === 0) return null;
+
+  return (
+    <div style={sharedStyles.card}>
+      <div style={{
+        ...sharedStyles.cardHeader, borderLeft: `4px solid ${accent}`,
+        cursor: collapsedByDefault ? 'pointer' : 'default',
+      }} onClick={() => collapsedByDefault && setExpanded(e => !e)}>
+        <div>
+          <h3 style={{ ...sharedStyles.cardTitle, fontSize: '16px' }}>
+            {title} <span style={{ color: '#888', marginLeft: '6px', fontWeight: 500 }}>({list.length})</span>
+          </h3>
+          <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>{subtitle}</div>
+        </div>
+        {collapsedByDefault && (
+          <span style={{ fontSize: '12px', color: '#888' }}>{expanded ? 'Hide' : 'Show'}</span>
+        )}
+      </div>
+
+      {expanded && (
+        <div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '40px 1.2fr 1fr 0.7fr 1fr 0.7fr 200px',
+            gap: '12px', padding: '8px 18px',
+            background: '#fafafa', borderBottom: '1px solid #f0f0f0',
+            fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px',
+            color: '#666', fontWeight: 600,
+          }}>
+            <div></div>
+            <div>Patient</div>
+            <div>Med / Dose</div>
+            <div>Delivery</div>
+            <div>Last paid</div>
+            <div>Status</div>
+            <div style={{ textAlign: 'right' }}>Action</div>
+          </div>
+          {list.map(p => (
+            <PaymentRow key={p.protocol_id} patient={p}
+              onSelect={onSelect} onAction={onAction} actionInProgress={actionInProgress} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PaymentRow({ patient, onSelect, onAction, actionInProgress }) {
+  const dispense = patient.dispense || {};
+  const payment = patient.payment || {};
+  const lastPaid = patient.last_purchase_date;
+  const deliveryLabel = (() => {
+    const d = (patient.protocol_summary?.delivery_method || '').toLowerCase();
+    if (d === 'in_clinic') return '🏥 In-clinic';
+    if (d === 'hybrid') return '🔁 Hybrid';
+    if (d === 'take_home') return '🏠 Take-home';
+    return '—';
+  })();
+
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '40px 1.2fr 1fr 0.7fr 1fr 0.7fr 200px',
+      gap: '12px', alignItems: 'center',
+      padding: '12px 18px', borderBottom: '1px solid #f0f0f0',
+    }}>
+      <Avatar initials={patient.initials} small />
+      <div>
+        <div style={{ fontWeight: 600, fontSize: '15px', cursor: 'pointer' }}
+          onClick={() => onSelect(patient)}>{patient.name}</div>
+        <div style={{ fontSize: '12px', color: '#888' }}>
+          {patient.cadence_days}d cadence
+        </div>
+      </div>
+      <div>
+        <div style={{ fontSize: '14px' }}>{patient.medication}</div>
+        <div style={{ fontSize: '12px', color: '#888' }}>{patient.selected_dose || '—'}</div>
+      </div>
+      <div style={{ fontSize: '12px', color: '#666' }}>{deliveryLabel}</div>
+      <div style={{ fontSize: '13px' }}>
+        {payment.amount_paid != null ? (
+          <>
+            <div>${Math.round(payment.amount_paid)}</div>
+            <div style={{ fontSize: '11px', color: '#888' }}>{fmtDate(lastPaid) || '—'}</div>
+          </>
+        ) : payment.state === 'comp' ? (
+          <span style={{ fontSize: '12px', color: '#3730a3', fontWeight: 600 }}>Comp</span>
+        ) : (
+          <span style={{ color: '#999' }}>—</span>
+        )}
+      </div>
+      <div>
+        <DispensePill dispense={dispense} />
+      </div>
+      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <a href={`/admin/patient/${patient.patient_id}`} target="_blank" rel="noreferrer"
+          style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall, textDecoration: 'none' }}>
+          Open chart
+        </a>
+        <button disabled={actionInProgress}
+          onClick={() => onSelect(patient)}
+          style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}>
+          Details
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // ───────────────────── Roster Table ─────────────────────

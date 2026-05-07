@@ -527,9 +527,14 @@ async function handleGet(req, res) {
   const weekStart = startOfWeek(requestedWeekStart);
   const weekEnd = addDaysISO(weekStart, 6);
 
-  // mode: 'take_home' (default, SMS reminders) or 'in_clinic' (appointment-based).
-  // Hybrid patients show in BOTH tabs since they alternate between flows.
-  const mode = req.query.mode === 'in_clinic' ? 'in_clinic' : 'take_home';
+  // mode: 'take_home' (default, SMS reminders), 'in_clinic' (appointment-based),
+  // or 'payment_due' (cross-cutting view of every active WL patient whose dispense
+  // state needs outreach — overdue / due_now / due_soon — regardless of delivery
+  // method). Hybrid patients show in both Take-home and In-clinic tabs.
+  const mode =
+    req.query.mode === 'in_clinic'   ? 'in_clinic' :
+    req.query.mode === 'payment_due' ? 'payment_due' :
+                                       'take_home';
 
   // For 4-week trend
   const fourWeeksAgo = addDaysISO(weekStart, -28);
@@ -554,6 +559,10 @@ async function handleGet(req, res) {
 
     if (mode === 'in_clinic') {
       protocolQuery = protocolQuery.in('delivery_method', ['in_clinic', 'hybrid']);
+    } else if (mode === 'payment_due') {
+      // No delivery filter — payment outreach is cross-cutting. Frontend will
+      // filter the response to only patients with dispense state in
+      // (send_now, due_now, due_soon).
     } else {
       protocolQuery = protocolQuery.or('delivery_method.neq.in_clinic,delivery_method.is.null');
     }

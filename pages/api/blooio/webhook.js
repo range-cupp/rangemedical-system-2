@@ -298,6 +298,167 @@ async function handleInboundMessage(body) {
     console.warn('[blooio webhook] push error (non-fatal):', pushErr?.message || pushErr);
   }
 
+  // ================================================================
+  // AUTO-REPLY: HRT IV Scheduling Prompt
+  // If patient replies YES to a recent scheduling prompt, send booking link.
+  // Runs early so slower operations (pending auto-send, patient bot) can't block it.
+  // ================================================================
+  if (patient?.id && messageText) {
+    const POSITIVE_REPLIES = ['yes', 'y', 'yeah', 'sure', 'yep', 'yea', 'ok', 'okay'];
+    const normalizedBody = messageText.trim().toLowerCase();
+
+    if (POSITIVE_REPLIES.includes(normalizedBody)) {
+      try {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const { data: pendingPrompt, error: promptErr } = await supabase
+          .from('comms_log')
+          .select('id, created_at')
+          .eq('patient_id', patient.id)
+          .eq('message_type', 'hrt_iv_schedule_prompt')
+          .eq('direction', 'outbound')
+          .neq('status', 'replied')
+          .gte('created_at', thirtyDaysAgo.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (promptErr) {
+          console.error('HRT IV prompt lookup error:', promptErr.message);
+        }
+
+        if (pendingPrompt) {
+          console.log(`HRT IV schedule YES reply from ${patient.name} via Blooio — sending booking link`);
+
+          const { data: patientDetails } = await supabase
+            .from('patients')
+            .select('email, first_name, name')
+            .eq('id', patient.id)
+            .single();
+
+          const linkParams = new URLSearchParams();
+          const displayName = patientDetails?.first_name || patientDetails?.name || patient.name || '';
+          if (displayName) linkParams.set('name', displayName);
+          if (patientDetails?.email) linkParams.set('email', patientDetails.email);
+          const queryStr = linkParams.toString();
+          const scheduleLink = `https://app.range-medical.com/schedule-iv${queryStr ? '?' + queryStr : ''}`;
+          const linkMessage = `Here’s your link to schedule your Range IV: ${scheduleLink}\n\n— Range Medical`;
+
+          const linkResult = await sendBlooioMessage({ to: senderPhone, message: linkMessage });
+
+          const linkRow = {
+            patient_id: patient.id,
+            patient_name: patient.name,
+            channel: 'sms',
+            message_type: 'hrt_iv_schedule_link',
+            message: linkMessage,
+            source: 'blooio/webhook',
+            recipient: senderPhone,
+            status: linkResult.success ? 'sent' : 'error',
+            error_message: linkResult.error || null,
+            direction: 'outbound',
+            provider: 'blooio',
+          };
+          if (linkResult.messageSid) linkRow.twilio_message_sid = linkResult.messageSid;
+
+          await supabase.from('comms_log').insert(linkRow).catch(err => { console.error('comms_log error:', err.message); });
+
+          await supabase
+            .from('comms_log')
+            .update({ status: 'replied' })
+            .eq('id', pendingPrompt.id)
+            .catch(err => { console.error('comms_log error:', err.message); });
+
+          if (linkResult.success) {
+            console.log(`HRT IV scheduling link sent to ${patient.name} (${senderPhone}) via Blooio`);
+          } else {
+            console.error(`HRT IV scheduling link FAILED for ${patient.name}: ${linkResult.error}`);
+          }
+        }
+      } catch (ivErr) {
+        console.error('HRT IV schedule auto-reply error:', ivErr);
+      }
+    }
+  }
+
+  // ================================================================
+  // AUTO-REPLY: Lab Prep Reminder
+  // If patient replies READY/YES to a recent lab prep reminder, send instructions link
+  // ================================================================
+  if (patient?.id && messageText) {
+    const LAB_PREP_REPLIES = ['ready', 'got it', 'yes', 'y', 'yeah', 'sure', 'yep', 'yea', 'ok', 'okay'];
+    const normalizedBody = messageText.trim().toLowerCase();
+
+    if (LAB_PREP_REPLIES.includes(normalizedBody)) {
+      try {
+        const threeDaysAgo = new Date();
+        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+        const { data: pendingReminder } = await supabase
+          .from('comms_log')
+          .select('id, created_at')
+          .eq('patient_id', patient.id)
+          .eq('message_type', 'lab_prep_reminder')
+          .eq('direction', 'outbound')
+          .neq('status', 'replied')
+          .gte('created_at', threeDaysAgo.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (pendingReminder) {
+          const firstName = patient.first_name || (patient.name || '').split(' ')[0] || 'there';
+          console.log(`Lab prep READY reply from ${patient.name} via Blooio — sending instructions link`);
+
+          let labPrepUrl = 'https://www.range-medical.com/lab-prep';
+          try {
+            const { createLabPrepToken, buildLabPrepUrl } = await import('../../../lib/lab-prep-token');
+            const token = await createLabPrepToken({
+              patientId: patient.id,
+              patientName: patient.name,
+              patientPhone: senderPhone,
+            });
+            labPrepUrl = buildLabPrepUrl(token);
+          } catch (err) {
+            console.error('Lab prep token creation failed, using plain URL:', err);
+          }
+
+          const prepMessage = `Here are your lab prep instructions — please review and confirm:\n\n${labPrepUrl}\n\nQuestions? Call (949) 997-3988. See you tomorrow! — Range Medical`;
+
+          const prepResult = await sendBlooioMessage({ to: senderPhone, message: prepMessage });
+
+          await logComm({
+            channel: 'sms',
+            messageType: 'lab_prep_instructions_sent',
+            message: prepMessage,
+            source: 'blooio/webhook',
+            patientId: patient.id,
+            patientName: patient.name,
+            recipient: senderPhone,
+            status: prepResult.success ? 'sent' : 'error',
+            errorMessage: prepResult.error || null,
+            twilioMessageSid: prepResult.messageSid || null,
+            provider: 'blooio',
+            direction: 'outbound',
+          }).catch(err => { console.error('comms_log error:', err.message); });
+
+          await supabase
+            .from('comms_log')
+            .update({ status: 'replied' })
+            .eq('id', pendingReminder.id)
+            .catch(err => { console.error('comms_log error:', err.message); });
+
+          if (prepResult.success) {
+            console.log(`Lab prep instructions sent to ${patient.name} (${senderPhone}) via Blooio`);
+          }
+        }
+      } catch (labErr) {
+        console.error('Lab prep auto-reply error:', labErr);
+      }
+    }
+  }
+
   // Auto-send any pending link messages (forms/guides queued during Blooio two-step opt-in)
   if (senderPhone) {
     try {
@@ -348,7 +509,6 @@ async function handleInboundMessage(body) {
         if (reply) {
           const sendResult = await sendBlooioMessage({ to: senderPhone, message: reply });
 
-          // Log the auto-reply to comms_log
           const botRow = {
             patient_id: patient?.id || null,
             patient_name: patient
@@ -381,158 +541,6 @@ async function handleInboundMessage(body) {
     }
   } else if (patient?.bot_paused && messageText) {
     console.log(`Patient bot paused for ${patient.name || 'unknown'} — skipping auto-reply`);
-  }
-
-  // ================================================================
-  // AUTO-REPLY: HRT IV Scheduling Prompt
-  // If patient replies YES to a recent scheduling prompt, send booking link
-  // ================================================================
-  if (patient?.id && messageText) {
-    const POSITIVE_REPLIES = ['yes', 'y', 'yeah', 'sure', 'yep', 'yea', 'ok', 'okay'];
-    const normalizedBody = messageText.trim().toLowerCase();
-
-    if (POSITIVE_REPLIES.includes(normalizedBody)) {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const { data: pendingPrompt } = await supabase
-        .from('comms_log')
-        .select('id, created_at')
-        .eq('patient_id', patient.id)
-        .eq('message_type', 'hrt_iv_schedule_prompt')
-        .eq('direction', 'outbound')
-        .neq('status', 'replied')
-        .gte('created_at', thirtyDaysAgo.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (pendingPrompt) {
-        console.log(`HRT IV schedule YES reply from ${patient.name} via Blooio — sending booking link`);
-
-        // Look up patient email for pre-filling the booking form
-        const { data: patientDetails } = await supabase
-          .from('patients')
-          .select('email, first_name, name')
-          .eq('id', patient.id)
-          .single();
-
-        const linkParams = new URLSearchParams();
-        const displayName = patientDetails?.first_name || patientDetails?.name || patient.name || '';
-        if (displayName) linkParams.set('name', displayName);
-        if (patientDetails?.email) linkParams.set('email', patientDetails.email);
-        const queryStr = linkParams.toString();
-        const scheduleLink = `https://app.range-medical.com/schedule-iv${queryStr ? '?' + queryStr : ''}`;
-        const linkMessage = `Here's your link to schedule your appointment: ${scheduleLink} — Range Medical`;
-
-        const linkResult = await sendBlooioMessage({ to: senderPhone, message: linkMessage });
-
-        // Log the scheduling link SMS
-        const linkRow = {
-          patient_id: patient.id,
-          patient_name: patient.name,
-          channel: 'sms',
-          message_type: 'hrt_iv_schedule_link',
-          message: linkMessage,
-          source: 'blooio/webhook',
-          recipient: senderPhone,
-          status: linkResult.success ? 'sent' : 'error',
-          error_message: linkResult.error || null,
-          direction: 'outbound',
-          provider: 'blooio',
-        };
-        if (linkResult.messageSid) linkRow.twilio_message_sid = linkResult.messageSid;
-
-        await supabase.from('comms_log').insert(linkRow).catch(err => { console.error('comms_log error:', err.message); });
-
-        // Mark original prompt as replied (prevents duplicate link sends)
-        await supabase
-          .from('comms_log')
-          .update({ status: 'replied' })
-          .eq('id', pendingPrompt.id)
-          .catch(err => { console.error('comms_log error:', err.message); });
-
-        if (linkResult.success) {
-          console.log(`HRT IV scheduling link sent to ${patient.name} (${senderPhone}) via Blooio`);
-        }
-      }
-    }
-  }
-
-  // ================================================================
-  // AUTO-REPLY: Lab Prep Reminder
-  // If patient replies READY/YES to a recent lab prep reminder, send instructions link
-  // ================================================================
-  if (patient?.id && messageText) {
-    const LAB_PREP_REPLIES = ['ready', 'got it', 'yes', 'y', 'yeah', 'sure', 'yep', 'yea', 'ok', 'okay'];
-    const normalizedBody = messageText.trim().toLowerCase();
-
-    if (LAB_PREP_REPLIES.includes(normalizedBody)) {
-      const threeDaysAgo = new Date();
-      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-
-      const { data: pendingReminder } = await supabase
-        .from('comms_log')
-        .select('id, created_at')
-        .eq('patient_id', patient.id)
-        .eq('message_type', 'lab_prep_reminder')
-        .eq('direction', 'outbound')
-        .neq('status', 'replied')
-        .gte('created_at', threeDaysAgo.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (pendingReminder) {
-        const firstName = patient.first_name || (patient.name || '').split(' ')[0] || 'there';
-        console.log(`Lab prep READY reply from ${patient.name} via Blooio — sending instructions link`);
-
-        // Generate a lab prep token for acknowledgment tracking
-        let labPrepUrl = 'https://www.range-medical.com/lab-prep';
-        try {
-          const { createLabPrepToken, buildLabPrepUrl } = await import('../../../lib/lab-prep-token');
-          const token = await createLabPrepToken({
-            patientId: patient.id,
-            patientName: patient.name,
-            patientPhone: senderPhone,
-          });
-          labPrepUrl = buildLabPrepUrl(token);
-        } catch (err) {
-          console.error('Lab prep token creation failed, using plain URL:', err);
-        }
-
-        const prepMessage = `Here are your lab prep instructions \u2014 please review and confirm:\n\n${labPrepUrl}\n\nQuestions? Call (949) 997-3988. See you tomorrow! \u2014 Range Medical`;
-
-        const prepResult = await sendBlooioMessage({ to: senderPhone, message: prepMessage });
-
-        // Log the instructions link SMS
-        await logComm({
-          channel: 'sms',
-          messageType: 'lab_prep_instructions_sent',
-          message: prepMessage,
-          source: 'blooio/webhook',
-          patientId: patient.id,
-          patientName: patient.name,
-          recipient: senderPhone,
-          status: prepResult.success ? 'sent' : 'error',
-          errorMessage: prepResult.error || null,
-          twilioMessageSid: prepResult.messageSid || null,
-          provider: 'blooio',
-          direction: 'outbound',
-        }).catch(err => { console.error('comms_log error:', err.message); });
-
-        // Mark the original reminder as replied (prevents duplicate sends)
-        await supabase
-          .from('comms_log')
-          .update({ status: 'replied' })
-          .eq('id', pendingReminder.id)
-          .catch(err => { console.error('comms_log error:', err.message); });
-
-        if (prepResult.success) {
-          console.log(`Lab prep instructions sent to ${patient.name} (${senderPhone}) via Blooio`);
-        }
-      }
-    }
   }
 }
 

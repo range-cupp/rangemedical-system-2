@@ -5451,21 +5451,21 @@ function CheckoutInner() {
                   <div style={styles.paymentSectionLabel}>FULFILLMENT (Weight Loss)</div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button
-                      onClick={() => setFulfillmentMethod('in_clinic_injections')}
+                      onClick={() => { setFulfillmentMethod('in_clinic_injections'); setShippingAmount(''); }}
                       style={{
                         ...styles.fulfillmentBtn,
                         ...(fulfillmentMethod === 'in_clinic_injections' ? { border: '2px solid #7c3aed', background: '#f5f3ff', color: '#7c3aed' } : {}),
                       }}
                     >In-Clinic Injections</button>
                     <button
-                      onClick={() => setFulfillmentMethod('in_clinic')}
+                      onClick={() => { setFulfillmentMethod('in_clinic'); setShippingAmount(''); }}
                       style={{
                         ...styles.fulfillmentBtn,
                         ...(fulfillmentMethod === 'in_clinic' ? { border: '2px solid #2E75B6', background: '#EBF3FB', color: '#2E75B6' } : {}),
                       }}
                     >Picked Up In Clinic</button>
                     <button
-                      onClick={() => setFulfillmentMethod('overnight')}
+                      onClick={() => { setFulfillmentMethod('overnight'); if (!shippingAmount || parseFloat(shippingAmount) === 0) setShippingAmount('50'); }}
                       style={{
                         ...styles.fulfillmentBtn,
                         ...(fulfillmentMethod === 'overnight' ? { border: '2px solid #e67e22', background: '#FFF5EB', color: '#e67e22' } : {}),

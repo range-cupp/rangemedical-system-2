@@ -64,20 +64,24 @@ export default function EncounterQuickView({ appointments, notes, protocols, pat
   const activeProtocol = sortedProtocols.find(p => p.id === activeProtocolId);
 
   const stripHtml = (html) => {
-    if (!html) return '';
-    return html
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/div>/gi, '\n')
-      .replace(/<\/p>/gi, '\n')
-      .replace(/<[^>]+>/g, '')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
+    try {
+      if (!html || typeof html !== 'string') return String(html || '');
+      return html
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/div>/gi, '\n')
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    } catch {
+      return String(html || '');
+    }
   };
 
   const formatDate = (d) => {

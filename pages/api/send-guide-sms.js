@@ -4,7 +4,7 @@
 
 import { sendSMS, normalizePhone } from '../../lib/send-sms';
 import { logComm } from '../../lib/comms-log';
-import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../lib/blooio-optin';
+import { hasBlooioOptIn, isBlooioProvider } from '../../lib/blooio-optin';
 
 const GUIDE_DEFINITIONS = {
   'hrt-guide': { name: 'HRT Guide', path: '/hrt-guide' },
@@ -112,62 +112,9 @@ export default async function handler(req, res) {
 
     const guideNames = validGuideIds.map(id => GUIDE_DEFINITIONS[id].name).join(', ');
 
-    // Blooio two-step: first contact cannot include links
-    if (isBlooioProvider()) {
-      const optedIn = await hasBlooioOptIn(normalizedPhone);
-
-      if (!optedIn) {
-        // Step 1: Send link-free opt-in message
-        const guideCount = validGuideIds.length;
-        const optInMessage = guideCount === 1
-          ? `${greeting}Range Medical here. We have your ${GUIDE_DEFINITIONS[validGuideIds[0]].name} ready for you. Reply YES to receive it.`
-          : `${greeting}Range Medical here. We have ${guideCount} treatment guides ready for you. Reply YES to receive them.`;
-
-        const optInResult = await sendSMS({ to: normalizedPhone, message: optInMessage });
-
-        if (!optInResult.success) {
-          console.error('Opt-in SMS send error:', optInResult.error);
-          return res.status(500).json({ error: 'Failed to send opt-in SMS', details: optInResult.error });
-        }
-
-        // Log opt-in message to comms_log
-        await logComm({
-          channel: 'sms',
-          messageType: 'blooio_optin_request',
-          message: optInMessage,
-          source: `send-guide-sms(${optInResult.provider || 'sms'})`,
-          patientId: patientId || null,
-          patientName: patientName || firstName || null,
-          ghlContactId: ghlContactId || null,
-          recipient: normalizedPhone,
-          twilioMessageSid: optInResult.messageSid,
-          direction: 'outbound',
-          provider: optInResult.provider || null,
-        });
-
-        // Queue the link message for auto-send when patient replies
-        await queuePendingLinkMessage({
-          phone: normalizedPhone,
-          message: messageBody,
-          messageType: 'guide_links',
-          patientId: patientId || null,
-          patientName: patientName || firstName || null,
-        });
-
-        console.log(`Guide opt-in sent to ${normalizedPhone}: ${guideNames} — awaiting reply`);
-
-        return res.status(200).json({
-          success: true,
-          twoStep: true,
-          guidesSent: validGuideIds.length,
-          messageSid: optInResult.messageSid,
-          message: 'Opt-in message sent. Guides will be delivered automatically when the patient replies.',
-        });
-      }
-    }
-
-    // Direct send — either not Blooio, or patient already opted in
-    const result = await sendSMS({ to: normalizedPhone, message: messageBody });
+    // If Blooio is active but patient hasn't opted in, send via Twilio so links deliver immediately
+    const useProvider = (isBlooioProvider() && !(await hasBlooioOptIn(normalizedPhone))) ? 'twilio' : undefined;
+    const result = await sendSMS({ to: normalizedPhone, message: messageBody, provider: useProvider });
 
     if (!result.success) {
       console.error('SMS send error:', result.error);

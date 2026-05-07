@@ -384,7 +384,7 @@ export default function ChatApp() {
   const [enablingNotif, setEnablingNotif] = useState(false);
   const [showDialer, setShowDialer] = useState(false);
 
-  const voice = useVoiceCall({ employeeId: employee?.id });
+  const voice = useVoiceCall({ employeeId: employee?.id, outboundOnly: true });
 
   const bottomRef = useRef(null);
   const inputRef = useRef(null);

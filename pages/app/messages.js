@@ -6,6 +6,9 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import AppLayout from '../../components/AppLayout';
 import EmojiPicker from '../../components/EmojiPicker';
+import AppCallBar from '../../components/AppCallBar';
+import CallKeypad from '../../components/CallKeypad';
+import useVoiceCall, { CALL_STATE } from '../../hooks/useVoiceCall';
 
 export default function AppMessages() {
   const router = useRouter();
@@ -22,6 +25,7 @@ export default function AppMessages() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [imagePreview, setImagePreview] = useState(null); // { file, previewUrl }
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [showDialer, setShowDialer] = useState(false);
   const bottomRef = useRef(null);
   const pollRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -31,6 +35,13 @@ export default function AppMessages() {
     if (session) try { setStaff(JSON.parse(session)); } catch {}
     fetchConversations();
   }, []);
+
+  const voice = useVoiceCall({ employeeId: staff?.id });
+
+  const handleCallPatient = () => {
+    if (!activeThread?.phone || voice.isActive) return;
+    voice.call({ to: activeThread.phone, name: activeThread.name });
+  };
 
   // If patient_id in URL, open that thread
   useEffect(() => {
@@ -327,8 +338,47 @@ export default function AppMessages() {
               )}
             </div>
             {activeThread.phone && (
-              <a href={`tel:${activeThread.phone}`} style={{ color: '#6366f1', fontSize: 22, textDecoration: 'none' }}>📞</a>
+              <button
+                onClick={handleCallPatient}
+                disabled={voice.isActive}
+                style={{
+                  background: voice.isActive ? '#e2e8f0' : '#22c55e',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 36,
+                  height: 36,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: voice.isActive ? 'default' : 'pointer',
+                  flexShrink: 0,
+                }}
+                title="Call from (949) 997-3988"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+              </button>
             )}
+            <button
+              onClick={() => setShowDialer(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 4,
+                display: 'flex',
+                flexShrink: 0,
+              }}
+              title="Keypad dialer"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="4" y="2" width="4" height="4" rx="1" /><rect x="10" y="2" width="4" height="4" rx="1" /><rect x="16" y="2" width="4" height="4" rx="1" />
+                <rect x="4" y="8" width="4" height="4" rx="1" /><rect x="10" y="8" width="4" height="4" rx="1" /><rect x="16" y="8" width="4" height="4" rx="1" />
+                <rect x="4" y="14" width="4" height="4" rx="1" /><rect x="10" y="14" width="4" height="4" rx="1" /><rect x="16" y="14" width="4" height="4" rx="1" />
+                <rect x="10" y="20" width="4" height="4" rx="1" />
+              </svg>
+            </button>
           </div>
 
           <div className="thread-messages">
@@ -413,6 +463,33 @@ export default function AppMessages() {
             </button>
           </div>
         </div>
+
+        {/* Floating call bar for thread view */}
+        <AppCallBar
+          callState={voice.callState}
+          callInfo={voice.callInfo}
+          muted={voice.muted}
+          onHangUp={voice.hangUp}
+          onToggleMute={voice.toggleMute}
+          formatDuration={voice.formatDuration}
+          incomingCall={voice.incomingCall}
+          onAnswer={voice.answer}
+          onReject={voice.reject}
+          onSendDigits={voice.sendDigits}
+        />
+
+        {/* Standalone keypad dialer */}
+        {showDialer && (
+          <CallKeypad
+            dialMode
+            onDigit={voice.isActive ? voice.sendDigits : undefined}
+            onCall={(number) => {
+              voice.call({ to: number, name: number });
+              setShowDialer(false);
+            }}
+            onClose={() => setShowDialer(false)}
+          />
+        )}
       </>
     );
   }

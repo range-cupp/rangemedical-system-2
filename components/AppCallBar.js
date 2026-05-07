@@ -3,9 +3,12 @@
 // Shows as a sticky bar when a call is active or incoming
 // Range Medical
 
+import { useState } from 'react';
 import { CALL_STATE } from '../hooks/useVoiceCall';
+import CallKeypad from './CallKeypad';
 
-export default function AppCallBar({ callState, callInfo, muted, onHangUp, onToggleMute, formatDuration, incomingCall, onAnswer, onReject }) {
+export default function AppCallBar({ callState, callInfo, muted, onHangUp, onToggleMute, formatDuration, incomingCall, onAnswer, onReject, onSendDigits }) {
+  const [showKeypad, setShowKeypad] = useState(false);
   // Incoming call notification
   if (callState === CALL_STATE.INCOMING) {
     const from = callInfo?.from || callInfo?.name || 'Unknown caller';
@@ -105,6 +108,31 @@ export default function AppCallBar({ callState, callInfo, muted, onHangUp, onTog
           </button>
         )}
 
+        {/* Keypad button */}
+        {isConnected && onSendDigits && (
+          <button
+            onClick={() => setShowKeypad(true)}
+            title="Keypad"
+            style={{
+              width: 40, height: 40,
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.12)',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 16,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="4" y="2" width="4" height="4" rx="1" /><rect x="10" y="2" width="4" height="4" rx="1" /><rect x="16" y="2" width="4" height="4" rx="1" />
+              <rect x="4" y="8" width="4" height="4" rx="1" /><rect x="10" y="8" width="4" height="4" rx="1" /><rect x="16" y="8" width="4" height="4" rx="1" />
+              <rect x="4" y="14" width="4" height="4" rx="1" /><rect x="10" y="14" width="4" height="4" rx="1" /><rect x="16" y="14" width="4" height="4" rx="1" />
+              <rect x="10" y="20" width="4" height="4" rx="1" />
+            </svg>
+          </button>
+        )}
+
         {/* Hang up */}
         <button
           onClick={onHangUp}
@@ -122,6 +150,14 @@ export default function AppCallBar({ callState, callInfo, muted, onHangUp, onTog
         >
           📵
         </button>
+
+        {/* DTMF Keypad overlay */}
+        {showKeypad && onSendDigits && (
+          <CallKeypad
+            onDigit={onSendDigits}
+            onClose={() => setShowKeypad(false)}
+          />
+        )}
       </div>
     );
   }

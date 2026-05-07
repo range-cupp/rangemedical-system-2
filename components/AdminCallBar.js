@@ -4,7 +4,9 @@
 // Desktop-optimized — wider than the mobile AppCallBar and uses real buttons.
 // Range Medical System
 
+import { useState } from 'react';
 import { CALL_STATE } from '../hooks/useVoiceCall';
+import CallKeypad from './CallKeypad';
 
 export default function AdminCallBar({
   callState,
@@ -15,7 +17,9 @@ export default function AdminCallBar({
   formatDuration,
   onAnswer,
   onReject,
+  onSendDigits,
 }) {
+  const [showKeypad, setShowKeypad] = useState(false);
   // Format a phone number for display (E.164 → (949) 997-3988)
   const fmtPhone = (raw) => {
     if (!raw) return '';
@@ -93,12 +97,34 @@ export default function AdminCallBar({
           </button>
         )}
 
+        {isConnected && onSendDigits && (
+          <button
+            onClick={() => setShowKeypad(true)}
+            title="Keypad"
+            style={{ ...styles.btn, ...styles.btnMuteOff }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="4" y="2" width="4" height="4" rx="1" /><rect x="10" y="2" width="4" height="4" rx="1" /><rect x="16" y="2" width="4" height="4" rx="1" />
+              <rect x="4" y="8" width="4" height="4" rx="1" /><rect x="10" y="8" width="4" height="4" rx="1" /><rect x="16" y="8" width="4" height="4" rx="1" />
+              <rect x="4" y="14" width="4" height="4" rx="1" /><rect x="10" y="14" width="4" height="4" rx="1" /><rect x="16" y="14" width="4" height="4" rx="1" />
+              <rect x="10" y="20" width="4" height="4" rx="1" />
+            </svg>
+          </button>
+        )}
+
         <button onClick={onHangUp} style={{ ...styles.btn, ...styles.btnReject }} title="Hang up">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/>
             <line x1="23" y1="1" x2="1" y2="23"/>
           </svg>
         </button>
+
+        {showKeypad && onSendDigits && (
+          <CallKeypad
+            onDigit={onSendDigits}
+            onClose={() => setShowKeypad(false)}
+          />
+        )}
       </div>
     );
   }

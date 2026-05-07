@@ -336,6 +336,12 @@ export default function useVoiceCall({ employeeId } = {}) {
     stopTimer();
   }, [activeCall, stopTimer]);
 
+  // ── Send DTMF digits ─────────────────────────────────────────────────────────
+  const sendDigits = useCallback((digits) => {
+    if (!activeCall) return;
+    activeCall.sendDigits(digits);
+  }, [activeCall]);
+
   // ── Mute toggle ──────────────────────────────────────────────────────────────
   const [muted, setMuted] = useState(false);
   const toggleMute = useCallback(() => {
@@ -378,6 +384,7 @@ export default function useVoiceCall({ employeeId } = {}) {
     answer,
     reject,
     toggleMute,
+    sendDigits,
     formatDuration,
     isActive: callState === CALL_STATE.IN_CALL || callState === CALL_STATE.CALLING,
     isIdle:   callState === CALL_STATE.IDLE || callState === CALL_STATE.READY,

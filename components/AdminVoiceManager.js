@@ -37,6 +37,7 @@ export default function AdminVoiceManager({ children }) {
           formatDuration={voice.formatDuration}
           onAnswer={voice.answer}
           onReject={voice.reject}
+          onSendDigits={voice.sendDigits}
         />
       )}
     </VoiceProvider>

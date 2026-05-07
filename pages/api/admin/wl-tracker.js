@@ -20,6 +20,7 @@ import { requireAuth, logAction } from '../../../lib/auth';
 import { logComm } from '../../../lib/comms-log';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { parseFrequencyDays } from '../../../lib/protocol-config';
+import { computePaymentStatus, computeDispenseStatus } from '../../../lib/wl-dispense';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -123,90 +124,9 @@ function computeExpectedDateInWeek(protocol, weekStartISO, weekEndISO, lastOrigi
   return null;
 }
 
-// Parse a WL purchase into the number of injections it covers. The qty field
-// is reliable for itemized buys ("5x 8mg" qty=5), but monthly/4-week-supply
-// items come through as qty=1 with the count buried in the item_name.
-function injectionsFromPurchase(purchase) {
-  if (!purchase) return 0;
-  const itemName = String(purchase.item_name || '').toLowerCase();
-  const qty = Number(purchase.quantity || 1) || 1;
-
-  // Itemized multi-buys: "5x 8mg" qty=5, "4x 2.5mg" qty=4 → trust qty
-  if (qty >= 2) return qty;
-
-  // "4 week supply" / "12 week supply" / "8 weeks" → use the number
-  const weekMatch = itemName.match(/(\d+)\s*week/);
-  if (weekMatch) {
-    const n = parseInt(weekMatch[1], 10);
-    if (n > 0) return n;
-  }
-
-  // "Monthly" line items = ~4 weekly injections
-  if (/monthly|month/.test(itemName)) return 4;
-
-  // Fallback: a single injection
-  return 1;
-}
-
-// Payment status — strictly "did money change hands?" Doesn't care about
-// coverage runout; that's the dispense badge's job. Comp patients always show
-// "Comp" here, even after their block is exhausted, so staff can tell at a
-// glance "this patient has never paid" vs "this patient paid for a block that
-// just ran out."
-function computePaymentStatus(lastPurchase) {
-  if (!lastPurchase) {
-    return { state: 'unknown', label: 'No purchases', last_purchase_date: null, amount_paid: null };
-  }
-  const amount = Number(lastPurchase.amount_paid) || 0;
-  if (amount === 0) {
-    return { state: 'comp', label: 'Comp', last_purchase_date: lastPurchase.purchase_date, amount_paid: 0 };
-  }
-  return {
-    state: 'paid',
-    label: `Paid $${amount.toFixed(0)}`,
-    last_purchase_date: lastPurchase.purchase_date,
-    amount_paid: amount,
-  };
-}
-
-// Dispense status — "do I need to send out the next block of injections?"
-// Computed from the most recent purchase (paid or comp): each block of
-// injections covers `injections × cadence` days. When that runs out, the
-// patient needs the next block dispatched. Independent of payment state.
-function computeDispenseStatus(cadenceDays, lastPurchase, todayISO) {
-  if (!lastPurchase) {
-    return {
-      state: 'never', label: 'Never sent',
-      sessions_remaining: 0, total: 0, used: 0, days_until_due: null,
-      last_dispensed_date: null, coverage_days: 0,
-    };
-  }
-
-  const injectionsCovered = injectionsFromPurchase(lastPurchase);
-  const coverageDays = injectionsCovered * cadenceDays;
-  const daysSincePurchase = Math.max(0, daysBetween(lastPurchase.purchase_date, todayISO));
-  const daysRemaining = coverageDays - daysSincePurchase;
-
-  const baseFields = {
-    sessions_remaining: Math.max(0, injectionsCovered - Math.floor(daysSincePurchase / cadenceDays)),
-    total: injectionsCovered,
-    used: Math.min(injectionsCovered, Math.floor(daysSincePurchase / cadenceDays)),
-    days_until_due: Math.max(0, daysRemaining),
-    last_dispensed_date: lastPurchase.purchase_date,
-    coverage_days: coverageDays,
-  };
-
-  if (daysRemaining <= 0) {
-    return { state: 'send_now', label: 'Send next block', ...baseFields, days_until_due: 0 };
-  }
-  if (daysRemaining <= 7) {
-    return { state: 'due_now', label: `Send in ${daysRemaining}d`, ...baseFields };
-  }
-  if (daysRemaining <= 14) {
-    return { state: 'due_soon', label: `Send in ${daysRemaining}d`, ...baseFields };
-  }
-  return { state: 'active', label: `${daysRemaining}d supply`, ...baseFields };
-}
+// Dispense + payment helpers live in lib/wl-dispense.js so the encounter
+// modal can use the same logic the tracker dashboard uses (single source of
+// truth for "is this patient due for the next block?").
 
 // Inspect the current/most-recent cycle and return the per-event sent times
 // plus a `today_action` enum that tells the dashboard what the cron did today

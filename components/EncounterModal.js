@@ -1203,6 +1203,35 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
             )}
           </div>
 
+          {/* Payment-due banner — same source of truth as the WL Tracker.
+              Shown above the WL context bar so it's the first thing staff sees
+              when they open an appointment for a patient whose block is out
+              or about to be. */}
+          {wlProtocol?.dispense && ['send_now', 'due_now', 'due_soon'].includes(wlProtocol.dispense.state) && (() => {
+            const d = wlProtocol.dispense;
+            const isOverdue = d.state === 'send_now';
+            const isDueNow = d.state === 'due_now';
+            const bg = isOverdue ? '#fee2e2' : isDueNow ? '#fed7aa' : '#fef3c7';
+            const border = isOverdue ? '#dc2626' : isDueNow ? '#9a3412' : '#92400e';
+            const headline = isOverdue
+              ? '💳 Payment Due — last block exhausted, ship next now'
+              : isDueNow
+                ? `💳 Payment Due in ${d.days_until_due}d — reach out so the next block ships in time`
+                : `💳 Payment Due in ${d.days_until_due}d — on the radar`;
+            const subline = wlProtocol.payment?.last_purchase_date
+              ? `Last paid ${wlProtocol.payment.amount_paid != null && wlProtocol.payment.amount_paid > 0 ? `$${Math.round(wlProtocol.payment.amount_paid)} ` : ''}on ${new Date(wlProtocol.payment.last_purchase_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — covered ${d.coverage_days}d (${d.total} injection${d.total === 1 ? '' : 's'})`
+              : 'No purchase on file';
+            return (
+              <div style={{
+                margin: '0 0 8px', padding: '12px 16px',
+                background: bg, border: `2px solid ${border}`,
+              }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: border }}>{headline}</div>
+                <div style={{ fontSize: 12, color: '#374151', marginTop: '4px' }}>{subline}</div>
+              </div>
+            );
+          })()}
+
           {/* Weight Loss Quick Context — shows for WL patients */}
           {wlProtocol && (
             <div style={{ margin: '0 0 8px', padding: '10px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>

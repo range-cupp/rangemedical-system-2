@@ -3453,6 +3453,20 @@ export default function PatientProfile() {
       let derivedEndDate = dateOrNull(editForm.endDate);
       const cat = selectedProtocol.category;
 
+      if (cat === 'weight_loss' && editForm.deliveryMethod === 'take_home') {
+        const vialMg = editForm.vialSize ? parseFloat(editForm.vialSize) : 0;
+        const doseMg = editForm.selectedDose ? parseFloat(editForm.selectedDose) : 0;
+        if (vialMg > 0 && doseMg > 0) {
+          derivedTotalSessions = Math.floor(vialMg / doseMg);
+        }
+        if (editForm.startDate && derivedTotalSessions) {
+          const interval = parseFrequencyDays(derivedFrequency);
+          const d = new Date(editForm.startDate + 'T12:00:00');
+          d.setDate(d.getDate() + (derivedTotalSessions - 1) * interval);
+          derivedEndDate = d.toISOString().split('T')[0];
+        }
+      }
+
       if (cat === 'peptide' || cat === 'injection') {
         // Vial-based total: vials × doses per vial
         if (editForm.numVials && editForm.dosesPerVial) {
@@ -3510,6 +3524,10 @@ export default function PatientProfile() {
         next_expected_date: dateOrNull(editForm.nextExpectedDate),
         comp: editForm.comp || false
       };
+
+      if (cat === 'weight_loss' && editForm.deliveryMethod === 'take_home') {
+        body.vial_size = editForm.vialSize ? parseFloat(editForm.vialSize) : null;
+      }
 
       if (isHRT) {
         // HRT vial-specific fields (dose_per_injection auto-derived from selected_dose)
@@ -7529,9 +7547,19 @@ export default function PatientProfile() {
                             const hadInClinicOnPickupDay = lastPickupLog && wlLogs.some(l =>
                               l.entry_date === lastPickupLog.entry_date && l.fulfillment_method === 'in_clinic'
                             );
-                            const pickupSupplyDays = lastPickupLog && lastPickupLog.quantity
-                              ? (lastPickupLog.quantity + (hadInClinicOnPickupDay ? 1 : 0)) * 7
-                              : 28;
+                            const pickupSupplyDays = (() => {
+                              if (protocol.vial_size && protocol.selected_dose) {
+                                const vMg = parseFloat(protocol.vial_size);
+                                const dMg = parseFloat(protocol.selected_dose);
+                                if (vMg > 0 && dMg > 0) {
+                                  const inj = Math.floor(vMg / dMg) + (hadInClinicOnPickupDay ? 1 : 0);
+                                  return inj * 7;
+                                }
+                              }
+                              return lastPickupLog && lastPickupLog.quantity
+                                ? (lastPickupLog.quantity + (hadInClinicOnPickupDay ? 1 : 0)) * 7
+                                : 28;
+                            })();
                             const nextRefillDate = lastPickupDate ? new Date(lastPickupDate.getTime() + pickupSupplyDays * 86400000) : null;
                             const daysUntilRefill = nextRefillDate ? Math.ceil((nextRefillDate - today) / 86400000) : null;
                             const refillOverdue = daysUntilRefill !== null && daysUntilRefill < 0;
@@ -13926,7 +13954,16 @@ export default function PatientProfile() {
                 <div className="form-group">
                   <label>Dose</label>
                   {selectedProtocol.category === 'weight_loss' && editForm.medication && WEIGHT_LOSS_DOSAGES[editForm.medication] ? (
-                    <select value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}>
+                    <select value={editForm.selectedDose} onChange={e => {
+                      const newDose = e.target.value;
+                      const updates = { ...editForm, selectedDose: newDose };
+                      const vialMg = editForm.vialSize ? parseFloat(editForm.vialSize) : 0;
+                      const doseMg = newDose ? parseFloat(newDose) : 0;
+                      if (editForm.deliveryMethod === 'take_home' && vialMg > 0 && doseMg > 0) {
+                        updates.totalSessions = Math.floor(vialMg / doseMg);
+                      }
+                      setEditForm(updates);
+                    }}>
                       <option value="">Select dose...</option>
                       {WEIGHT_LOSS_DOSAGES[editForm.medication].map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
@@ -14012,9 +14049,38 @@ export default function PatientProfile() {
                 </div>
 
                 {/* ── Weight Loss: Start Date, Total Sessions, Frequency ── */}
-                {selectedProtocol.category === 'weight_loss' && (
+                {selectedProtocol.category === 'weight_loss' && (() => {
+                  const isTakeHome = editForm.deliveryMethod === 'take_home';
+                  const doseMg = editForm.selectedDose ? parseFloat(editForm.selectedDose) : 0;
+                  const vialMg = editForm.vialSize ? parseFloat(editForm.vialSize) : 0;
+                  const vialSessions = (isTakeHome && vialMg > 0 && doseMg > 0) ? Math.floor(vialMg / doseMg) : null;
+                  return (
                   <>
                     <div className="form-section-label" style={{ marginTop: '12px' }}>Timeline</div>
+                    {isTakeHome && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: 4 }}>
+                        <div className="form-group">
+                          <label>Vial Size (mg)</label>
+                          <input type="number" min="1" step="any" value={editForm.vialSize || ''} onChange={e => {
+                            const newVial = e.target.value ? parseFloat(e.target.value) : '';
+                            const newDoseMg = editForm.selectedDose ? parseFloat(editForm.selectedDose) : 0;
+                            const autoSessions = (newVial && newDoseMg > 0) ? Math.floor(newVial / newDoseMg) : editForm.totalSessions;
+                            setEditForm({...editForm, vialSize: e.target.value, totalSessions: autoSessions || editForm.totalSessions});
+                          }} placeholder="e.g. 60" />
+                        </div>
+                        <div className="form-group">
+                          <label>Injections in Vial</label>
+                          <div style={{ padding: '8px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: 14, color: vialSessions ? '#111' : '#9ca3af', fontWeight: vialSessions ? 600 : 400 }}>
+                            {vialSessions ? `${vialSessions} injections` : doseMg ? 'Set vial size' : 'Set dose + vial size'}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {isTakeHome && vialSessions && (
+                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '6px 12px', borderRadius: 0, fontSize: 12, color: '#166534', marginBottom: 8 }}>
+                        {vialMg}mg vial ÷ {doseMg}mg/injection = <strong>{vialSessions} weekly injections</strong> ({vialSessions} weeks of supply)
+                      </div>
+                    )}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div className="form-group">
                         <label>Start Date</label>
@@ -14024,12 +14090,17 @@ export default function PatientProfile() {
                           const today = new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }) + 'T12:00:00');
                           const start = new Date(newStart + 'T12:00:00');
                           const autoWeeks = start <= today ? Math.floor((today - start) / (1000 * 60 * 60 * 24 * interval)) + 1 : 1;
-                          setEditForm({...editForm, startDate: newStart, totalSessions: autoWeeks});
+                          setEditForm({...editForm, startDate: newStart, totalSessions: vialSessions || autoWeeks});
                         }} />
                       </div>
                       <div className="form-group">
                         <label>Total Sessions (weeks)</label>
                         <input type="number" min="1" value={editForm.totalSessions || ''} onChange={e => setEditForm({...editForm, totalSessions: e.target.value ? parseInt(e.target.value) : null})} placeholder="e.g. 8" />
+                        {isTakeHome && vialSessions && editForm.totalSessions !== vialSessions && (
+                          <div style={{ fontSize: 11, color: '#d97706', marginTop: 2 }}>
+                            Vial math suggests {vialSessions} — <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setEditForm({...editForm, totalSessions: vialSessions})}>apply</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
@@ -14068,7 +14139,8 @@ export default function PatientProfile() {
                       </div>
                     )}
                   </>
-                )}
+                  );
+                })()}
 
                 {/* ── Peptide: Supply format drives everything ── */}
                 {selectedProtocol.category === 'peptide' && (() => {

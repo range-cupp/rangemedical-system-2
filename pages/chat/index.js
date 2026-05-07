@@ -356,9 +356,9 @@ export default function ChatApp() {
     sendMessage: sendPatientSms,
   } = usePatientMessaging(employee);
 
-  // 'channels' | 'chat' | 'new' | 'patients' | 'patient-chat'
+  // 'channels' | 'chat' | 'new' | 'patients' | 'patient-chat' | 'calls'
   const [view, setView] = useState('channels');
-  const [tab, setTab] = useState('team'); // 'team' | 'patients'
+  const [tab, setTab] = useState('team'); // 'team' | 'patients' | 'calls'
   const [search, setSearch] = useState('');
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -383,6 +383,16 @@ export default function ChatApp() {
   const [showNotifPrompt, setShowNotifPrompt] = useState(false);
   const [enablingNotif, setEnablingNotif] = useState(false);
   const [showDialer, setShowDialer] = useState(false);
+
+  // Calls tab state
+  const [dialInput, setDialInput] = useState('');
+  const [callHistory, setCallHistory] = useState([]);
+  const [loadingCallHistory, setLoadingCallHistory] = useState(false);
+  const [callsSubView, setCallsSubView] = useState('keypad'); // 'keypad' | 'recents'
+  const [callPatientSearch, setCallPatientSearch] = useState('');
+  const [callPatientResults, setCallPatientResults] = useState([]);
+  const [searchingCallPatients, setSearchingCallPatients] = useState(false);
+  const callSearchTimeout = useRef(null);
 
   const voice = useVoiceCall({ employeeId: employee?.id });
 
@@ -535,7 +545,9 @@ export default function ChatApp() {
   const handleSwitchTab = useCallback((next) => {
     setTab(next);
     setSearch('');
-    if (next === 'patients') {
+    if (next === 'calls') {
+      setView('calls');
+    } else if (next === 'patients') {
       setView('patients');
       fetchPatientConvos();
     } else {
@@ -543,6 +555,71 @@ export default function ChatApp() {
       fetchChannels();
     }
   }, [fetchChannels, fetchPatientConvos]);
+
+  // ── Calls tab helpers ──────────────────────────────────────────────────────
+  const fetchCallHistory = useCallback(async () => {
+    setLoadingCallHistory(true);
+    try {
+      const res = await fetch('/api/twilio/sync-calls?limit=30');
+      if (res.ok) {
+        const data = await res.json();
+        setCallHistory(data.calls || []);
+      }
+    } catch {} finally { setLoadingCallHistory(false); }
+  }, []);
+
+  useEffect(() => {
+    if (view === 'calls' && callsSubView === 'recents' && callHistory.length === 0) {
+      fetchCallHistory();
+    }
+  }, [view, callsSubView, callHistory.length, fetchCallHistory]);
+
+  const handleCallPatientSearch = useCallback((q) => {
+    setCallPatientSearch(q);
+    if (callSearchTimeout.current) clearTimeout(callSearchTimeout.current);
+    if (!q.trim()) { setCallPatientResults([]); return; }
+    callSearchTimeout.current = setTimeout(async () => {
+      setSearchingCallPatients(true);
+      try {
+        const res = await fetch(`/api/patient/search?q=${encodeURIComponent(q)}&limit=8`);
+        if (res.ok) {
+          const data = await res.json();
+          setCallPatientResults(data.patients || []);
+        }
+      } catch {} finally { setSearchingCallPatients(false); }
+    }, 300);
+  }, []);
+
+  const handleDialCall = useCallback((number, name) => {
+    if (!number || voice.isActive) return;
+    let n = number.replace(/\D/g, '');
+    if (n.length === 10) n = '+1' + n;
+    else if (n.length === 11 && n.startsWith('1')) n = '+' + n;
+    else if (!n.startsWith('+')) n = '+' + n;
+    voice.call({ to: n, name: name || n });
+  }, [voice]);
+
+  const handleKeyPress = useCallback((digit) => {
+    setDialInput(prev => prev + digit);
+    if (voice.callState === CALL_STATE.IN_CALL) voice.sendDigits(digit);
+  }, [voice]);
+
+  const formatCallTime = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' });
+    if (isToday) return timeStr;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' }) + ' ' + timeStr;
+  };
+
+  const formatCallDuration = (secs) => {
+    if (!secs) return '';
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  };
 
   // Auto-scroll patient thread on new messages
   useEffect(() => {
@@ -728,8 +805,8 @@ export default function ChatApp() {
         WebkitTextSizeAdjust: '100%',
       }}>
 
-        {/* ─── LIST VIEW (Team channels or Patient conversations) ────────── */}
-        {(view === 'channels' || view === 'patients') && (
+        {/* ─── LIST VIEW (Team channels, Patient conversations, or Calls) ── */}
+        {(view === 'channels' || view === 'patients' || view === 'calls') && (
           <>
             <div style={{
               padding: '12px 16px 8px',
@@ -747,7 +824,7 @@ export default function ChatApp() {
                 >Sign out</button>
               </div>
 
-              {/* Tab switcher: Team / Patients */}
+              {/* Tab switcher: Team / Patients / Calls */}
               <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
                 <button
                   onClick={() => handleSwitchTab('team')}
@@ -797,24 +874,40 @@ export default function ChatApp() {
                     }}>{(patientUnread || patientNeedsResponse) > 99 ? '99+' : (patientUnread || patientNeedsResponse)}</span>
                   )}
                 </button>
+                <button
+                  onClick={() => handleSwitchTab('calls')}
+                  style={{
+                    flex: 1, padding: '9px 12px',
+                    background: tab === 'calls' ? '#0f172a' : '#f1f5f9',
+                    color: tab === 'calls' ? '#fff' : '#475569',
+                    border: 'none', borderRadius: 10,
+                    fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  Calls
+                </button>
               </div>
 
-              <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}>
-                  <SearchIcon />
+              {tab !== 'calls' && (
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}>
+                    <SearchIcon />
+                  </div>
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={tab === 'patients' ? 'Search patients' : 'Search conversations'}
+                    style={{
+                      width: '100%', boxSizing: 'border-box',
+                      border: '1.5px solid #e2e8f0', borderRadius: 10,
+                      padding: '10px 12px 10px 36px', fontSize: 15,
+                      background: '#f8fafc', outline: 'none',
+                    }}
+                  />
                 </div>
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder={tab === 'patients' ? 'Search patients' : 'Search conversations'}
-                  style={{
-                    width: '100%', boxSizing: 'border-box',
-                    border: '1.5px solid #e2e8f0', borderRadius: 10,
-                    padding: '10px 12px 10px 36px', fontSize: 15,
-                    background: '#f8fafc', outline: 'none',
-                  }}
-                />
-              </div>
+              )}
             </div>
 
             {showInstallHint && <InstallHint onDismiss={dismissInstallHint} />}
@@ -827,7 +920,26 @@ export default function ChatApp() {
             )}
 
             <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              {tab === 'patients' ? (
+              {tab === 'calls' ? (
+                <CallsTabContent
+                  subView={callsSubView}
+                  setSubView={setCallsSubView}
+                  dialInput={dialInput}
+                  setDialInput={setDialInput}
+                  onKeyPress={handleKeyPress}
+                  onDial={handleDialCall}
+                  voice={voice}
+                  patientSearch={callPatientSearch}
+                  onPatientSearch={handleCallPatientSearch}
+                  patientResults={callPatientResults}
+                  searchingPatients={searchingCallPatients}
+                  callHistory={callHistory}
+                  loadingCallHistory={loadingCallHistory}
+                  fetchCallHistory={fetchCallHistory}
+                  formatCallTime={formatCallTime}
+                  formatCallDuration={formatCallDuration}
+                />
+              ) : tab === 'patients' ? (
                 <>
                   {loadingPatients && patientConvos.length === 0 && (
                     <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>Loading…</div>
@@ -975,7 +1087,7 @@ export default function ChatApp() {
             </div>
 
             {/* FAB to start a new conversation — Team or Patient depending on tab */}
-            <button
+            {tab !== 'calls' && <button
               onClick={() => {
                 if (tab === 'team') { setView('new'); fetchEmployees(); }
                 else { setView('patient-new'); setPatientSearchQ(''); setPatientSearchResults([]); }
@@ -989,7 +1101,7 @@ export default function ChatApp() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 6px 16px rgba(0,0,0,0.18)', cursor: 'pointer',
               }}
-            ><PlusIcon size={26} /></button>
+            ><PlusIcon size={26} /></button>}
           </>
         )}
 
@@ -1584,5 +1696,212 @@ function ChatHead() {
       <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       <meta name="robots" content="noindex, nofollow" />
     </>
+  );
+}
+
+// ── Calls tab content ────────────────────────────────────────────────────────
+
+const DIAL_KEYS = [
+  { digit: '1', sub: '' },
+  { digit: '2', sub: 'ABC' },
+  { digit: '3', sub: 'DEF' },
+  { digit: '4', sub: 'GHI' },
+  { digit: '5', sub: 'JKL' },
+  { digit: '6', sub: 'MNO' },
+  { digit: '7', sub: 'PQRS' },
+  { digit: '8', sub: 'TUV' },
+  { digit: '9', sub: 'WXYZ' },
+  { digit: '*', sub: '' },
+  { digit: '0', sub: '+' },
+  { digit: '#', sub: '' },
+];
+
+function CallsTabContent({
+  subView, setSubView, dialInput, setDialInput, onKeyPress, onDial, voice,
+  patientSearch, onPatientSearch, patientResults, searchingPatients,
+  callHistory, loadingCallHistory, fetchCallHistory, formatCallTime, formatCallDuration,
+}) {
+  return (
+    <div style={{ padding: '0 12px 12px' }}>
+      {/* Keypad / Recents toggle */}
+      <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 3, marginBottom: 12 }}>
+        <button
+          onClick={() => setSubView('keypad')}
+          style={{
+            flex: 1, padding: '8px 0', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer',
+            background: subView === 'keypad' ? '#fff' : 'transparent',
+            color: subView === 'keypad' ? '#0f172a' : '#64748b',
+            borderRadius: 6,
+            boxShadow: subView === 'keypad' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+          }}
+        >Keypad</button>
+        <button
+          onClick={() => { setSubView('recents'); fetchCallHistory(); }}
+          style={{
+            flex: 1, padding: '8px 0', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer',
+            background: subView === 'recents' ? '#fff' : 'transparent',
+            color: subView === 'recents' ? '#0f172a' : '#64748b',
+            borderRadius: 6,
+            boxShadow: subView === 'recents' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+          }}
+        >Recents</button>
+      </div>
+
+      {subView === 'keypad' && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          {/* Patient search */}
+          <div style={{ width: '100%', marginBottom: 14 }}>
+            <input
+              value={patientSearch}
+              onChange={e => onPatientSearch(e.target.value)}
+              placeholder="Search patients to call..."
+              type="search"
+              style={{
+                width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10,
+                padding: '10px 14px', fontSize: 15, outline: 'none', background: '#fff',
+                boxSizing: 'border-box',
+              }}
+            />
+            {patientResults.length > 0 && (
+              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, marginTop: 4, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+                {patientResults.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      if (p.phone) {
+                        onDial(p.phone, `${p.first_name} ${p.last_name}`);
+                        onPatientSearch('');
+                      }
+                    }}
+                    disabled={!p.phone}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                      padding: '11px 14px', border: 'none', borderBottom: '1px solid #f1f5f9',
+                      background: 'none', cursor: p.phone ? 'pointer' : 'default', textAlign: 'left',
+                      opacity: p.phone ? 1 : 0.5,
+                    }}
+                  >
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#475569', flexShrink: 0 }}>
+                      {(p.first_name?.[0] || '') + (p.last_name?.[0] || '')}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{p.first_name} {p.last_name}</div>
+                      <div style={{ fontSize: 12, color: '#94a3b8' }}>{p.phone || 'No phone'}</div>
+                    </div>
+                    {p.phone && (
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+            {searchingPatients && <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4, textAlign: 'center' }}>Searching...</div>}
+          </div>
+
+          {/* Dial display */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', maxWidth: 260, marginBottom: 10, minHeight: 36 }}>
+            <input
+              type="tel"
+              value={dialInput}
+              onChange={e => setDialInput(e.target.value.replace(/[^0-9+*#]/g, ''))}
+              placeholder="Enter number"
+              style={{ flex: 1, fontSize: 22, fontWeight: 700, color: '#0f172a', textAlign: 'center', border: 'none', outline: 'none', background: 'transparent' }}
+            />
+            {dialInput && (
+              <button onClick={() => setDialInput(prev => prev.slice(0, -1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z" />
+                  <line x1="18" y1="9" x2="12" y2="15" /><line x1="12" y1="9" x2="18" y2="15" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          {/* Keypad */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, width: '100%', maxWidth: 260 }}>
+            {DIAL_KEYS.map(({ digit, sub }) => (
+              <button
+                key={digit}
+                onClick={() => onKeyPress(digit)}
+                style={{
+                  width: 64, height: 64, borderRadius: '50%', background: '#f1f5f9', border: 'none',
+                  cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  justifyContent: 'center', margin: '0 auto', WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <span style={{ fontSize: 22, fontWeight: 600, color: '#0f172a', lineHeight: 1 }}>{digit}</span>
+                {sub && <span style={{ fontSize: 8, fontWeight: 600, color: '#94a3b8', letterSpacing: '0.12em', marginTop: 1 }}>{sub}</span>}
+              </button>
+            ))}
+          </div>
+
+          {/* Call button */}
+          <button
+            onClick={() => onDial(dialInput)}
+            disabled={!dialInput.trim() || voice.isActive}
+            style={{
+              marginTop: 14, width: 56, height: 56, borderRadius: '50%',
+              background: (!dialInput.trim() || voice.isActive) ? '#e2e8f0' : '#22c55e',
+              border: 'none', cursor: (!dialInput.trim() || voice.isActive) ? 'default' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
+            </svg>
+          </button>
+          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>Calls from (949) 997-3988</div>
+        </div>
+      )}
+
+      {subView === 'recents' && (
+        <>
+          {loadingCallHistory ? (
+            <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>Loading...</div>
+          ) : callHistory.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>No call history yet</div>
+          ) : (
+            <div style={{ background: '#fff', borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              {callHistory.map((c, i) => {
+                const number = c.direction === 'inbound' ? c.from_number || c.from : c.to_number || c.to;
+                const name = c.patient_name || c.contact_name || null;
+                const isMissed = c.status === 'no-answer' || c.status === 'busy' || c.status === 'failed';
+                const color = isMissed ? '#ef4444' : (c.direction === 'inbound' ? '#22c55e' : '#6366f1');
+                return (
+                  <button
+                    key={c.id || c.sid || i}
+                    onClick={() => { if (number && !voice.isActive) onDial(number, name); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', width: '100%',
+                      borderBottom: i < callHistory.length - 1 ? '1px solid #f1f5f9' : 'none',
+                      cursor: 'pointer', background: 'none', border: 'none', borderBottom: i < callHistory.length - 1 ? '1px solid #f1f5f9' : 'none',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>
+                      {isMissed ? '↗️' : (c.direction === 'inbound' ? '↙️' : '↗️')}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: isMissed ? '#ef4444' : '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {name || number || 'Unknown'}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
+                        {name && number && <span>{number} · </span>}
+                        {formatCallTime(c.start_time || c.created_at)}
+                        {c.status === 'completed' && c.duration ? ` · ${formatCallDuration(c.duration)}` : ''}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }

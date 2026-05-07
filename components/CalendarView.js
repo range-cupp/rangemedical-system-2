@@ -28,6 +28,29 @@ const CONSENT_TYPE_TO_FORM_ID = {
   'exosome_iv': 'exosome-iv', 'exosome-iv': 'exosome-iv',
 };
 import { getRenewalStatus } from '../lib/protocol-tracking';
+
+const BLOCK_COLORS = [
+  { border: '#6366F1', stripe: 'rgba(99,102,241,0.08)', bg: '#E0E7FF', text: '#4338CA' },   // indigo
+  { border: '#0EA5E9', stripe: 'rgba(14,165,233,0.08)', bg: '#E0F2FE', text: '#0369A1' },   // sky
+  { border: '#8B5CF6', stripe: 'rgba(139,92,246,0.08)', bg: '#EDE9FE', text: '#6D28D9' },   // violet
+  { border: '#14B8A6', stripe: 'rgba(20,184,166,0.08)', bg: '#CCFBF1', text: '#0F766E' },   // teal
+  { border: '#F59E0B', stripe: 'rgba(245,158,11,0.08)', bg: '#FEF3C7', text: '#B45309' },   // amber
+  { border: '#EC4899', stripe: 'rgba(236,72,153,0.08)', bg: '#FCE7F3', text: '#BE185D' },   // pink
+  { border: '#10B981', stripe: 'rgba(16,185,129,0.08)', bg: '#D1FAE5', text: '#047857' },   // emerald
+  { border: '#F97316', stripe: 'rgba(249,115,22,0.08)', bg: '#FFEDD5', text: '#C2410C' },   // orange
+  { border: '#06B6D4', stripe: 'rgba(6,182,212,0.08)', bg: '#CFFAFE', text: '#0E7490' },    // cyan
+  { border: '#EF4444', stripe: 'rgba(239,68,68,0.08)', bg: '#FEE2E2', text: '#B91C1C' },    // red
+];
+const _blockColorCache = {};
+function getBlockColor(providerName) {
+  if (!providerName) return BLOCK_COLORS[0];
+  if (_blockColorCache[providerName]) return _blockColorCache[providerName];
+  let hash = 0;
+  for (let i = 0; i < providerName.length; i++) hash = ((hash << 5) - hash + providerName.charCodeAt(i)) | 0;
+  const color = BLOCK_COLORS[Math.abs(hash) % BLOCK_COLORS.length];
+  _blockColorCache[providerName] = color;
+  return color;
+}
 import { formatPhone } from '../lib/format-utils';
 
 function stripNoteHtml(html) {
@@ -1611,22 +1634,22 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         {calendarBlocks
           .filter(b => b.date === formatDateISO(currentDate))
           .map(block => {
+            const bc = getBlockColor(block.provider_name);
             if (block.block_type === 'full_day') {
-              // Full day: overlay entire grid
               return (
                 <div
                   key={block.id}
                   style={{
                     position: 'absolute', top: 0, bottom: 0,
                     left: '75px', right: '10px',
-                    background: 'repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(220,38,38,0.06) 10px, rgba(220,38,38,0.06) 20px)',
-                    borderLeft: '3px solid #dc2626',
+                    background: `repeating-linear-gradient(135deg, transparent, transparent 10px, ${bc.stripe} 10px, ${bc.stripe} 20px)`,
+                    borderLeft: `3px solid ${bc.border}`,
                     pointerEvents: 'none', zIndex: 1,
                   }}
                 >
                   <div style={{
                     position: 'sticky', top: 8, fontSize: 11, fontWeight: 600,
-                    color: '#dc2626', background: '#fee2e2', padding: '3px 8px',
+                    color: bc.text, background: bc.bg, padding: '3px 8px',
                     borderRadius: 0, display: 'inline-block', marginLeft: 8, marginTop: 8,
                   }}>
                     {block.provider_name} — {block.reason || 'Day Off'}
@@ -1635,7 +1658,6 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 </div>
               );
             }
-            // Time-range block
             if (block.start_time && block.end_time) {
               const [sh, sm] = block.start_time.split(':').map(Number);
               const [eh, em] = block.end_time.split(':').map(Number);
@@ -1651,15 +1673,15 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     position: 'absolute',
                     top: `${bTop}px`, height: `${bHeight}px`,
                     left: '75px', right: '10px',
-                    background: 'repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(220,38,38,0.08) 8px, rgba(220,38,38,0.08) 16px)',
-                    borderLeft: '3px solid #dc2626',
+                    background: `repeating-linear-gradient(135deg, transparent, transparent 8px, ${bc.stripe} 8px, ${bc.stripe} 16px)`,
+                    borderLeft: `3px solid ${bc.border}`,
                     pointerEvents: 'none', zIndex: 1,
                     borderRadius: 0,
                   }}
                 >
                   <div style={{
-                    fontSize: 11, fontWeight: 600, color: '#dc2626',
-                    background: '#fee2e2', padding: '2px 6px',
+                    fontSize: 11, fontWeight: 600, color: bc.text,
+                    background: bc.bg, padding: '2px 6px',
                     borderRadius: 0, display: 'inline-block', marginLeft: 6, marginTop: 2,
                   }}>
                     {block.provider_name} — {block.reason || 'Blocked'}
@@ -1709,16 +1731,23 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </div>
               <div style={styles.weekDayBody}>
                 {/* Block indicators */}
-                {calendarBlocks.filter(b => b.date === dayStr).length > 0 && (
-                  <div style={{
-                    fontSize: '10px', fontWeight: 600, color: '#dc2626',
-                    background: '#fee2e2', padding: '2px 6px', borderRadius: 0,
-                    marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4,
-                  }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
-                    {calendarBlocks.filter(b => b.date === dayStr).map(b => b.provider_name).filter((v, i, a) => a.indexOf(v) === i).join(', ')} blocked
-                  </div>
-                )}
+                {calendarBlocks.filter(b => b.date === dayStr).length > 0 &&
+                  calendarBlocks.filter(b => b.date === dayStr)
+                    .map(b => b.provider_name).filter((v, i, a) => a.indexOf(v) === i)
+                    .map(name => {
+                      const bc = getBlockColor(name);
+                      return (
+                        <div key={name} style={{
+                          fontSize: '10px', fontWeight: 600, color: bc.text,
+                          background: bc.bg, padding: '2px 6px', borderRadius: 0,
+                          marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4,
+                        }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: bc.border, display: 'inline-block' }} />
+                          {name} blocked
+                        </div>
+                      );
+                    })
+                }
                 {dayAppts.map(appt => (
                   <div
                     key={appt.id}
@@ -1940,19 +1969,20 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               <div key={emp.id}>
                 {/* Block overlays for this employee */}
                 {empBlocks.map(block => {
+                  const bc = getBlockColor(block.provider_name);
                   if (block.block_type === 'full_day') {
                     return (
                       <div key={`block-${block.id}`} style={{
                         position: 'absolute', top: 0, bottom: 0,
                         left: `calc(75px + (100% - 85px) * ${colIdx / cols.length})`,
                         width: `calc((100% - 85px) * ${1 / cols.length})`,
-                        background: 'repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(220,38,38,0.07) 8px, rgba(220,38,38,0.07) 16px)',
-                        borderLeft: '2px solid #dc2626',
+                        background: `repeating-linear-gradient(135deg, transparent, transparent 8px, ${bc.stripe} 8px, ${bc.stripe} 16px)`,
+                        borderLeft: `2px solid ${bc.border}`,
                         pointerEvents: 'none', zIndex: 1,
                       }}>
                         <div style={{
-                          fontSize: 10, fontWeight: 600, color: '#dc2626',
-                          background: '#fee2e2', padding: '2px 6px', borderRadius: 0,
+                          fontSize: 10, fontWeight: 600, color: bc.text,
+                          background: bc.bg, padding: '2px 6px', borderRadius: 0,
                           display: 'inline-block', marginLeft: 4, marginTop: 4,
                         }}>
                           {block.reason || 'Off'}

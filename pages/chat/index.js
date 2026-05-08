@@ -1346,19 +1346,6 @@ export default function ChatApp() {
               </button>
             </div>
 
-            {/* Floating call bar */}
-            <AppCallBar
-              callState={voice.callState}
-              callInfo={voice.callInfo}
-              muted={voice.muted}
-              onHangUp={voice.hangUp}
-              onToggleMute={voice.toggleMute}
-              formatDuration={voice.formatDuration}
-              incomingCall={voice.incomingCall}
-              onAnswer={voice.answer}
-              onReject={voice.reject}
-              onSendDigits={voice.sendDigits}
-            />
 
             {/* Standalone keypad dialer */}
             {showDialer && (
@@ -1670,6 +1657,20 @@ export default function ChatApp() {
             )}
           </>
         )}
+
+        {/* Global call bar — visible on any view when a call is active */}
+        <AppCallBar
+          callState={voice.callState}
+          callInfo={voice.callInfo}
+          muted={voice.muted}
+          onHangUp={voice.hangUp}
+          onToggleMute={voice.toggleMute}
+          formatDuration={voice.formatDuration}
+          incomingCall={voice.incomingCall}
+          onAnswer={voice.answer}
+          onReject={voice.reject}
+          onSendDigits={voice.sendDigits}
+        />
       </div>
 
       <style jsx global>{`

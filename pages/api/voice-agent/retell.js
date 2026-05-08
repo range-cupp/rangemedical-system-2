@@ -239,22 +239,12 @@ async function handleBookAppointment(params) {
     patient = await findPatientByName(patient_name);
   }
 
-  // Assign to Chris Cupp for voice agent bookings (testing phase)
   const startISO = toPacificISO(date, time);
-  let providerName = 'Chris Cupp';
-  const { data: chrisRow } = await supabase
-    .from('employees')
-    .select('id, name')
-    .ilike('name', '%Chris Cupp%')
-    .limit(1)
-    .maybeSingle();
-  if (!chrisRow) {
-    const picked = await pickProviderForSlot({ serviceSlug: eventType.slug, startISO });
-    if (!picked) {
-      return `No providers are available for ${eventType.title} at that time. Would you like to try a different time?`;
-    }
-    providerName = picked.displayLabel || picked.name;
+  const picked = await pickProviderForSlot({ serviceSlug: eventType.slug, startISO });
+  if (!picked) {
+    return `No providers are available for ${eventType.title} at that time. Would you like to try a different time?`;
   }
+  const providerName = picked.displayLabel || picked.name;
 
   const durationMins = eventType.length || 60;
   const endISO = new Date(new Date(startISO).getTime() + durationMins * 60000).toISOString();

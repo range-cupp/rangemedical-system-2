@@ -67,6 +67,18 @@ export default async function handler(req, res) {
 
     if (purchaseError) throw purchaseError;
 
+    // Bump total_sessions by 1 so the PAID badge updates
+    const { data: current } = await supabase
+      .from('protocols')
+      .select('total_sessions')
+      .eq('id', protocolId)
+      .single();
+
+    await supabase
+      .from('protocols')
+      .update({ total_sessions: (current?.total_sessions || 0) + 1 })
+      .eq('id', protocolId);
+
     return res.status(200).json({
       success: true,
       purchase,

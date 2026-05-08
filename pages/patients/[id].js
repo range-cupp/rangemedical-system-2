@@ -665,6 +665,7 @@ export default function PatientProfile() {
   // UI state
   const [viewMode, setViewMode] = useState('medical'); // 'medical' | 'business'
   const [activeTab, setActiveTab] = useState('chart');
+  const [showSideMessages, setShowSideMessages] = useState(false);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [aptNoteEditing, setAptNoteEditing] = useState(null); // appointment id being edited
   const [aptNoteText, setAptNoteText] = useState('');
@@ -4865,6 +4866,7 @@ export default function PatientProfile() {
         <title>{getPatientDisplayName()} | Range Medical</title>
       </Head>
 
+      <div className={`patient-profile-wrapper${showSideMessages ? ' with-side-messages' : ''}`}>
       <div className="patient-profile">
         {/* Header */}
         <header className="profile-header">
@@ -5008,6 +5010,10 @@ export default function PatientProfile() {
               ) : null;
             })()}
             <div className="toolbar-divider" />
+            <div className="toolbar-group">
+              <button onClick={() => setShowSideMessages(!showSideMessages)} className={`toolbar-btn${showSideMessages ? ' toolbar-btn-active' : ''}`} title={showSideMessages ? 'Hide messages panel' : 'Show messages panel'}>💬 <span className="toolbar-label">Chat</span></button>
+            </div>
+            <div className="toolbar-divider" />
             <div className="toolbar-group" style={{ position: 'relative' }}>
               <button onClick={() => setShowMoreMenu(!showMoreMenu)} className="toolbar-btn toolbar-btn-more" title="More actions">⋯</button>
               {showMoreMenu && (
@@ -5036,6 +5042,10 @@ export default function PatientProfile() {
               <button onClick={() => router.push(`/admin/checkout?patient_id=${patient.id}&patient_name=${encodeURIComponent(patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim())}`)} className="toolbar-btn toolbar-btn-green" title="Checkout / Dispense / Charge">💳 <span className="toolbar-label">Checkout</span></button>
               <button onClick={() => setShowAddCreditModal(true)} className="toolbar-btn toolbar-btn-credit" title="Add account credit">🎁 <span className="toolbar-label">Credit</span></button>
               <button onClick={() => { setShowSendFormsModal(true); setSendFormsSelected(new Set()); setSendGuidesSelected(new Set()); setSendFormsResult(null); setSendFormsTab('guides'); setSendGuidesCategory('all'); }} className="toolbar-btn" title="Send guides">📖 <span className="toolbar-label">Guides</span></button>
+            </div>
+            <div className="toolbar-divider" />
+            <div className="toolbar-group">
+              <button onClick={() => setShowSideMessages(!showSideMessages)} className={`toolbar-btn${showSideMessages ? ' toolbar-btn-active' : ''}`} title={showSideMessages ? 'Hide messages panel' : 'Show messages panel'}>💬 <span className="toolbar-label">Chat</span></button>
             </div>
             <div className="toolbar-divider" />
             <div className="toolbar-group" style={{ position: 'relative' }}>
@@ -12080,14 +12090,27 @@ export default function PatientProfile() {
 
           {/* Communications Tab */}
           {activeTab === 'messages' && (
-            <div style={{ height: 'calc(100vh - 220px)', minHeight: '400px', maxHeight: '800px' }}>
-              <ConversationView
-                patientId={id}
-                patientName={patient?.name || patient?.full_name}
-                patientPhone={patient?.phone}
-                ghlContactId={patient?.ghl_contact_id}
-              />
-            </div>
+            showSideMessages ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center', color: '#9ca3af' }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>💬</div>
+                <div style={{ fontSize: 14 }}>Messages are showing in the side panel</div>
+                <button
+                  onClick={() => setShowSideMessages(false)}
+                  style={{ marginTop: 12, fontSize: 13, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Show messages here instead
+                </button>
+              </div>
+            ) : (
+              <div style={{ height: 'calc(100vh - 220px)', minHeight: '400px', maxHeight: '800px' }}>
+                <ConversationView
+                  patientId={id}
+                  patientName={patient?.name || patient?.full_name}
+                  patientPhone={patient?.phone}
+                  ghlContactId={patient?.ghl_contact_id}
+                />
+              </div>
+            )
           )}
         </div>
 
@@ -16373,7 +16396,84 @@ export default function PatientProfile() {
         )}
       </div>
 
+      {/* Side Messaging Panel */}
+      {showSideMessages && (
+        <div className="side-messages-panel">
+          <div className="side-messages-header">
+            <span>Messages</span>
+            <button onClick={() => setShowSideMessages(false)} className="side-messages-close">&times;</button>
+          </div>
+          <div className="side-messages-body">
+            <ConversationView
+              patientId={id}
+              patientName={patient?.name || patient?.full_name}
+              patientPhone={patient?.phone}
+              ghlContactId={patient?.ghl_contact_id}
+            />
+          </div>
+        </div>
+      )}
+      </div>
+
       <style jsx>{`
+        .patient-profile-wrapper {
+          display: flex;
+          max-width: 1000px;
+          margin: 0 auto;
+          gap: 0;
+          transition: max-width 0.2s ease;
+        }
+        .patient-profile-wrapper.with-side-messages {
+          max-width: 1600px;
+        }
+        .patient-profile-wrapper.with-side-messages .patient-profile {
+          flex: 1;
+          min-width: 0;
+          max-width: 1000px;
+        }
+        .side-messages-panel {
+          width: 420px;
+          flex-shrink: 0;
+          border-left: 1px solid #e5e7eb;
+          background: #fff;
+          display: flex;
+          flex-direction: column;
+          height: calc(100vh - 56px);
+          position: sticky;
+          top: 56px;
+        }
+        .side-messages-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 16px;
+          border-bottom: 1px solid #e5e7eb;
+          font-weight: 600;
+          font-size: 14px;
+          color: #111827;
+          background: #fafafa;
+          flex-shrink: 0;
+        }
+        .side-messages-close {
+          background: none;
+          border: none;
+          font-size: 20px;
+          color: #6b7280;
+          cursor: pointer;
+          padding: 0 4px;
+          line-height: 1;
+        }
+        .side-messages-close:hover { color: #111827; }
+        .side-messages-body {
+          flex: 1;
+          min-height: 0;
+          overflow: hidden;
+        }
+        .toolbar-btn-active {
+          background: #dbeafe !important;
+          color: #1d4ed8 !important;
+          border-color: #93c5fd !important;
+        }
         .patient-profile {
           max-width: 1000px;
           margin: 0 auto;
@@ -18569,6 +18669,12 @@ export default function PatientProfile() {
         .pay-new-sub-form {
           margin: 0 12px 12px; padding: 16px; background: #f0fdf4;
           border-radius: 0; border: 1px solid #bbf7d0;
+        }
+
+        /* Responsive: hide side messages on smaller screens */
+        @media (max-width: 1100px) {
+          .side-messages-panel { display: none; }
+          .patient-profile-wrapper.with-side-messages { max-width: 1000px; }
         }
 
         /* Responsive: Tablet */

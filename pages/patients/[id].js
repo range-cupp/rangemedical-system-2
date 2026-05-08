@@ -564,6 +564,7 @@ export default function PatientProfile() {
   // Core data state
   const [loading, setLoading] = useState(true);
   const [patient, setPatient] = useState(null);
+  const [copiedField, setCopiedField] = useState(null);
   const [intakeDemographics, setIntakeDemographics] = useState(null);
   const [activeProtocols, setActiveProtocols] = useState([]);
   const [completedProtocols, setCompletedProtocols] = useState([]);
@@ -4935,8 +4936,8 @@ export default function PatientProfile() {
               <div className="header-identity">
                 <h1>{getPatientDisplayName()}</h1>
                 <div className="contact-row">
-                  {patient.email && <span>{patient.email}</span>}
-                  {patient.phone && <span>{formatPhone(patient.phone)}</span>}
+                  {patient.email && <span className="copyable-contact" onClick={() => { navigator.clipboard.writeText(patient.email); setCopiedField('email'); setTimeout(() => setCopiedField(null), 1500); }} title="Click to copy email">{patient.email}{copiedField === 'email' && <span className="copied-toast">Copied!</span>}</span>}
+                  {patient.phone && <span className="copyable-contact" onClick={() => { navigator.clipboard.writeText(formatPhone(patient.phone)); setCopiedField('phone'); setTimeout(() => setCopiedField(null), 1500); }} title="Click to copy phone">{formatPhone(patient.phone)}{copiedField === 'phone' && <span className="copied-toast">Copied!</span>}</span>}
                   {patient.phone && blooioOptIn !== null && (
                     <span className="blooio-badge" style={{
                       backgroundColor: blooioOptIn ? '#dcfce7' : '#fef3c7',
@@ -5069,8 +5070,8 @@ export default function PatientProfile() {
               <span className="demographics-preview">
                 {(patient.date_of_birth || intakeDemographics?.date_of_birth) && <span>{formatDOB(patient.date_of_birth || intakeDemographics?.date_of_birth)}{calcAge(patient.date_of_birth || intakeDemographics?.date_of_birth) !== null && ` (${calcAge(patient.date_of_birth || intakeDemographics?.date_of_birth)}yo)`}</span>}
                 {(patient.gender || intakeDemographics?.gender) && <span>{patient.gender || intakeDemographics?.gender}</span>}
-                {patient.phone && <span>{formatPhone(patient.phone)}</span>}
-                {patient.email && <span>{patient.email}</span>}
+                {patient.phone && <span className="copyable-contact" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(formatPhone(patient.phone)); setCopiedField('phone2'); setTimeout(() => setCopiedField(null), 1500); }} title="Click to copy phone">{formatPhone(patient.phone)}{copiedField === 'phone2' && <span className="copied-toast">Copied!</span>}</span>}
+                {patient.email && <span className="copyable-contact" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(patient.email); setCopiedField('email2'); setTimeout(() => setCopiedField(null), 1500); }} title="Click to copy email">{patient.email}{copiedField === 'email2' && <span className="copied-toast">Copied!</span>}</span>}
                 {patient.created_at && <span>Since {formatDate(patient.created_at)}</span>}
               </span>
               <span className="demographics-toggle-icon">{showDemographics ? '▲ Hide Details' : '▼ Details'}</span>
@@ -16582,6 +16583,37 @@ export default function PatientProfile() {
           font-size: 14px;
           flex-wrap: wrap;
           align-items: center;
+        }
+        .copyable-contact {
+          cursor: pointer;
+          position: relative;
+          user-select: text;
+          border-bottom: 1px dashed transparent;
+          transition: border-color 0.15s;
+        }
+        .copyable-contact:hover {
+          color: #111827;
+          border-bottom-color: #9ca3af;
+        }
+        .copied-toast {
+          position: absolute;
+          top: -28px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #111827;
+          color: #fff;
+          font-size: 11px;
+          padding: 3px 8px;
+          border-radius: 4px;
+          white-space: nowrap;
+          pointer-events: none;
+          animation: fadeInOut 1.5s ease;
+        }
+        @keyframes fadeInOut {
+          0% { opacity: 0; transform: translateX(-50%) translateY(4px); }
+          15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+          80% { opacity: 1; }
+          100% { opacity: 0; }
         }
         .blooio-badge {
           font-size: 11px;

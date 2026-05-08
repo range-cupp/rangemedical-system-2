@@ -6916,7 +6916,7 @@ export default function PatientProfile() {
                         🖨️ Print
                       </button>
                     )}
-                    {employee?.is_admin && (
+                    {(employee?.is_admin || canApproveDoseChange(employee?.email)) && (
                       <button className="btn-primary-sm" onClick={() => { setMedEditMode('add'); setMedEditForm({ medication_name: '', strength: '', form: '', sig: '', start_date: '', source: 'Range Medical', last_pickup_date: '', last_pickup_quantity: '', quantity_unit: 'pills', route: '', day_supply: '', quantity_prescribed: '', notes: '', quick_category: '', quick_gender: (patient?.gender || '').toLowerCase(), quick_medication_key: '', quick_dose: '', quick_frequency: '' }); setShowMedEditModal(true); }}>
                         + Add Medication
                       </button>
@@ -7021,7 +7021,7 @@ export default function PatientProfile() {
                               >Change Dose</button>
                             );
                           })()}
-                          {employee?.is_admin && med.from_protocol && (() => {
+                          {(employee?.is_admin || canApproveDoseChange(employee?.email)) && med.from_protocol && (() => {
                             const proto = (activeProtocols || []).find(p => p.id === med.protocol_id);
                             if (!proto) return null;
                             return med.is_secondary_med ? (
@@ -7071,7 +7071,7 @@ export default function PatientProfile() {
                               >✏️</button>
                             );
                           })()}
-                          {employee?.is_admin && !med.from_protocol && (
+                          {(employee?.is_admin || canApproveDoseChange(employee?.email)) && !med.from_protocol && (
                             <>
                               <button onClick={() => { setMedEditMode('edit'); setMedEditForm(med); setShowMedEditModal(true); }} style={{
                                 background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
@@ -7233,7 +7233,7 @@ export default function PatientProfile() {
                         </div>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
                           <span style={{ padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600, background: '#f3f4f6', color: '#94a3b8', whiteSpace: 'nowrap' }}>Discontinued</span>
-                          {employee?.is_admin && !med.from_protocol && (
+                          {(employee?.is_admin || canApproveDoseChange(employee?.email)) && !med.from_protocol && (
                             <button onClick={async () => {
                               if (!confirm(`Delete ${med.medication_name || 'this medication'}? This cannot be undone.`)) return;
                               try {

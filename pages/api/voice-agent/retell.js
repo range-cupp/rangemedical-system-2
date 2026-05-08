@@ -14,10 +14,17 @@ const supabase = createClient(
 
 const TZ = 'America/Los_Angeles';
 
-// Services that can be booked directly without a prior Range Assessment.
-// Everything else (HRT, weight loss, peptides, testosterone, etc.) requires
-// an assessment or labs first.
-const DIRECT_BOOK_CATEGORIES = new Set(['iv', 'hbot', 'rlt', 'injection']);
+// Only these specific slugs can be booked directly from the website voice agent.
+// Everything else requires a Range Assessment first.
+const WEBSITE_BOOKABLE_SLUGS = new Set([
+  'range-assessment-energy',
+  'range-assessment-injury',
+  'range-assessment-both',
+  'hbot',
+  'red-light-therapy',
+  'range-iv',
+  'nad-iv-225',
+]);
 
 const ASSESSMENT_REQUIRED_MSG =
   'That service requires a Range Assessment first so one of our providers can review your health history and build a personalized plan. ' +
@@ -281,8 +288,7 @@ async function handleBookAppointment(params) {
 
   // Only IVs, HBOT, RLT, and injections can be booked directly.
   // Everything else (HRT, weight loss, peptides, etc.) requires an assessment first.
-  const isAssessment = eventType.slug?.startsWith('range-assessment') || eventType.slug === 'initial-consultation' || eventType.category === 'assessment';
-  if (!isAssessment && !DIRECT_BOOK_CATEGORIES.has(eventType.category)) {
+  if (!WEBSITE_BOOKABLE_SLUGS.has(eventType.slug)) {
     return ASSESSMENT_REQUIRED_MSG;
   }
 

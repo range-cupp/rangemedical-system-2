@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
 import SMSComposeModal from '../../components/SMSComposeModal';
+import { PIPELINES } from '../../lib/pipelines-config';
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [smsTarget, setSmsTarget] = useState(null); // { phone, name, patientId }
   const [upcomingLabDraws, setUpcomingLabDraws] = useState([]);
+  const [pipelineSummary, setPipelineSummary] = useState(null);
 
   useEffect(() => {
     fetchDashboard();
@@ -29,6 +31,11 @@ export default function Dashboard() {
       setTodayAppointments(data.todayAppointments || []);
       setRecentComms(data.recentComms || []);
       setUpcomingLabDraws(data.upcomingLabDraws || []);
+
+      fetch('/api/pipelines/summary')
+        .then(r => r.ok ? r.json() : {})
+        .then(s => setPipelineSummary(s?.energy_workup || { total: 0, by_stage: {} }))
+        .catch(() => {});
     } catch (err) {
       console.error('Dashboard error:', err);
     } finally {
@@ -79,6 +86,36 @@ export default function Dashboard() {
         <div style={styles.loading}>Loading...</div>
       ) : (
         <>
+          {/* ═══ MAIN PIPELINE ═══ */}
+          {pipelineSummary && (
+            <Link href="/admin/pipelines/energy_workup" style={{ textDecoration: 'none', color: 'inherit', display: 'block', marginBottom: 28 }}>
+              <div style={styles.pipelineBar}>
+                <div style={styles.pipelineHeader}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Main Pipeline</h2>
+                    <span style={{ background: '#000', color: '#fff', padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>
+                      {pipelineSummary.total} active
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 12, color: '#737373' }}>View board →</span>
+                </div>
+                <div style={styles.pipelineStages}>
+                  {PIPELINES.energy_workup.stages.filter(s => s.key !== 'closed').map(stage => {
+                    const count = pipelineSummary.by_stage[stage.key] || 0;
+                    return (
+                      <div key={stage.key} style={styles.pipelineStage}>
+                        <div style={{ ...styles.pipelineStageCount, color: count > 0 ? '#000' : '#d4d4d4' }}>
+                          {count}
+                        </div>
+                        <div style={styles.pipelineStageLabel}>{stage.label}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </Link>
+          )}
+
           {/* ═══ UPCOMING LAB DRAWS ═══ */}
           {upcomingLabDraws.length > 0 && (
             <div style={styles.labDrawsSection}>
@@ -423,6 +460,42 @@ const styles = {
     color: '#15803d',
     background: '#f0fdf4',
     padding: '2px 6px',
+  },
+
+  // ═══ Main Pipeline ═══
+  pipelineBar: {
+    background: '#fff',
+    border: '1px solid #e5e5e5',
+    overflow: 'hidden',
+    cursor: 'pointer',
+  },
+  pipelineHeader: {
+    padding: '14px 20px',
+    borderBottom: '1px solid #e5e5e5',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pipelineStages: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(7, 1fr)',
+  },
+  pipelineStage: {
+    padding: '16px 12px',
+    textAlign: 'center',
+    borderRight: '1px solid #f0f0f0',
+  },
+  pipelineStageCount: {
+    fontSize: 22,
+    fontWeight: 700,
+    marginBottom: 2,
+  },
+  pipelineStageLabel: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: '#737373',
+    textTransform: 'uppercase',
+    letterSpacing: '0.3px',
   },
 
   // ═══ Stats ═══

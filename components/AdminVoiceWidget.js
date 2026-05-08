@@ -3,8 +3,10 @@
 // Uses Retell Web SDK to connect to the staff voice agent.
 
 import { useState, useEffect, useRef } from 'react';
+import { useAuth } from './AuthProvider';
 
 export default function AdminVoiceWidget() {
+  const { session } = useAuth();
   const [active, setActive] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [client, setClient] = useState(null);
@@ -72,10 +74,14 @@ export default function AdminVoiceWidget() {
     });
 
     try {
-      const res = await fetch('/api/voice-agent/internal-token');
+      const res = await fetch('/api/voice-agent/internal-token', {
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
       const data = await res.json();
       if (!data.access_token) {
-        console.error('No access token returned');
+        console.error('No access token returned:', data);
         return;
       }
       await rc.startCall({ accessToken: data.access_token });

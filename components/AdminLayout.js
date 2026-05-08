@@ -10,6 +10,7 @@ import { useAuth } from './AuthProvider';
 import { useAdminNotifications } from './AdminNotificationsProvider';
 import StaffChatPanel from './StaffChatPanel';
 import StaffMessagingPanel from './StaffMessagingPanel';
+import AdminVoiceWidget from './AdminVoiceWidget';
 
 
 // group: 'medical' = clinical sidebar, 'business' = operations sidebar, undefined = show in both
@@ -627,6 +628,9 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
 
       {/* Floating AI assistant chat — available on every admin page */}
       <StaffChatPanel />
+
+      {/* Floating voice assistant — available on every admin page */}
+      <AdminVoiceWidget />
     </>
   );
 }

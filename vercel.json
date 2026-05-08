@@ -131,6 +131,10 @@
     {
       "path": "/api/cron/free-session-backfill-forms",
       "schedule": "30 15 8 5 *"
+    },
+    {
+      "path": "/api/cron/free-session-apology",
+      "schedule": "30 15 8 5 *"
     }
   ]
 }

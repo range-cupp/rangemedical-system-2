@@ -6907,6 +6907,7 @@ export default function PatientProfile() {
                             start_date: m.start_date || '',
                             source: m.source || '',
                             from_protocol: !!m.from_protocol,
+                            selected: true,
                           })));
                           setPrintRxModalOpen(true);
                         }}
@@ -12661,20 +12662,44 @@ export default function PatientProfile() {
               </div>
               <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ fontSize: 12, color: '#475569' }}>
-                  Confirm the Sig and enter a dispense quantity for each medication. The dispense quantity is what we are giving the patient (e.g., <em>4 prefilled syringes</em>, <em>30 capsules</em>, <em>1 vial</em>).
+                  Select the medications to include, confirm the Sig, and enter a dispense quantity. The dispense quantity is what we are giving the patient (e.g., <em>4 prefilled syringes</em>, <em>30 capsules</em>, <em>1 vial</em>).
                 </div>
                 {printRxRows.length === 0 && (
                   <div style={{ fontSize: 13, color: '#6b7280' }}>No active medications to print.</div>
                 )}
+                {printRxRows.length > 1 && (
+                  <div style={{ display: 'flex', gap: 8, fontSize: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => setPrintRxRows(rows => rows.map(r => ({ ...r, selected: true })))}
+                      style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', padding: 0, fontSize: 12, fontWeight: 500 }}
+                    >Select all</button>
+                    <span style={{ color: '#d1d5db' }}>|</span>
+                    <button
+                      type="button"
+                      onClick={() => setPrintRxRows(rows => rows.map(r => ({ ...r, selected: false })))}
+                      style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', padding: 0, fontSize: 12, fontWeight: 500 }}
+                    >Deselect all</button>
+                  </div>
+                )}
                 {printRxRows.map((row, idx) => (
                   <div key={row.id || idx} style={{
-                    padding: '12px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 0,
-                    display: 'flex', flexDirection: 'column', gap: 8,
+                    padding: '12px 14px', background: row.selected ? '#f8fafc' : '#f3f4f6', border: row.selected ? '1px solid #e2e8f0' : '1px solid #e5e7eb', borderRadius: 0,
+                    display: 'flex', flexDirection: 'column', gap: 8, opacity: row.selected ? 1 : 0.5,
                   }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14, color: '#0f172a', margin: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={row.selected}
+                        onChange={e => {
+                          const v = e.target.checked;
+                          setPrintRxRows(rows => rows.map((r, i) => i === idx ? { ...r, selected: v } : r));
+                        }}
+                        style={{ width: 16, height: 16, accentColor: '#0f172a', cursor: 'pointer' }}
+                      />
                       {row.medication_name || 'Unnamed medication'}
                       {row.strength && <span style={{ fontWeight: 400, color: '#475569' }}> · {row.strength}{row.form ? ` ${row.form}` : ''}</span>}
-                    </div>
+                    </label>
                     <div>
                       <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#475569', marginBottom: 3 }}>Sig (instructions)</label>
                       <input
@@ -12712,14 +12737,14 @@ export default function PatientProfile() {
                     Cancel
                   </button>
                   <button
-                    disabled={printRxGenerating || printRxRows.length === 0}
+                    disabled={printRxGenerating || !printRxRows.some(r => r.selected)}
                     onClick={async () => {
                       setPrintRxGenerating(true);
                       try {
                         const res = await fetch(`/api/patients/${patient.id}/medications-pdf`, {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ medications: printRxRows }),
+                          body: JSON.stringify({ medications: printRxRows.filter(r => r.selected) }),
                         });
                         if (!res.ok) {
                           const err = await res.json().catch(() => ({}));

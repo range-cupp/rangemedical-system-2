@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Energy &amp; Inflammation Lab Check – Range Medical</title>
+<style>
+  @page {
+    size: 8.5in 11in;
+    margin: 0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 8.5in;
+    height: 11in;
+    margin: 0 auto;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #2D2D2D;
+    background: #FFFFFF;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    width: 8.5in;
+    height: 11in;
+    padding: 0.55in 0.85in 0.45in;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.2in;
+    border-bottom: 2.5px solid #1B3A5C;
+    margin-bottom: 0.25in;
+  }
+  .logo {
+    font-size: 15pt;
+    font-weight: 700;
+    color: #1B3A5C;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+  }
+  .logo-sub {
+    font-size: 7.5pt;
+    font-weight: 400;
+    color: #7A8A9A;
+    letter-spacing: 1.5px;
+    margin-top: 3px;
+  }
+  .header-accent {
+    width: 42px;
+    height: 42px;
+    border: 2.5px solid #1B3A5C;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16pt;
+    color: #1B3A5C;
+    font-weight: 300;
+  }
+
+  /* ── Headline ── */
+  .headline {
+    font-size: 19pt;
+    font-weight: 700;
+    color: #1B3A5C;
+    line-height: 1.3;
+    margin-bottom: 0.12in;
+  }
+  .subhead {
+    font-size: 10.5pt;
+    color: #5A6A7A;
+    line-height: 1.55;
+    margin-bottom: 0.22in;
+  }
+
+  /* ── Sections ── */
+  .section-title {
+    font-size: 9pt;
+    font-weight: 700;
+    color: #1B3A5C;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 0.1in;
+    padding-bottom: 0.06in;
+    border-bottom: 1.5px solid #E0E6EC;
+  }
+  .offer-name {
+    font-size: 12pt;
+    font-weight: 600;
+    color: #1B3A5C;
+    margin-bottom: 0.1in;
+    margin-top: 0.04in;
+  }
+
+  /* ── Bullet lists ── */
+  .bullets {
+    list-style: none;
+    margin-bottom: 0.2in;
+    padding-left: 0;
+  }
+  .bullets li {
+    font-size: 10pt;
+    line-height: 1.5;
+    padding: 0.03in 0;
+    padding-left: 0.22in;
+    position: relative;
+    color: #2D2D2D;
+  }
+  .bullets li::before {
+    content: '';
+    position: absolute;
+    left: 0.02in;
+    top: 0.115in;
+    width: 6px;
+    height: 6px;
+    background: #3D7EC7;
+    border-radius: 50%;
+  }
+  .bullets.offer li:last-child {
+    font-weight: 600;
+    color: #1B3A5C;
+  }
+
+  /* ── Why now ── */
+  .why-now-body {
+    font-size: 10pt;
+    line-height: 1.6;
+    color: #2D2D2D;
+    margin-bottom: 0.2in;
+    font-style: italic;
+  }
+
+  /* ── CTA Box ── */
+  .cta-box {
+    background: #1B3A5C;
+    border-radius: 10px;
+    padding: 0.25in 0.35in;
+    margin-bottom: 0.15in;
+    flex-shrink: 0;
+  }
+  .cta-label {
+    font-size: 12pt;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin-bottom: 0.14in;
+  }
+  .cta-steps {
+    list-style: none;
+    padding-left: 0;
+  }
+  .cta-steps li {
+    font-size: 11pt;
+    color: #FFFFFF;
+    line-height: 1.65;
+    padding-left: 0.28in;
+    position: relative;
+  }
+  .cta-steps li .num {
+    position: absolute;
+    left: 0;
+    font-weight: 700;
+    color: #7EB8E6;
+    font-size: 12pt;
+  }
+
+  /* ── QR placeholder ── */
+  .qr-row {
+    display: flex;
+    align-items: center;
+    gap: 0.15in;
+    margin-top: 0.12in;
+    padding-top: 0.1in;
+    border-top: 1px solid rgba(255,255,255,0.2);
+  }
+  .qr-placeholder {
+    width: 0.6in;
+    height: 0.6in;
+    background: #FFFFFF;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7pt;
+    color: #7A8A9A;
+    text-align: center;
+    line-height: 1.3;
+    flex-shrink: 0;
+  }
+  .qr-label {
+    font-size: 9pt;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.45;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    font-size: 8pt;
+    color: #9AABBB;
+    letter-spacing: 0.8px;
+    padding-top: 0.08in;
+    margin-top: auto;
+  }
+
+  /* ── Spacer ── */
+  .content { flex: 1; display: flex; flex-direction: column; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="logo">Range Medical</div>
+      <div class="logo-sub">Newport Beach, CA</div>
+    </div>
+    <div class="header-accent">+</div>
+  </div>
+
+  <div class="content">
+
+    <!-- Headline -->
+    <h1 class="headline">Still tired, inflamed, or slow to bounce back?<br>Let's see what your labs say.</h1>
+    <p class="subhead">Your sessions help your body heal from the outside in. Labs help us see what's going on inside so we stop guessing.</p>
+
+    <!-- Who this is for -->
+    <div class="section-title">Who this is for</div>
+    <ul class="bullets">
+      <li>You feel tired, foggy, or wired-and-tired most days</li>
+      <li>Soreness, flares, or injuries linger longer than you'd like</li>
+      <li>You've been told "your labs are fine," but you still don't feel fine</li>
+    </ul>
+
+    <!-- What you get -->
+    <div class="section-title">What you get</div>
+    <div class="offer-name">Energy &amp; Inflammation Lab Check for Recovery Patients</div>
+    <ul class="bullets offer">
+      <li>Focused lab panel on energy and inflammation markers</li>
+      <li>Symptom questionnaire you can finish in a few minutes</li>
+      <li>1:1 visit with a medical provider</li>
+      <li>Simple written summary you can actually understand</li>
+      <li>Recovery Roadmap with possible next-step options</li>
+      <li>Fast-track lab draw within 7 days for current hyperbaric and red light patients</li>
+      <li>Free red light session when labs are completed in the next 14 days</li>
+    </ul>
+
+    <!-- Why now -->
+    <div class="section-title">Why now</div>
+    <p class="why-now-body">We reserve a limited number of Lab Check spots each week for current hyperbaric and red light patients. When those fill, we pause booking until the next week.</p>
+
+    <!-- CTA -->
+    <div class="cta-box">
+      <div class="cta-label">Before you leave today:</div>
+      <ol class="cta-steps">
+        <li><span class="num">1.</span> Tell the front desk "Lab Check"</li>
+        <li><span class="num">2.</span> Or scan this QR code to see open times</li>
+      </ol>
+      <div class="qr-row">
+        <div class="qr-placeholder">QR<br>CODE</div>
+        <div class="qr-label">Scan to view available<br>Lab Check appointments</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">Range Medical &nbsp;&bull;&nbsp; Newport Beach, CA &nbsp;&bull;&nbsp; Cash-pay wellness &amp; recovery clinic</div>
+
+</div>
+</body>
+</html>

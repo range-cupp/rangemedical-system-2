@@ -36,7 +36,28 @@ export default async function handler(req, res) {
       vitals = data;
     }
 
-    // If no vitals for this appointment, fetch last known height for auto-fill
+    // If no vitals for this appointment, check for same-day vitals (one record per day)
+    if (!vitals && patient_id) {
+      const now = new Date();
+      const pacific = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(now);
+      const dayStart = pacific + 'T00:00:00.000Z';
+      const dayEnd = pacific + 'T23:59:59.999Z';
+      const { data: sameDayVitals } = await supabase
+        .from('patient_vitals')
+        .select('*')
+        .eq('patient_id', patient_id)
+        .gte('recorded_at', dayStart)
+        .lte('recorded_at', dayEnd)
+        .order('recorded_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (sameDayVitals) {
+        vitals = sameDayVitals;
+      }
+    }
+
+    // If still no vitals, fetch last known height for auto-fill
     if (!vitals && patient_id) {
       const { data: lastVitals } = await supabase
         .from('patient_vitals')

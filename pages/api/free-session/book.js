@@ -14,6 +14,8 @@ import stripe from '../../../lib/stripe';
 import { moveCard } from '../../../lib/pipelines-server';
 import { sendMetaCapiEvent, getClientIp } from '../../../lib/meta-capi';
 import { postToStaffChannel } from '../../../lib/post-to-staff-channel';
+import { createFormBundle, FORM_DEFINITIONS } from '../../../lib/form-bundles';
+import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../../lib/blooio-optin';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -215,6 +217,58 @@ export default async function handler(req, res) {
       });
     } catch (chatErr) {
       console.error('Booking staff chat error:', chatErr);
+    }
+
+    // Auto-send required forms (intake, HIPAA, HBOT consent)
+    try {
+      const requiredFormIds = ['intake', 'hipaa', 'hbot'];
+      const completedFormIds = new Set();
+
+      if (trial.patient_id) {
+        const [{ data: consents }, { data: intakes }] = await Promise.all([
+          supabase.from('consents').select('consent_type').eq('patient_id', trial.patient_id).in('consent_type', ['hipaa', 'hbot']),
+          supabase.from('intakes').select('id').eq('patient_id', trial.patient_id).limit(1),
+        ]);
+        if (consents) consents.forEach(c => completedFormIds.add(c.consent_type));
+        if (intakes && intakes.length > 0) completedFormIds.add('intake');
+      }
+
+      const missingFormIds = requiredFormIds.filter(id => !completedFormIds.has(id));
+      if (missingFormIds.length > 0 && normalizedPhone) {
+        const bundle = await createFormBundle({
+          formIds: missingFormIds,
+          patientId: trial.patient_id || null,
+          patientName: customerName,
+          patientEmail: trial.email || null,
+          patientPhone: normalizedPhone,
+          metadata: { source: 'free_session_booking', trialPassId: trialId },
+        });
+
+        const firstName = trial.first_name || 'there';
+        const formCount = missingFormIds.length;
+        const linkMessage = formCount === 1
+          ? `Hi ${firstName}! Range Medical here. Please complete your ${FORM_DEFINITIONS[missingFormIds[0]]?.name || 'form'} before your visit:\n\n${bundle.url}`
+          : `Hi ${firstName}! Range Medical here. Please complete your ${formCount} forms before your visit:\n\n${bundle.url}`;
+
+        const useBlooioTwoStep = isBlooioProvider() && !(await hasBlooioOptIn(normalizedPhone));
+
+        if (useBlooioTwoStep) {
+          const optInMsg = formCount === 1
+            ? `Hi ${firstName}! Range Medical here. We have your ${FORM_DEFINITIONS[missingFormIds[0]]?.name || 'form'} ready for your free ${typeCfg.label} session. Reply YES to receive it.`
+            : `Hi ${firstName}! Range Medical here. We have ${formCount} forms ready for your free ${typeCfg.label} session. Reply YES to receive them.`;
+
+          const optInResult = await sendSMS({ to: normalizedPhone, message: optInMsg });
+          await queuePendingLinkMessage({ phone: normalizedPhone, message: linkMessage, messageType: 'form_links', patientId: trial.patient_id || null, patientName: customerName });
+          await logComm({ channel: 'sms', messageType: 'free_session_form_optin', message: optInMsg, source: 'free-session-book', patientId: trial.patient_id, patientName: customerName, recipient: normalizedPhone, status: optInResult.success ? 'sent' : 'error', errorMessage: optInResult.error || null, twilioMessageSid: optInResult.messageSid || null, provider: optInResult.provider || null, direction: 'outbound' });
+          console.log(`Form opt-in sent for ${customerName} (bundle: ${bundle.token})`);
+        } else {
+          const smsResult = await sendSMS({ to: normalizedPhone, message: linkMessage });
+          await logComm({ channel: 'sms', messageType: 'form_links', message: linkMessage, source: 'free-session-book', patientId: trial.patient_id, patientName: customerName, recipient: normalizedPhone, status: smsResult.success ? 'sent' : 'error', errorMessage: smsResult.error || null, twilioMessageSid: smsResult.messageSid || null, provider: smsResult.provider || null, direction: 'outbound' });
+          console.log(`Forms link sent for ${customerName} (bundle: ${bundle.token})`);
+        }
+      }
+    } catch (formErr) {
+      console.error('Free session form auto-send error:', formErr);
     }
 
     // Meta Conversions API — server-side Schedule event, deduped against

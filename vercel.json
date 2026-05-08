@@ -123,6 +123,14 @@
     {
       "path": "/api/cron/free-session-followup",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/free-session-prep",
+      "schedule": "30 15 * * *"
+    },
+    {
+      "path": "/api/cron/free-session-backfill-forms",
+      "schedule": "30 15 8 5 *"
     }
   ]
 }

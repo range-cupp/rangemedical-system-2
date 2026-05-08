@@ -26,8 +26,10 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('Retell create-web-call error:', errText);
-      return res.status(500).json({ error: 'Failed to create voice call' });
+      console.error('Retell create-web-call error:', response.status, errText);
+      console.error('Retell agent_id used:', process.env.RETELL_AGENT_ID || 'agent_83d9113dd29c88cabd052fbdab');
+      console.error('Retell API key prefix:', apiKey.substring(0, 10) + '...');
+      return res.status(500).json({ error: 'Failed to create voice call', detail: errText });
     }
 
     const data = await response.json();

@@ -2912,6 +2912,28 @@ export default function PatientProfile() {
     }
   };
 
+  const handleCompInjection = async (protocolId, injectionNum) => {
+    if (!protocolId || !injectionNum) return;
+    if (!confirm(`Comp injection #${injectionNum}?`)) return;
+    try {
+      const compedBy = employee?.name || session?.user?.user_metadata?.full_name || session?.user?.email || 'Staff';
+      const res = await fetch('/api/protocols/comp-injection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ protocolId, injectionNum, compedBy })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        fetchPatient();
+      } else {
+        alert(data.error || 'Failed to comp injection');
+      }
+    } catch (error) {
+      console.error('Error comping injection:', error);
+      alert('Failed to comp injection');
+    }
+  };
+
   const handleDismissNotification = async (notificationId) => {
     try {
       await fetch(`/api/purchases/${notificationId}/dismiss`, { method: 'POST' });
@@ -8567,7 +8589,16 @@ export default function PatientProfile() {
                                               <td colSpan={2} style={{ color: '#92400e', fontWeight: 600, fontSize: 12 }}>
                                                 Missed Week
                                               </td>
-                                              <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
+                                              <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                                                {slot.num > paidDoses && (
+                                                  <button
+                                                    onClick={(e) => { e.stopPropagation(); handleCompInjection(protocol.id, slot.num); }}
+                                                    style={{ marginLeft: 6, padding: '1px 5px', fontSize: 11, background: 'none', border: '1px solid #86efac', borderRadius: 3, cursor: 'pointer', color: '#15803d', verticalAlign: 'middle' }}
+                                                    title="Comp this injection"
+                                                  >🎁</button>
+                                                )}
+                                              </td>
                                             </tr>
                                           );
                                           return slotGroupHeader ? [slotGroupHeader, missedRow] : missedRow;
@@ -8603,7 +8634,16 @@ export default function PatientProfile() {
                                               <td style={{ color: totalDelta && parseFloat(totalDelta) < 0 ? '#16a34a' : totalDelta && parseFloat(totalDelta) > 0 ? '#dc2626' : '#666', fontWeight: totalDelta ? 600 : 400 }}>
                                                 {isFirstSlot ? '\u2014' : totalDelta ? (parseFloat(totalDelta) > 0 ? `+${totalDelta}` : totalDelta) + ' lbs' : '\u2014'}
                                               </td>
-                                              <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
+                                              <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                                                {slot.num > paidDoses && (
+                                                  <button
+                                                    onClick={(e) => { e.stopPropagation(); handleCompInjection(protocol.id, slot.num); }}
+                                                    style={{ marginLeft: 6, padding: '1px 5px', fontSize: 11, background: 'none', border: '1px solid #86efac', borderRadius: 3, cursor: 'pointer', color: '#15803d', verticalAlign: 'middle' }}
+                                                    title="Comp this injection"
+                                                  >🎁</button>
+                                                )}
+                                              </td>
                                             </tr>
                                           ];
                                           if (slotSideEffects) {
@@ -8639,7 +8679,16 @@ export default function PatientProfile() {
                                                 {projLabel}
                                               </td>
                                               <td></td>
-                                              <td style={{ textAlign: 'center', color: '#9ca3af', fontWeight: 700, fontSize: 14 }}>+</td>
+                                              <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                                <span style={{ color: '#9ca3af', fontWeight: 700, fontSize: 14 }}>+</span>
+                                                {slot.num > paidDoses && (
+                                                  <button
+                                                    onClick={(e) => { e.stopPropagation(); handleCompInjection(protocol.id, slot.num); }}
+                                                    style={{ marginLeft: 6, padding: '1px 5px', fontSize: 11, background: 'none', border: '1px solid #86efac', borderRadius: 3, cursor: 'pointer', color: '#15803d', verticalAlign: 'middle' }}
+                                                    title="Comp this injection"
+                                                  >🎁</button>
+                                                )}
+                                              </td>
                                             </tr>
                                           );
                                           return slotGroupHeader ? [slotGroupHeader, projRow] : projRow;
@@ -8659,7 +8708,16 @@ export default function PatientProfile() {
                                                 <td>{emptyVitalsWeight ? <span style={{ color: '#3b82f6' }}>{emptyVitalsWeight} lbs <span style={{ fontSize: 9 }} title="From vitals flowsheet">V</span></span> : <span style={{ color: '#9ca3af' }}>{'\u2014'}</span>}</td>
                                                 <td style={{ color: '#9ca3af', fontStyle: 'italic', fontSize: 11 }}>Click to add weight</td>
                                                 <td></td>
-                                                <td style={{ textAlign: 'center', color: '#9ca3af', fontWeight: 700, fontSize: 14 }}>+</td>
+                                                <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                                  <span style={{ color: '#9ca3af', fontWeight: 700, fontSize: 14 }}>+</span>
+                                                  {slot.num > paidDoses && (
+                                                    <button
+                                                      onClick={(e) => { e.stopPropagation(); handleCompInjection(protocol.id, slot.num); }}
+                                                      style={{ marginLeft: 6, padding: '1px 5px', fontSize: 11, background: 'none', border: '1px solid #86efac', borderRadius: 3, cursor: 'pointer', color: '#15803d', verticalAlign: 'middle' }}
+                                                      title="Comp this injection"
+                                                    >\ud83c\udf81</button>
+                                                  )}
+                                                </td>
                                               </tr>
                                             );
                                             return slotGroupHeader ? [slotGroupHeader, emptyTHRow] : emptyTHRow;
@@ -8675,7 +8733,16 @@ export default function PatientProfile() {
                                                 <td>{emptyVitalsWeight ? <span style={{ color: '#3b82f6' }}>{emptyVitalsWeight} lbs <span style={{ fontSize: 9 }} title="From vitals flowsheet">V</span></span> : <span style={{ color: '#6b7280' }}>{'\u2014'}</span>}</td>
                                                 <td style={{ color: '#3b82f6', fontStyle: 'italic', fontSize: 11 }}>Log injection</td>
                                                 <td></td>
-                                                <td style={{ textAlign: 'center', color: '#3b82f6', fontWeight: 700, fontSize: 14 }}>+</td>
+                                                <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                                  <span style={{ color: '#3b82f6', fontWeight: 700, fontSize: 14 }}>+</span>
+                                                  {slot.num > paidDoses && (
+                                                    <button
+                                                      onClick={(e) => { e.stopPropagation(); handleCompInjection(protocol.id, slot.num); }}
+                                                      style={{ marginLeft: 6, padding: '1px 5px', fontSize: 11, background: 'none', border: '1px solid #86efac', borderRadius: 3, cursor: 'pointer', color: '#15803d', verticalAlign: 'middle' }}
+                                                      title="Comp this injection"
+                                                    >\ud83c\udf81</button>
+                                                  )}
+                                                </td>
                                               </tr>
                                             );
                                             return slotGroupHeader ? [slotGroupHeader, emptyICRow] : emptyICRow;

@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Script from 'next/script';
 
 export default function Layout({ children, title, description, logoOnly }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -579,6 +580,112 @@ export default function Layout({ children, title, description, logoOnly }) {
           }
         }
       `}</style>
+
+      {/* Retell.ai Voice Assistant Widget */}
+      <RetellVoiceWidget />
+    </>
+  );
+}
+
+function RetellVoiceWidget() {
+  const [active, setActive] = useState(false);
+  const [client, setClient] = useState(null);
+
+  useEffect(() => {
+    return () => {
+      if (client) {
+        try { client.stopCall(); } catch (e) { /* ignore */ }
+      }
+    };
+  }, [client]);
+
+  async function toggleCall() {
+    if (active && client) {
+      client.stopCall();
+      setActive(false);
+      return;
+    }
+
+    const { RetellWebClient } = await import('retell-client-js-sdk');
+    const rc = new RetellWebClient();
+
+    rc.on('call_started', () => setActive(true));
+    rc.on('call_ended', () => setActive(false));
+    rc.on('error', () => setActive(false));
+
+    try {
+      await rc.startCall({
+        accessToken: await fetchAccessToken(),
+      });
+      setClient(rc);
+    } catch (err) {
+      console.error('Retell call error:', err);
+      setActive(false);
+    }
+  }
+
+  async function fetchAccessToken() {
+    const res = await fetch('/api/voice-agent/token');
+    const data = await res.json();
+    return data.access_token;
+  }
+
+  return (
+    <>
+      <button
+        onClick={toggleCall}
+        aria-label={active ? 'End voice assistant call' : 'Talk to Range Medical AI assistant'}
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          width: '60px',
+          height: '60px',
+          borderRadius: '50%',
+          border: 'none',
+          background: active ? '#ef4444' : '#0a0a0a',
+          color: '#fff',
+          cursor: 'pointer',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          transition: 'background 0.2s, transform 0.2s',
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.08)'}
+        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+      >
+        {active ? (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="6" y="6" width="12" height="12" rx="2" />
+          </svg>
+        ) : (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" x2="12" y1="19" y2="22" />
+          </svg>
+        )}
+      </button>
+      {!active && (
+        <div style={{
+          position: 'fixed',
+          bottom: '92px',
+          right: '24px',
+          background: '#fff',
+          color: '#0a0a0a',
+          padding: '8px 14px',
+          borderRadius: '8px',
+          fontSize: '13px',
+          fontWeight: 500,
+          boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
+          zIndex: 9999,
+          pointerEvents: 'none',
+        }}>
+          Talk to us
+        </div>
+      )}
     </>
   );
 }

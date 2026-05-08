@@ -35,7 +35,7 @@ export default function PeptideDetailPanel({ isOpen, onClose, lead }) {
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
 
-  // Fetch comms when panel opens
+  // Fetch comms when panel opens + poll for new messages
   useEffect(() => {
     if (!isOpen || !lead) {
       setComms([]);
@@ -47,6 +47,8 @@ export default function PeptideDetailPanel({ isOpen, onClose, lead }) {
 
     setNotes(lead.notes || '');
     fetchComms();
+    const interval = setInterval(fetchComms, 5000);
+    return () => clearInterval(interval);
   }, [isOpen, lead]);
 
   // Close on Escape

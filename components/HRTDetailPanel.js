@@ -47,6 +47,8 @@ export default function HRTDetailPanel({ isOpen, onClose, lead }) {
     }
     setNotes(lead.notes || '');
     fetchComms();
+    const interval = setInterval(fetchComms, 5000);
+    return () => clearInterval(interval);
   }, [isOpen, lead]);
 
   useEffect(() => {

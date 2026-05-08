@@ -133,7 +133,15 @@ export default function LeadDetailPanel({
       setTrialSurveys([]);
     }
 
-    return () => { cancelled = true; };
+    const interval = setInterval(() => {
+      if (cancelled) return;
+      fetch(`/api/admin/lead-details?lead_id=${lead.id}`)
+        .then(res => res.json())
+        .then(data => { if (!cancelled) setDetails(data); })
+        .catch(() => {});
+    }, 5000);
+
+    return () => { cancelled = true; clearInterval(interval); };
   }, [isOpen, lead]);
 
   // Close on Escape

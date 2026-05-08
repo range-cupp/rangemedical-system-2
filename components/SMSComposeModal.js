@@ -39,23 +39,33 @@ export default function SMSComposeModal({
     }
   }, [isOpen, recipientPhone]);
 
+  const fetchHistory = () => {
+    if (!patientId) return;
+    const phoneParam = recipientPhone ? `&phone=${encodeURIComponent(recipientPhone)}` : '';
+    return fetch(`/api/patients/${patientId}/comms?channel=sms&limit=40${phoneParam}`)
+      .then(r => r.json())
+      .then(data => {
+        const msgs = (data.comms || [])
+          .slice()
+          .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        return msgs;
+      })
+      .catch(() => []);
+  };
+
   useEffect(() => {
     if (!isOpen || !patientId) return;
     let cancelled = false;
     setLoadingHistory(true);
-    const phoneParam = recipientPhone ? `&phone=${encodeURIComponent(recipientPhone)}` : '';
-    fetch(`/api/patients/${patientId}/comms?channel=sms&limit=20${phoneParam}`)
-      .then(r => r.json())
-      .then(data => {
-        if (cancelled) return;
-        const msgs = (data.comms || [])
-          .slice()
-          .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-        setHistory(msgs);
-      })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoadingHistory(false); });
-    return () => { cancelled = true; };
+    fetchHistory().then(msgs => {
+      if (!cancelled) setHistory(msgs);
+    }).finally(() => { if (!cancelled) setLoadingHistory(false); });
+
+    const interval = setInterval(() => {
+      fetchHistory().then(msgs => { if (!cancelled) setHistory(msgs); });
+    }, 5000);
+
+    return () => { cancelled = true; clearInterval(interval); };
   }, [isOpen, patientId, recipientPhone]);
 
   useEffect(() => {
@@ -150,10 +160,10 @@ export default function SMSComposeModal({
       const data = await res.json();
 
       if (res.ok) {
-        setSent(true);
-        setTimeout(() => {
-          onClose();
-        }, 2000);
+        setBody('');
+        setSending(false);
+        fetchHistory().then(msgs => setHistory(msgs));
+        return;
       } else {
         const details = data.details ? ` (${data.details})` : '';
         setError((data.error || 'Failed to send SMS') + details);

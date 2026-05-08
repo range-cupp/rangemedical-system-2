@@ -821,9 +821,32 @@ export default function TasksPage() {
   // Date group collapsed state
   const [collapsedGroups, setCollapsedGroups] = useState({});
 
+  const fetchTaskSmsHistory = async (task) => {
+    if (!task.patient_id) return;
+    try {
+      const res = await fetch(`/api/patients/${task.patient_id}/comms?channel=sms&limit=20`);
+      const data = await res.json();
+      const msgs = (data.comms || []).slice().sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], history: msgs } }));
+    } catch {}
+  };
+
   const openSmsComposer = (task) => {
     setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], open: true, sent: false, error: null } }));
+    fetchTaskSmsHistory(task);
   };
+
+  useEffect(() => {
+    const openTaskIds = Object.entries(smsState).filter(([, v]) => v?.open).map(([id]) => id);
+    if (openTaskIds.length === 0) return;
+    const interval = setInterval(() => {
+      openTaskIds.forEach(taskId => {
+        const task = tasks.find(t => String(t.id) === String(taskId));
+        if (task?.patient_id) fetchTaskSmsHistory(task);
+      });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [smsState, tasks]);
 
   const generateRenewalText = async (task) => {
     setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], open: true, loading: true, error: null } }));
@@ -864,6 +887,7 @@ export default function TasksPage() {
       const data = await res.json();
       if (data.success) {
         setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], sending: false, sent: true, message: '' } }));
+        fetchTaskSmsHistory(task);
       } else {
         setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], sending: false, error: data.error || 'Send failed' } }));
       }
@@ -1905,6 +1929,35 @@ export default function TasksPage() {
                               background: '#f9fafb', borderRadius: 0,
                               border: '1px solid #bbf7d0', borderTop: '1px solid #e5e7eb',
                             }}>
+                              {/* Recent message history */}
+                              {smsState[task.id]?.history?.length > 0 && (
+                                <div style={{
+                                  maxHeight: '180px', overflowY: 'auto', marginBottom: '10px',
+                                  padding: '8px', background: '#fff', border: '1px solid #e5e7eb',
+                                  display: 'flex', flexDirection: 'column', gap: '6px',
+                                }}>
+                                  {smsState[task.id].history.map(msg => {
+                                    const inbound = msg.direction === 'inbound';
+                                    return (
+                                      <div key={msg.id} style={{ display: 'flex', justifyContent: inbound ? 'flex-start' : 'flex-end' }}>
+                                        <div style={{
+                                          maxWidth: '80%', padding: '6px 10px', borderRadius: '10px',
+                                          background: inbound ? '#f3f4f6' : '#dbeafe',
+                                          color: inbound ? '#111827' : '#1e3a8a',
+                                          fontSize: '12px', lineHeight: '1.4',
+                                          borderBottomLeftRadius: inbound ? '2px' : '10px',
+                                          borderBottomRightRadius: inbound ? '10px' : '2px',
+                                        }}>
+                                          <div>{msg.message || '(no text)'}</div>
+                                          <div style={{ fontSize: '10px', opacity: 0.6, marginTop: '2px' }}>
+                                            {inbound ? 'Patient' : 'Sent'} &middot; {new Date(msg.created_at).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                               {smsState[task.id]?.sent && (
                                 <div style={{
                                   display: 'flex', alignItems: 'center', gap: '6px',

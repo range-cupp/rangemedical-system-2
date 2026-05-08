@@ -20,7 +20,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        agent_id: process.env.RETELL_AGENT_ID || 'agent_83d9113dd29c88cabd052fbdab',
+        agent_id: (process.env.RETELL_AGENT_ID || 'agent_83d9113dd29c88cabd052fbdab').trim(),
       }),
     });
 

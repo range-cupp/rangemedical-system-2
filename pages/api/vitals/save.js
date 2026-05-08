@@ -103,7 +103,7 @@ export default async function handler(req, res) {
       recorded_at: normalizeRecordedAt(recorded_at),
     };
 
-    // Check if vitals already exist for this appointment
+    // Check if vitals already exist for this appointment or same day
     let existingId = id || null;
     if (!existingId && appointment_id) {
       const { data: existing } = await supabase
@@ -114,6 +114,28 @@ export default async function handler(req, res) {
 
       if (existing) {
         existingId = existing.id;
+      }
+    }
+
+    // Fallback: check for same-day vitals to avoid duplicates from multiple appointments
+    let matchedViaSameDay = false;
+    if (!existingId && patient_id) {
+      const recordedDate = vitalsData.recorded_at.slice(0, 10);
+      const dayStart = recordedDate + 'T00:00:00.000Z';
+      const dayEnd = recordedDate + 'T23:59:59.999Z';
+      const { data: sameDayVitals } = await supabase
+        .from('patient_vitals')
+        .select('id')
+        .eq('patient_id', patient_id)
+        .gte('recorded_at', dayStart)
+        .lte('recorded_at', dayEnd)
+        .order('recorded_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (sameDayVitals) {
+        existingId = sameDayVitals.id;
+        matchedViaSameDay = true;
       }
     }
 
@@ -147,10 +169,13 @@ export default async function handler(req, res) {
         });
       }
 
-      // Update existing
+      // Update existing — preserve original appointment_id when matched via same-day fallback
+      const updateData = matchedViaSameDay
+        ? { ...vitalsData, appointment_id: prev?.appointment_id || vitalsData.appointment_id }
+        : vitalsData;
       const { data, error } = await supabase
         .from('patient_vitals')
-        .update(vitalsData)
+        .update(updateData)
         .eq('id', existingId)
         .select()
         .single();

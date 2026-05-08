@@ -903,6 +903,8 @@ async function syncWeightToVitals(patient_id, weight, entry_date, recorded_by) {
       .eq('patient_id', patient_id)
       .gte('recorded_at', dayStart)
       .lte('recorded_at', dayEnd)
+      .order('recorded_at', { ascending: true })
+      .limit(1)
       .maybeSingle();
 
     if (existing) {

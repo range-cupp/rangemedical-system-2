@@ -248,5 +248,5 @@ def build(out):
 if __name__ == '__main__':
     here = os.path.dirname(os.path.abspath(__file__))
     root = os.path.dirname(here)
-    out_path = os.path.join(root, 'public', 'Range-Lab-Panels-Comparison.pdf')
+    out_path = os.path.join(root, 'public', 'lab-panel-comparison.pdf')
     build(out_path)

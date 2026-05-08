@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate one-page lab panel comparison sheet for the front desk."""
+"""Generate patient-facing lab panel comparison one-pager for front desk."""
 
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle
@@ -8,12 +8,7 @@ from reportlab.lib.colors import HexColor
 from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, Table,
                                  TableStyle, HRFlowable)
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 import os
-
-pdfmetrics.registerFont(
-    TTFont('Menlo', '/System/Library/Fonts/Menlo.ttc', subfontIndex=0))
 
 BLACK      = HexColor('#0A0A0A')
 DARK_GRAY  = HexColor('#1A1A1A')
@@ -22,8 +17,7 @@ LIGHT_GRAY = HexColor('#F4F4F4')
 RULE_GRAY  = HexColor('#DDDDDD')
 WHITE      = HexColor('#FFFFFF')
 GREEN      = HexColor('#2E6B35')
-HEADER_BG  = HexColor('#1A1A1A')
-CAT_BG     = HexColor('#EBEBEB')
+ACCENT     = HexColor('#1B4F72')
 W = 7.0 * inch
 
 
@@ -31,95 +25,120 @@ def st(name, **kw):
     return ParagraphStyle(name, **kw)
 
 
-clinic_s   = st('Clinic', fontName='Helvetica-Bold', fontSize=13, textColor=BLACK, leading=16)
-contact_s  = st('Cont', fontName='Helvetica', fontSize=8, textColor=MID_GRAY, leading=11, alignment=TA_RIGHT)
-title_s    = st('Title', fontName='Helvetica-Bold', fontSize=16, textColor=BLACK, leading=18)
-subtitle_s = st('Sub', fontName='Helvetica-Oblique', fontSize=9, textColor=MID_GRAY, leading=10)
-th_s       = st('TH', fontName='Helvetica-Bold', fontSize=9, textColor=WHITE, leading=11, alignment=TA_CENTER)
-cat_s      = st('Cat', fontName='Helvetica-Bold', fontSize=7, textColor=MID_GRAY, leading=9)
-marker_s   = st('Mk', fontName='Helvetica', fontSize=8, textColor=DARK_GRAY, leading=9.5)
-cell_c     = st('CC', fontName='Helvetica', fontSize=9, textColor=RULE_GRAY, leading=9.5, alignment=TA_CENTER)
-addon_s    = st('Add', fontName='Helvetica', fontSize=7.5, textColor=MID_GRAY, leading=10, alignment=TA_CENTER)
-cta_s      = st('CTA', fontName='Helvetica-Bold', fontSize=9, textColor=BLACK, leading=12, alignment=TA_CENTER)
-foot_s     = st('Foot', fontName='Helvetica-Oblique', fontSize=7.5, textColor=MID_GRAY, leading=10)
-foot_b     = st('FootB', fontName='Helvetica-Bold', fontSize=8, textColor=DARK_GRAY, leading=11)
-
-COL_MK = 4.6 * inch
-COL_PN = 1.2 * inch
-
-
-def chk():
-    return Paragraph(
-        '<font name="Menlo" color="#2E6B35" size="11">✓</font>', cell_c)
-
-
-def dsh():
-    return Paragraph('<font color="#CCCCCC">—</font>', cell_c)
+clinic_s    = st('Clinic', fontName='Helvetica-Bold', fontSize=13, textColor=BLACK, leading=16)
+contact_s   = st('Cont', fontName='Helvetica', fontSize=8, textColor=MID_GRAY, leading=11, alignment=TA_RIGHT)
+title_s     = st('Title', fontName='Helvetica-Bold', fontSize=17, textColor=BLACK, leading=20, spaceAfter=2)
+intro_s     = st('Intro', fontName='Helvetica', fontSize=8.5, textColor=MID_GRAY, leading=12, spaceAfter=4)
+sec_s       = st('Sec', fontName='Helvetica-Bold', fontSize=8, textColor=MID_GRAY, leading=11, spaceBefore=0, spaceAfter=2)
+opt_title_s = st('OptT', fontName='Helvetica-Bold', fontSize=11, textColor=BLACK, leading=13)
+opt_sub_s   = st('OptSub', fontName='Helvetica-Oblique', fontSize=8, textColor=MID_GRAY, leading=10)
+price_s     = st('Price', fontName='Helvetica-Bold', fontSize=11, textColor=ACCENT, leading=13)
+bestif_s    = st('Best', fontName='Helvetica', fontSize=7.5, textColor=DARK_GRAY, leading=10, leftIndent=8, firstLineIndent=-8, spaceAfter=1)
+grp_hdr_s   = st('GrpH', fontName='Helvetica-Bold', fontSize=7, textColor=MID_GRAY, leading=9, spaceBefore=3, spaceAfter=0)
+bio_s       = st('Bio', fontName='Helvetica', fontSize=7, textColor=DARK_GRAY, leading=9, leftIndent=6, spaceAfter=0)
+gender_s    = st('Gen', fontName='Helvetica-Bold', fontSize=6.5, textColor=ACCENT, leading=8.5, spaceBefore=2, spaceAfter=0)
+gender_b_s  = st('GenB', fontName='Helvetica', fontSize=7, textColor=DARK_GRAY, leading=9, leftIndent=6, spaceAfter=0)
+addon_hdr_s = st('AddH', fontName='Helvetica-Bold', fontSize=8, textColor=MID_GRAY, leading=11)
+addon_s     = st('Add', fontName='Helvetica', fontSize=7.5, textColor=DARK_GRAY, leading=10)
+step_s      = st('Step', fontName='Helvetica', fontSize=7.5, textColor=DARK_GRAY, leading=10, leftIndent=12, firstLineIndent=-12, spaceAfter=1)
+foot_s      = st('Foot', fontName='Helvetica-Oblique', fontSize=7, textColor=MID_GRAY, leading=9)
+foot_b_s    = st('FootB', fontName='Helvetica-Bold', fontSize=7.5, textColor=DARK_GRAY, leading=10)
+chk_s       = st('Chk', fontName='Helvetica-Bold', fontSize=7.5, textColor=GREEN, leading=10, leftIndent=8, firstLineIndent=-8, spaceAfter=1)
 
 
-ROWS = [
-    ('c', 'BLOOD & IMMUNE'),
-    ('m', 'CBC with Differential', True, True),
+def section_label(text):
+    return [
+        Paragraph(text.upper(), sec_s),
+        HRFlowable(width="100%", thickness=0.75, color=RULE_GRAY, spaceAfter=4),
+    ]
 
-    ('c', 'METABOLIC & LIVER'),
-    ('m', 'Complete Metabolic Panel (17 markers)', True, True),
-    ('m', 'HbA1c', True, True),
-    ('m', 'Insulin, Fasting', True, True),
-    ('m', 'Uric Acid', False, True),
-    ('m', 'GGT', False, True),
 
-    ('c', 'HEART & INFLAMMATION'),
-    ('m', 'Lipid Panel', True, True),
-    ('m', 'Apolipoprotein A-1', False, True),
-    ('m', 'Apolipoprotein B', False, True),
-    ('m', 'Homocysteine', False, True),
-    ('m', 'Lipoprotein(a)', False, True),
-    ('m', 'CRP-HS', False, True),
-    ('m', 'Sed Rate', False, True),
+def build_essential_content():
+    items = []
+    items.append(Paragraph("Option 1 — Essential Lab Panel", opt_title_s))
+    items.append(Paragraph("$350", price_s))
+    items.append(Paragraph("Great starting point for most people", opt_sub_s))
+    items.append(Spacer(1, 4))
 
-    ('c', 'HORMONES'),
-    ('m', 'Testosterone, Free & Total', True, True),
-    ('m', 'Estradiol', True, True),
-    ('m', 'SHBG', True, True),
-    ('m', 'Cortisol', False, True),
-    ('m', 'DHEA-S', False, True),
-    ('m', 'IGF-1', False, True),
+    items.append(Paragraph("<b>Best if you:</b>", grp_hdr_s))
+    for b in [
+        "Want a strong “baseline” of your health",
+        "Are doing labs here for the first time",
+        "Don’t have a big medical or family history, but don’t feel like yourself",
+    ]:
+        items.append(Paragraph(f"✓  {b}", chk_s))
 
-    ('c', 'THYROID'),
-    ('m', 'TSH', True, True),
-    ('m', 'T3, Free', True, True),
-    ('m', 'T4, Total', True, True),
-    ('m', 'T4, Free', False, True),
-    ('m', 'TPO Antibodies', True, True),
-    ('m', 'Thyroglobulin Antibodies', False, True),
+    items.append(Spacer(1, 3))
+    items.append(Paragraph("<b>Looks at (55–57 biomarkers):</b>", grp_hdr_s))
 
-    ('c', 'VITAMINS & MINERALS'),
-    ('m', 'Vitamin D', True, True),
-    ('m', 'Vitamin B-12', False, True),
-    ('m', 'Folate', False, True),
-    ('m', 'Ferritin', False, True),
-    ('m', 'Iron & TIBC', False, True),
-    ('m', 'Magnesium', False, True),
+    groups = [
+        ("Blood & immune health", ["Complete blood count — red cells, white cells, platelets"]),
+        ("Metabolism, kidneys & liver", ["Full metabolic panel", "Blood sugar control (HbA1c)", "Fasting insulin"]),
+        ("Heart health basics", ["Cholesterol panel (total, LDL, HDL, triglycerides)"]),
+        ("Hormones", ["Testosterone (free & total)", "Estradiol", "SHBG"]),
+        ("Thyroid basics + antibodies", ["TSH, Free T3, Total T4", "Thyroid peroxidase (TPO) antibodies"]),
+    ]
+    for gname, markers in groups:
+        items.append(Paragraph(f"<b>{gname}</b>", grp_hdr_s))
+        for m in markers:
+            items.append(Paragraph(f"–  {m}", bio_s))
 
-    ('c', "MEN'S PANEL ALSO INCLUDES"),
-    ('m', 'PSA, Total', True, True),
-    ('m', 'PSA, Free', False, True),
-    ('m', 'FSH', False, True),
-    ('m', 'LH', False, True),
+    items.append(Paragraph("Men also get:", gender_s))
+    items.append(Paragraph("–  PSA (prostate screening)", gender_b_s))
+    items.append(Paragraph("Women also get:", gender_s))
+    items.append(Paragraph("–  FSH, LH, Progesterone", gender_b_s))
 
-    ('c', "WOMEN'S PANEL ALSO INCLUDES"),
-    ('m', 'FSH', True, True),
-    ('m', 'LH', True, True),
-    ('m', 'Progesterone', True, True),
-    ('m', 'DHT', False, True),
-]
+    return items
+
+
+def build_elite_content():
+    items = []
+    items.append(Paragraph("Option 2 — Elite Lab Panel", opt_title_s))
+    items.append(Paragraph("$750", price_s))
+    items.append(Paragraph("Deep-dive for stubborn symptoms or long-term optimization", opt_sub_s))
+    items.append(Spacer(1, 4))
+
+    items.append(Paragraph("<b>Best if you:</b>", grp_hdr_s))
+    for b in [
+        "Have ongoing fatigue, brain fog, weight, or recovery issues",
+        "Have a strong family history (heart disease, autoimmune, etc.)",
+        "Want the most complete picture of your heart, hormones, inflammation, and nutrients",
+    ]:
+        items.append(Paragraph(f"✓  {b}", chk_s))
+
+    items.append(Spacer(1, 3))
+    items.append(Paragraph("<b>Includes everything in Essential, plus (78 biomarkers total):</b>", grp_hdr_s))
+
+    groups = [
+        ("Heart & inflammation “early warning” markers",
+         ["Apo A-1, Apo B, Lipoprotein(a)", "Homocysteine", "High-sensitivity CRP (CRP-hs)", "Sed rate (inflammation)"]),
+        ("Expanded hormones & thyroid",
+         ["Cortisol, DHEA-S, IGF-1", "Free T4", "Thyroglobulin antibodies"]),
+        ("Vitamins & minerals",
+         ["Vitamin B12, Folate", "Ferritin, Iron & TIBC", "Magnesium"]),
+    ]
+    for gname, markers in groups:
+        items.append(Paragraph(f"<b>{gname}</b>", grp_hdr_s))
+        for m in markers:
+            items.append(Paragraph(f"–  {m}", bio_s))
+
+    items.append(Paragraph("Men also get:", gender_s))
+    items.append(Paragraph("–  Free PSA, FSH, LH", gender_b_s))
+    items.append(Paragraph("Women also get:", gender_s))
+    items.append(Paragraph("–  DHT (extra hormone insight)", gender_b_s))
+
+    return items
+
+
+def flowables_to_cell(items):
+    return items
 
 
 def build(out):
     doc = SimpleDocTemplate(
         out, pagesize=letter,
-        leftMargin=0.75 * inch, rightMargin=0.75 * inch,
-        topMargin=0.4 * inch, bottomMargin=0.35 * inch,
+        leftMargin=0.65 * inch, rightMargin=0.65 * inch,
+        topMargin=0.45 * inch, bottomMargin=0.35 * inch,
     )
     story = []
 
@@ -133,85 +152,85 @@ def build(out):
     hdr.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
     ]))
     story.append(hdr)
-    story.append(HRFlowable(width="100%", thickness=1.5, color=BLACK, spaceAfter=6))
+    story.append(HRFlowable(width="100%", thickness=1.5, color=BLACK, spaceAfter=8))
 
     # Title
-    story.append(Paragraph("Lab Panel Comparison", title_s))
+    story.append(Paragraph("Which lab panel is right for me?", title_s))
     story.append(Paragraph(
-        "Essential (55–57 biomarkers) vs. Elite (78 biomarkers)", subtitle_s))
-    story.append(Spacer(1, 6))
-
-    # Comparison table
-    td = [[
-        Paragraph('', cell_c),
-        Paragraph('ESSENTIAL · $350', th_s),
-        Paragraph('ELITE · $750', th_s),
-    ]]
-    cat_rows = []
-    for r in ROWS:
-        if r[0] == 'c':
-            cat_rows.append(len(td))
-            td.append([
-                Paragraph(r[1], cat_s),
-                Paragraph('', cat_s),
-                Paragraph('', cat_s),
-            ])
-        else:
-            _, name, ess, elite = r
-            td.append([
-                Paragraph(name, marker_s),
-                chk() if ess else dsh(),
-                chk() if elite else dsh(),
-            ])
-
-    tbl = Table(td, colWidths=[COL_MK, COL_PN, COL_PN])
-    cmds = [
-        ('BACKGROUND', (0, 0), (-1, 0), HEADER_BG),
-        ('TOPPADDING', (0, 0), (-1, 0), 3),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 3),
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
-        ('TOPPADDING', (0, 1), (-1, -1), 1),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 1),
-        ('BOX', (0, 0), (-1, -1), 0.5, RULE_GRAY),
-        ('LINEBELOW', (0, 0), (-1, -2), 0.25, RULE_GRAY),
-    ]
-    for i in cat_rows:
-        cmds.append(('BACKGROUND', (0, i), (-1, i), CAT_BG))
-        cmds.append(('TOPPADDING', (0, i), (-1, i), 1.5))
-        cmds.append(('BOTTOMPADDING', (0, i), (-1, i), 0.5))
-
-    tbl.setStyle(TableStyle(cmds))
-    story.append(tbl)
-    story.append(Spacer(1, 6))
-
-    # Add-ons + CTA
-    story.append(Paragraph(
-        "Add-ons available with any blood draw:  "
-        "Heavy Metals — Blood $220  •  "
-        "Heavy Metals — Urine $280  •  "
-        "Mold Profile $200", addon_s))
+        "Both options check your blood, organs, metabolism, hormones, and thyroid "
+        "so we can stop guessing and build a real plan. The difference is how deep we go.",
+        intro_s))
     story.append(Spacer(1, 4))
-    story.append(Paragraph(
-        "Ask the front desk to order your panel.", cta_s))
+
+    # Two-column panel comparison
+    col_w = (W + 0.2 * inch) / 2
+    gap = 0.15 * inch
+
+    ess_content = build_essential_content()
+    elite_content = build_elite_content()
+
+    panel_tbl = Table(
+        [[flowables_to_cell(ess_content), flowables_to_cell(elite_content)]],
+        colWidths=[col_w - gap / 2, col_w - gap / 2],
+    )
+    panel_tbl.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (0, -1), 8),
+        ('RIGHTPADDING', (0, 0), (0, -1), 8),
+        ('LEFTPADDING', (1, 0), (1, -1), 8),
+        ('RIGHTPADDING', (1, 0), (1, -1), 8),
+        ('BOX', (0, 0), (0, -1), 0.5, RULE_GRAY),
+        ('BOX', (1, 0), (1, -1), 0.5, ACCENT),
+        ('BACKGROUND', (1, 0), (1, -1), HexColor('#F7FAFC')),
+    ]))
+    story.append(panel_tbl)
+    story.append(Spacer(1, 6))
+
+    # Add-on testing
+    story += section_label("Add-on testing (optional, with any blood draw)")
+    addon_data = [
+        ["Heavy Metals — Blood: $220", "Heavy Metals — Urine: $280", "Mold Profile: $200"],
+    ]
+    addon_tbl = Table(addon_data, colWidths=[W / 3] * 3)
+    addon_tbl.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 7.5),
+        ('TEXTCOLOR', (0, 0), (-1, -1), DARK_GRAY),
+    ]))
+    story.append(addon_tbl)
+    story.append(Spacer(1, 6))
+
+    # How it works
+    story += section_label("How it works")
+    steps = [
+        ("1.", "Your provider helps you choose the panel that fits your goals and history."),
+        ("2.", "We draw your blood here in clinic."),
+        ("3.", "When results are back, you’ll have a follow-up visit to review everything in plain language and get a written plan."),
+    ]
+    for num, text in steps:
+        story.append(Paragraph(f"<b>{num}</b>  {text}", step_s))
+
     story.append(Spacer(1, 6))
 
     # Footer
-    story.append(HRFlowable(
-        width="100%", thickness=0.5, color=RULE_GRAY, spaceAfter=4))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=RULE_GRAY, spaceAfter=4))
     ft = Table([[
+        Paragraph("<b>Questions?</b>  Call or text (949) 997-3988", foot_b_s),
         Paragraph(
-            "<b>Questions?</b>  Call or text (949) 997-3988", foot_b),
-        Paragraph(
-            "Cash-pay clinic. Panels ordered by your provider, "
-            "reviewed at follow-up.", foot_s),
+            "Cash-pay clinic. Panels are ordered by your provider and always "
+            "reviewed at a follow-up visit.", foot_s),
     ]], colWidths=[2.2 * inch, 4.8 * inch])
     ft.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),

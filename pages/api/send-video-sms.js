@@ -4,7 +4,7 @@
 
 import { sendSMS, normalizePhone } from '../../lib/send-sms';
 import { logComm } from '../../lib/comms-log';
-import { hasBlooioOptIn, isBlooioProvider } from '../../lib/blooio-optin';
+import { hasBlooioOptIn, isBlooioProvider, queuePendingLinkMessage } from '../../lib/blooio-optin';
 import { INJECTION_VIDEOS } from '../../lib/injection-videos';
 
 export default async function handler(req, res) {
@@ -54,9 +54,54 @@ export default async function handler(req, res) {
 
     const videoNames = validSlugs.map(s => INJECTION_VIDEOS[s].name).join(', ');
 
-    // If Blooio is active but patient hasn't opted in, send via Twilio so links deliver immediately
-    const useProvider = (isBlooioProvider() && !(await hasBlooioOptIn(normalizedPhone))) ? 'twilio' : undefined;
-    const result = await sendSMS({ to: normalizedPhone, message: messageBody, provider: useProvider });
+    // Blooio two-step opt-in: if patient hasn't replied yet, send plain text prompt
+    // and queue the link message for auto-delivery after they reply YES
+    if (isBlooioProvider() && !(await hasBlooioOptIn(normalizedPhone))) {
+      const displayName = firstName || 'there';
+      const optinPrompt = `Hi ${displayName}! Range Medical here — we have ${validSlugs.length === 1 ? 'an injection video' : 'injection videos'} for you. Reply YES and we'll send ${validSlugs.length === 1 ? 'the link' : 'the links'} right over!`;
+
+      const promptResult = await sendSMS({ to: normalizedPhone, message: optinPrompt });
+
+      if (!promptResult.success) {
+        console.error('Blooio opt-in prompt error:', promptResult.error);
+        return res.status(500).json({ error: 'Failed to send SMS', details: promptResult.error });
+      }
+
+      await logComm({
+        channel: 'sms',
+        messageType: 'video_links_optin_prompt',
+        message: optinPrompt,
+        source: 'send-video-sms(blooio-optin)',
+        patientId: patientId || null,
+        patientName: patientName || firstName || null,
+        ghlContactId: ghlContactId || null,
+        recipient: normalizedPhone,
+        twilioMessageSid: promptResult.messageSid,
+        direction: 'outbound',
+        provider: promptResult.provider || 'blooio',
+      });
+
+      await queuePendingLinkMessage({
+        phone: normalizedPhone,
+        message: messageBody,
+        messageType: 'video_links',
+        patientId: patientId || null,
+        patientName: patientName || firstName || null,
+      });
+
+      console.log(`Blooio opt-in prompt sent to ${normalizedPhone}, video links queued: ${videoNames}`);
+
+      return res.status(200).json({
+        success: true,
+        videosSent: validSlugs.length,
+        messageSid: promptResult.messageSid,
+        message: 'Opt-in prompt sent — video links will deliver after patient replies',
+        pendingOptIn: true,
+      });
+    }
+
+    // Patient is opted in (or not using Blooio) — send links directly
+    const result = await sendSMS({ to: normalizedPhone, message: messageBody });
 
     if (!result.success) {
       console.error('SMS send error:', result.error);

@@ -5,7 +5,7 @@
 import { sendSMS, normalizePhone } from '../../lib/send-sms';
 import { logComm } from '../../lib/comms-log';
 import { createFormBundle, FORM_DEFINITIONS } from '../../lib/form-bundles';
-import { hasBlooioOptIn, isBlooioProvider } from '../../lib/blooio-optin';
+import { hasBlooioOptIn, isBlooioProvider, queuePendingLinkMessage } from '../../lib/blooio-optin';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -69,16 +69,63 @@ export default async function handler(req, res) {
       messageBody = `${greeting}Range Medical here. Please complete your ${validFormIds.length} forms before your visit:\n\n${bundle.url}`;
     }
 
-    // If Blooio is active but patient hasn't opted in, send via Twilio so links deliver immediately
-    const useProvider = (isBlooioProvider() && !(await hasBlooioOptIn(normalizedPhone))) ? 'twilio' : undefined;
-    const result = await sendSMS({ to: normalizedPhone, message: messageBody, provider: useProvider });
+    // Blooio two-step opt-in: if patient hasn't replied yet, send plain text prompt
+    // and queue the link message for auto-delivery after they reply YES
+    if (isBlooioProvider() && !(await hasBlooioOptIn(normalizedPhone))) {
+      const displayName = firstName || 'there';
+      const optinPrompt = `Hi ${displayName}! Range Medical here — we have ${validFormIds.length === 1 ? 'a form' : `${validFormIds.length} forms`} for you to complete before your visit. Reply YES and we'll send the link right over!`;
+
+      const promptResult = await sendSMS({ to: normalizedPhone, message: optinPrompt });
+
+      if (!promptResult.success) {
+        console.error('Blooio opt-in prompt error:', promptResult.error);
+        return res.status(500).json({ error: 'Failed to send SMS', details: promptResult.error });
+      }
+
+      await logComm({
+        channel: 'sms',
+        messageType: 'form_links_optin_prompt',
+        message: optinPrompt,
+        source: 'send-forms-sms(blooio-optin)',
+        patientId: patientId || null,
+        patientName: patientName || firstName || null,
+        ghlContactId: ghlContactId || null,
+        recipient: normalizedPhone,
+        twilioMessageSid: promptResult.messageSid,
+        direction: 'outbound',
+        provider: promptResult.provider || 'blooio',
+      });
+
+      await queuePendingLinkMessage({
+        phone: normalizedPhone,
+        message: messageBody,
+        messageType: 'form_links',
+        patientId: patientId || null,
+        patientName: patientName || firstName || null,
+        formBundleId: bundle.id || null,
+      });
+
+      console.log(`Blooio opt-in prompt sent to ${normalizedPhone}, link queued (bundle: ${bundle.token})`);
+
+      return res.status(200).json({
+        success: true,
+        formsSent: validFormIds.length,
+        messageSid: promptResult.messageSid,
+        bundleToken: bundle.token,
+        bundleUrl: bundle.url,
+        message: 'Opt-in prompt sent — forms link will deliver after patient replies',
+        pendingOptIn: true,
+      });
+    }
+
+    // Patient is opted in (or not using Blooio) — send links directly
+    const result = await sendSMS({ to: normalizedPhone, message: messageBody });
 
     if (!result.success) {
       console.error('SMS send error:', result.error);
       return res.status(500).json({ error: 'Failed to send SMS', details: result.error });
     }
 
-    // Log to comms_log
     await logComm({
       channel: 'sms',
       messageType: 'form_links',

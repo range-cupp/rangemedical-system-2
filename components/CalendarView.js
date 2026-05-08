@@ -103,6 +103,45 @@ const SESSION_BASED_CATEGORIES = ['rlt', 'hbot', 'iv', 'injection'];
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6 AM to 8 PM
 const HOUR_HEIGHT = 80; // pixels per hour in day view
 
+// Compute side-by-side lane layout for overlapping appointments
+function computeOverlapLayout(appts) {
+  if (!appts.length) return {};
+  const items = appts.map(a => {
+    const start = new Date(a.start_time);
+    const startMin = start.getHours() * 60 + start.getMinutes();
+    const endMin = startMin + (a.duration_minutes || 30);
+    return { id: a.id, startMin, endMin };
+  }).sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+
+  const lanes = [];
+  const layout = {};
+  for (const item of items) {
+    let laneIdx = lanes.findIndex(l => l <= item.startMin);
+    if (laneIdx === -1) { laneIdx = lanes.length; lanes.push(0); }
+    lanes[laneIdx] = item.endMin;
+    layout[item.id] = { lane: laneIdx };
+  }
+
+  let cluster = [items[0]];
+  let clusterEnd = items[0].endMin;
+  const finalize = (c) => {
+    const total = Math.max(...c.map(x => layout[x.id].lane)) + 1;
+    c.forEach(x => { layout[x.id].totalLanes = total; });
+  };
+  for (let i = 1; i < items.length; i++) {
+    if (items[i].startMin < clusterEnd) {
+      cluster.push(items[i]);
+      clusterEnd = Math.max(clusterEnd, items[i].endMin);
+    } else {
+      finalize(cluster);
+      cluster = [items[i]];
+      clusterEnd = items[i].endMin;
+    }
+  }
+  finalize(cluster);
+  return layout;
+}
+
 export default function CalendarView({ preselectedPatient = null, wizardOnly = false }) {
   const { session, employee } = useAuth();
   const [encounterAppt, setEncounterAppt] = useState(null);
@@ -1970,12 +2009,13 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 {/* Block overlays for this employee */}
                 {empBlocks.map(block => {
                   const bc = getBlockColor(block.provider_name);
+                  const colLeft = `calc(75px + (100% - 85px) * ${colIdx / cols.length})`;
+                  const colW = `calc((100% - 85px) * ${1 / cols.length})`;
                   if (block.block_type === 'full_day') {
                     return (
                       <div key={`block-${block.id}`} style={{
                         position: 'absolute', top: 0, bottom: 0,
-                        left: `calc(75px + (100% - 85px) * ${colIdx / cols.length})`,
-                        width: `calc((100% - 85px) * ${1 / cols.length})`,
+                        left: colLeft, width: colW,
                         background: `repeating-linear-gradient(135deg, transparent, transparent 8px, ${bc.stripe} 8px, ${bc.stripe} 16px)`,
                         borderLeft: `2px solid ${bc.border}`,
                         pointerEvents: 'none', zIndex: 1,
@@ -1990,54 +2030,87 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       </div>
                     );
                   }
+                  if (block.start_time && block.end_time) {
+                    const [sh, sm] = block.start_time.split(':').map(Number);
+                    const [eh, em] = block.end_time.split(':').map(Number);
+                    const startH = sh + sm / 60;
+                    const endH = eh + em / 60;
+                    const bTop = (startH - 6) * HOUR_HEIGHT;
+                    const bHeight = (endH - startH) * HOUR_HEIGHT;
+                    if (bTop < 0 || startH > 20) return null;
+                    return (
+                      <div key={`block-${block.id}`} style={{
+                        position: 'absolute',
+                        top: `${bTop}px`, height: `${bHeight}px`,
+                        left: colLeft, width: colW,
+                        background: `repeating-linear-gradient(135deg, transparent, transparent 8px, ${bc.stripe} 8px, ${bc.stripe} 16px)`,
+                        borderLeft: `2px solid ${bc.border}`,
+                        pointerEvents: 'none', zIndex: 1,
+                      }}>
+                        <div style={{
+                          fontSize: 10, fontWeight: 600, color: bc.text,
+                          background: bc.bg, padding: '2px 6px', borderRadius: 0,
+                          display: 'inline-block', marginLeft: 4, marginTop: 2,
+                        }}>
+                          {block.reason || 'Blocked'}
+                        </div>
+                      </div>
+                    );
+                  }
                   return null;
                 })}
 
-                {/* Appointments */}
-                {empAppts.map(appt => {
-                  const start = new Date(appt.start_time);
-                  const startHour = start.getHours() + start.getMinutes() / 60;
-                  const top = (startHour - 6) * HOUR_HEIGHT;
-                  const height = Math.max((appt.duration_minutes || 30) * (HOUR_HEIGHT / 60), 28);
-                  if (top < 0 || startHour > 20) return null;
-                  const catStyle = getApptStyle(appt);
+                {/* Appointments — side-by-side when overlapping */}
+                {(() => {
+                  const overlapLayout = computeOverlapLayout(empAppts);
+                  return empAppts.map(appt => {
+                    const start = new Date(appt.start_time);
+                    const startHour = start.getHours() + start.getMinutes() / 60;
+                    const top = (startHour - 6) * HOUR_HEIGHT;
+                    const height = Math.max((appt.duration_minutes || 30) * (HOUR_HEIGHT / 60), 28);
+                    if (top < 0 || startHour > 20) return null;
+                    const catStyle = getApptStyle(appt);
+                    const { lane = 0, totalLanes = 1 } = overlapLayout[appt.id] || {};
+                    const colBase = `(100% - 85px) * ${colIdx / cols.length}`;
+                    const colSize = `(100% - 85px) * ${1 / cols.length}`;
 
-                  return (
-                    <div
-                      key={appt.id}
-                      onClick={(e) => { e.stopPropagation(); setSelectedAppt(appt); }}
-                      style={{
-                        ...styles.apptBlock,
-                        ...catStyle,
-                        top: `${top}px`,
-                        height: `${height}px`,
-                        left: `calc(75px + (100% - 85px) * ${colIdx / cols.length} + 3px)`,
-                        width: `calc((100% - 85px) * ${1 / cols.length} - 6px)`,
-                        right: 'auto',
-                      }}
-                    >
-                      <div style={{ ...styles.apptBlockName, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {appt.patient_name}
-                        {noteBadge(appt.id)}
+                    return (
+                      <div
+                        key={appt.id}
+                        onClick={(e) => { e.stopPropagation(); setSelectedAppt(appt); }}
+                        style={{
+                          ...styles.apptBlock,
+                          ...catStyle,
+                          top: `${top}px`,
+                          height: `${height}px`,
+                          left: `calc(75px + ${colBase} + (${colSize}) * ${lane / totalLanes} + 2px)`,
+                          width: `calc((${colSize}) * ${1 / totalLanes} - 4px)`,
+                          right: 'auto',
+                        }}
+                      >
+                        <div style={{ ...styles.apptBlockName, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          {appt.patient_name}
+                          {noteBadge(appt.id)}
+                        </div>
+                        {height >= 35 && (
+                          <div style={styles.apptBlockService}>
+                            {appt.service_name}
+                            {appt.modality && appt.modality !== 'in_clinic' && (
+                              <span style={{ marginLeft: '4px', opacity: 0.8 }}>
+                                {appt.modality === 'phone' ? '📞' : '💻'}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {height >= 50 && (
+                          <div style={styles.apptBlockTime}>
+                            {formatTime(appt.start_time)}
+                          </div>
+                        )}
                       </div>
-                      {height >= 35 && (
-                        <div style={styles.apptBlockService}>
-                          {appt.service_name}
-                          {appt.modality && appt.modality !== 'in_clinic' && (
-                            <span style={{ marginLeft: '4px', opacity: 0.8 }}>
-                              {appt.modality === 'phone' ? '📞' : '💻'}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      {height >= 50 && (
-                        <div style={styles.apptBlockTime}>
-                          {formatTime(appt.start_time)}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
             );
           })}

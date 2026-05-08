@@ -2257,6 +2257,44 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </div>
             )}
 
+            {/* Payment Due banner — flags when a matching protocol's sessions are exhausted or nearly so */}
+            {apptPatientInfo?.activeProtocols && (() => {
+              const proto = (apptPatientInfo.activeProtocols || []).find(p => {
+                if (p.status !== 'active') return false;
+                if (p.category === appt.service_category) return true;
+                const pt = (p.program_type || '').toLowerCase();
+                const slCat = APPT_CATEGORY_TO_SERVICE_LOG[appt.service_category];
+                if (slCat === 'red_light' && pt === 'red_light') return true;
+                if (slCat === 'hbot' && pt === 'hbot') return true;
+                if (slCat === 'iv_therapy' && (pt === 'iv_therapy' || pt === 'iv')) return true;
+                if (slCat === 'vitamin' && (pt === 'vitamin' || pt === 'injection')) return true;
+                return false;
+              });
+              if (!proto || proto.comp) return null;
+              const total = proto.total_sessions || 0;
+              const used = proto.sessions_used || 0;
+              if (total <= 0) return null;
+              const remaining = total - used;
+              const exhausted = remaining <= 0;
+              const low = remaining > 0 && remaining <= 2;
+              if (!exhausted && !low) return null;
+              const name = proto.program_name || proto.medication || appt.service_name;
+              return (
+                <div style={{
+                  margin: '12px 0', padding: '12px 14px',
+                  background: exhausted ? '#fef2f2' : '#fef3c7',
+                  border: `2px solid ${exhausted ? '#dc2626' : '#d97706'}`,
+                }}>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: exhausted ? '#dc2626' : '#92400e' }}>
+                    {exhausted ? '💳 Payment Due' : `⚠️ ${remaining} Session${remaining === 1 ? '' : 's'} Remaining`}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#374151', marginTop: '4px' }}>
+                    {name} — {used}/{total} sessions used.{exhausted ? ' Payment due for next block.' : ''}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Forms / Consent checklist — compute live status for use in prep checklist too */}
             {(() => {
               // Compute live form completion (used by both form display and prep checklist)

@@ -239,11 +239,21 @@ async function handleBookAppointment(params) {
     patient = await findPatientByName(patient_name);
   }
 
-  // Pick a provider via round-robin
+  // Assign to Chris Cupp for voice agent bookings (testing phase)
   const startISO = toPacificISO(date, time);
-  const picked = await pickProviderForSlot({ serviceSlug: eventType.slug, startISO });
-  if (!picked) {
-    return `No providers are available for ${eventType.title} at that time. Would you like to try a different time?`;
+  let providerName = 'Chris Cupp';
+  const { data: chrisRow } = await supabase
+    .from('employees')
+    .select('id, name')
+    .ilike('name', '%Chris Cupp%')
+    .limit(1)
+    .maybeSingle();
+  if (!chrisRow) {
+    const picked = await pickProviderForSlot({ serviceSlug: eventType.slug, startISO });
+    if (!picked) {
+      return `No providers are available for ${eventType.title} at that time. Would you like to try a different time?`;
+    }
+    providerName = picked.displayLabel || picked.name;
   }
 
   const durationMins = eventType.length || 60;
@@ -255,7 +265,7 @@ async function handleBookAppointment(params) {
     patient_phone: patient?.phone || patient_phone || null,
     service_name: eventType.title,
     service_slug: eventType.slug,
-    provider: picked.displayLabel || picked.name,
+    provider: providerName,
     start_time: new Date(startISO).toISOString(),
     end_time: endISO,
     duration_minutes: durationMins,

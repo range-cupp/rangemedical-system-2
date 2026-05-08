@@ -53,7 +53,7 @@ import { VIAL_CATALOG } from '../../lib/vial-catalog';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import CycleProgressCard from '../../components/CycleProgressCard';
-import { STAFF_DISPLAY_NAMES as _STAFF_NAMES, getStaffDisplayName, AUTHOR_ALIASES as _AUTHOR_ALIASES, isNoteAuthor as _isNoteAuthor, isAdmin as _isStaffAdmin, ADMIN_EMAILS, NOTE_AUTHORS, DOSE_APPROVAL_STAFF, canUserAuthorNotes } from '../../lib/staff-config';
+import { STAFF_DISPLAY_NAMES as _STAFF_NAMES, getStaffDisplayName, AUTHOR_ALIASES as _AUTHOR_ALIASES, isNoteAuthor as _isNoteAuthor, isAdmin as _isStaffAdmin, ADMIN_EMAILS, NOTE_AUTHORS, DOSE_APPROVAL_STAFF, canUserAuthorNotes, canApproveDoseChange } from '../../lib/staff-config';
 
 // Lazy-load heavy components that aren't needed on initial render
 const CalendarView = dynamic(() => import('../../components/CalendarView'), { ssr: false });
@@ -6998,76 +6998,77 @@ export default function PatientProfile() {
                               title="Mark medication as verified — clears the review flag and completes the task"
                             >✓ Verify</button>
                           )}
-                          {employee?.is_admin && med.from_protocol && (() => {
+                          {(employee?.is_admin || canApproveDoseChange(employee?.email)) && med.from_protocol && (() => {
                             const proto = (activeProtocols || []).find(p => p.id === med.protocol_id);
                             if (!proto) return null;
                             const isWL = proto.category === 'weight_loss' || isWeightLossType(proto.program_type);
                             const isHRT = proto.category === 'hrt' || (proto.program_type || '').includes('hrt');
+                            if (!isWL && !isHRT) return null;
                             return (
-                              <>
-                                {(isWL || isHRT) && (
-                                  <button
-                                    onClick={() => openDoseChangeModal(proto, med.is_secondary_med ? {
-                                      isSecondary: true,
-                                      secondaryName: med.secondary_medication_name,
-                                      currentDose: med.strength,
-                                      currentSig: med.sig,
-                                    } : null)}
-                                    style={{
-                                      padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600,
-                                      background: '#fff', color: '#b45309', border: '1px solid #fde68a',
-                                      cursor: 'pointer', whiteSpace: 'nowrap',
-                                    }}
-                                    title="Request a dose change from a provider"
-                                  >Change Dose</button>
-                                )}
-                                {med.is_secondary_med ? (
-                                  // Secondary HRT meds live in the parent protocol's JSON, not a row of their own —
-                                  // edit them via the schedule-only freq edit modal.
-                                  <button
-                                    onClick={() => openFreqEditModal(proto, {
-                                      secondaryName: med.secondary_medication_name,
-                                      currentSig: med.sig,
-                                    })}
-                                    style={{
-                                      background: 'none', border: 'none', cursor: 'pointer',
-                                      fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
-                                    }}
-                                    title="Edit frequency"
-                                  >✏️</button>
-                                ) : (
-                                  <button
-                                    onClick={() => {
-                                      const route = proto.injection_method === 'subq' ? 'Subcutaneous'
-                                        : proto.injection_method === 'im' ? 'Intramuscular' : '';
-                                      const cat = proto.category || ((proto.program_type || '').includes('hrt') ? 'hrt'
-                                        : isWeightLossType(proto.program_type) ? 'weight_loss' : '');
-                                      setMedEditMode('edit');
-                                      setMedEditForm({
-                                        id: med.id,
-                                        protocol_id: med.protocol_id,
-                                        from_protocol: true,
-                                        medication_name: proto.medication || '',
-                                        strength: proto.selected_dose || proto.current_dose || proto.dose || '',
-                                        form: '',
-                                        route,
-                                        sig: proto.sig || '',
-                                        quick_category: cat,
-                                        quick_gender: proto.hrt_type || (patient?.gender || '').toLowerCase(),
-                                        quick_medication_key: '',
-                                        quick_dose: proto.selected_dose || '',
-                                        quick_frequency: proto.frequency || '',
-                                      });
-                                      setShowMedEditModal(true);
-                                    }}
-                                    style={{
-                                      background: 'none', border: 'none', cursor: 'pointer',
-                                      fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
-                                    }}
-                                    title="Edit medication"
-                                  >✏️</button>
-                                )}
-                              </>
+                              <button
+                                onClick={() => openDoseChangeModal(proto, med.is_secondary_med ? {
+                                  isSecondary: true,
+                                  secondaryName: med.secondary_medication_name,
+                                  currentDose: med.strength,
+                                  currentSig: med.sig,
+                                } : null)}
+                                style={{
+                                  padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600,
+                                  background: '#fff', color: '#b45309', border: '1px solid #fde68a',
+                                  cursor: 'pointer', whiteSpace: 'nowrap',
+                                }}
+                                title="Request a dose change from a provider"
+                              >Change Dose</button>
+                            );
+                          })()}
+                          {employee?.is_admin && med.from_protocol && (() => {
+                            const proto = (activeProtocols || []).find(p => p.id === med.protocol_id);
+                            if (!proto) return null;
+                            return med.is_secondary_med ? (
+                              // Secondary HRT meds live in the parent protocol's JSON, not a row of their own —
+                              // edit them via the schedule-only freq edit modal.
+                              <button
+                                onClick={() => openFreqEditModal(proto, {
+                                  secondaryName: med.secondary_medication_name,
+                                  currentSig: med.sig,
+                                })}
+                                style={{
+                                  background: 'none', border: 'none', cursor: 'pointer',
+                                  fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
+                                }}
+                                title="Edit frequency"
+                              >✏️</button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  const route = proto.injection_method === 'subq' ? 'Subcutaneous'
+                                    : proto.injection_method === 'im' ? 'Intramuscular' : '';
+                                  const cat = proto.category || ((proto.program_type || '').includes('hrt') ? 'hrt'
+                                    : isWeightLossType(proto.program_type) ? 'weight_loss' : '');
+                                  setMedEditMode('edit');
+                                  setMedEditForm({
+                                    id: med.id,
+                                    protocol_id: med.protocol_id,
+                                    from_protocol: true,
+                                    medication_name: proto.medication || '',
+                                    strength: proto.selected_dose || proto.current_dose || proto.dose || '',
+                                    form: '',
+                                    route,
+                                    sig: proto.sig || '',
+                                    quick_category: cat,
+                                    quick_gender: proto.hrt_type || (patient?.gender || '').toLowerCase(),
+                                    quick_medication_key: '',
+                                    quick_dose: proto.selected_dose || '',
+                                    quick_frequency: proto.frequency || '',
+                                  });
+                                  setShowMedEditModal(true);
+                                }}
+                                style={{
+                                  background: 'none', border: 'none', cursor: 'pointer',
+                                  fontSize: '13px', color: '#94a3b8', padding: '2px 4px',
+                                }}
+                                title="Edit medication"
+                              >✏️</button>
                             );
                           })()}
                           {employee?.is_admin && !med.from_protocol && (

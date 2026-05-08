@@ -169,10 +169,24 @@ export default async function handler(req, res) {
         });
       }
 
-      // Update existing — preserve original appointment_id when matched via same-day fallback
-      const updateData = matchedViaSameDay
-        ? { ...vitalsData, appointment_id: prev?.appointment_id || vitalsData.appointment_id }
-        : vitalsData;
+      // When matched via same-day fallback (different appointment), merge rather than
+      // overwrite: only update fields that have actual values so we don't blank out
+      // data entered by an earlier encounter.
+      let updateData = vitalsData;
+      if (matchedViaSameDay && prev) {
+        const vitalFields = [
+          'height_inches', 'weight_lbs', 'bp_systolic', 'bp_diastolic',
+          'bp_arm', 'temperature', 'pulse', 'respiratory_rate', 'o2_saturation', 'bmi',
+        ];
+        updateData = { ...vitalsData, appointment_id: prev.appointment_id };
+        for (const f of vitalFields) {
+          if (vitalsData[f] == null && prev[f] != null) {
+            updateData[f] = prev[f];
+          }
+        }
+        // Keep the earlier recorded_at
+        updateData.recorded_at = prev.recorded_at;
+      }
       const { data, error } = await supabase
         .from('patient_vitals')
         .update(updateData)

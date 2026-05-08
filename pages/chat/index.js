@@ -581,12 +581,17 @@ export default function ChatApp() {
     callSearchTimeout.current = setTimeout(async () => {
       setSearchingCallPatients(true);
       try {
-        const res = await fetch(`/api/patients/search?q=${encodeURIComponent(q.trim())}`);
+        const res = await fetch(`/api/app/patients-search?q=${encodeURIComponent(q.trim())}`);
         if (res.ok) {
           const data = await res.json();
-          setCallPatientResults(data.patients || []);
+          const mapped = (data.patients || []).map(p => ({
+            ...p,
+            name: p.name || [p.first_name, p.last_name].filter(Boolean).join(' ').trim(),
+          }));
+          setCallPatientResults(mapped);
         }
-      } catch {} finally { setSearchingCallPatients(false); }
+      } catch (err) { console.error('Call patient search error:', err); }
+      finally { setSearchingCallPatients(false); }
     }, 300);
   }, []);
 
@@ -799,7 +804,7 @@ export default function ChatApp() {
     <>
       <Head><ChatHead /></Head>
       <div style={{
-        minHeight: '100dvh', height: '100dvh',
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
         display: 'flex', flexDirection: 'column',
         background: '#fff', color: '#0f172a',
         WebkitTextSizeAdjust: '100%',
@@ -1669,11 +1674,18 @@ export default function ChatApp() {
 
       <style jsx global>{`
         @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
-        html, body, #__next { background: #fff; height: 100%; margin: 0; }
+        html, body, #__next {
+          background: #fff;
+          height: 100%;
+          margin: 0;
+          overflow: hidden;
+          position: fixed;
+          width: 100%;
+          overscroll-behavior: none;
+        }
         body {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           -webkit-font-smoothing: antialiased;
-          overscroll-behavior-y: contain;
         }
       `}</style>
     </>

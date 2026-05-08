@@ -117,9 +117,11 @@ export default async function handler(req, res) {
       }
     }
 
-    // Fallback: check for same-day vitals to avoid duplicates from multiple appointments
+    // Fallback: check for same-day vitals to avoid duplicates from multiple appointments.
+    // Only applies to encounter saves (has appointment_id). Standalone "Add Vitals"
+    // entries (no appointment_id) always create a new record.
     let matchedViaSameDay = false;
-    if (!existingId && patient_id) {
+    if (!existingId && appointment_id && patient_id) {
       const recordedDate = vitalsData.recorded_at.slice(0, 10);
       const dayStart = recordedDate + 'T00:00:00.000Z';
       const dayEnd = recordedDate + 'T23:59:59.999Z';

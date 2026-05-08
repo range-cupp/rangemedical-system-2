@@ -70,27 +70,40 @@ export default async function handler(req, res) {
     let sent = 0;
     const results = [];
 
+    // Deduplicate by phone — if someone submitted step 1 multiple times,
+    // only process one followup per phone number
+    const seenPhones = new Set();
+    const dedupedCandidates = [];
     for (const trial of candidates) {
+      const digits = (trial.phone || '').replace(/\D/g, '').slice(-10);
+      if (!digits || seenPhones.has(digits)) continue;
+      seenPhones.add(digits);
+      dedupedCandidates.push(trial);
+    }
+
+    for (const trial of dedupedCandidates) {
       const messageType = `free_session_${trial.trial_type}_unbooked_followup`;
-
-      // Has a follow-up already been sent to this trial's patient?
-      // Use comms_log as the source of truth so we don't need a new column.
-      const { data: prior } = await supabase
-        .from('comms_log')
-        .select('id')
-        .eq('message_type', messageType)
-        .eq('patient_id', trial.patient_id)
-        .gte('created_at', trial.purchased_at)
-        .limit(1);
-
-      if (prior && prior.length > 0) {
-        results.push({ trialId: trial.id, skipped: 'already_sent' });
-        continue;
-      }
 
       const normalizedPhone = normalizePhone(trial.phone);
       if (!normalizedPhone) {
         results.push({ trialId: trial.id, skipped: 'no_phone' });
+        continue;
+      }
+
+      // Dedup by phone (not patient_id) to prevent multiple followups
+      // when someone submits step 1 more than once
+      const phoneDigits = normalizedPhone.replace(/\D/g, '').slice(-10);
+      const recentCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: prior } = await supabase
+        .from('comms_log')
+        .select('id')
+        .eq('message_type', messageType)
+        .ilike('recipient', `%${phoneDigits}`)
+        .gte('created_at', recentCutoff)
+        .limit(1);
+
+      if (prior && prior.length > 0) {
+        results.push({ trialId: trial.id, skipped: 'already_sent' });
         continue;
       }
 

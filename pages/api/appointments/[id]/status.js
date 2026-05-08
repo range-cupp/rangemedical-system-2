@@ -179,18 +179,24 @@ async function advanceFreeSessionOnCompletion(appointment) {
   });
 }
 
-async function advanceEnergyWorkupOnCompletion(appointment) {
+async function advanceLabsPipelineOnCompletion(appointment) {
   if (!appointment.patient_id) return;
   const { findActiveCard, moveCard } = await import('../../../../lib/pipelines-server');
   const { runStageEntry } = await import('../../../../lib/pipeline-automations');
-  const card = await findActiveCard({
-    patient_id: appointment.patient_id,
-    pipeline: 'energy_workup',
-  });
-  if (!card || card.stage !== 'consult_booked') return;
+
+  // Check both labs pipelines
+  let card = await findActiveCard({ patient_id: appointment.patient_id, pipeline: 'energy_workup' });
+  if (!card) {
+    card = await findActiveCard({ patient_id: appointment.patient_id, pipeline: 'follow_up_labs' });
+  }
+  if (!card) return;
+
+  // Advance from any pre-completed stage to consult_completed
+  const preCompletedStages = ['ready_to_schedule', 'scheduling_attempted', 'consult_booked'];
+  if (!preCompletedStages.includes(card.stage)) return;
 
   const consultDate = new Date(appointment.start_time)
-    .toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); // YYYY-MM-DD Pacific
+    .toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 
   const updated = await moveCard({
     card_id: card.id,
@@ -222,9 +228,9 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
       );
     }
 
-    // Advance energy_workup: consult_booked → consult_completed (Evan's task)
-    advanceEnergyWorkupOnCompletion(appointment).catch(err =>
-      console.error('Energy workup advance on completion error:', err)
+    // Advance labs pipeline: any pre-completed stage → consult_completed
+    advanceLabsPipelineOnCompletion(appointment).catch(err =>
+      console.error('Labs pipeline advance on completion error:', err)
     );
 
     // Advance free_sessions: scheduled → completed

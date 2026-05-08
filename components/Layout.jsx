@@ -589,7 +589,12 @@ export default function Layout({ children, title, description, logoOnly }) {
 
 function RetellVoiceWidget() {
   const [active, setActive] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [client, setClient] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [liveAgent, setLiveAgent] = useState('');
+  const [liveUser, setLiveUser] = useState('');
+  const messagesEndRef = { current: null };
 
   useEffect(() => {
     return () => {
@@ -599,19 +604,55 @@ function RetellVoiceWidget() {
     };
   }, [client]);
 
-  async function toggleCall() {
-    if (active && client) {
-      client.stopCall();
-      setActive(false);
-      return;
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
+  }, [messages, liveAgent, liveUser]);
 
+  async function startCall() {
     const { RetellWebClient } = await import('retell-client-js-sdk');
     const rc = new RetellWebClient();
 
     rc.on('call_started', () => setActive(true));
-    rc.on('call_ended', () => setActive(false));
-    rc.on('error', () => setActive(false));
+    rc.on('call_ended', () => {
+      setActive(false);
+      setLiveAgent('');
+      setLiveUser('');
+    });
+    rc.on('error', () => {
+      setActive(false);
+      setLiveAgent('');
+      setLiveUser('');
+    });
+
+    rc.on('update', (update) => {
+      if (!update.transcript) return;
+      const turns = update.transcript;
+      const finalized = [];
+      let pendingAgent = '';
+      let pendingUser = '';
+
+      for (const turn of turns) {
+        if (turn.role === 'agent') {
+          if (turn.status === 'complete' || turn.status === 'final') {
+            finalized.push({ role: 'agent', text: turn.content });
+          } else {
+            pendingAgent = turn.content || '';
+          }
+        } else {
+          if (turn.status === 'complete' || turn.status === 'final') {
+            finalized.push({ role: 'user', text: turn.content });
+          } else {
+            pendingUser = turn.content || '';
+          }
+        }
+      }
+
+      setMessages(finalized);
+      setLiveAgent(pendingAgent);
+      setLiveUser(pendingUser);
+    });
 
     try {
       await rc.startCall({
@@ -624,6 +665,29 @@ function RetellVoiceWidget() {
     }
   }
 
+  function endCall() {
+    if (client) {
+      client.stopCall();
+      setActive(false);
+      setLiveAgent('');
+      setLiveUser('');
+    }
+  }
+
+  function handleMicClick() {
+    if (!panelOpen) {
+      setPanelOpen(true);
+      if (!active) {
+        setMessages([]);
+        startCall();
+      }
+    } else if (active) {
+      endCall();
+    } else {
+      setPanelOpen(false);
+    }
+  }
+
   async function fetchAccessToken() {
     const res = await fetch('/api/voice-agent/token');
     const data = await res.json();
@@ -632,8 +696,208 @@ function RetellVoiceWidget() {
 
   return (
     <>
+      {/* Chat panel */}
+      {panelOpen && (
+        <div style={{
+          position: 'fixed',
+          bottom: '96px',
+          right: '24px',
+          width: '380px',
+          maxWidth: 'calc(100vw - 48px)',
+          height: '500px',
+          maxHeight: 'calc(100vh - 140px)',
+          background: '#fff',
+          borderRadius: '16px',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+          zIndex: 9998,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          fontFamily: 'Inter, -apple-system, sans-serif',
+        }}>
+          {/* Header */}
+          <div style={{
+            padding: '16px 20px',
+            background: '#0a0a0a',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '10px',
+                height: '10px',
+                borderRadius: '50%',
+                background: active ? '#22c55e' : '#6b7280',
+                boxShadow: active ? '0 0 6px #22c55e' : 'none',
+              }} />
+              <span style={{ fontSize: '14px', fontWeight: 600 }}>Range Medical Assistant</span>
+            </div>
+            <button
+              onClick={() => { endCall(); setPanelOpen(false); }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '18px',
+                padding: '0 4px',
+                lineHeight: 1,
+              }}
+            >
+              &times;
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}>
+            {messages.length === 0 && !liveAgent && !liveUser && (
+              <div style={{
+                textAlign: 'center',
+                color: '#9ca3af',
+                fontSize: '13px',
+                marginTop: '40px',
+              }}>
+                {active ? 'Listening...' : 'Click the mic button to start talking'}
+              </div>
+            )}
+            {messages.map((msg, i) => (
+              <div key={i} style={{
+                display: 'flex',
+                justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+              }}>
+                <div style={{
+                  maxWidth: '80%',
+                  padding: '10px 14px',
+                  borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                  background: msg.role === 'user' ? '#0a0a0a' : '#f3f4f6',
+                  color: msg.role === 'user' ? '#fff' : '#1f2937',
+                  fontSize: '14px',
+                  lineHeight: '1.5',
+                }}>
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+            {liveUser && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{
+                  maxWidth: '80%',
+                  padding: '10px 14px',
+                  borderRadius: '14px 14px 4px 14px',
+                  background: '#0a0a0a',
+                  color: '#fff',
+                  fontSize: '14px',
+                  lineHeight: '1.5',
+                  opacity: 0.7,
+                }}>
+                  {liveUser}
+                </div>
+              </div>
+            )}
+            {liveAgent && (
+              <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                <div style={{
+                  maxWidth: '80%',
+                  padding: '10px 14px',
+                  borderRadius: '14px 14px 14px 4px',
+                  background: '#f3f4f6',
+                  color: '#1f2937',
+                  fontSize: '14px',
+                  lineHeight: '1.5',
+                  opacity: 0.7,
+                }}>
+                  {liveAgent}
+                </div>
+              </div>
+            )}
+            <div ref={(el) => { messagesEndRef.current = el; }} />
+          </div>
+
+          {/* Footer */}
+          <div style={{
+            padding: '12px 20px',
+            borderTop: '1px solid #e5e7eb',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+          }}>
+            {active ? (
+              <>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  color: '#22c55e',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                }}>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#22c55e',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                  }} />
+                  Listening
+                </div>
+                <button
+                  onClick={endCall}
+                  style={{
+                    background: '#ef4444',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '20px',
+                    padding: '8px 16px',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
+                >
+                  End call
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => { setMessages([]); startCall(); }}
+                style={{
+                  background: '#0a0a0a',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '20px',
+                  padding: '8px 20px',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" x2="12" y1="19" y2="22" />
+                </svg>
+                Start new call
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Floating mic button */}
       <button
-        onClick={toggleCall}
+        onClick={handleMicClick}
         aria-label={active ? 'End voice assistant call' : 'Talk to Range Medical AI assistant'}
         style={{
           position: 'fixed',
@@ -668,7 +932,7 @@ function RetellVoiceWidget() {
           </svg>
         )}
       </button>
-      {!active && (
+      {!panelOpen && !active && (
         <div style={{
           position: 'fixed',
           bottom: '92px',
@@ -686,6 +950,13 @@ function RetellVoiceWidget() {
           Talk to us
         </div>
       )}
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
     </>
   );
 }

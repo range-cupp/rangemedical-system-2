@@ -93,9 +93,37 @@ export default async function handler(req, res) {
               drawnByPatient[lab.patient_id] = lab.collection_date || lab.created_at;
             }
           }
+
+          // Fetch upcoming appointments for labs_scheduled and consult_booked cards
+          const { data: appts } = await client
+            .from('appointments')
+            .select('patient_id, service_name, start_time, status')
+            .in('patient_id', remainingIds)
+            .in('status', ['scheduled', 'confirmed'])
+            .gte('start_time', new Date().toISOString().slice(0, 10))
+            .order('start_time', { ascending: true });
+
+          const drawApptByPatient = {};
+          const consultApptByPatient = {};
+          for (const a of appts || []) {
+            const sn = (a.service_name || '').toLowerCase();
+            if (!drawApptByPatient[a.patient_id] && (sn.includes('blood draw') || sn.includes('lab draw'))) {
+              drawApptByPatient[a.patient_id] = a.start_time;
+            }
+            if (!consultApptByPatient[a.patient_id] && (sn.includes('consult') || sn.includes('lab review'))) {
+              consultApptByPatient[a.patient_id] = a.start_time;
+            }
+          }
+
           for (const r of rows) {
             if (r.patient_id && drawnByPatient[r.patient_id]) {
               r.labs_drawn_at = drawnByPatient[r.patient_id];
+            }
+            if (r.patient_id && drawApptByPatient[r.patient_id]) {
+              r.draw_appointment_at = drawApptByPatient[r.patient_id];
+            }
+            if (r.patient_id && consultApptByPatient[r.patient_id]) {
+              r.consult_appointment_at = consultApptByPatient[r.patient_id];
             }
           }
         }

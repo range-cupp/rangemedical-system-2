@@ -212,6 +212,58 @@ function isUrgentField(key, card) {
   return false;
 }
 
+function stageDate(card) {
+  const stage = card.stage;
+  const enteredAt = card.entered_stage_at;
+  const enteredDate = formatShortDate(enteredAt);
+  const days = daysSince(enteredAt);
+  const daysLabel = days === 0 ? 'today' : `${days}d`;
+
+  if (stage === 'labs_scheduled') {
+    const drawDate = card.draw_appointment_at || card.scheduled_for;
+    if (drawDate) {
+      const d = daysUntil(drawDate);
+      const formatted = formatShortDate(drawDate);
+      const until = d == null ? '' : d < 0 ? ` · ${Math.abs(d)}d AGO` : d === 0 ? ' · TODAY' : ` · in ${d}d`;
+      return { label: 'DRAW', text: `${formatted}${until}` };
+    }
+    return enteredDate ? { label: 'SINCE', text: `${enteredDate} · ${daysLabel}` } : null;
+  }
+
+  if (stage === 'awaiting_results') {
+    return enteredDate ? { label: 'DRAWN', text: `${enteredDate} · ${daysLabel} waiting` } : null;
+  }
+
+  if (stage === 'under_review') {
+    return enteredDate ? { label: 'UPLOADED', text: `${enteredDate} · ${daysLabel}` } : null;
+  }
+
+  if (stage === 'ready_to_schedule') {
+    return enteredDate ? { label: 'READY', text: `${enteredDate} · ${daysLabel}` } : null;
+  }
+
+  if (stage === 'scheduling_attempted') {
+    return enteredDate ? { label: 'SINCE', text: `${enteredDate} · ${daysLabel}` } : null;
+  }
+
+  if (stage === 'consult_booked') {
+    const consultDate = card.consult_appointment_at;
+    if (consultDate) {
+      const d = daysUntil(consultDate);
+      const formatted = formatShortDate(consultDate);
+      const until = d == null ? '' : d < 0 ? ` · ${Math.abs(d)}d AGO` : d === 0 ? ' · TODAY' : ` · in ${d}d`;
+      return { label: 'CONSULT', text: `${formatted}${until}` };
+    }
+    return enteredDate ? { label: 'BOOKED', text: `${enteredDate} · ${daysLabel}` } : null;
+  }
+
+  if (stage === 'consult_completed') {
+    return enteredDate ? { label: 'DONE', text: `${enteredDate} · ${daysLabel} ago` } : null;
+  }
+
+  return enteredDate ? { label: 'SINCE', text: `${enteredDate} · ${daysLabel}` } : null;
+}
+
 export default function PipelineCard({ card, pipeline, onClick }) {
   const days = daysSince(card.entered_stage_at);
   const fields = (pipeline?.cardFields || [])
@@ -222,6 +274,9 @@ export default function PipelineCard({ card, pipeline, onClick }) {
       urgent: isUrgentField(k, card),
     }))
     .filter(f => f.value);
+
+  const sd = stageDate(card);
+  const urgent = days > 3 && ['awaiting_results', 'under_review', 'ready_to_schedule'].includes(card.stage);
 
   return (
     <div
@@ -243,8 +298,15 @@ export default function PipelineCard({ card, pipeline, onClick }) {
         </div>
       )}
 
+      {sd && (
+        <div style={styles.stageDate}>
+          <span style={styles.stageDateLabel}>{sd.label}</span>
+          <span style={urgent ? styles.stageDateValueUrgent : styles.stageDateValue}>{sd.text}</span>
+        </div>
+      )}
+
       <div style={styles.footer}>
-        <div style={styles.days}>{days === 0 ? 'Today' : `${days}d in stage`}</div>
+        <div style={urgent ? styles.daysUrgent : styles.days}>{days === 0 ? 'Today' : `${days}d in stage`}</div>
         <div style={styles.avatars}>
           {(card.assigned_to || []).slice(0, 3).map((id) => {
             const s = getStaff(id);
@@ -328,12 +390,44 @@ const styles = {
     borderTop: '1px solid #f0f0f0',
     marginTop: '2px',
   },
+  stageDate: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'baseline',
+    fontSize: '11px',
+  },
+  stageDateLabel: {
+    textTransform: 'uppercase',
+    fontWeight: 700,
+    letterSpacing: '0.1em',
+    color: '#a0a0a0',
+    fontSize: '10px',
+    minWidth: '56px',
+    flexShrink: 0,
+  },
+  stageDateValue: {
+    color: '#404040',
+    fontWeight: 600,
+    fontSize: '12px',
+  },
+  stageDateValueUrgent: {
+    color: '#c0332e',
+    fontWeight: 700,
+    fontSize: '12px',
+  },
   days: {
     fontSize: '10px',
     fontWeight: 700,
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
     color: '#737373',
+  },
+  daysUrgent: {
+    fontSize: '10px',
+    fontWeight: 700,
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase',
+    color: '#c0332e',
   },
   avatars: {
     display: 'flex',

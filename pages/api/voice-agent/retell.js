@@ -102,6 +102,57 @@ function slotToDisplayTime(slot) {
   });
 }
 
+// Maps natural language phrases callers might say to service slugs.
+const SERVICE_ALIASES = {
+  'hbot': 'hbot',
+  'hyperbaric': 'hbot',
+  'hyperbaric oxygen': 'hbot',
+  'hyperbaric oxygen therapy': 'hbot',
+  'oxygen chamber': 'hbot',
+  'chamber': 'hbot',
+  'range assessment': 'range-assessment-energy',
+  'assessment': 'range-assessment-energy',
+  'initial assessment': 'range-assessment-energy',
+  'range iv': 'range-iv',
+  'iv therapy': 'range-iv',
+  'iv drip': 'range-iv',
+  'nad': 'nad-iv-225',
+  'nad+': 'nad-iv-225',
+  'nad iv': 'nad-iv-225',
+  'nad plus': 'nad-iv-225',
+  'nad injection': 'nad-injection',
+  'red light': 'red-light-therapy',
+  'red light therapy': 'red-light-therapy',
+  'rlt': 'red-light-therapy',
+  'vitamin c': 'vitamin-c-iv-25g',
+  'vitamin c iv': 'vitamin-c-iv-25g',
+  'glutathione': 'glutathione-iv-1g',
+  'glutathione iv': 'glutathione-iv-1g',
+  'methylene blue': 'methylene-blue-iv',
+  'methylene blue iv': 'methylene-blue-iv',
+  'weight loss': 'injection-weight-loss',
+  'weight loss injection': 'injection-weight-loss',
+  'semaglutide': 'injection-weight-loss',
+  'tirzepatide': 'injection-weight-loss',
+  'testosterone': 'injection-testosterone',
+  'testosterone injection': 'injection-testosterone',
+  'peptide injection': 'injection-peptide',
+  'peptide': 'injection-peptide',
+  'b12': 'range-injections',
+  'mic': 'range-injections',
+  'mic injection': 'range-injections',
+  'injection': 'range-injections',
+  'blood draw': 'new-patient-blood-draw',
+  'labs': 'new-patient-blood-draw',
+  'lab work': 'new-patient-blood-draw',
+  'dexa': 'dexa-scan',
+  'dexa scan': 'dexa-scan',
+  'prp': 'medical-procedure-prp',
+  'mb combo': 'mb-combo-iv',
+  'the blu': 'mb-combo-iv',
+  'combo iv': 'mb-combo-iv',
+};
+
 async function findEventType(serviceName) {
   if (!serviceName) return null;
   const needle = serviceName.toLowerCase().trim();
@@ -112,6 +163,17 @@ async function findEventType(serviceName) {
     .eq('is_active', true);
   if (error || !services) return null;
 
+  // Check alias map first
+  const aliasSlug = SERVICE_ALIASES[needle]
+    || Object.entries(SERVICE_ALIASES).find(([key]) => needle.includes(key))?.[1];
+  if (aliasSlug) {
+    const aliasMatch = services.find((s) => s.slug === aliasSlug);
+    if (aliasMatch) {
+      return { id: aliasMatch.id, slug: aliasMatch.slug, title: aliasMatch.name, category: aliasMatch.category, length: aliasMatch.duration_minutes };
+    }
+  }
+
+  // Fallback: direct name/slug matching
   const matches = services.filter(
     (s) =>
       s.name?.toLowerCase() === needle ||
@@ -219,7 +281,7 @@ async function handleBookAppointment(params) {
 
   // Only IVs, HBOT, RLT, and injections can be booked directly.
   // Everything else (HRT, weight loss, peptides, etc.) requires an assessment first.
-  const isAssessment = eventType.slug === 'range-assessment' || eventType.slug === 'initial-consult';
+  const isAssessment = eventType.slug?.startsWith('range-assessment') || eventType.slug === 'initial-consultation' || eventType.category === 'assessment';
   if (!isAssessment && !DIRECT_BOOK_CATEGORIES.has(eventType.category)) {
     return ASSESSMENT_REQUIRED_MSG;
   }

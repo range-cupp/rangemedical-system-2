@@ -4,15 +4,11 @@
 
 import { sb, createCard, findActiveCard } from '../../../lib/pipelines-server';
 import { getPipeline, CARD_STATUS } from '../../../lib/pipelines-config';
-import { HRT_PROGRAM_TYPES, WEIGHT_LOSS_PROGRAM_TYPES } from '../../../lib/protocol-config';
 
 // pipeline → subscriptions.service_category (only where subscriptions exist)
 const PIPELINE_TO_SUB_CATEGORY = { hrt: 'hrt', weight_loss: 'weight_loss' };
 // pipelines that care about payment history (subs or one-time purchases)
 const PAYMENT_PIPELINES = new Set(['hrt', 'weight_loss', 'peptides', 'hbot', 'rlt', 'injections']);
-// Program types that signal a patient is already on an ongoing treatment plan —
-// they don't belong on the Main Pipeline, which is for new workups.
-const ACTIVE_TREATMENT_TYPES = [...HRT_PROGRAM_TYPES, ...WEIGHT_LOSS_PROGRAM_TYPES];
 
 export default async function handler(req, res) {
   const { pipeline } = req.query;
@@ -57,30 +53,13 @@ export default async function handler(req, res) {
       };
     });
 
-    // Labs pipelines split by treatment status:
-    //   energy_workup → only patients NOT on active HRT/WL (new workup)
-    //   follow_up_labs → only patients ON active HRT/WL (follow-up review)
-    // Both also surface the latest lab draw date on each card.
-    if (['energy_workup', 'follow_up_labs'].includes(pipeline) && rows.length > 0) {
+    // Main Pipeline: surface latest lab draw date and appointment dates on cards.
+    if (pipeline === 'energy_workup' && rows.length > 0) {
       const client = sb();
       const patientIds = [...new Set(rows.map(r => r.patient_id).filter(Boolean))];
 
       if (patientIds.length) {
-        const { data: activeTx } = await client
-          .from('protocols')
-          .select('patient_id')
-          .in('patient_id', patientIds)
-          .eq('status', 'active')
-          .in('program_type', ACTIVE_TREATMENT_TYPES);
-        const onTreatment = new Set((activeTx || []).map(p => p.patient_id));
-
-        if (pipeline === 'energy_workup') {
-          rows = rows.filter(r => !r.patient_id || !onTreatment.has(r.patient_id));
-        } else if (pipeline === 'follow_up_labs') {
-          rows = rows.filter(r => r.patient_id && onTreatment.has(r.patient_id));
-        }
-
-        const remainingIds = [...new Set(rows.map(r => r.patient_id).filter(Boolean))];
+        const remainingIds = patientIds;
         if (remainingIds.length) {
           const { data: labs } = await client
             .from('lab_documents')

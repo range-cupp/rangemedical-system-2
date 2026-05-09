@@ -367,6 +367,21 @@ export default async function handler(req, res) {
     if (normalizedPhone) {
       notificationTasks.push((async () => {
         try {
+          const confirmType = `free_session_${trialType}_confirmation`;
+          const phoneDigits = normalizedPhone.replace(/\D/g, '').slice(-10);
+          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+          const { data: priorConfirm } = await supabase
+            .from('comms_log')
+            .select('id')
+            .eq('message_type', confirmType)
+            .ilike('recipient', `%${phoneDigits}`)
+            .gte('created_at', oneHourAgo)
+            .limit(1);
+          if (priorConfirm && priorConfirm.length > 0) {
+            console.log(`Skipping duplicate ${confirmType} for ${phoneDigits}`);
+            return;
+          }
+
           const message = `Hey ${firstName}, thanks for signing up for a free ${config.label} session at Range Medical. Pick your time on the page to lock it in \u2014 we\u2019ll send a confirmation as soon as you\u2019re booked.\n\n\u2014 Range Medical`;
           const smsResult = await sendSMS({ to: normalizedPhone, message });
           await logComm({

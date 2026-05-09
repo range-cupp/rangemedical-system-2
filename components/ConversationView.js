@@ -1711,24 +1711,37 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                       {msgLabel}
                     </div>
                   )}
-                  {/* Render attached images */}
+                  {/* Render attached media (images + videos) */}
                   {item.media_url && (() => {
                     try {
                       const urls = JSON.parse(item.media_url);
-                      return (Array.isArray(urls) ? urls : [urls]).map((url, mi) => (
-                        <a key={mi} href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginBottom: 6 }}>
-                          <img
+                      const isVideo = (u) => /\.(mp4|mov|avi|webm|mkv|3gp|m4v)(\?|$)/i.test(u) || /video\//i.test(u);
+                      return (Array.isArray(urls) ? urls : [urls]).map((url, mi) =>
+                        isVideo(url) ? (
+                          <video
+                            key={mi}
                             src={url}
-                            alt="Attachment"
-                            style={{ maxWidth: '100%', maxHeight: 240, borderRadius: 6, display: 'block' }}
+                            controls
+                            playsInline
+                            preload="metadata"
+                            style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 6, display: 'block', marginBottom: 6, background: '#000' }}
                             onError={e => { e.target.style.display = 'none'; }}
                           />
-                        </a>
-                      ));
+                        ) : (
+                          <a key={mi} href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginBottom: 6 }}>
+                            <img
+                              src={url}
+                              alt="Attachment"
+                              style={{ maxWidth: '100%', maxHeight: 240, borderRadius: 6, display: 'block' }}
+                              onError={e => { e.target.style.display = 'none'; }}
+                            />
+                          </a>
+                        )
+                      );
                     } catch { return null; }
                   })()}
-                  {/* Show text — skip placeholder "📷 Image" if we already rendered images */}
-                  {(item.message && !(item.media_url && item.message === '📷 Image')) && (
+                  {/* Show text — skip placeholder if we already rendered media */}
+                  {(item.message && !(item.media_url && (item.message === '📷 Image' || item.message === '🎥 Video'))) && (
                     <div style={{
                       ...styles.bubbleText,
                       color: isAutomated ? '#64748b' : undefined,

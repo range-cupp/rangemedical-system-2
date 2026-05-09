@@ -191,6 +191,21 @@ async function advanceLabsPipelineOnCompletion(appointment) {
   }
   if (!card) return;
 
+  const sn = (appointment.service_name || '').toLowerCase();
+
+  // Blood draw completed → labs_scheduled → awaiting_results
+  if (card.stage === 'labs_scheduled') {
+    if (sn.includes('blood draw') || sn.includes('phlebotomy')) {
+      await moveCard({
+        card_id: card.id,
+        to_stage: 'awaiting_results',
+        triggered_by: 'automation',
+        automation_reason: `appointment_completed:${appointment.id}`,
+      });
+    }
+    return;
+  }
+
   // Advance from any pre-completed stage to consult_completed
   const preCompletedStages = ['ready_to_schedule', 'scheduling_attempted', 'consult_booked'];
   if (!preCompletedStages.includes(card.stage)) return;

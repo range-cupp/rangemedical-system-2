@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       .in('id', uniqueIds)
       .not('phone', 'is', null)
       .neq('phone', '')
-      .eq('referral_source', 'Range Medical');
+      .not('referral_source', 'in', '("Range Sports Therapy","Dr. G")');
 
     if (fetchError) {
       return res.status(500).json({ error: fetchError.message });

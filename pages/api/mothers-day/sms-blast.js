@@ -32,7 +32,7 @@ export default async function handler(req, res) {
   const limit = parseInt(req.query.limit) || 0;
 
   try {
-    // Only send to patients with active protocols (already in treatment)
+    // Group 1: Active protocol patients (Range Medical only)
     const { data: activePatientIds, error: protoError } = await supabase
       .from('protocols')
       .select('patient_id')
@@ -42,24 +42,66 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: protoError.message });
     }
 
-    const uniqueIds = [...new Set((activePatientIds || []).map(p => p.patient_id).filter(Boolean))];
+    const activeIds = [...new Set((activePatientIds || []).map(p => p.patient_id).filter(Boolean))];
 
-    if (uniqueIds.length === 0) {
-      return res.status(200).json({ ok: true, message: 'No active protocol patients found.' });
+    // Group 2: Recent peptide patients (last 60 days, ALL practices including RST)
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: peptidePatientIds, error: peptideError } = await supabase
+      .from('protocols')
+      .select('patient_id')
+      .eq('program_type', 'peptide')
+      .gte('created_at', sixtyDaysAgo);
+
+    if (peptideError) {
+      return res.status(500).json({ error: peptideError.message });
     }
 
-    const { data: patients, error: fetchError } = await supabase
+    const peptideIds = [...new Set((peptidePatientIds || []).map(p => p.patient_id).filter(Boolean))];
+    const allIds = [...new Set([...activeIds, ...peptideIds])];
+
+    if (allIds.length === 0) {
+      return res.status(200).json({ ok: true, message: 'No eligible patients found.' });
+    }
+
+    // Fetch Range Medical active protocol patients
+    const { data: rangeMedPatients, error: rmError } = await supabase
       .from('patients')
       .select('id, name, first_name, phone')
-      .in('id', uniqueIds)
+      .in('id', activeIds)
       .not('phone', 'is', null)
       .neq('phone', '')
       .not('referral_source', 'in', '("Range Sports Therapy","Dr. G","Aaron Berger")')
       .or('marketing_opt_out.is.null,marketing_opt_out.eq.false');
 
-    if (fetchError) {
-      return res.status(500).json({ error: fetchError.message });
+    if (rmError) {
+      return res.status(500).json({ error: rmError.message });
     }
+
+    // Fetch recent peptide patients from RST/Dr.G/Berger (not already included above)
+    const { data: peptidePatients, error: pepError } = await supabase
+      .from('patients')
+      .select('id, name, first_name, phone')
+      .in('id', peptideIds)
+      .not('phone', 'is', null)
+      .neq('phone', '')
+      .in('referral_source', ['Range Sports Therapy', 'Dr. G', 'Aaron Berger'])
+      .or('marketing_opt_out.is.null,marketing_opt_out.eq.false');
+
+    if (pepError) {
+      return res.status(500).json({ error: pepError.message });
+    }
+
+    // Merge and deduplicate
+    const seen = new Set();
+    const patients = [];
+    for (const p of [...(rangeMedPatients || []), ...(peptidePatients || [])]) {
+      if (!seen.has(p.id)) {
+        seen.add(p.id);
+        patients.push(p);
+      }
+    }
+
+    const fetchError = null;
 
     const eligible = (patients || []).filter(p => {
       const phone = normalizePhone(p.phone);

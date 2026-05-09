@@ -259,6 +259,10 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [multiServiceSlots, setMultiServiceSlots] = useState({}); // { svcName: string[] | null }
   const [loadingMultiSlots, setLoadingMultiSlots] = useState(false);
 
+  // "Add Service" mode: when set, the wizard is adding a service to an existing appointment.
+  // Holds the full appointment object so we can link via visit_group_id and pre-fill date/time.
+  const [addServiceToAppt, setAddServiceToAppt] = useState(null);
+
   // Backdated appointments (past-dated) must never trigger patient comms —
   // the appointment already happened, so confirmation + prep instructions are moot.
   const pacificTodayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
@@ -823,7 +827,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     return () => { cancelled = true; };
   }, [apptDate, selectedService?.calcomSlug, eventTypesMap, resolveEventType]);
 
-  // Fetch per-service availability for multi-service bookings when date or step changes
+  // Fetch per-service availability for multi-service bookings when date or step changes.
+  // Passes the assigned provider for each service so capacity + conflict checks are accurate.
   useEffect(() => {
     if (wizardStep !== 4 || selectedServices.length <= 1 || !apptDate) {
       setMultiServiceSlots({});
@@ -834,11 +839,14 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     setApptTime('');
 
     const fetches = selectedServices.map(async svc => {
-      if (!svc.calcomSlug) return [svc.name, null]; // null = no Cal.com constraint, any time OK
+      if (!svc.calcomSlug) return [svc.name, null]; // null = no constraint, any time OK
       const et = resolveEventType(svc.calcomSlug);
       if (!et) return [svc.name, null];
       try {
-        const r = await fetch(`/api/bookings/slots-v2?eventTypeId=${et.id}&date=${apptDate}`);
+        const provUsername = selectedProviders[svc.name]?.calcomUsername || '';
+        const params = new URLSearchParams({ eventTypeId: et.id, date: apptDate });
+        if (provUsername) params.set('providerUsername', provUsername);
+        const r = await fetch(`/api/bookings/slots-v2?${params}`);
         const data = await r.json();
         const daySlots = data.slots?.[apptDate] || [];
         const times = [...new Set(
@@ -858,9 +866,11 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     });
     return () => { cancelled = true; };
   }, [wizardStep, apptDate, eventTypesMap, resolveEventType,
-      // stringify service names so the effect re-runs if services change
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      selectedServices.map(s => s.name).join(',')]); // intentional non-standard dep
+      selectedServices.map(s => s.name).join(','),
+      // Re-fetch when providers change so slots reflect the assigned provider
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      selectedServices.map(s => selectedProviders[s.name]?.calcomUsername || '').join(',')]); // intentional non-standard deps
 
   // Compute valid start times for multi-service: times where every service's provider is available
   // at its staggered start (T + sum of preceding durations). Services without calcomSlug are unconstrained.
@@ -1055,6 +1065,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               send_notification: sendNotification,
               source: 'manual',
               services: detailedServices,
+              link_to_appointment_id: addServiceToAppt?.id || null,
             }),
           });
 
@@ -1083,6 +1094,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               send_notification: sendNotification,
               service_details: Object.keys(fallbackDetails).length > 0 ? fallbackDetails : null,
               services: servicesPayload,
+              link_to_appointment_id: addServiceToAppt?.id || null,
             }),
           });
         } else {
@@ -1107,6 +1119,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               modality,
               send_notification: sendNotification,
               services: servicesPayload,
+              link_to_appointment_id: addServiceToAppt?.id || null,
             }),
           });
         }
@@ -1186,6 +1199,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     setLoadingSlots(false);
     setPanelType(null);
     setUseCustomTime(false);
+    setAddServiceToAppt(null);
   };
 
   // ===================== Status Changes =====================
@@ -2766,6 +2780,43 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                   📦 Checkout
                 </button>
               )}
+              {appt.patient_id && !['completed', 'cancelled', 'rescheduled', 'no_show'].includes(appt.status) && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(`/api/patients/${appt.patient_id}`);
+                      const data = await res.json();
+                      const p = data.patient;
+                      setSelectedPatient({
+                        id: appt.patient_id,
+                        name: p ? `${p.first_name || ''} ${p.last_name || ''}`.trim() || appt.patient_name : (appt.patient_name || appt.attendee_name),
+                        phone: p?.phone || '',
+                        email: p?.email || '',
+                      });
+                    } catch {
+                      setSelectedPatient({
+                        id: appt.patient_id,
+                        name: appt.patient_name || appt.attendee_name || '',
+                        phone: '', email: '',
+                      });
+                    }
+                    setAddServiceToAppt(appt);
+                    setSelectedServices([]);
+                    setSelectedProviders({});
+                    setApptDate(appt.start_time ? new Date(appt.start_time).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }) : '');
+                    setApptTime('');
+                    setVisitReason(appt.visit_reason || '');
+                    setModality(appt.modality || 'in_clinic');
+                    setWizardStep(1);
+                    setWizardCollapsed(false);
+                    setSelectedAppt(null);
+                    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  style={{ ...styles.actionBtn, width: '100%', marginTop: '6px', background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                >
+                  + Add Service to Visit
+                </button>
+              )}
               {appt.patient_id && (
                 <button
                   onClick={async () => {
@@ -2786,6 +2837,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                         phone: '', email: '',
                       });
                     }
+                    setAddServiceToAppt(null);
                     setWizardStep(1);
                     setWizardCollapsed(false);
                     setSelectedAppt(null);
@@ -3500,6 +3552,24 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             Patient: <strong>{isWalkIn ? walkInName : selectedPatient?.name}</strong>
           </p>
 
+          {/* Add Service banner */}
+          {addServiceToAppt && (
+            <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', padding: '10px 12px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: '700', color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>Adding to visit</div>
+                <div style={{ fontSize: '13px', color: '#78350f' }}>
+                  {addServiceToAppt.service_name} · {addServiceToAppt.start_time ? new Date(addServiceToAppt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' }) : ''}
+                </div>
+              </div>
+              <button
+                onClick={() => setAddServiceToAppt(null)}
+                style={{ background: 'none', border: 'none', color: '#92400e', fontSize: '18px', cursor: 'pointer', padding: '0 4px' }}
+              >
+                &times;
+              </button>
+            </div>
+          )}
+
           {/* Service search */}
           <input
             type="text"
@@ -4000,6 +4070,18 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 {selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0)} min total
               </p>
 
+              {/* Add Service context */}
+              {addServiceToAppt && (
+                <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', padding: '10px 12px', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: '700', color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>Adding to visit</div>
+                  <div style={{ fontSize: '13px', color: '#78350f' }}>
+                    {addServiceToAppt.service_name} · {addServiceToAppt.start_time ? new Date(addServiceToAppt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' }) : ''}
+                    –
+                    {addServiceToAppt.end_time ? new Date(addServiceToAppt.end_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' }) : ''}
+                  </div>
+                </div>
+              )}
+
               {/* Date */}
               <div style={{ marginBottom: '12px' }}>
                 <label style={styles.fieldLabel}>Date</label>
@@ -4251,6 +4333,16 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         const providers = PROVIDERS[selectedService?.category] || PROVIDERS['other'] || [];
         const locationId = selectedLocation?.id || 'newport';
 
+        // Compute suggested start time when adding to an existing appointment
+        const addServiceSuggestedTime = addServiceToAppt?.end_time
+          ? (() => {
+              const end = new Date(addServiceToAppt.end_time);
+              const h = end.toLocaleString('en-US', { hour: '2-digit', hour12: false, timeZone: 'America/Los_Angeles' }).padStart(2, '0');
+              const m = String(end.getMinutes()).padStart(2, '0');
+              return `${h}:${m}`;
+            })()
+          : null;
+
         return (
           <div>
             <p style={styles.wizardLabel}>
@@ -4261,6 +4353,25 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 <span style={{ fontSize: '12px', color: '#6b7280' }}> · 📍 {selectedLocation.short}</span>
               )}
             </p>
+
+            {/* Add Service context */}
+            {addServiceToAppt && (
+              <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', padding: '10px 12px', marginBottom: '12px' }}>
+                <div style={{ fontSize: '12px', fontWeight: '700', color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>Adding to visit</div>
+                <div style={{ fontSize: '13px', color: '#78350f' }}>
+                  {addServiceToAppt.service_name} ends at {addServiceToAppt.end_time ? new Date(addServiceToAppt.end_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' }) : '—'}
+                  {addServiceSuggestedTime && !apptTime && (
+                    <button
+                      onClick={() => setApptTime(addServiceSuggestedTime)}
+                      style={{ marginLeft: '10px', background: '#92400e', color: '#fff', border: 'none', padding: '3px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+                    >
+                      Use {formatTimeLabel(addServiceSuggestedTime)}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div style={{ marginBottom: '12px' }}>
               <label style={styles.fieldLabel}>Date</label>
               <input
@@ -4625,6 +4736,13 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       {/* Step 5: Confirm */}
       {wizardStep === 5 && (
         <div>
+          {addServiceToAppt && (
+            <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', padding: '10px 12px', marginBottom: '12px' }}>
+              <div style={{ fontSize: '12px', fontWeight: '700', color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Adding to existing visit — {addServiceToAppt.service_name}
+              </div>
+            </div>
+          )}
           <div style={styles.confirmCard}>
             <div style={styles.confirmRow}>
               <span style={styles.confirmLabel}>Patient</span>

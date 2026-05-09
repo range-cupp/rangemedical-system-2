@@ -91,11 +91,19 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: pepError.message });
     }
 
-    // Merge and deduplicate
+    // Check who already received this blast
+    const { data: alreadySent } = await supabase
+      .from('comms_log')
+      .select('patient_id')
+      .eq('message_type', 'mothers_day_promo_blast');
+
+    const sentIds = new Set((alreadySent || []).map(r => r.patient_id).filter(Boolean));
+
+    // Merge, deduplicate, and skip already-sent
     const seen = new Set();
     const patients = [];
     for (const p of [...(rangeMedPatients || []), ...(peptidePatients || [])]) {
-      if (!seen.has(p.id)) {
+      if (!seen.has(p.id) && !sentIds.has(p.id)) {
         seen.add(p.id);
         patients.push(p);
       }

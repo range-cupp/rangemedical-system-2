@@ -121,10 +121,6 @@
       "schedule": "7 14 * * *"
     },
     {
-      "path": "/api/cron/free-session-followup",
-      "schedule": "*/5 * * * *"
-    },
-    {
       "path": "/api/cron/free-session-prep",
       "schedule": "30 15 * * *"
     },

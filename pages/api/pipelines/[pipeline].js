@@ -141,11 +141,12 @@ export default async function handler(req, res) {
             if (r.patient_id && consultApptByPatient[r.patient_id]) {
               r.consult_appointment_at = consultApptByPatient[r.patient_id];
             }
-            // Enrich lab_type: prefer meta, then appointment service name, then pipeline
-            if (r.patient_id && !(r.meta || {}).lab_type) {
-              const derived = labTypeByPatient[r.patient_id]
-                || (pipeline === 'follow_up_labs' ? 'Follow-Up' : 'New Patient');
-              r.meta = { ...(r.meta || {}), lab_type: derived };
+            // Enrich lab_type: appointment service name is authoritative, then stored meta, then pipeline
+            if (r.patient_id) {
+              const fromAppt = labTypeByPatient[r.patient_id];
+              const fromMeta = (r.meta || {}).lab_type;
+              const fromPipeline = pipeline === 'follow_up_labs' ? 'Follow-Up' : 'New Patient';
+              r.meta = { ...(r.meta || {}), lab_type: fromAppt || fromMeta || fromPipeline };
             }
           }
         }

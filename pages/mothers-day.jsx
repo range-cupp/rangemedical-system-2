@@ -1,5 +1,61 @@
 import Head from 'next/head';
 import { useState } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null;
+
+function PaymentForm({ onSuccess, totalPaid, totalCredit }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements || processing) return;
+    setProcessing(true);
+    setError(null);
+
+    try {
+      const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/mothers-day?payment_complete=true`,
+        },
+        redirect: 'if_required',
+      });
+
+      if (stripeError) throw new Error(stripeError.message);
+      if (paymentIntent?.status === 'succeeded') {
+        await onSuccess(paymentIntent.id);
+      } else {
+        throw new Error('Payment was not completed. Please try again.');
+      }
+    } catch (err) {
+      setError(err.message);
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="md-stripe-wrap">
+        <PaymentElement />
+      </div>
+      {error && <div className="md-error">{error}</div>}
+      <button
+        type="submit"
+        disabled={!stripe || processing}
+        className="md-submit-btn"
+      >
+        {processing ? 'Processing...' : `PAY $${totalPaid} — GET $${totalCredit} IN CREDIT`}
+      </button>
+    </form>
+  );
+}
 
 export default function MothersDay() {
   const [formData, setFormData] = useState({
@@ -12,7 +68,9 @@ export default function MothersDay() {
     sendType: 'now',
     quantity: 1
   });
-  const [submitting, setSubmitting] = useState(false);
+  const [step, setStep] = useState('info');
+  const [clientSecret, setClientSecret] = useState(null);
+  const [creating, setCreating] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
@@ -23,16 +81,58 @@ export default function MothersDay() {
     setFormData(prev => ({ ...prev, [field]: e.target.value }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleContinue = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
+    if (!formData.purchaserName.trim() || !formData.purchaserEmail.trim()) {
+      setError('Please fill in your name and email.');
+      return;
+    }
+    if (formData.isGift && (!formData.recipientName.trim() || !formData.recipientEmail.trim())) {
+      setError('Recipient name and email are required for gifts.');
+      return;
+    }
     setError('');
+    setCreating(true);
 
+    try {
+      const nameParts = formData.purchaserName.trim().split(/\s+/);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || firstName;
+
+      const res = await fetch('/api/stripe/service-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email: formData.purchaserEmail.trim(),
+          phone: formData.purchaserPhone.trim(),
+          amountCents: totalPaid * 100,
+          productName: "Mother's Day Wellness Credit",
+          description: `Mother's Day Wellness Credit — $${totalPaid} for $${totalCredit}`,
+          serviceCategory: 'gift_card',
+          serviceName: "Mother's Day Wellness Credit",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to initialize payment');
+      setClientSecret(data.clientSecret);
+      setStep('payment');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handlePaymentSuccess = async (paymentIntentId) => {
     try {
       const resp = await fetch('/api/mothers-day/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          payment_intent_id: paymentIntentId,
           purchaser_name: formData.purchaserName,
           purchaser_email: formData.purchaserEmail,
           purchaser_phone: formData.purchaserPhone,
@@ -45,19 +145,16 @@ export default function MothersDay() {
       });
 
       const data = await resp.json();
-
       if (!resp.ok) {
-        setError(data.error || 'Something went wrong. Please try again.');
+        setError(data.error || 'Payment succeeded but there was an issue creating your credit. Please call (949) 997-3988.');
         return;
       }
-
       setResult(data);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-      setError('Connection error. Please try again or call us at (949) 997-3988.');
-    } finally {
-      setSubmitting(false);
+      setError('Payment succeeded but there was a connection issue. Your credit will be created shortly. Call (949) 997-3988 if you need help.');
     }
+    setStep('success');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -93,7 +190,6 @@ export default function MothersDay() {
       </Head>
 
       <div className="md-page">
-        {/* Minimal header — no nav links */}
         <header className="md-header">
           <span className="md-logo">RANGE MEDICAL</span>
           <span className="md-badge">Mother's Day Special</span>
@@ -165,6 +261,67 @@ export default function MothersDay() {
               </div>
             </section>
           </>
+        ) : step === 'payment' && clientSecret ? (
+          <>
+            <section className="md-hero">
+              <h1>PAY $300, GET $400 IN WELLNESS CREDIT</h1>
+              <p className="md-subtitle">
+                Good for any Range Medical service. Gift it to Mom, or keep it for yourself. Ends Sunday night.
+              </p>
+            </section>
+
+            <section className="md-main">
+              <div className="md-form-card">
+                <div className="md-form">
+                  <div className="md-payment-header">
+                    <span>{formData.purchaserName} — {formData.purchaserEmail}</span>
+                    <button type="button" onClick={() => { setStep('info'); setClientSecret(null); }} className="md-back-link">Edit</button>
+                  </div>
+
+                  <div className="md-order-summary">
+                    <div className="md-summary-row">
+                      <span>You pay</span>
+                      <span className="md-summary-value">${totalPaid}</span>
+                    </div>
+                    <div className="md-summary-row md-summary-highlight">
+                      <span>{formData.isGift ? 'They get' : 'You get'}</span>
+                      <span className="md-summary-value">${totalCredit} in wellness credit</span>
+                    </div>
+                    <div className="md-summary-row md-summary-savings">
+                      <span>You save</span>
+                      <span className="md-summary-value">${totalCredit - totalPaid}</span>
+                    </div>
+                  </div>
+
+                  <Elements
+                    stripe={stripePromise}
+                    options={{
+                      clientSecret,
+                      appearance: {
+                        theme: 'stripe',
+                        variables: {
+                          borderRadius: '0px',
+                          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        },
+                      },
+                    }}
+                  >
+                    <PaymentForm onSuccess={handlePaymentSuccess} totalPaid={totalPaid} totalCredit={totalCredit} />
+                  </Elements>
+
+                  {error && <div className="md-error" style={{ marginTop: '16px' }}>{error}</div>}
+
+                  <p className="md-form-note">
+                    Non-refundable. Credit valid 12 months. Any service.
+                  </p>
+                </div>
+              </div>
+
+              <p className="md-contact">
+                Questions? Call or text <a href="tel:+19499973988">(949) 997-3988</a>
+              </p>
+            </section>
+          </>
         ) : (
           <>
             <section className="md-hero">
@@ -176,7 +333,7 @@ export default function MothersDay() {
 
             <section className="md-main">
               <div className="md-form-card">
-                <form onSubmit={handleSubmit} className="md-form">
+                <form onSubmit={handleContinue} className="md-form">
                   <p className="md-form-section-label">YOUR INFORMATION</p>
                   <div className="md-form-row">
                     <div className="md-form-field">
@@ -329,10 +486,10 @@ export default function MothersDay() {
 
                   <button
                     type="submit"
-                    disabled={submitting}
+                    disabled={creating}
                     className="md-submit-btn"
                   >
-                    {submitting ? 'Processing...' : `Complete Purchase — $${totalPaid}`}
+                    {creating ? 'Loading...' : `CONTINUE TO PAYMENT — $${totalPaid}`}
                   </button>
 
                   <p className="md-form-note">
@@ -358,7 +515,6 @@ export default function MothersDay() {
           min-height: 100vh;
         }
 
-        /* Header */
         .md-header {
           display: flex;
           justify-content: space-between;
@@ -382,7 +538,6 @@ export default function MothersDay() {
           color: #999;
         }
 
-        /* Hero */
         .md-hero {
           text-align: center;
           padding: 4rem 2rem 2rem;
@@ -406,14 +561,12 @@ export default function MothersDay() {
           margin: 0;
         }
 
-        /* Main content area */
         .md-main {
           max-width: 640px;
           margin: 0 auto;
           padding: 2rem 1.5rem 4rem;
         }
 
-        /* Form Card */
         .md-form-card {
           border: 1px solid #e0e0e0;
           background: #fff;
@@ -480,7 +633,6 @@ export default function MothersDay() {
           cursor: pointer;
         }
 
-        /* Radio Group */
         .md-radio-group {
           display: flex;
           gap: 0;
@@ -542,7 +694,6 @@ export default function MothersDay() {
           border-radius: 50%;
         }
 
-        /* Order Summary */
         .md-order-summary {
           background: #fafafa;
           border: 1px solid #e0e0e0;
@@ -584,7 +735,6 @@ export default function MothersDay() {
           font-weight: 700;
         }
 
-        /* Error */
         .md-error {
           background: #fef2f2;
           border: 1px solid #fecaca;
@@ -594,7 +744,6 @@ export default function MothersDay() {
           margin-bottom: 16px;
         }
 
-        /* Submit Button */
         .md-submit-btn {
           display: block;
           width: 100%;
@@ -628,7 +777,6 @@ export default function MothersDay() {
           line-height: 1.5;
         }
 
-        /* Contact line */
         .md-contact {
           text-align: center;
           font-size: 14px;
@@ -644,6 +792,31 @@ export default function MothersDay() {
 
         .md-contact a:hover {
           text-decoration: underline;
+        }
+
+        /* Payment step */
+        .md-payment-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 16px;
+          background: #fafafa;
+          border: 1px solid #e0e0e0;
+          margin-bottom: 20px;
+          font-size: 14px;
+          color: #444;
+        }
+
+        .md-back-link {
+          background: none;
+          border: none;
+          color: #111;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          text-decoration: underline;
+          font-family: inherit;
+          padding: 0;
         }
 
         /* ── Success / Confirmation ── */
@@ -758,7 +931,6 @@ export default function MothersDay() {
           margin: 0;
         }
 
-        /* Responsive */
         @media (max-width: 640px) {
           .md-header { padding: 16px 20px; }
           .md-hero { padding: 3rem 1.5rem 1.5rem; }
@@ -771,6 +943,12 @@ export default function MothersDay() {
           .md-radio-option:last-child { border-bottom: none; }
           .md-gcv-amount { font-size: 32px; }
           .md-gcv-code { font-size: 18px; }
+        }
+      `}</style>
+
+      <style jsx global>{`
+        .md-stripe-wrap {
+          margin-bottom: 20px;
         }
       `}</style>
     </>

@@ -5,6 +5,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -141,6 +142,18 @@ export default async function handler(req, res) {
 
         if (resp.ok) {
           stats.sent++;
+          await logComm({
+            channel: 'email',
+            messageType: 'mothers_day_promo_blast',
+            message: `Mother's Day Wellness Credit promo email`,
+            source: 'mothers-day/email-blast',
+            patientId: patient.id,
+            patientName: patient.name,
+            recipient: email,
+            subject: "Mother's Day Wellness Credit — Range Medical",
+            status: 'sent',
+            provider: 'resend',
+          }).catch(() => {});
         } else {
           stats.failed++;
           stats.errors.push({ name: patient.name, error: result.message || JSON.stringify(result) });

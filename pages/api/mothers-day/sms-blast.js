@@ -32,13 +32,28 @@ export default async function handler(req, res) {
   const limit = parseInt(req.query.limit) || 0;
 
   try {
-    let query = supabase
+    // Only send to patients with active protocols (already in treatment)
+    const { data: activePatientIds, error: protoError } = await supabase
+      .from('protocols')
+      .select('patient_id')
+      .eq('status', 'active');
+
+    if (protoError) {
+      return res.status(500).json({ error: protoError.message });
+    }
+
+    const uniqueIds = [...new Set((activePatientIds || []).map(p => p.patient_id).filter(Boolean))];
+
+    if (uniqueIds.length === 0) {
+      return res.status(200).json({ ok: true, message: 'No active protocol patients found.' });
+    }
+
+    const { data: patients, error: fetchError } = await supabase
       .from('patients')
       .select('id, name, first_name, phone')
+      .in('id', uniqueIds)
       .not('phone', 'is', null)
       .neq('phone', '');
-
-    const { data: patients, error: fetchError } = await query;
 
     if (fetchError) {
       return res.status(500).json({ error: fetchError.message });

@@ -111,6 +111,14 @@ export default function MothersDay() {
     setCreating(true);
 
     try {
+      const checkResp = await fetch(`/api/mothers-day/check-limit?email=${encodeURIComponent(formData.purchaserEmail.trim())}&qty=${formData.quantity}`);
+      const checkData = await checkResp.json();
+      if (checkData.limit_reached) {
+        setError(checkData.error);
+        setCreating(false);
+        return;
+      }
+
       // If promo covers 100%, skip Stripe and go straight to purchase
       if (promoApplied) {
         const resp = await fetch('/api/mothers-day/purchase', {

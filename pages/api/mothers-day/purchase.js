@@ -278,6 +278,24 @@ export default async function handler(req, res) {
     const totalPaidDollars = isPromoFree ? 0 : qty * 300;
     const totalCreditDollars = qty * 400;
 
+    const { data: existingPromos } = await supabase
+      .from('mothers_day_promos')
+      .select('id')
+      .eq('purchaser_email', normalizedEmail);
+
+    const existingCount = (existingPromos || []).length;
+    if (existingCount + qty > 2) {
+      const remaining = Math.max(0, 2 - existingCount);
+      return res.status(400).json({
+        error: remaining === 0
+          ? "You've already purchased the maximum of 2 Wellness Credits."
+          : `You can only purchase ${remaining} more (max 2 per person).`,
+        limit_reached: true,
+        existing: existingCount,
+        remaining,
+      });
+    }
+
     // Verify Stripe payment (skip for 100% promo)
     if (!isPromoFree) {
       const pi = await stripe.paymentIntents.retrieve(payment_intent_id, {

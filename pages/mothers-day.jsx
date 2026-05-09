@@ -862,7 +862,7 @@ export default function MothersDay() {
         }
 
         .md-service-item::before {
-          content: "\\2713";
+          content: "✓";
           color: #808080;
           font-weight: 700;
           flex-shrink: 0;
@@ -942,7 +942,7 @@ export default function MothersDay() {
         }
 
         .md-faq-item[open] summary::after {
-          content: "\\2212";
+          content: "−";
         }
 
         .md-faq-item p {

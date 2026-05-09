@@ -245,7 +245,9 @@ async function handleInboundMessage(body) {
     ghl_contact_id: patient?.ghl_contact_id || null,
     channel: 'sms',
     message_type: 'inbound_sms',
-    message: messageText || (mediaUrlJson ? '📷 Image' : ''),
+    message: messageText || (mediaUrlJson
+      ? (mediaUrls.some(u => /\.(mp4|mov|avi|webm|mkv|3gp|m4v)(\?|$)/i.test(u)) ? '🎥 Video' : '📷 Image')
+      : ''),
     source: 'blooio/webhook',
     status: 'received',
     recipient: senderPhone,
@@ -280,7 +282,10 @@ async function handleInboundMessage(body) {
   // Web push to all employees with notifications enabled — best-effort, non-blocking.
   // Fired for real inbound patient SMS only; staff-bot inbound returns earlier in the flow.
   try {
-    const previewBody = (messageText || (mediaUrlJson ? '📷 Image' : '')).slice(0, 140);
+    const mediaPlaceholder = mediaUrlJson
+      ? (mediaUrls.some(u => /\.(mp4|mov|avi|webm|mkv|3gp|m4v)(\?|$)/i.test(u)) ? '🎥 Video' : '📷 Image')
+      : '';
+    const previewBody = (messageText || mediaPlaceholder).slice(0, 140);
     const titleName = patient
       ? (patient.first_name && patient.last_name ? `${patient.first_name} ${patient.last_name}` : (patient.name || senderPhone))
       : senderPhone;

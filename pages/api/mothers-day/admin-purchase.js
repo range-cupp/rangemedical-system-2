@@ -393,7 +393,6 @@ export default async function handler(req, res) {
             last_name: lastName,
             email: recipEmail,
             referral_source: 'Range Medical',
-            notes: `Created from Mother's Day gift purchase by ${patient.name}.`,
           });
         console.log(`Created patient profile for gift recipient: ${recipient_name} (${recipEmail})`);
       }

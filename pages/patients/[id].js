@@ -622,6 +622,10 @@ export default function PatientProfile() {
   const [commsLog, setCommsLog] = useState([]);
   const [allPurchases, setAllPurchases] = useState([]);
   const [expandedTransactions, setExpandedTransactions] = useState({});
+  const [showMothersDayModal, setShowMothersDayModal] = useState(false);
+  const [mothersDayForm, setMothersDayForm] = useState({ quantity: 2, isGift: true, recipientName: '', recipientEmail: '', sendType: 'scheduled', card: '' });
+  const [mothersDayLoading, setMothersDayLoading] = useState(false);
+  const [mothersDayResult, setMothersDayResult] = useState(null);
   const [stripeCharges, setStripeCharges] = useState([]);
   const [loadingStripeCharges, setLoadingStripeCharges] = useState(false);
   const [stripeChargesFetched, setStripeChargesFetched] = useState(false);
@@ -12002,6 +12006,11 @@ export default function PatientProfile() {
                   <div className="pay-section">
                     <div className="pay-section-header">
                       <h3>Transactions ({transactionDates.length})</h3>
+                      {savedCards.length > 0 && (
+                        <button onClick={() => { setMothersDayForm(f => ({ ...f, card: savedCards[0].id })); setMothersDayResult(null); setShowMothersDayModal(true); }} className="pay-btn-primary" style={{ fontSize: 12 }}>
+                          Mother's Day Credit
+                        </button>
+                      )}
                     </div>
                     {transactionDates.length === 0 ? (
                       <div className="pay-empty">No transactions found</div>
@@ -19763,6 +19772,124 @@ export default function PatientProfile() {
         patientId={patient?.id}
         patientName={patient?.name || `${patient?.first_name || ''} ${patient?.last_name || ''}`.trim()}
       />
+
+      {showMothersDayModal && (
+        <div className="modal-overlay" onClick={() => { if (!mothersDayLoading) setShowMothersDayModal(false); }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0 }}>Mother's Day Wellness Credit</h3>
+              <button onClick={() => setShowMothersDayModal(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6b7280' }}>&times;</button>
+            </div>
+            <div className="modal-body" style={{ padding: 20 }}>
+              {mothersDayResult ? (
+                <div>
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 16, marginBottom: 16 }}>
+                    <div style={{ fontWeight: 700, color: '#059669', marginBottom: 8 }}>Purchase Complete</div>
+                    <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>
+                      <div>{mothersDayResult.quantity}x Wellness Credit ({mothersDayResult.codes.join(', ')})</div>
+                      <div>Charged: ${mothersDayResult.total_paid}</div>
+                      <div>Credit Value: ${mothersDayResult.total_credit}</div>
+                      {mothersDayResult.is_gift && <div>Gift for: {mothersDayResult.recipient_name}</div>}
+                      {mothersDayResult.send_type === 'scheduled' && <div>Gift email: Mother's Day morning</div>}
+                      {mothersDayResult.send_type === 'now' && mothersDayResult.is_gift && <div>Gift email: Sent immediately</div>}
+                    </div>
+                  </div>
+                  <button onClick={() => { setShowMothersDayModal(false); setMothersDayResult(null); }} className="pay-btn-primary" style={{ width: '100%', padding: '10px 0' }}>Done</button>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Purchaser</div>
+                    <div style={{ fontSize: 14, color: '#111', padding: '8px 12px', background: '#f9fafb', borderRadius: 6, border: '1px solid #e5e7eb' }}>{patient?.name} ({patient?.email})</div>
+                  </div>
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Quantity</label>
+                    <select value={mothersDayForm.quantity} onChange={e => setMothersDayForm(f => ({ ...f, quantity: parseInt(e.target.value) }))} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 14 }}>
+                      <option value={1}>1 ($300 → $400 credit)</option>
+                      <option value={2}>2 ($600 → $800 credit)</option>
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Card</label>
+                    <select value={mothersDayForm.card} onChange={e => setMothersDayForm(f => ({ ...f, card: e.target.value }))} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 14 }}>
+                      {savedCards.map(c => (
+                        <option key={c.id} value={c.id}>{c.brand.toUpperCase()} ····{c.last4} (exp {c.exp_month}/{c.exp_year})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={mothersDayForm.isGift} onChange={e => setMothersDayForm(f => ({ ...f, isGift: e.target.checked }))} />
+                      This is a gift for someone else
+                    </label>
+                  </div>
+                  {mothersDayForm.isGift && (
+                    <>
+                      <div style={{ marginBottom: 12 }}>
+                        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Recipient Name</label>
+                        <input type="text" value={mothersDayForm.recipientName} onChange={e => setMothersDayForm(f => ({ ...f, recipientName: e.target.value }))} placeholder="Recipient's full name" style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 14, boxSizing: 'border-box' }} />
+                      </div>
+                      <div style={{ marginBottom: 12 }}>
+                        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Recipient Email</label>
+                        <input type="email" value={mothersDayForm.recipientEmail} onChange={e => setMothersDayForm(f => ({ ...f, recipientEmail: e.target.value }))} placeholder="Recipient's email" style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 14, boxSizing: 'border-box' }} />
+                      </div>
+                      <div style={{ marginBottom: 16 }}>
+                        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Send Gift Email</label>
+                        <select value={mothersDayForm.sendType} onChange={e => setMothersDayForm(f => ({ ...f, sendType: e.target.value }))} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 14 }}>
+                          <option value="scheduled">Mother's Day morning (May 10)</option>
+                          <option value="now">Send immediately</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+                  <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ color: '#6b7280' }}>Charge</span>
+                      <span style={{ fontWeight: 700 }}>${mothersDayForm.quantity * 300}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280' }}>Credit Value</span>
+                      <span style={{ fontWeight: 700, color: '#059669' }}>${mothersDayForm.quantity * 400}</span>
+                    </div>
+                  </div>
+                  <button
+                    disabled={mothersDayLoading || (mothersDayForm.isGift && (!mothersDayForm.recipientName.trim() || !mothersDayForm.recipientEmail.trim()))}
+                    onClick={async () => {
+                      setMothersDayLoading(true);
+                      try {
+                        const resp = await fetch('/api/mothers-day/admin-purchase', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            patient_id: patient.id,
+                            payment_method_id: mothersDayForm.card,
+                            quantity: mothersDayForm.quantity,
+                            is_gift: mothersDayForm.isGift,
+                            recipient_name: mothersDayForm.recipientName,
+                            recipient_email: mothersDayForm.recipientEmail,
+                            send_type: mothersDayForm.sendType,
+                          }),
+                        });
+                        const data = await resp.json();
+                        if (!resp.ok) throw new Error(data.error || 'Purchase failed');
+                        setMothersDayResult(data);
+                      } catch (err) {
+                        alert(err.message);
+                      } finally {
+                        setMothersDayLoading(false);
+                      }
+                    }}
+                    className="pay-btn-primary"
+                    style={{ width: '100%', padding: '10px 0', opacity: (mothersDayLoading || (mothersDayForm.isGift && (!mothersDayForm.recipientName.trim() || !mothersDayForm.recipientEmail.trim()))) ? 0.5 : 1 }}
+                  >
+                    {mothersDayLoading ? 'Processing...' : `Charge $${mothersDayForm.quantity * 300} to Card`}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

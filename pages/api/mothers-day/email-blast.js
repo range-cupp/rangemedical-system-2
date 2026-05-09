@@ -89,7 +89,7 @@ export default async function handler(req, res) {
       .select('id, name, first_name, email')
       .not('email', 'is', null)
       .neq('email', '')
-      .not('referral_source', 'in', '("Range Sports Therapy","Dr. G")')
+      .not('referral_source', 'in', '("Range Sports Therapy","Dr. G","Aaron Berger")')
       .or('marketing_opt_out.is.null,marketing_opt_out.eq.false');
 
     if (fetchError) {

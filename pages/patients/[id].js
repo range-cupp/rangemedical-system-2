@@ -845,7 +845,7 @@ export default function PatientProfile() {
 
   // Quick weight log modal state (for missed WL sessions)
   const [quickWeightModal, setQuickWeightModal] = useState(null); // { protocol, slotDate }
-  const [quickWeightForm, setQuickWeightForm] = useState({ weight: '', notes: '' });
+  const [quickWeightForm, setQuickWeightForm] = useState({ weight: '', notes: '', date: '' });
   const [quickWeightSaving, setQuickWeightSaving] = useState(false);
 
   // Shipment reminder modal state (auto-prompt after partial fulfillment)
@@ -3277,7 +3277,7 @@ export default function PatientProfile() {
   // Quick weight log for missed WL sessions (patient called/texted weight)
   const openQuickWeightModal = (protocol, slotDate) => {
     setQuickWeightModal({ protocol, slotDate });
-    setQuickWeightForm({ weight: '', dosage: protocol.selected_dose || '', notes: '' });
+    setQuickWeightForm({ weight: '', dosage: protocol.selected_dose || '', notes: '', date: slotDate || '' });
     setQuickWeightSaving(false);
   };
 
@@ -3287,7 +3287,8 @@ export default function PatientProfile() {
     if (!quickWeightForm.weight && !quickWeightForm.dosage) return;
     setQuickWeightSaving(true);
     try {
-      const { protocol, slotDate } = quickWeightModal;
+      const { protocol } = quickWeightModal;
+      const effectiveDate = quickWeightForm.date || quickWeightModal.slotDate;
       // If dose is provided, treat as an injection entry; otherwise weight_check
       const hasWeight = !!quickWeightForm.weight;
       const hasDose = !!quickWeightForm.dosage;
@@ -3299,7 +3300,7 @@ export default function PatientProfile() {
           patient_id: patient.id,
           category: 'weight_loss',
           entry_type: entryType,
-          entry_date: slotDate,
+          entry_date: effectiveDate,
           medication: protocol.medication || protocol.selected_medication || null,
           dosage: quickWeightForm.dosage || protocol.selected_dose || null,
           weight: hasWeight ? quickWeightForm.weight : null,
@@ -3323,7 +3324,8 @@ export default function PatientProfile() {
     if (!quickWeightModal) return;
     setQuickWeightSaving(true);
     try {
-      const { protocol, slotDate } = quickWeightModal;
+      const { protocol } = quickWeightModal;
+      const effectiveDate = quickWeightForm.date || quickWeightModal.slotDate;
       const res = await fetch('/api/service-log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3331,7 +3333,7 @@ export default function PatientProfile() {
           patient_id: patient.id,
           category: 'weight_loss',
           entry_type: 'missed',
-          entry_date: slotDate,
+          entry_date: effectiveDate,
           medication: protocol.medication || protocol.selected_medication || null,
           dosage: protocol.selected_dose || null,
           notes: 'MISSED WEEK',
@@ -8771,6 +8773,17 @@ export default function PatientProfile() {
                                     })()}
                                   </tbody>
                                 </table>
+                                <div style={{ padding: '8px 10px', borderTop: '1px solid #e5e7eb' }}>
+                                  <button
+                                    onClick={() => {
+                                      const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+                                      openQuickWeightModal(protocol, todayStr);
+                                    }}
+                                    style={{ padding: '4px 12px', fontSize: 12, fontWeight: 600, background: '#fff', color: '#2563eb', border: '1px solid #93c5fd', borderRadius: 0, cursor: 'pointer' }}
+                                  >
+                                    + Add Past Injection
+                                  </button>
+                                </div>
                               </div>
 
                               {/* Medication Deliveries — only for take-home protocols */}
@@ -15618,13 +15631,21 @@ export default function PatientProfile() {
           <div className="modal-overlay" {...overlayClickProps(() => setQuickWeightModal(null))}>
             <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
               <div className="modal-header">
-                <h3>Log Entry — {formatShortDate(quickWeightModal.slotDate)}</h3>
+                <h3>Log Entry — {formatShortDate(quickWeightForm.date || quickWeightModal.slotDate)}</h3>
                 <button onClick={() => setQuickWeightModal(null)} className="close-btn">&times;</button>
               </div>
               <div className="modal-body">
                 <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 16px' }}>
                   Fill in this week for {patient?.first_name || patient?.name}. Add dose to log as injection, or just weight for a check-in.
                 </p>
+                <div className="form-group" style={{ marginBottom: 12 }}>
+                  <label>Date</label>
+                  <input
+                    type="date"
+                    value={quickWeightForm.date || quickWeightModal.slotDate || ''}
+                    onChange={e => setQuickWeightForm({ ...quickWeightForm, date: e.target.value })}
+                  />
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="form-group">
                     <label>Dose</label>

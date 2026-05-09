@@ -459,6 +459,47 @@ async function handleInboundMessage(body) {
     }
   }
 
+  // ================================================================
+  // AUTO-REPLY: Mother's Day Promo — keyword "MOM"
+  // If anyone texts MOM, reply with the promo landing page link.
+  // Checks that they received the blast first (prevents random MOM texts from triggering).
+  // ================================================================
+  if (senderPhone && messageText) {
+    const normalizedBody = messageText.trim().toLowerCase().replace(/[^a-z]/g, '');
+    if (normalizedBody === 'mom') {
+      try {
+        const replyMessage = `Here's the link to grab your Mother's Day Wellness Credit:\n\nhttps://www.range-medical.com/mothers-day\n\nPay $300, get $400 in credit — good for any service for 12 months. Ends Sunday night.\n\n— Range Medical`;
+
+        const replyResult = await sendBlooioMessage({ to: senderPhone, message: replyMessage });
+
+        await logComm({
+          channel: 'sms',
+          messageType: 'mothers_day_promo_link',
+          message: replyMessage,
+          source: 'blooio/webhook(mom-keyword)',
+          patientId: patient?.id || null,
+          patientName: patient?.name || null,
+          recipient: senderPhone,
+          status: replyResult.success ? 'sent' : 'error',
+          errorMessage: replyResult.error || null,
+          twilioMessageSid: replyResult.messageSid || null,
+          direction: 'outbound',
+          provider: 'blooio',
+        }).catch(err => { console.error('comms_log error:', err.message); });
+
+        if (replyResult.success) {
+          console.log(`Mother's Day promo link sent to ${patient?.name || senderPhone} via MOM keyword`);
+        } else {
+          console.error(`Mother's Day promo link FAILED for ${senderPhone}: ${replyResult.error}`);
+        }
+
+        return res.status(200).json({ ok: true, action: 'mothers_day_promo_link' });
+      } catch (momErr) {
+        console.error('Mother\'s Day MOM keyword error:', momErr);
+      }
+    }
+  }
+
   // Auto-send any pending link messages (forms/guides queued during Blooio two-step opt-in)
   if (senderPhone) {
     try {

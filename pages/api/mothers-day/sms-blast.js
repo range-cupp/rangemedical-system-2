@@ -15,7 +15,7 @@ const supabase = createClient(
 function buildMessage(firstName) {
   const name = firstName || '';
   const greeting = name ? `Hey ${name}, quick` : 'Hey, quick';
-  return `${greeting} Mother's Day note from Range Medical — we're doing something simple this weekend: pay $300 and get $400 in Wellness Credit, good for any service over the next 12 months.\n\nGift it to Mom, or keep it — she raised you to make good decisions.\n\nReply 'MOM' and we'll text you the link. Ends Sunday night.`;
+  return `${greeting} Mother's Day note from Range Medical — we're doing something simple this weekend: pay $300 and get $400 in Wellness Credit, good for any service over the next 12 months.\n\nGift it to Mom, or keep it — she raised you to make good decisions.\n\nReply 'MOM' and we'll text you the link. Ends Sunday night.\n\nReply STOP to opt out`;
 }
 
 function sleep(ms) {

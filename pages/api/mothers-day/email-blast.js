@@ -13,9 +13,10 @@ const supabase = createClient(
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
-function buildEmailHtml(firstName) {
+function buildEmailHtml(firstName, email) {
   const name = firstName || '';
   const greeting = name ? `Hey ${name},` : 'Hey,';
+  const unsubUrl = `https://www.range-medical.com/api/unsubscribe?email=${encodeURIComponent(email)}`;
 
   return `<!DOCTYPE html>
 <html>
@@ -59,7 +60,8 @@ function buildEmailHtml(firstName) {
         <tr><td style="padding:16px 28px 24px;border-top:1px solid #eee;text-align:center;">
           <p style="margin:0 0 4px;font-size:13px;color:#111;font-weight:600;">Range Medical</p>
           <p style="margin:0 0 4px;font-size:12px;color:#999;">1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660</p>
-          <p style="margin:0;font-size:12px;color:#999;">(949) 997-3988</p>
+          <p style="margin:0 0 8px;font-size:12px;color:#999;">(949) 997-3988</p>
+          <p style="margin:0;font-size:11px;"><a href="${unsubUrl}" style="color:#bbb;text-decoration:underline;">Unsubscribe</a></p>
         </td></tr>
       </table>
     </td></tr>
@@ -86,7 +88,8 @@ export default async function handler(req, res) {
       .from('patients')
       .select('id, name, first_name, email')
       .not('email', 'is', null)
-      .neq('email', '');
+      .neq('email', '')
+      .or('marketing_opt_out.is.null,marketing_opt_out.eq.false');
 
     if (fetchError) {
       return res.status(500).json({ error: fetchError.message });
@@ -117,7 +120,7 @@ export default async function handler(req, res) {
     for (const patient of toSend) {
       try {
         const email = patient.email.trim().toLowerCase();
-        const html = buildEmailHtml(patient.first_name);
+        const html = buildEmailHtml(patient.first_name, email);
 
         const resp = await fetch('https://api.resend.com/emails', {
           method: 'POST',

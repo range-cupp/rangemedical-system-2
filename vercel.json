@@ -139,6 +139,10 @@
     {
       "path": "/api/cron/mothers-day-send",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/mothers-day-followup",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

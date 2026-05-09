@@ -373,6 +373,32 @@ export default async function handler(req, res) {
       })
     });
 
+    if (isGift) {
+      const recipEmail = recipient_email.toLowerCase().trim();
+      const { data: existingRecipient } = await supabase
+        .from('patients')
+        .select('id')
+        .ilike('email', recipEmail)
+        .maybeSingle();
+
+      if (!existingRecipient) {
+        const nameParts = recipient_name.trim().split(/\s+/);
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        await supabase
+          .from('patients')
+          .insert({
+            name: recipient_name.trim(),
+            first_name: firstName,
+            last_name: lastName,
+            email: recipEmail,
+            referral_source: 'Range Medical',
+            notes: `Created from Mother's Day gift purchase by ${patient.name}.`,
+          });
+        console.log(`Created patient profile for gift recipient: ${recipient_name} (${recipEmail})`);
+      }
+    }
+
     if (isGift && send_type !== 'scheduled') {
       for (let i = 0; i < cards.length; i++) {
         await sendEmail({

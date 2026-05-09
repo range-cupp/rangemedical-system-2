@@ -524,7 +524,7 @@ export default async function handler(req, res) {
           automation_reason: 'assessment_completed',
         };
         if (assessmentPath === 'energy' || assessmentPath === 'both') {
-          await ensureCard({ ...common, pipeline: 'energy_workup', stage: 'labs_scheduled' });
+          await ensureCard({ ...common, pipeline: 'energy_workup', stage: 'labs_scheduled', meta: { lab_type: 'New Patient' } });
         }
         if (assessmentPath === 'injury' || assessmentPath === 'both') {
           await ensureCard({ ...common, pipeline: 'injury_workup', stage: 'assessment_done' });

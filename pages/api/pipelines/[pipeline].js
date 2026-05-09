@@ -115,6 +115,22 @@ export default async function handler(req, res) {
             }
           }
 
+          // Derive lab_type from most recent blood draw appointment (any status)
+          const { data: recentDraws } = await client
+            .from('appointments')
+            .select('patient_id, service_name')
+            .in('patient_id', remainingIds)
+            .or('service_name.ilike.%blood draw%,service_name.ilike.%phlebotomy%')
+            .order('start_time', { ascending: false });
+          const labTypeByPatient = {};
+          for (const a of recentDraws || []) {
+            if (labTypeByPatient[a.patient_id]) continue;
+            const sn = (a.service_name || '').toLowerCase();
+            if (sn.includes('follow'))           labTypeByPatient[a.patient_id] = 'Follow-Up';
+            else if (sn.includes('new patient')) labTypeByPatient[a.patient_id] = 'New Patient';
+            else                                 labTypeByPatient[a.patient_id] = 'Blood Draw';
+          }
+
           for (const r of rows) {
             if (r.patient_id && drawnByPatient[r.patient_id]) {
               r.labs_drawn_at = drawnByPatient[r.patient_id];
@@ -124,6 +140,12 @@ export default async function handler(req, res) {
             }
             if (r.patient_id && consultApptByPatient[r.patient_id]) {
               r.consult_appointment_at = consultApptByPatient[r.patient_id];
+            }
+            // Enrich lab_type: prefer meta, then appointment service name, then pipeline
+            if (r.patient_id && !(r.meta || {}).lab_type) {
+              const derived = labTypeByPatient[r.patient_id]
+                || (pipeline === 'follow_up_labs' ? 'Follow-Up' : 'New Patient');
+              r.meta = { ...(r.meta || {}), lab_type: derived };
             }
           }
         }

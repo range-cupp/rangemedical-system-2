@@ -178,7 +178,7 @@ function formatFieldValue(key, card) {
     return formatScheduledPacific(card.scheduled_for);
   }
   if (key === 'target')            return meta.target || null;
-  if (key === 'lab_type')          return meta.lab_type || null;
+  if (key === 'lab_type')          return null; // rendered as badge, not field row
   if (key === 'labs_drawn_at') {
     const d = formatShortDate(card.labs_drawn_at);
     if (!d) return null;
@@ -264,6 +264,12 @@ function stageDate(card) {
   return enteredDate ? { label: 'SINCE', text: `${enteredDate} · ${daysLabel}` } : null;
 }
 
+const LAB_TYPE_BADGE = {
+  'New Patient': { bg: '#e8f4f0', color: '#1a6b4a', label: 'NEW PATIENT' },
+  'Follow-Up':  { bg: '#eef0f8', color: '#3b4fa0', label: 'FOLLOW-UP' },
+  'Blood Draw': { bg: '#f5f0e8', color: '#7a6530', label: 'BLOOD DRAW' },
+};
+
 export default function PipelineCard({ card, pipeline, onClick }) {
   const days = daysSince(card.entered_stage_at);
   const fields = (pipeline?.cardFields || [])
@@ -277,6 +283,8 @@ export default function PipelineCard({ card, pipeline, onClick }) {
 
   const sd = stageDate(card);
   const urgent = days > 3 && ['awaiting_results', 'under_review', 'ready_to_schedule'].includes(card.stage);
+  const labType = (card.meta || {}).lab_type;
+  const badge = labType ? LAB_TYPE_BADGE[labType] || { bg: '#f0f0f0', color: '#606060', label: labType.toUpperCase() } : null;
 
   return (
     <div
@@ -285,6 +293,9 @@ export default function PipelineCard({ card, pipeline, onClick }) {
       onMouseEnter={(e) => { e.currentTarget.style.background = '#fafafa'; }}
       onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; }}
     >
+      {badge && (
+        <div style={{ ...styles.badge, background: badge.bg, color: badge.color }}>{badge.label}</div>
+      )}
       <div style={styles.name}>{fullName(card)}</div>
 
       {fields.length > 0 && (
@@ -343,6 +354,15 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '10px',
+  },
+  badge: {
+    fontSize: '9px',
+    fontWeight: 800,
+    letterSpacing: '0.12em',
+    padding: '2px 6px',
+    display: 'inline-block',
+    alignSelf: 'flex-start',
+    marginBottom: '-4px',
   },
   name: {
     fontSize: '14px',

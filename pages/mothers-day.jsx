@@ -45,11 +45,25 @@ function PaymentForm({ onSuccess, totalPaid, totalCredit }) {
       <div className="md-stripe-wrap">
         <PaymentElement />
       </div>
-      {error && <div className="md-error">{error}</div>}
+      {error && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '12px 16px', fontSize: '14px', marginBottom: '16px' }}>{error}</div>}
       <button
         type="submit"
         disabled={!stripe || processing}
-        className="md-submit-btn"
+        style={{
+          display: 'block',
+          width: '100%',
+          padding: '18px 24px',
+          background: (!stripe || processing) ? '#666' : '#1a1a1a',
+          color: '#fff',
+          border: 'none',
+          fontSize: '15px',
+          fontWeight: 700,
+          letterSpacing: '1px',
+          cursor: (!stripe || processing) ? 'not-allowed' : 'pointer',
+          fontFamily: 'inherit',
+          textTransform: 'uppercase',
+          opacity: (!stripe || processing) ? 0.6 : 1,
+        }}
       >
         {processing ? 'Processing...' : `PAY $${totalPaid} — GET $${totalCredit} IN CREDIT`}
       </button>

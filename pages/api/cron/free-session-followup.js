@@ -107,6 +107,19 @@ export default async function handler(req, res) {
         continue;
       }
 
+      const fiveMinCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: recentAny } = await supabase
+        .from('comms_log')
+        .select('id')
+        .eq('channel', 'sms')
+        .ilike('recipient', `%${phoneDigits}`)
+        .gte('created_at', fiveMinCutoff)
+        .limit(1);
+      if (recentAny && recentAny.length > 0) {
+        results.push({ trialId: trial.id, skipped: 'throttled' });
+        continue;
+      }
+
       const label = TRIAL_LABELS[trial.trial_type] || 'free';
       const firstName = trial.first_name || 'there';
       const message = `Hey ${firstName}, looks like you didn't finish picking a time for your free ${label} session. Want help getting scheduled? Reply here and we'll lock it in.\n\n— Range Medical`;

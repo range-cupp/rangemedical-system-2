@@ -295,16 +295,54 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
     }
   }
 
-  // Log no-shows for alerting
-  if (newStatus === 'no_show') {
-    await logComm({
-      channel: 'sms',
-      messageType: 'appointment_no_show',
-      message: `No-show: ${appointment.patient_name} — ${appointment.service_name}`,
-      source: 'appointments/status',
-      patientId: appointment.patient_id,
-      patientName: appointment.patient_name,
-      provider: null,
-    });
+  // No-show: send patient SMS + log
+  if (newStatus === 'no_show' && appointment.patient_id) {
+    const { data: noShowPatient } = await supabase
+      .from('patients')
+      .select('ghl_contact_id, name, phone')
+      .eq('id', appointment.patient_id)
+      .single();
+
+    const noShowPhone = normalizePhone(noShowPatient?.phone);
+    if (noShowPatient && noShowPhone) {
+      const firstName = noShowPatient.name.split(' ')[0];
+      const apptDate = new Date(appointment.start_time).toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric',
+        timeZone: 'America/Los_Angeles',
+      });
+      const noShowMsg = `Hi ${firstName}, we missed you at your ${appointment.service_name} appointment on ${apptDate}. Please call or text (949) 997-3988 to reschedule.`;
+
+      try {
+        const smsResult = await sendSMS({ to: noShowPhone, message: noShowMsg });
+
+        await logComm({
+          channel: 'sms',
+          messageType: 'appointment_no_show',
+          message: noShowMsg,
+          source: 'appointments/status',
+          patientId: appointment.patient_id,
+          patientName: noShowPatient.name,
+          ghlContactId: noShowPatient.ghl_contact_id,
+          recipient: noShowPhone,
+          twilioMessageSid: smsResult.messageSid || null,
+          status: smsResult.success ? 'sent' : 'error',
+          errorMessage: smsResult.success ? null : smsResult.error,
+          provider: smsResult.provider || null,
+          direction: 'outbound',
+        });
+      } catch (err) {
+        console.error('No-show SMS error:', err);
+      }
+    } else {
+      await logComm({
+        channel: 'sms',
+        messageType: 'appointment_no_show',
+        message: `No-show: ${appointment.patient_name} — ${appointment.service_name}`,
+        source: 'appointments/status',
+        patientId: appointment.patient_id,
+        patientName: appointment.patient_name,
+        provider: null,
+      });
+    }
   }
 }

@@ -406,7 +406,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
       const res = await fetch(`/api/appointments/list?start_date=${startDate}&end_date=${endDate}`);
       const data = await res.json();
-      const active = (data.appointments || []).filter(a => a.status !== 'cancelled' && a.status !== 'rescheduled' && a.status !== 'no_show');
+      const active = (data.appointments || []).filter(a => a.status !== 'cancelled' && a.status !== 'rescheduled');
       setAppointments(active);
     } catch (err) {
       console.error('Fetch appointments error:', err);

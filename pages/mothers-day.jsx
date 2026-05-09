@@ -268,7 +268,7 @@ export default function MothersDay() {
                     <span>${result.total_paid}</span>
                   </div>
                   <div className="md-confirm-row">
-                    <span>You Saved</span>
+                    <span>You Gained</span>
                     <span>${result.total_credit - result.total_paid}</span>
                   </div>
                   {result.is_gift && (
@@ -332,7 +332,7 @@ export default function MothersDay() {
                       <span className="md-summary-value">${totalCredit} in wellness credit</span>
                     </div>
                     <div className="md-summary-row md-summary-savings">
-                      <span>You save</span>
+                      <span>You gain</span>
                       <span className="md-summary-value">${totalCredit - totalPaid}</span>
                     </div>
                   </div>
@@ -554,7 +554,7 @@ export default function MothersDay() {
                     </div>
                     {!promoApplied && (
                       <div className="md-summary-row md-summary-savings">
-                        <span>You save</span>
+                        <span>You gain</span>
                         <span className="md-summary-value">${totalCredit - totalPaid}</span>
                       </div>
                     )}

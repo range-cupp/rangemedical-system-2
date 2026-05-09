@@ -53,7 +53,8 @@ export default async function handler(req, res) {
       .select('id, name, first_name, phone')
       .in('id', uniqueIds)
       .not('phone', 'is', null)
-      .neq('phone', '');
+      .neq('phone', '')
+      .eq('referral_source', 'Range Medical');
 
     if (fetchError) {
       return res.status(500).json({ error: fetchError.message });

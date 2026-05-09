@@ -89,6 +89,7 @@ export default async function handler(req, res) {
       .select('id, name, first_name, email')
       .not('email', 'is', null)
       .neq('email', '')
+      .eq('referral_source', 'Range Medical')
       .or('marketing_opt_out.is.null,marketing_opt_out.eq.false');
 
     if (fetchError) {

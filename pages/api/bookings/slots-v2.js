@@ -4,12 +4,13 @@
 // scheduling tables instead of calling Cal.com.
 //
 // Accepts the same query params as v1 plus a few new ones:
-//   eventTypeId  — for backward compatibility (looked up via
-//                  services.legacy_calcom_event_type_id)
-//   serviceSlug  — preferred; takes precedence if both supplied
-//   date         — YYYY-MM-DD (Pacific)
-//   locationId   — 'newport' (default) or 'placentia'
-//   providerId   — UUID, optional, restricts to one provider
+//   eventTypeId      — for backward compatibility (looked up via
+//                      services.legacy_calcom_event_type_id)
+//   serviceSlug      — preferred; takes precedence if both supplied
+//   date             — YYYY-MM-DD (Pacific)
+//   locationId       — 'newport' (default) or 'placentia'
+//   providerId       — UUID, optional, restricts to one provider
+//   providerUsername — alternative to providerId; resolved to UUID via employees table
 //
 // Returns the same shape as v1 so callers don't have to change:
 //   { success: true, date, slots: { [date]: [{ start, end }] }, byProvider }
@@ -27,7 +28,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { eventTypeId, serviceSlug: rawSlug, date, locationId, providerId } = req.query;
+  const { eventTypeId, serviceSlug: rawSlug, date, locationId, providerId, providerUsername } = req.query;
   if (!date) {
     return res.status(400).json({ error: 'date is required' });
   }
@@ -53,11 +54,23 @@ export default async function handler(req, res) {
       serviceSlug = svc.slug;
     }
 
+    // Resolve provider — UUID takes priority, username is a convenience alias
+    let resolvedProviderId = providerId || null;
+    if (!resolvedProviderId && providerUsername) {
+      const { data: emp } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('username', providerUsername)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (emp) resolvedProviderId = emp.id;
+    }
+
     const result = await getAvailableSlots({
       serviceSlug,
       date,
       locationId: locationId || 'newport',
-      providerId: providerId || null,
+      providerId: resolvedProviderId,
     });
 
     return res.status(200).json({

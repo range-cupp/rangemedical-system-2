@@ -146,8 +146,7 @@ export default async function handler(req, res) {
           stats.errors.push({ name: patient.name, error: result.message || JSON.stringify(result) });
         }
 
-        // 100ms delay to stay within Resend rate limits
-        await sleep(100);
+        await sleep(250);
       } catch (err) {
         stats.failed++;
         stats.errors.push({ name: patient.name, error: err.message });

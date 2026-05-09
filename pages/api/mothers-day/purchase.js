@@ -1,9 +1,12 @@
 // pages/api/mothers-day/purchase.js
 // Mother's Day Wellness Credit — purchase handler
-// Creates gift cards, promo records, and sends emails
+// Verifies Stripe payment, creates gift cards, promo records, purchase record, sends emails
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import stripe from '../../../lib/stripe';
+import { todayPacific } from '../../../lib/date-utils';
+import { postToStaffChannel } from '../../../lib/post-to-staff-channel';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -12,7 +15,6 @@ const supabase = createClient(
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
-// Mother's Day 2026: May 10, 7:00 AM PT = 14:00 UTC
 const MOTHERS_DAY_SEND_TIME = '2026-05-10T14:00:00.000Z';
 
 function generateCode() {
@@ -155,7 +157,6 @@ function giftCardEmailHtml({ purchaserName, recipientName, code, expiresAt }) {
           <h2 style="margin:0 0 8px;font-size:22px;color:#111;font-weight:800;">Happy Mother's Day!</h2>
           <p style="margin:0 0 24px;font-size:15px;color:#666;line-height:1.6;">Someone special wants you to feel your best.</p>
 
-          <!-- Gift Card Visual -->
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#1a1a1a;border-radius:8px;overflow:hidden;margin:0 0 24px;">
             <tr><td style="padding:32px;text-align:center;">
               <p style="margin:0 0 4px;font-size:11px;color:#808080;letter-spacing:2px;text-transform:uppercase;">Mother's Day</p>
@@ -229,6 +230,7 @@ export default async function handler(req, res) {
   }
 
   const {
+    payment_intent_id,
     purchaser_name,
     purchaser_email,
     purchaser_phone,
@@ -238,6 +240,10 @@ export default async function handler(req, res) {
     send_type,
     quantity
   } = req.body;
+
+  if (!payment_intent_id) {
+    return res.status(400).json({ error: 'Payment is required.' });
+  }
 
   if (!purchaser_name || !purchaser_email) {
     return res.status(400).json({ error: 'Name and email are required.' });
@@ -259,13 +265,83 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Please enter a valid recipient email address.' });
   }
 
-  const expiresAt = new Date();
-  expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-
-  const cards = [];
-  const promos = [];
-
   try {
+    // Verify payment succeeded on Stripe
+    const pi = await stripe.paymentIntents.retrieve(payment_intent_id, {
+      expand: ['payment_method'],
+    });
+
+    if (pi.status !== 'succeeded') {
+      return res.status(400).json({ error: `Payment not succeeded (status: ${pi.status})` });
+    }
+
+    const expectedAmountCents = qty * 30000;
+    if (pi.amount < expectedAmountCents) {
+      return res.status(400).json({ error: 'Payment amount does not match order.' });
+    }
+
+    let cardBrand = null;
+    let cardLast4 = null;
+    if (pi.payment_method?.card) {
+      cardBrand = pi.payment_method.card.brand;
+      cardLast4 = pi.payment_method.card.last4;
+    }
+
+    const normalizedEmail = purchaser_email.toLowerCase().trim();
+    const totalPaidDollars = qty * 300;
+    const totalCreditDollars = qty * 400;
+
+    // Find patient by email
+    let patientId = null;
+    const { data: patient } = await supabase
+      .from('patients')
+      .select('id, stripe_customer_id')
+      .ilike('email', normalizedEmail)
+      .maybeSingle();
+
+    if (patient) {
+      patientId = patient.id;
+      if (!patient.stripe_customer_id && pi.customer) {
+        await supabase
+          .from('patients')
+          .update({ stripe_customer_id: pi.customer })
+          .eq('id', patientId);
+      }
+    }
+
+    // Record purchase
+    const { data: purchase } = await supabase
+      .from('purchases')
+      .insert({
+        patient_id: patientId,
+        patient_name: purchaser_name,
+        patient_email: normalizedEmail,
+        patient_phone: purchaser_phone || null,
+        item_name: "Mother's Day Wellness Credit",
+        product_name: "Mother's Day Wellness Credit",
+        amount: totalPaidDollars,
+        amount_paid: totalPaidDollars,
+        category: 'gift_card',
+        quantity: qty,
+        stripe_payment_intent_id: payment_intent_id,
+        stripe_amount_cents: expectedAmountCents,
+        stripe_status: 'succeeded',
+        stripe_verified_at: new Date().toISOString(),
+        payment_method: 'stripe',
+        source: 'website_checkout',
+        purchase_date: todayPacific(),
+        card_brand: cardBrand,
+        card_last4: cardLast4,
+      })
+      .select('id')
+      .single();
+
+    const expiresAt = new Date();
+    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+
+    const cards = [];
+    const promos = [];
+
     for (let i = 0; i < qty; i++) {
       const code = await createUniqueCode();
 
@@ -290,11 +366,11 @@ export default async function handler(req, res) {
         .insert({
           gift_card_id: card.id,
           purchaser_name,
-          purchaser_email: purchaser_email.toLowerCase().trim(),
+          purchaser_email: normalizedEmail,
           purchaser_phone: purchaser_phone || null,
           is_gift: isGift,
           recipient_name: isGift ? recipient_name : purchaser_name,
-          recipient_email: isGift ? recipient_email.toLowerCase().trim() : purchaser_email.toLowerCase().trim(),
+          recipient_email: isGift ? recipient_email.toLowerCase().trim() : normalizedEmail,
           amount_paid: 30000,
           credit_value: 40000,
           send_type: isGift ? (send_type || 'now') : 'now',
@@ -310,18 +386,17 @@ export default async function handler(req, res) {
     }
 
     const codes = cards.map(c => c.code);
-    const totalPaid = qty * 300;
-    const totalCredit = qty * 400;
 
+    // Confirmation email to purchaser
     await sendEmail({
       from: 'Range Medical <noreply@range-medical.com>',
-      to: purchaser_email.toLowerCase().trim(),
-      subject: "Your Mother’s Day Wellness Credit — Range Medical",
+      to: normalizedEmail,
+      subject: "Your Mother's Day Wellness Credit — Range Medical",
       html: confirmationEmailHtml({
         purchaserName: purchaser_name,
         qty,
-        totalPaid,
-        totalCredit,
+        totalPaid: totalPaidDollars,
+        totalCredit: totalCreditDollars,
         codes,
         isGift,
         recipientName: recipient_name,
@@ -330,12 +405,13 @@ export default async function handler(req, res) {
       })
     });
 
+    // Gift card email to recipient (if not scheduled)
     if (isGift && send_type !== 'scheduled') {
       for (let i = 0; i < cards.length; i++) {
         await sendEmail({
           from: 'Range Medical <noreply@range-medical.com>',
           to: recipient_email.toLowerCase().trim(),
-          subject: `You’ve Received a Mother’s Day Wellness Gift from ${purchaser_name}`,
+          subject: `You've Received a Mother's Day Wellness Gift from ${purchaser_name}`,
           html: giftCardEmailHtml({
             purchaserName: purchaser_name,
             recipientName: recipient_name,
@@ -351,11 +427,34 @@ export default async function handler(req, res) {
       }
     }
 
+    // Staff alert
+    postToStaffChannel({
+      channelName: 'Sales Alerts',
+      memberEmails: ['damon@range-medical.com', 'tara@range-medical.com'],
+      content: [
+        `🌸 Mother's Day Wellness Credit — $${totalPaidDollars}`,
+        '',
+        purchaser_name,
+        `✉️ ${normalizedEmail}`,
+        purchaser_phone ? `📞 ${purchaser_phone}` : '',
+        '',
+        `${qty}x credit ($${totalCreditDollars} value)`,
+        isGift ? `Gift for ${recipient_name} (${recipient_email})` : 'Self-purchase',
+        isGift && send_type === 'scheduled' ? 'Delivery: Mother\'s Day morning' : '',
+      ].filter(Boolean).join('\n'),
+      pushPayload: {
+        title: `Mother's Day — $${totalPaidDollars}`,
+        body: purchaser_name,
+      },
+    }).catch(err => console.error("Mother's Day staff alert error:", err));
+
+    console.log(`Mother's Day purchase complete: ${purchaser_name} — ${qty}x credit, $${totalPaidDollars} paid (PI: ${payment_intent_id})`);
+
     return res.status(201).json({
       success: true,
       quantity: qty,
-      total_paid: totalPaid,
-      total_credit: totalCredit,
+      total_paid: totalPaidDollars,
+      total_credit: totalCreditDollars,
       codes,
       is_gift: isGift,
       recipient_name: isGift ? recipient_name : null,
@@ -363,7 +462,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Mother\'s Day purchase error:', error);
+    console.error("Mother's Day purchase error:", error);
     return res.status(500).json({ error: 'Something went wrong. Please try again or call us at (949) 997-3988.' });
   }
 }

@@ -792,8 +792,9 @@ function CheckoutInner() {
     recovery:  { label: 'Recovery',        order: 1 },
     gh_blend:  { label: 'Growth Hormone',  order: 2 },
     longevity: { label: 'Longevity',       order: 3 },
-    skin:      { label: 'Skin & Hair',     order: 4 },
-    peptide:   { label: 'Other',           order: 5 },
+    cognitive: { label: 'Cognitive',        order: 4 },
+    skin:      { label: 'Skin & Hair',     order: 5 },
+    peptide:   { label: 'Other',           order: 6 },
   };
 
   function getPeptideCatalogGroups() {

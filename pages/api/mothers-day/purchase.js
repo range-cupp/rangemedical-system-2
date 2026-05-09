@@ -229,8 +229,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const VALID_PROMO_CODES = { 'RANGETEST': 100 };
+
   const {
     payment_intent_id,
+    promo_code,
     purchaser_name,
     purchaser_email,
     purchaser_phone,
@@ -241,7 +244,10 @@ export default async function handler(req, res) {
     quantity
   } = req.body;
 
-  if (!payment_intent_id) {
+  const promoDiscount = VALID_PROMO_CODES[(promo_code || '').toUpperCase().trim()];
+  const isPromoFree = promoDiscount === 100;
+
+  if (!payment_intent_id && !isPromoFree) {
     return res.status(400).json({ error: 'Payment is required.' });
   }
 
@@ -266,30 +272,32 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Verify payment succeeded on Stripe
-    const pi = await stripe.paymentIntents.retrieve(payment_intent_id, {
-      expand: ['payment_method'],
-    });
-
-    if (pi.status !== 'succeeded') {
-      return res.status(400).json({ error: `Payment not succeeded (status: ${pi.status})` });
-    }
-
-    const expectedAmountCents = qty * 30000;
-    if (pi.amount < expectedAmountCents) {
-      return res.status(400).json({ error: 'Payment amount does not match order.' });
-    }
-
     let cardBrand = null;
     let cardLast4 = null;
-    if (pi.payment_method?.card) {
-      cardBrand = pi.payment_method.card.brand;
-      cardLast4 = pi.payment_method.card.last4;
-    }
-
     const normalizedEmail = purchaser_email.toLowerCase().trim();
-    const totalPaidDollars = qty * 300;
+    const totalPaidDollars = isPromoFree ? 0 : qty * 300;
     const totalCreditDollars = qty * 400;
+
+    // Verify Stripe payment (skip for 100% promo)
+    if (!isPromoFree) {
+      const pi = await stripe.paymentIntents.retrieve(payment_intent_id, {
+        expand: ['payment_method'],
+      });
+
+      if (pi.status !== 'succeeded') {
+        return res.status(400).json({ error: `Payment not succeeded (status: ${pi.status})` });
+      }
+
+      const expectedAmountCents = qty * 30000;
+      if (pi.amount < expectedAmountCents) {
+        return res.status(400).json({ error: 'Payment amount does not match order.' });
+      }
+
+      if (pi.payment_method?.card) {
+        cardBrand = pi.payment_method.card.brand;
+        cardLast4 = pi.payment_method.card.last4;
+      }
+    }
 
     // Find patient by email
     let patientId = null;
@@ -301,12 +309,6 @@ export default async function handler(req, res) {
 
     if (patient) {
       patientId = patient.id;
-      if (!patient.stripe_customer_id && pi.customer) {
-        await supabase
-          .from('patients')
-          .update({ stripe_customer_id: pi.customer })
-          .eq('id', patientId);
-      }
     }
 
     // Record purchase
@@ -323,11 +325,11 @@ export default async function handler(req, res) {
         amount_paid: totalPaidDollars,
         category: 'gift_card',
         quantity: qty,
-        stripe_payment_intent_id: payment_intent_id,
-        stripe_amount_cents: expectedAmountCents,
-        stripe_status: 'succeeded',
-        stripe_verified_at: new Date().toISOString(),
-        payment_method: 'stripe',
+        stripe_payment_intent_id: payment_intent_id || null,
+        stripe_amount_cents: isPromoFree ? 0 : qty * 30000,
+        stripe_status: isPromoFree ? null : 'succeeded',
+        stripe_verified_at: isPromoFree ? null : new Date().toISOString(),
+        payment_method: isPromoFree ? 'promo' : 'stripe',
         source: 'website_checkout',
         purchase_date: todayPacific(),
         card_brand: cardBrand,

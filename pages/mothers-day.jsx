@@ -68,13 +68,15 @@ export default function MothersDay() {
     sendType: 'now',
     quantity: 1
   });
+  const [promoCode, setPromoCode] = useState('');
+  const [promoApplied, setPromoApplied] = useState(false);
   const [step, setStep] = useState('info');
   const [clientSecret, setClientSecret] = useState(null);
   const [creating, setCreating] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
-  const totalPaid = formData.quantity * 300;
+  const totalPaid = promoApplied ? 0 : formData.quantity * 300;
   const totalCredit = formData.quantity * 400;
 
   const updateField = (field) => (e) => {
@@ -95,6 +97,34 @@ export default function MothersDay() {
     setCreating(true);
 
     try {
+      // If promo covers 100%, skip Stripe and go straight to purchase
+      if (promoApplied) {
+        const resp = await fetch('/api/mothers-day/purchase', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            promo_code: promoCode,
+            purchaser_name: formData.purchaserName,
+            purchaser_email: formData.purchaserEmail,
+            purchaser_phone: formData.purchaserPhone,
+            is_gift: formData.isGift,
+            recipient_name: formData.recipientName,
+            recipient_email: formData.recipientEmail,
+            send_type: formData.sendType,
+            quantity: formData.quantity
+          })
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          setError(data.error || 'Something went wrong.');
+          return;
+        }
+        setResult(data);
+        setStep('success');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
       const nameParts = formData.purchaserName.trim().split(/\s+/);
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || firstName;
@@ -465,19 +495,55 @@ export default function MothersDay() {
                     </div>
                   </div>
 
+                  {/* Promo Code */}
+                  <div className="md-promo-row">
+                    <input
+                      type="text"
+                      value={promoCode}
+                      onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoApplied(false); }}
+                      className="md-input md-promo-input"
+                      placeholder="Promo code"
+                    />
+                    <button
+                      type="button"
+                      className="md-promo-btn"
+                      onClick={async () => {
+                        if (!promoCode.trim()) return;
+                        try {
+                          const r = await fetch('/api/mothers-day/check-promo?code=' + encodeURIComponent(promoCode.trim()));
+                          const d = await r.json();
+                          if (d.valid) {
+                            setPromoApplied(true);
+                            setError('');
+                          } else {
+                            setPromoApplied(false);
+                            setError(d.error || 'Invalid promo code.');
+                          }
+                        } catch {
+                          setError('Could not verify promo code.');
+                        }
+                      }}
+                    >
+                      Apply
+                    </button>
+                    {promoApplied && <span className="md-promo-ok">Applied</span>}
+                  </div>
+
                   <div className="md-order-summary">
                     <div className="md-summary-row">
                       <span>You pay</span>
-                      <span className="md-summary-value">${totalPaid}</span>
+                      <span className="md-summary-value">{promoApplied ? <><s style={{ color: '#999', fontWeight: 400 }}>${formData.quantity * 300}</s> $0</> : `$${totalPaid}`}</span>
                     </div>
                     <div className="md-summary-row md-summary-highlight">
                       <span>{formData.isGift ? 'They get' : 'You get'}</span>
                       <span className="md-summary-value">${totalCredit} in wellness credit</span>
                     </div>
-                    <div className="md-summary-row md-summary-savings">
-                      <span>You save</span>
-                      <span className="md-summary-value">${totalCredit - totalPaid}</span>
-                    </div>
+                    {!promoApplied && (
+                      <div className="md-summary-row md-summary-savings">
+                        <span>You save</span>
+                        <span className="md-summary-value">${totalCredit - totalPaid}</span>
+                      </div>
+                    )}
                   </div>
 
                   {error && (
@@ -489,7 +555,7 @@ export default function MothersDay() {
                     disabled={creating}
                     className="md-submit-btn"
                   >
-                    {creating ? 'Loading...' : `CONTINUE TO PAYMENT — $${totalPaid}`}
+                    {creating ? 'Loading...' : promoApplied ? 'COMPLETE ORDER — FREE' : `CONTINUE TO PAYMENT — $${totalPaid}`}
                   </button>
 
                   <p className="md-form-note">
@@ -692,6 +758,42 @@ export default function MothersDay() {
           height: 8px;
           background: #1a1a1a;
           border-radius: 50%;
+        }
+
+        .md-promo-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin: 24px 0 0;
+        }
+
+        .md-promo-input {
+          flex: 1;
+          max-width: 200px;
+          font-size: 13px !important;
+          padding: 10px 12px !important;
+          letter-spacing: 1px;
+        }
+
+        .md-promo-btn {
+          padding: 10px 16px;
+          background: #f5f5f5;
+          border: 1px solid #e0e0e0;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: inherit;
+          color: #333;
+        }
+
+        .md-promo-btn:hover {
+          background: #eee;
+        }
+
+        .md-promo-ok {
+          font-size: 13px;
+          font-weight: 600;
+          color: #2E6B35;
         }
 
         .md-order-summary {

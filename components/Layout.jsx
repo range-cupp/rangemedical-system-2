@@ -23,9 +23,6 @@ export default function Layout({ children, title, description, logoOnly }) {
         <meta name="description" content={description || 'Range Medical in Newport Beach. Two ways to feel like yourself again.'} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;1,400&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </Head>
 
       {/* Header */}
@@ -36,7 +33,7 @@ export default function Layout({ children, title, description, logoOnly }) {
               <img
                 src="https://www.range-medical.com/brand/range_logo_transparent_black.png"
                 alt="Range Medical"
-                style={{ height: '56px' }}
+                className="rm-logo-img"
               />
             </span>
           ) : (
@@ -44,7 +41,7 @@ export default function Layout({ children, title, description, logoOnly }) {
               <img
                 src="https://www.range-medical.com/brand/range_logo_transparent_black.png"
                 alt="Range Medical"
-                style={{ height: '56px' }}
+                className="rm-logo-img"
               />
             </Link>
           )}
@@ -233,17 +230,17 @@ export default function Layout({ children, title, description, logoOnly }) {
         .rm-header {
           position: sticky;
           top: 0;
-          background: #ffffff;
-          border-bottom: 1px solid var(--color-border);
+          background: var(--color-bg);
+          border-bottom: 1px solid transparent;
           z-index: 1000;
-          transition: background var(--transition), box-shadow var(--transition), backdrop-filter var(--transition);
+          transition: background var(--transition), border-color var(--transition), backdrop-filter var(--transition);
         }
 
         .rm-header-scrolled {
-          background: rgba(255,255,255,0.9);
+          background: rgba(250, 249, 246, 0.9);
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
-          box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+          border-bottom-color: var(--color-border);
         }
 
         .rm-header-inner {
@@ -358,7 +355,7 @@ export default function Layout({ children, title, description, logoOnly }) {
           top: 100%;
           left: 0;
           right: 0;
-          background: #ffffff;
+          background: var(--color-bg);
           border-bottom: 1px solid var(--color-border);
           box-shadow: 0 12px 40px rgba(0,0,0,0.06);
           opacity: 0;
@@ -450,7 +447,7 @@ export default function Layout({ children, title, description, logoOnly }) {
           top: 100%;
           left: 0;
           right: 0;
-          background: #ffffff;
+          background: var(--color-bg);
           border-bottom: 1px solid var(--color-border);
           padding: 1rem 2rem 1.5rem;
           box-shadow: 0 8px 30px rgba(0,0,0,0.06);

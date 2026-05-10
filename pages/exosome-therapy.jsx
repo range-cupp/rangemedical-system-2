@@ -227,7 +227,7 @@ export default function ExosomeTherapy() {
         {/* Hero */}
         <section className="exo-hero">
           <div className="v2-label"><span className="v2-dot" /> EXOSOME THERAPY</div>
-          <h1>WHEN YOUR BODY STOPS REPAIRING ITSELF, EXOSOMES <em>PICK UP THE SLACK.</em></h1>
+          <h1>When your body stops repairing itself, exosomes <em>pick up the slack.</em></h1>
           <div className="exo-hero-rule"></div>
           <p className="exo-body-text">Cell-derived signaling molecules that tell your body to regenerate. Used for joint repair, anti-aging, and recovery when nothing else has worked. Newport Beach.</p>
           <div className="exo-hero-scroll">
@@ -241,7 +241,7 @@ export default function ExosomeTherapy() {
           <div className="exo-container">
             <div className="exo-animate">
               <div className="v2-label"><span className="v2-dot" /> WHAT ARE EXOSOMES</div>
-              <h2>YOUR BODY'S <em>CELLULAR MESSENGERS.</em></h2>
+              <h2>Your body&apos;s <em>cellular messengers.</em></h2>
               <div className="exo-divider"></div>
               <p className="exo-body-text">
                 Exosomes are tiny vesicles (30-150 nanometers) released by cells to communicate with other cells. They carry proteins, lipids, and genetic material that deliver instructions — telling recipient cells to repair, regenerate, or reduce inflammation.
@@ -273,7 +273,7 @@ export default function ExosomeTherapy() {
           <div className="exo-container">
             <div className="exo-animate">
               <div className="v2-label"><span className="v2-dot" /> WHO IT'S FOR</div>
-              <h2>WHEN YOU WANT TO <em>REGENERATE,</em> NOT JUST TREAT.</h2>
+              <h2>When you want to <em>regenerate,</em> not just treat.</h2>
               <div className="exo-divider"></div>
               <p className="exo-body-text">
                 Exosome therapy is for people looking beyond symptom management — those who want to support their body's natural repair processes. If any of these resonate, exosomes might be worth exploring.
@@ -293,7 +293,7 @@ export default function ExosomeTherapy() {
           <div className="exo-container">
             <div className="exo-animate">
               <div className="v2-label"><span className="v2-dot" /> THE PROCESS</div>
-              <h2>HOW EXOSOME THERAPY WORKS.</h2>
+              <h2>How exosome therapy works.</h2>
               <div className="exo-divider"></div>
               <p className="exo-body-text">
                 The process is straightforward. Here's what to expect at our Newport Beach clinic.
@@ -319,7 +319,7 @@ export default function ExosomeTherapy() {
           <div className="exo-container">
             <div className="exo-animate">
               <div className="v2-label"><span className="v2-dot" /> WHY EXOSOMES</div>
-              <h2>THE POTENTIAL OF <em>CELLULAR SIGNALING.</em></h2>
+              <h2>The potential of <em>cellular signaling.</em></h2>
               <div className="exo-divider"></div>
               <p className="exo-body-text">
                 Exosome therapy represents a new frontier in regenerative medicine. Here's what makes it unique.
@@ -343,7 +343,7 @@ export default function ExosomeTherapy() {
           <div className="exo-container">
             <div className="exo-animate">
               <div className="v2-label"><span className="v2-dot" /> BACKED BY SCIENCE</div>
-              <h2>EVIDENCE-BASED RESULTS</h2>
+              <h2>Evidence-based results</h2>
               <div className="exo-divider"></div>
               <p className="exo-body-text">
                 We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
@@ -376,7 +376,7 @@ export default function ExosomeTherapy() {
         <section className="exo-section exo-section-alt">
           <div className="exo-container">
             <div className="v2-label"><span className="v2-dot" /> QUESTIONS</div>
-            <h2>COMMON QUESTIONS</h2>
+            <h2>Common questions</h2>
 
             <div className="exo-faq-list">
               {faqs.map((faq, index) => (
@@ -399,7 +399,7 @@ export default function ExosomeTherapy() {
           <div className="exo-container">
             <div className="exo-animate">
               <div className="v2-label" style={{ marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
-              <h2 className="exo-cta-title">INTERESTED IN <em>EXOSOME THERAPY?</em></h2>
+              <h2 className="exo-cta-title">Interested in <em>exosome therapy?</em></h2>
               <p className="exo-body-text" style={{ textAlign: 'left', margin: '0 auto 2.5rem', maxWidth: '600px' }}>
                 Get started with Range Medical. Your provider will review your goals and determine if exosome therapy is a good fit for your situation. Our Newport Beach team is here to help.
               </p>
@@ -858,10 +858,9 @@ export default function ExosomeTherapy() {
 
         .exo-cta-title {
           font-size: 2.75rem;
-          font-weight: 900;
+          font-weight: 400;
           letter-spacing: -0.03em;
           line-height: 0.95;
-          text-transform: uppercase;
           color: #ffffff;
           margin-bottom: 1.25rem;
         }

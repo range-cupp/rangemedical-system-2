@@ -491,7 +491,6 @@ export default function MethyleneBlue() {
           font-size: 1rem;
           font-weight: 800;
           color: #1a1a1a;
-          text-transform: uppercase;
         }
 
         /* Section Body */

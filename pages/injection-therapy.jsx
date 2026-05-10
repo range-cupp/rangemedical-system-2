@@ -221,7 +221,7 @@ export default function InjectionTherapy() {
         {/* Hero */}
         <section className="inj-hero">
           <div className="v2-label"><span className="v2-dot" /> INJECTION THERAPY</div>
-          <h1>SKIP THE IV. GET WHAT YOU NEED <em>IN 5 MINUTES.</em></h1>
+          <h1>Skip the IV. Get what you need <em>in 5 minutes.</em></h1>
           <div className="inj-hero-rule" />
           <p className="inj-body-text">Targeted vitamin, nutrient, and NAD+ injections. No appointment hassle, no sitting in a chair for an hour. In and out. Newport Beach.</p>
           <div className="inj-hero-scroll">

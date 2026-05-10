@@ -119,7 +119,7 @@ export default function Home() {
         {/* 1. Hero Section */}
         <section id="home-hero" className="hero">
           <div className="v2-label"><span className="v2-dot" /> Recovery &middot; Energy &middot; Optimization</div>
-          <h1>One Assessment.<br />One Plan.<br />Feel Like<br />Yourself Again.</h1>
+          <h1>One Assessment. One Plan. <em>Feel like yourself</em> again.</h1>
           <div className="hero-rule" />
           <p className="hero-sub">
             Start with a $197 Range Assessment. We review your history, symptoms, and goals, then build your plan. If you move forward with treatment, the full $197 is credited toward it.
@@ -149,7 +149,7 @@ export default function Home() {
         <section id="home-doors" className={`home-section-alt home-animate ${isVisible['home-doors'] ? 'home-visible' : ''}`}>
           <div className="home-container">
             <div className="v2-label"><span className="v2-dot" /> How It Works</div>
-            <h2>One Assessment.<br />Two Paths.</h2>
+            <h2>One Assessment. <em>Two paths.</em></h2>
             <p className="home-section-intro">
               Every patient starts with a $197 Range Assessment. Tell us what brings you in, and we&apos;ll take it from there.
             </p>
@@ -157,7 +157,7 @@ export default function Home() {
             <div className="doors-grid">
               <div className="door-card">
                 <span className="door-number">01</span>
-                <h3>Injury &<br />Recovery</h3>
+                <h3>Injury & Recovery</h3>
                 <p>You&apos;re rehabbing an injury and healing feels slow. You want to speed things up.</p>
                 <ul>
                   <li>Review your injury and rehab history</li>
@@ -173,7 +173,7 @@ export default function Home() {
               <div className="door-card featured">
                 <span className="door-badge">Most Popular</span>
                 <span className="door-number">02</span>
-                <h3>Energy,<br />Hormones &<br />Weight</h3>
+                <h3>Energy, Hormones & Weight</h3>
                 <p>You&apos;re tired, foggy, or just don&apos;t feel like yourself. You want answers and a plan.</p>
                 <ul>
                   <li>Review symptoms, goals, and history</li>
@@ -193,7 +193,7 @@ export default function Home() {
         <section id="home-services" className={`home-section home-animate ${isVisible['home-services'] ? 'home-visible' : ''}`}>
           <div className="home-container">
             <div className="v2-label"><span className="v2-dot" /> What We Offer</div>
-            <h2>Tools We Use<br />to Help You<br />Feel Better.</h2>
+            <h2>Tools we use to <em>help you feel better.</em></h2>
             <p className="home-section-intro">
               You don&apos;t need to choose your therapies. Your provider picks the right tools for your situation after the Assessment.
             </p>
@@ -222,7 +222,7 @@ export default function Home() {
         <section id="home-testimonials" className={`home-section-alt home-animate ${isVisible['home-testimonials'] ? 'home-visible' : ''}`}>
           <div className="home-container">
             <div className="v2-label"><span className="v2-dot" /> Results</div>
-            <h2>What Our<br />Patients Say.</h2>
+            <h2>What our <em>patients</em> say.</h2>
 
             <div className="testimonials-grid" style={{ marginTop: '2.5rem' }}>
               <div className="testimonial">
@@ -272,7 +272,7 @@ export default function Home() {
         <section id="home-cashpay" className={`home-section home-animate ${isVisible['home-cashpay'] ? 'home-visible' : ''}`}>
           <div className="home-container">
             <div className="v2-label"><span className="v2-dot" /> How We Work</div>
-            <h2>No Insurance.<br />On Purpose.</h2>
+            <h2>No insurance. <em>On purpose.</em></h2>
             <p className="home-section-intro">
               We&apos;re a cash-pay clinic &mdash; and that&apos;s by design. It means more time with your provider,
               transparent pricing, and zero insurance red tape.
@@ -310,7 +310,7 @@ export default function Home() {
         {/* 7. Final CTA */}
         <section className="final-cta">
           <div className="container">
-            <h2>Ready to Feel<br />Like Yourself<br />Again?</h2>
+            <h2>Ready to <em>feel like yourself</em> again?</h2>
             <div className="cta-rule" />
             <p>Start with the $197 Range Assessment. Your full visit cost is credited toward treatment if you move forward.</p>
             <div className="cta-buttons">

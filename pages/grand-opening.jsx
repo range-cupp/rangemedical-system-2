@@ -71,7 +71,7 @@ export default function GrandOpening() {
       {/* Hero */}
       <section className="go-hero">
         <div className="v2-label"><span className="v2-dot" /> Range Medical</div>
-        <h1 className="go-hero-title">GRAND OPENING</h1>
+        <h1 className="go-hero-title">Grand <em>opening</em></h1>
         <div className="go-hero-rule" />
         <p className="go-hero-subtitle">January 22&ndash;24, 2026 &middot; Newport Beach, CA</p>
       </section>

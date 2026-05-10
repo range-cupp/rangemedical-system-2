@@ -355,7 +355,7 @@ export default function LabPanels() {
         <section className="lp-hero">
           <div className="lp-hero-inner">
             <div className="v2-label"><span className="v2-dot" /> LABS &middot; TESTING &middot; INSIGHTS</div>
-            <h1>YOUR GUIDE<br />TO LAB PANELS</h1>
+            <h1>Your guide to <em>lab panels</em></h1>
             <div className="lp-hero-rule" />
             <p className="lp-hero-body">
               Standard bloodwork misses a lot. Our panels go deeper &mdash; hormones, metabolism,
@@ -372,7 +372,7 @@ export default function LabPanels() {
         <section id="lab-who" className={`lp-section-alt lab-animate ${isVisible['lab-who'] ? 'lab-visible' : ''}`}>
           <div className="lp-container">
             <div className="v2-label"><span className="v2-dot" /> WHO IT&apos;S FOR</div>
-            <h2>WHEN TO GET TESTED</h2>
+            <h2>When to get <em>tested</em></h2>
             <p className="lp-section-intro">
               Comprehensive labs give you answers that standard bloodwork misses.
             </p>
@@ -430,7 +430,7 @@ export default function LabPanels() {
         <section id="lab-panels" className={`lp-section lab-animate ${isVisible['lab-panels'] ? 'lab-visible' : ''}`}>
           <div className="lp-container">
             <div className="v2-label"><span className="v2-dot" /> COMPARE PANELS</div>
-            <h2>ESSENTIAL VS ELITE</h2>
+            <h2>Essential vs <em>elite</em></h2>
             <p className="lp-section-intro">
               See exactly what&apos;s included in each panel.
             </p>
@@ -593,7 +593,7 @@ export default function LabPanels() {
         <section id="lab-which" className={`lp-section-alt lab-animate ${isVisible['lab-which'] ? 'lab-visible' : ''}`}>
           <div className="lp-container">
             <div className="v2-label"><span className="v2-dot" /> WHICH PANEL?</div>
-            <h2>WHICH PANEL IS<br />RIGHT FOR YOU?</h2>
+            <h2>Which panel is <em>right</em> for you?</h2>
 
             <div className="lp-compare-grid">
               <div className="lp-compare-card">
@@ -647,7 +647,7 @@ export default function LabPanels() {
         <section id="lab-decide" className={`lp-section lab-animate ${isVisible['lab-decide'] ? 'lab-visible' : ''}`}>
           <div className="lp-container">
             <div className="v2-label"><span className="v2-dot" /> NOT SURE?</div>
-            <h2>FIND YOUR PANEL<br />IN 10 SECONDS</h2>
+            <h2>Find your panel in <em>10 seconds</em></h2>
             <p className="lp-section-intro">
               Tell us why you&apos;re here and we&apos;ll point you to the right panel.
             </p>
@@ -684,7 +684,7 @@ export default function LabPanels() {
         <section id="lab-markers" className={`lp-section-alt lab-animate ${isVisible['lab-markers'] ? 'lab-visible' : ''}`}>
           <div className="lp-container">
             <div className="v2-label"><span className="v2-dot" /> ELITE MARKERS</div>
-            <h2>THE THREE MARKERS<br />MOST DOCTORS MISS</h2>
+            <h2>The three markers most doctors <em>miss</em></h2>
             <p className="lp-section-intro">
               These are the markers longevity specialists consider essential &mdash; and they&apos;re only in the Elite panel.
             </p>
@@ -740,7 +740,7 @@ export default function LabPanels() {
         <section id="lab-process" className={`lp-section lab-animate ${isVisible['lab-process'] ? 'lab-visible' : ''}`}>
           <div className="lp-container">
             <div className="v2-label"><span className="v2-dot" /> HOW IT WORKS</div>
-            <h2>FROM ORDER<br />TO RESULTS</h2>
+            <h2>From order to <em>results</em></h2>
 
             <div className="lp-process-grid">
               <div className="lp-process-step">
@@ -774,7 +774,7 @@ export default function LabPanels() {
         <section id="lab-faq" className={`lp-section-alt lab-animate ${isVisible['lab-faq'] ? 'lab-visible' : ''}`}>
           <div className="lp-container">
             <div className="v2-label"><span className="v2-dot" /> QUESTIONS</div>
-            <h2>COMMON QUESTIONS</h2>
+            <h2>Common <em>questions</em></h2>
 
             <div className="lp-faq-list">
               {faqs.map((faq, index) => (
@@ -796,7 +796,7 @@ export default function LabPanels() {
         <section className="lp-section-inverted">
           <div className="lp-container">
             <div className="v2-label" style={{ justifyContent: 'center' }}><span className="v2-dot" style={{ background: '#808080' }} /> GET STARTED</div>
-            <h2>READY TO SEE WHAT&apos;S<br />REALLY GOING ON?</h2>
+            <h2>Ready to see what&apos;s <em>really</em> going on?</h2>
             <p className="lp-cta-text">
               Book your panel below and we&apos;ll get you scheduled for your blood draw. Results in 3&ndash;5 business days.
             </p>
@@ -834,11 +834,10 @@ export default function LabPanels() {
 
           .lp-hero h1 {
             font-size: clamp(2.5rem, 6vw, 4rem);
-            font-weight: 900;
+            font-weight: 400;
             color: #1a1a1a;
             line-height: 0.95;
             letter-spacing: -0.02em;
-            text-transform: uppercase;
             margin: 0 0 1.5rem;
           }
 
@@ -984,11 +983,10 @@ export default function LabPanels() {
           .lp-section h2,
           .lp-section-alt h2 {
             font-size: 2.25rem;
-            font-weight: 900;
+            font-weight: 400;
             color: #1a1a1a;
             line-height: 0.95;
             letter-spacing: -0.02em;
-            text-transform: uppercase;
             margin: 0 0 1.25rem;
           }
 
@@ -1661,10 +1659,9 @@ export default function LabPanels() {
           /* CTA Section */
           .lp-section-inverted h2 {
             font-size: 2.25rem;
-            font-weight: 900;
+            font-weight: 400;
             line-height: 0.95;
             letter-spacing: -0.02em;
-            text-transform: uppercase;
             margin: 0 0 1.25rem;
           }
 

@@ -169,7 +169,7 @@ export default function InjuryRecovery() {
         {/* Hero Section */}
         <section className="inj-hero">
           <div className="v2-label"><span className="v2-dot" /> INJURY RECOVERY</div>
-          <h1>STUCK IN A HEALING PLATEAU? YOUR BODY NEEDS MORE THAN TIME.</h1>
+          <h1>Stuck in a healing plateau? Your body needs more than <em>time.</em></h1>
           <div className="inj-hero-rule" />
           <p className="inj-body-text">
             Post-surgery, chronic pain, or nagging injury &mdash; we combine regenerative protocols to break through where rest and PT hit a wall. Newport Beach.
@@ -184,7 +184,7 @@ export default function InjuryRecovery() {
         <section id="inj-conditions" className={`inj-section-alt inj-animate ${isVisible['inj-conditions'] ? 'inj-visible' : ''}`}>
           <div className="inj-container">
             <div className="v2-label"><span className="v2-dot" /> Who It&apos;s For</div>
-            <h2>Injuries We<br />Help With</h2>
+            <h2>Injuries We <em>Help</em> With</h2>
             <p className="inj-section-intro">
               If healing feels slow or you&apos;ve hit a plateau, our recovery protocols may help support your progress.
             </p>
@@ -249,7 +249,7 @@ export default function InjuryRecovery() {
         <section id="inj-process" className={`inj-section inj-animate ${isVisible['inj-process'] ? 'inj-visible' : ''}`}>
           <div className="inj-container">
             <div className="v2-label"><span className="v2-dot" /> How It Works</div>
-            <h2>From Assessment<br />to Recovery Plan</h2>
+            <h2>From Assessment to <em>Recovery</em> Plan</h2>
             <p className="inj-section-intro">
               Start with a $197 Range Assessment (credited toward treatment). We&apos;ll learn about your situation so your provider can determine the best approach during your visit.
             </p>
@@ -286,7 +286,7 @@ export default function InjuryRecovery() {
         <section id="inj-tools" className={`inj-section-alt inj-animate ${isVisible['inj-tools'] ? 'inj-visible' : ''}`}>
           <div className="inj-container">
             <div className="v2-label"><span className="v2-dot" /> Recovery Tools</div>
-            <h2>Recovery Tools<br />We Offer</h2>
+            <h2>Recovery Tools We <em>Offer</em></h2>
             <p className="inj-section-intro">
               These are some of the tools our providers may consider during your evaluation. What&apos;s right for you depends on your specific situation.
             </p>
@@ -368,7 +368,7 @@ export default function InjuryRecovery() {
         <section id="inj-research" className={`inj-section inj-animate ${isVisible['inj-research'] ? 'inj-visible' : ''}`}>
           <div className="inj-container">
             <div className="v2-label"><span className="v2-dot" /> The Evidence</div>
-            <h2>Research Behind<br />Recovery Protocols</h2>
+            <h2>Research Behind <em>Recovery</em> Protocols</h2>
             <p className="inj-section-intro">
               We&apos;ve summarized the peer-reviewed research. Click any study to get the full breakdown &mdash; free.
             </p>
@@ -398,7 +398,7 @@ export default function InjuryRecovery() {
         <section id="inj-faq" className={`inj-section-alt inj-animate ${isVisible['inj-faq'] ? 'inj-visible' : ''}`}>
           <div className="inj-container">
             <div className="v2-label"><span className="v2-dot" /> Questions</div>
-            <h2>Common<br />Questions</h2>
+            <h2>Common <em>Questions</em></h2>
 
             <div className="inj-faq-list">
               {faqs.map((faq, index) => (
@@ -429,7 +429,7 @@ export default function InjuryRecovery() {
         <section className="inj-section-inverted">
           <div className="inj-container">
             <div className="v2-label" style={{ justifyContent: 'center' }}><span className="v2-dot" /> Get Started</div>
-            <h2>Ready to Explore<br />Your Options?</h2>
+            <h2>Ready to Explore Your <em>Options?</em></h2>
             <p className="inj-cta-text">
               Take the online assessment. It takes 2 minutes and helps our team understand your situation before your visit.
             </p>

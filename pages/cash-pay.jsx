@@ -15,7 +15,7 @@ export default function CashPay() {
         <section className="cp-hero">
           <div className="cp-container">
             <div className="v2-label"><span className="v2-dot" /> How We Work</div>
-            <h1>No Insurance.<br />On Purpose.</h1>
+            <h1>No Insurance. <em>On Purpose.</em></h1>
             <div className="cp-hero-rule" />
             <p className="cp-hero-sub">
               Range Medical is a cash-pay clinic. We don&apos;t accept insurance &mdash; and that&apos;s a deliberate
@@ -26,7 +26,7 @@ export default function CashPay() {
 
         <section className="cp-content">
           <div className="cp-container cp-narrow">
-            <h2>Why Cash-Pay?</h2>
+            <h2>Why <em>Cash-Pay?</em></h2>
             <p className="cp-intro">
               Insurance-based clinics operate under a system that limits what providers can offer, how much time
               they can spend with you, and which treatments get approved. We built Range Medical outside of that
@@ -94,7 +94,7 @@ export default function CashPay() {
 
         <section className="final-cta">
           <div className="container">
-            <h2>Ready to Get<br />Started?</h2>
+            <h2>Ready to Get <em>Started?</em></h2>
             <div className="cta-rule" />
             <p>Take the Range Assessment &mdash; it&apos;s free for injury recovery, or starts at $350 for labs.</p>
             <div className="cta-buttons">
@@ -134,7 +134,7 @@ export default function CashPay() {
 
         .cp-hero h1 {
           font-size: clamp(2.5rem, 6vw, 4rem);
-          font-weight: 900;
+          font-weight: 400;
           line-height: 1.05;
           letter-spacing: -0.02em;
           margin: 1rem 0 0;

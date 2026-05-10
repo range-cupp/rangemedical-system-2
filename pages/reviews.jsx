@@ -195,7 +195,7 @@ export default function ReviewsPage({ reviews, aggregateRating, totalReviewCount
       <section className="rv-hero">
         <div className="rv-hero-inner">
           <div className="v2-label"><span className="v2-dot" /> PATIENT REVIEWS</div>
-          <h1>WHAT OUR<br />PATIENTS SAY</h1>
+          <h1>What our <em>patients</em> say</h1>
           <div className="rv-hero-rule" />
           <p className="rv-hero-body">
             Real experiences from real patients. See why Newport Beach trusts Range Medical
@@ -300,7 +300,7 @@ export default function ReviewsPage({ reviews, aggregateRating, totalReviewCount
       <section className="rv-cta">
         <div className="rv-container">
           <div className="v2-label" style={{ justifyContent: 'center' }}><span className="v2-dot" style={{ background: '#808080' }} /> NEXT STEP</div>
-          <h2>READY TO FEEL<br />LIKE YOURSELF AGAIN?</h2>
+          <h2>Ready to feel like <em>yourself</em> again?</h2>
           <p className="rv-cta-body">Join our patients who have transformed their health with Range Medical.</p>
           <Link href="/assessment" className="rv-btn-white">
             Book Your Range Assessment
@@ -325,11 +325,10 @@ export default function ReviewsPage({ reviews, aggregateRating, totalReviewCount
 
         .rv-hero h1 {
           font-size: clamp(2.5rem, 6vw, 4rem);
-          font-weight: 900;
+          font-weight: 400;
           color: #1a1a1a;
           line-height: 0.95;
           letter-spacing: -0.02em;
-          text-transform: uppercase;
           margin: 0 0 1.5rem;
         }
 
@@ -606,11 +605,10 @@ export default function ReviewsPage({ reviews, aggregateRating, totalReviewCount
 
         .rv-cta h2 {
           font-size: 2.5rem;
-          font-weight: 900;
+          font-weight: 400;
           color: #ffffff;
           line-height: 0.95;
           letter-spacing: -0.02em;
-          text-transform: uppercase;
           margin: 0 0 1.5rem;
         }
 

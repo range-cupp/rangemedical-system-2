@@ -151,7 +151,7 @@ export default function EnergyOptimization() {
         {/* Hero Section */}
         <section className="eo-hero">
           <div className="v2-label"><span className="v2-dot" /> ENERGY &amp; OPTIMIZATION</div>
-          <h1>YOUR DOCTOR SAYS YOU&apos;RE FINE. YOU KNOW YOU&apos;RE NOT.</h1>
+          <h1>Your doctor says you&apos;re fine. You know you&apos;re <em>not.</em></h1>
           <div className="eo-hero-rule" />
           <p className="eo-body-text">
             We run the labs your PCP doesn&apos;t, find the root cause of your fatigue, brain fog, or weight gain, and build a plan that actually works. Newport Beach.
@@ -166,7 +166,7 @@ export default function EnergyOptimization() {
         <section id="eo-symptoms" className={`eo-section-alt eo-animate ${isVisible['eo-symptoms'] ? 'eo-visible' : ''}`}>
           <div className="eo-container">
             <div className="v2-label"><span className="v2-dot" /> Who It&apos;s For</div>
-            <h2>Sound Like<br />You?</h2>
+            <h2>Sound Like <em>You?</em></h2>
             <p className="eo-section-intro">
               If any of these feel familiar, you&apos;re in the right place.
             </p>
@@ -244,7 +244,7 @@ export default function EnergyOptimization() {
         <section id="eo-process" className={`eo-section eo-animate ${isVisible['eo-process'] ? 'eo-visible' : ''}`}>
           <div className="eo-container">
             <div className="v2-label"><span className="v2-dot" /> How It Works</div>
-            <h2>From Assessment<br />to Answers</h2>
+            <h2>From Assessment to <em>Answers</em></h2>
             <p className="eo-section-intro">
               Start with a $197 Range Assessment (credited toward treatment). Everything else flows from there.
             </p>
@@ -281,7 +281,7 @@ export default function EnergyOptimization() {
         <section id="eo-paths" className={`eo-section-alt eo-animate ${isVisible['eo-paths'] ? 'eo-visible' : ''}`}>
           <div className="eo-container">
             <div className="v2-label"><span className="v2-dot" /> Treatment Paths</div>
-            <h2>What We Can<br />Help With</h2>
+            <h2>What We Can <em>Help</em> With</h2>
             <p className="eo-section-intro">
               After your assessment and labs, your provider will recommend the right path. Here are the most common ones.
             </p>
@@ -359,7 +359,7 @@ export default function EnergyOptimization() {
         <section id="eo-research" className={`eo-section eo-animate ${isVisible['eo-research'] ? 'eo-visible' : ''}`}>
           <div className="eo-container">
             <div className="v2-label"><span className="v2-dot" /> The Evidence</div>
-            <h2>Research Behind<br />Optimization</h2>
+            <h2>Research Behind <em>Optimization</em></h2>
             <p className="eo-section-intro">
               We&apos;ve summarized the peer-reviewed research. Click any study to get the full breakdown &mdash; free.
             </p>
@@ -389,7 +389,7 @@ export default function EnergyOptimization() {
         <section id="eo-faq" className={`eo-section-alt eo-animate ${isVisible['eo-faq'] ? 'eo-visible' : ''}`}>
           <div className="eo-container">
             <div className="v2-label"><span className="v2-dot" /> Questions</div>
-            <h2>Common<br />Questions</h2>
+            <h2>Common <em>Questions</em></h2>
 
             <div className="eo-faq-list">
               {faqs.map((faq, index) => (
@@ -420,7 +420,7 @@ export default function EnergyOptimization() {
         <section className="eo-section-inverted">
           <div className="eo-container">
             <div className="v2-label" style={{ justifyContent: 'center' }}><span className="v2-dot" /> Get Started</div>
-            <h2>Ready to Find<br />Out What&apos;s Going On?</h2>
+            <h2>Ready to Find Out What&apos;s <em>Going On?</em></h2>
             <p className="eo-cta-text">
               Start with a $197 Range Assessment. We&apos;ll review your situation, discuss the right labs, and build your plan.
               If you move forward with treatment, the full $197 goes toward it.

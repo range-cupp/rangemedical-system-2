@@ -69,7 +69,7 @@ export default function Services() {
         <section className="v2-hero">
           <div className="v2-hero-inner">
             <div className="v2-label"><span className="v2-dot" /> SERVICES & PRICING</div>
-            <h1>EVERYTHING<br />WE OFFER.<br />ONE PAGE.</h1>
+            <h1>Everything we offer. <em>One page.</em></h1>
             <div className="v2-hero-rule" />
             <p className="v2-hero-body">
               Full pricing for every service. Book and pay online, or call us at{' '}
@@ -97,7 +97,7 @@ export default function Services() {
             <div className="v2-label"><span className="v2-dot" /> IV THERAPY</div>
 
             {/* Range IVs */}
-            <h2 className="svc-section-title">THE RANGE IV</h2>
+            <h2 className="svc-section-title">The Range IV</h2>
             <p className="svc-section-sub">Choose your formula. 5 vitamins & minerals included. Add-ons +$35 each.</p>
 
             <div className="svc-price-grid svc-price-grid-4">
@@ -146,7 +146,7 @@ export default function Services() {
             </div>
 
             {/* Glutathione IVs */}
-            <h2 className="svc-section-title svc-mt">GLUTATHIONE IV</h2>
+            <h2 className="svc-section-title svc-mt">Glutathione IV</h2>
             <p className="svc-section-sub">The body&apos;s master antioxidant. Detox, immune support, and skin health.</p>
 
             <div className="svc-price-grid svc-price-grid-3">
@@ -167,7 +167,7 @@ export default function Services() {
             </div>
 
             {/* High-Dose Vitamin C */}
-            <h2 className="svc-section-title svc-mt">HIGH-DOSE VITAMIN C IV</h2>
+            <h2 className="svc-section-title svc-mt">High-dose vitamin C IV</h2>
             <p className="svc-section-sub">Therapeutic doses for immune support and antioxidant defense. Requires G6PD blood work.</p>
 
             <div className="svc-price-grid svc-price-grid-3">
@@ -188,7 +188,7 @@ export default function Services() {
             </div>
 
             {/* Methylene Blue IVs */}
-            <h2 className="svc-section-title svc-mt">METHYLENE BLUE IV</h2>
+            <h2 className="svc-section-title svc-mt">Methylene blue IV</h2>
             <p className="svc-section-sub">Mitochondrial support and cognitive enhancement. Requires baseline labs.</p>
 
             <div className="svc-price-grid svc-price-grid-2">
@@ -217,7 +217,7 @@ export default function Services() {
             <div className="v2-label"><span className="v2-dot" /> INJECTIONS</div>
 
             {/* Standard */}
-            <h2 className="svc-section-title">STANDARD INJECTIONS &mdash; $35</h2>
+            <h2 className="svc-section-title">Standard injections &mdash; $35</h2>
             <p className="svc-section-sub">In and out in 5 minutes. No IV needed.</p>
 
             <div className="svc-price-grid svc-price-grid-4">
@@ -233,7 +233,7 @@ export default function Services() {
             </div>
 
             {/* Premium */}
-            <h2 className="svc-section-title svc-mt">PREMIUM INJECTIONS &mdash; $50</h2>
+            <h2 className="svc-section-title svc-mt">Premium injections &mdash; $50</h2>
 
             <div className="svc-price-grid svc-price-grid-3">
               {[
@@ -253,7 +253,7 @@ export default function Services() {
             </div>
 
             {/* NAD+ Injections */}
-            <h2 className="svc-section-title svc-mt">NAD+ INJECTIONS &mdash; $0.50/mg</h2>
+            <h2 className="svc-section-title svc-mt">NAD+ injections &mdash; $0.50/mg</h2>
             <p className="svc-section-sub">Subcutaneous injection. Quick dose for cellular energy and focus.</p>
 
             <div className="svc-price-grid svc-price-grid-3">
@@ -273,7 +273,7 @@ export default function Services() {
             </div>
 
             {/* Injection Packages */}
-            <h2 className="svc-section-title svc-mt">INJECTION PACKAGES</h2>
+            <h2 className="svc-section-title svc-mt">Injection packages</h2>
             <p className="svc-section-sub">12 injections for the price of 10. Take home for self-administration.</p>
 
             <div className="svc-price-grid svc-price-grid-2">
@@ -317,7 +317,7 @@ export default function Services() {
             <div className="v2-label"><span className="v2-dot" /> RECOVERY & HEALING</div>
 
             {/* Cellular Energy Reset */}
-            <h2 className="svc-section-title">SIX-WEEK CELLULAR ENERGY RESET</h2>
+            <h2 className="svc-section-title">Six-week cellular energy reset</h2>
             <p className="svc-section-sub">18 HBOT + 18 Red Light sessions over 6 weeks. Money-back guarantee.</p>
 
             <div className="svc-price-grid svc-price-grid-1">
@@ -339,7 +339,7 @@ export default function Services() {
             </div>
 
             {/* HBOT */}
-            <h2 className="svc-section-title svc-mt">HYPERBARIC OXYGEN THERAPY</h2>
+            <h2 className="svc-section-title svc-mt">Hyperbaric oxygen therapy</h2>
             <p className="svc-section-sub">60 minutes at 2.0 ATA. Pressurized oxygen for healing and inflammation.</p>
 
             <div className="svc-price-grid svc-price-grid-3">
@@ -390,7 +390,7 @@ export default function Services() {
             </div>
 
             {/* RLT */}
-            <h2 className="svc-section-title svc-mt">RED LIGHT THERAPY</h2>
+            <h2 className="svc-section-title svc-mt">Red light therapy</h2>
             <p className="svc-section-sub">Full-body 660&ndash;850nm wavelengths for cellular recovery and tissue repair.</p>
 
             <div className="svc-price-grid svc-price-grid-4">
@@ -429,7 +429,7 @@ export default function Services() {
             </div>
 
             {/* Combo Memberships */}
-            <h2 className="svc-section-title svc-mt">HBOT + RED LIGHT COMBO</h2>
+            <h2 className="svc-section-title svc-mt">HBOT + red light combo</h2>
             <p className="svc-section-sub">Back-to-back sessions. 3-month minimum, then month-to-month.</p>
 
             <div className="svc-price-grid svc-price-grid-3">
@@ -451,7 +451,7 @@ export default function Services() {
             </div>
 
             {/* PRP */}
-            <h2 className="svc-section-title svc-mt">PRP THERAPY</h2>
+            <h2 className="svc-section-title svc-mt">PRP therapy</h2>
             <p className="svc-section-sub">Platelet-Rich Plasma from your own blood. Joints, tendons, hair, and skin.</p>
 
             <div className="svc-price-grid svc-price-grid-2">
@@ -474,7 +474,7 @@ export default function Services() {
             </div>
 
             {/* Exosome */}
-            <h2 className="svc-section-title svc-mt">EXOSOME THERAPY</h2>
+            <h2 className="svc-section-title svc-mt">Exosome therapy</h2>
             <p className="svc-section-sub">Cellular messengers delivered via IV for systemic regeneration. Consultation required.</p>
 
             <div className="svc-price-grid svc-price-grid-1">
@@ -496,7 +496,7 @@ export default function Services() {
             <div className="v2-label"><span className="v2-dot" /> OPTIMIZATION & WELLNESS</div>
 
             {/* HRT */}
-            <h2 className="svc-section-title">HORMONE OPTIMIZATION</h2>
+            <h2 className="svc-section-title">Hormone optimization</h2>
             <p className="svc-section-sub">All-inclusive HRT membership. Requires baseline labs.</p>
 
             <div className="svc-price-grid svc-price-grid-1">
@@ -515,7 +515,7 @@ export default function Services() {
             </div>
 
             {/* Weight Loss */}
-            <h2 className="svc-section-title svc-mt">MEDICAL WEIGHT LOSS</h2>
+            <h2 className="svc-section-title svc-mt">Medical weight loss</h2>
             <p className="svc-section-sub">Provider-managed GLP-1 medication program. Requires baseline labs.</p>
 
             <div className="svc-price-grid svc-price-grid-1">
@@ -534,7 +534,7 @@ export default function Services() {
             </div>
 
             {/* Peptide Therapy */}
-            <h2 className="svc-section-title svc-mt">PEPTIDE THERAPY</h2>
+            <h2 className="svc-section-title svc-mt">Peptide therapy</h2>
             <p className="svc-section-sub">Targeted protocols for recovery, growth hormone support, immune function, and more.</p>
 
             <div className="svc-price-grid svc-price-grid-1">
@@ -599,7 +599,7 @@ export default function Services() {
         {/* ── CTA ── */}
         <section className="v2-section v2-cta-section">
           <div className="v2-container v2-cta-inner">
-            <h2>NOT SURE<br />WHERE TO<br />START?</h2>
+            <h2>Not sure where to <em>start?</em></h2>
             <div className="v2-cta-rule" />
             <p>Book your $197 Range Assessment &mdash; it goes directly toward treatment.</p>
             <div className="v2-cta-buttons">

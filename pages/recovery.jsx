@@ -25,7 +25,7 @@ export default function Recovery() {
       <section className="hero">
         <div className="container">
           <span className="hero-badge">HBOT + Red Light Therapy</span>
-          <h1>Recovery & Energy Programs</h1>
+          <h1>Recovery & <em>Energy</em> Programs</h1>
           <p className="hero-sub">
             Structured programs that combine hyperbaric oxygen and red light therapy to accelerate recovery, reduce pain, and restore energy. One visit at a time.
           </p>
@@ -44,7 +44,7 @@ export default function Recovery() {
       <section className="section" style={{ background: '#fafafa' }}>
         <div className="container">
           <div className="section-kicker">How It Works</div>
-          <h2 className="section-title">Two therapies. One visit. Real results.</h2>
+          <h2 className="section-title">Two therapies. One visit. <em>Real results.</em></h2>
           <p className="section-subtitle">
             By default, each Recovery Session combines hyperbaric oxygen (60 min) and red light therapy (20 min) in the same visit. If you prefer one modality over the other, we adjust the protocol to fit you.
           </p>
@@ -73,7 +73,7 @@ export default function Recovery() {
       <section className="section" id="programs">
         <div className="container">
           <div className="section-kicker">Programs</div>
-          <h2 className="section-title">Choose your starting point</h2>
+          <h2 className="section-title">Choose your <em>starting point</em></h2>
           <p className="section-subtitle">
             Every program includes the same Recovery Sessions. Pick the commitment level that fits where you are.
           </p>
@@ -162,7 +162,7 @@ export default function Recovery() {
       <section className="section" style={{ background: '#fafafa' }}>
         <div className="container" style={{ maxWidth: '720px' }}>
           <div className="section-kicker">Flexible Protocols</div>
-          <h2 className="section-title">Your program, your preference</h2>
+          <h2 className="section-title">Your program, your <em>preference</em></h2>
           <p style={{ fontSize: '17px', lineHeight: '1.7', color: '#333' }}>
             By default, every Recovery Session combines the chamber and red light because that's where we see the best results. But every program can be adjusted:
           </p>
@@ -187,7 +187,7 @@ export default function Recovery() {
       <section className="section">
         <div className="container" style={{ maxWidth: '720px' }}>
           <div className="section-kicker">FAQ</div>
-          <h2 className="section-title">Common questions</h2>
+          <h2 className="section-title">Common <em>questions</em></h2>
 
           {[
             {
@@ -254,7 +254,7 @@ export default function Recovery() {
       {/* CTA */}
       <section className="section" style={{ background: '#000', color: '#fff', textAlign: 'center' }}>
         <div className="container">
-          <h2 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '16px' }}>Ready to start recovering?</h2>
+          <h2 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '16px' }}>Ready to start <em>recovering?</em></h2>
           <p style={{ fontSize: '18px', color: '#ccc', marginBottom: '32px', maxWidth: '560px', margin: '0 auto 32px' }}>
             Call or text to book your first session. We'll help you pick the right program.
           </p>

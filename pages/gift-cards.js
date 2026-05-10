@@ -69,7 +69,7 @@ export default function GiftCards() {
         {/* Hero */}
         <section className="gc-hero">
           <div className="v2-label"><span className="v2-dot" /> Gift Cards</div>
-          <h1>GIVE THE GIFT OF FEELING AMAZING</h1>
+          <h1>Give the gift of feeling <em>amazing</em></h1>
           <div className="gc-hero-rule" />
           <p className="gc-body-text">Range Medical gift cards let someone you care about invest in their energy, vitality, and long-term health.</p>
         </section>
@@ -91,7 +91,7 @@ export default function GiftCards() {
           <div className="gc-container">
             <div className="gc-card-container">
               <div className="gc-card-header">
-                <h2>PURCHASE A GIFT CARD</h2>
+                <h2>Purchase a gift card</h2>
                 <div className="gc-divider" />
                 <p className="gc-body-text">Select an amount and send it instantly via email.</p>
               </div>
@@ -106,7 +106,7 @@ export default function GiftCards() {
         <section className="gc-section gc-section-alt">
           <div className="gc-container">
             <div className="v2-label"><span className="v2-dot" /> Why Gift Cards</div>
-            <h2>A GIFT THAT ACTUALLY MATTERS</h2>
+            <h2>A gift that actually matters</h2>
             <div className="gc-divider" />
             <p className="gc-body-text" style={{ marginBottom: '2.5rem' }}>Skip the stuff that collects dust. Give something that helps them feel their best.</p>
 
@@ -150,7 +150,7 @@ export default function GiftCards() {
         <section className="gc-section">
           <div className="gc-container">
             <div className="v2-label"><span className="v2-dot" /> How It Works</div>
-            <h2>SIMPLE TO GIVE, EASY TO REDEEM</h2>
+            <h2>Simple to give, easy to redeem</h2>
             <div className="gc-divider" />
             <p className="gc-body-text" style={{ marginBottom: '2.5rem' }}>Four easy steps from purchase to use.</p>
 
@@ -191,7 +191,7 @@ export default function GiftCards() {
         <section className="gc-section gc-section-alt">
           <div className="gc-container">
             <div className="v2-label"><span className="v2-dot" /> Questions</div>
-            <h2>GIFT CARD FAQS</h2>
+            <h2>Gift card FAQs</h2>
             <div className="gc-divider" />
 
             <div className="gc-faq-container">
@@ -227,7 +227,7 @@ export default function GiftCards() {
         <section className="gc-section gc-section-inverted" style={{ textAlign: 'center' }}>
           <div className="gc-container">
             <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', justifyContent: 'center', marginBottom: '1.5rem' }}><span className="v2-dot" /> Next Steps</div>
-            <h2 style={{ color: '#fff' }}>QUESTIONS ABOUT GIFT CARDS?</h2>
+            <h2 style={{ color: '#fff' }}>Questions about gift cards?</h2>
             <div className="gc-divider" style={{ background: 'rgba(255,255,255,0.12)', margin: '1.25rem auto' }} />
             <p className="gc-body-text" style={{ color: 'rgba(255,255,255,0.55)', margin: '0 auto 2rem' }}>Our team is happy to help. Give us a call or stop by the clinic.</p>
             <p className="gc-cta-phone"><a href="tel:+19499973988">(949) 997-3988</a></p>

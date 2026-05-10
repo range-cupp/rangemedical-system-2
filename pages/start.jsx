@@ -244,10 +244,9 @@ export default function StartPage() {
           }
           .start-hero h1 {
             font-size: clamp(2.5rem, 6vw, 4rem);
-            font-weight: 900;
+            font-weight: 400;
             line-height: 0.95;
             letter-spacing: -0.02em;
-            text-transform: uppercase;
             margin: 0 0 1.5rem;
             max-width: 680px;
             color: #171717;
@@ -308,8 +307,7 @@ export default function StartPage() {
           }
           .start-doors h2 {
             font-size: 2rem;
-            font-weight: 900;
-            text-transform: uppercase;
+            font-weight: 400;
             letter-spacing: -0.02em;
             line-height: 0.95;
             margin: 0 0 1rem;
@@ -665,8 +663,7 @@ export default function StartPage() {
           }
           .start-how h2 {
             font-size: 2rem;
-            font-weight: 900;
-            text-transform: uppercase;
+            font-weight: 400;
             letter-spacing: -0.02em;
             line-height: 0.95;
             margin: 0 0 2.5rem;
@@ -743,7 +740,7 @@ export default function StartPage() {
         {/* Hero */}
         <section className="start-hero">
           <div className="v2-label"><span className="v2-dot" /> Start Here</div>
-          <h1 className={animClass('hero-h1')} data-anim-id="hero-h1">NOT FEELING LIKE YOURSELF?<br />START HERE.</h1>
+          <h1 className={animClass('hero-h1')} data-anim-id="hero-h1">Not feeling like <em>yourself?</em> Start here.</h1>
           <div className="start-hero-rule" />
           <p className={animClass('hero-p')} data-anim-id="hero-p">
             Tell us what you're dealing with, and we'll show you the best next step. Takes about 3 minutes.
@@ -765,7 +762,7 @@ export default function StartPage() {
         {/* Pick Your Door */}
         <section className="start-doors">
           <div className="v2-label" style={{ marginBottom: '1rem' }}><span className="v2-dot" /> What Brings You In</div>
-          <h2 className={animClass('doors-h2')} data-anim-id="doors-h2">WHAT BRINGS YOU IN?</h2>
+          <h2 className={animClass('doors-h2')} data-anim-id="doors-h2">What <em>brings</em> you in?</h2>
           <p className={animClass('doors-p')} data-anim-id="doors-p">Pick the one that fits best. We'll take it from there.</p>
 
           <div className="start-doors-grid">
@@ -793,7 +790,7 @@ export default function StartPage() {
         {/* How It Works */}
         <section className="start-how">
           <div className="v2-label" style={{ marginBottom: '1rem' }}><span className="v2-dot" /> How It Works</div>
-          <h2 className={animClass('how-h2')} data-anim-id="how-h2">HOW RANGE WORKS</h2>
+          <h2 className={animClass('how-h2')} data-anim-id="how-h2">How Range <em>works</em></h2>
           <div className="start-steps">
             <div className={`start-step ${animClass('step-1')}`} data-anim-id="step-1">
               <div className="start-step-num">1</div>

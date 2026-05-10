@@ -11,7 +11,7 @@ Internal clinic management system for Range Medical (regenerative medicine clini
 - **Icons:** lucide-react
 - **Charts:** recharts
 - **Email:** Resend
-- **CRM Integration:** GoHighLevel (GHL) API
+- **Scheduling:** Native scheduling engine (`lib/scheduling.js` + `lib/create-appointment.js`)
 - **Language:** JavaScript (JSX), no TypeScript
 
 ## Commands
@@ -107,9 +107,20 @@ scripts/                # One-off utility scripts
 - State management is local (useState/useEffect) — no global state library
 - Data fetching happens in `useEffect` with Supabase client calls
 
+### Scheduling — NON-NEGOTIABLE
+- **Cal.com is fully deprecated.** Never use Cal.com iframes, Cal.com API calls, `lib/calcom.js`, or Cal.com embed URLs. The file `lib/calcom.js` has been deleted.
+- All scheduling goes through the **native scheduling engine**: `lib/scheduling.js` (slot availability) and `lib/create-appointment.js` (booking creation).
+- Slot availability: `GET /api/bookings/slots?serviceSlug=<slug>&date=YYYY-MM-DD`
+- Create bookings: `POST /api/bookings/create` with `{ serviceSlug, start, patientId, patientName, patientEmail, ... }`
+- Cancel/reschedule: `/api/bookings/cancel`, `/api/bookings/reschedule`, or `/api/appointments/[id]/cancel`
+- Services, providers, and schedules are managed in Supabase tables: `services`, `service_providers`, `provider_schedules`, `provider_schedule_overrides`
+- For patient-facing date/slot pickers, use the 14-day day-selector + slot grid pattern (see `FreeSessionScheduler.js` or `book-assessment.jsx`)
+- `calcom_bookings` table is a historical archive only — never read from or write to it in new code
+- **GoHighLevel (GHL) is also fully deprecated.** Never reference GHL webhooks, GHL contact sync, GHL API calls, or `lib/ghl-sync.js`.
+
 ### Service Log
 - The Service Log is the **single source of truth** for all session tracking (IV, HBOT, RLT, injections, peptide pickups, weight loss pickups, HRT pickups)
-- Do not add session counting to GHL webhooks or other systems
+- Do not add session counting to other systems
 
 ### Protocol PDF Visual Style — NON-NEGOTIABLE
 - **Section headers:** Small-caps gray label (8pt, letter-spacing) + 0.75pt rule. NEVER use solid black/filled bars for section headers.

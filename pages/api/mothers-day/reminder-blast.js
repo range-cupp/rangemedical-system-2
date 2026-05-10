@@ -83,6 +83,14 @@ export default async function handler(req, res) {
 
     const purchasedSet = new Set((purchasedEmails || []).map(p => p.purchaser_email));
 
+    const { data: alreadySent } = await supabase
+      .from('comms_log')
+      .select('recipient')
+      .eq('message_type', 'mothers_day_reminder_blast')
+      .eq('channel', 'email');
+
+    const alreadySentSet = new Set((alreadySent || []).map(r => r.recipient));
+
     const { data: patients, error: fetchError } = await supabase
       .from('patients')
       .select('id, name, first_name, email')
@@ -97,7 +105,7 @@ export default async function handler(req, res) {
 
     const eligible = (patients || []).filter(p => {
       const email = (p.email || '').trim().toLowerCase();
-      return email && email.includes('@') && !purchasedSet.has(email);
+      return email && email.includes('@') && !purchasedSet.has(email) && !alreadySentSet.has(email);
     });
 
     const toSend = limit > 0 ? eligible.slice(0, limit) : eligible;

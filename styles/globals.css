@@ -1863,3 +1863,33 @@ p {
     padding: 96px 2rem;
   }
 }
+
+/* ========================================
+   INJURY MODULE — Homepage mid-page
+   ======================================== */
+
+.home-injury-module {
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  padding: 3rem;
+}
+
+.home-injury-content {
+  max-width: 600px;
+}
+
+@media (max-width: 768px) {
+  .home-injury-module {
+    padding: 2rem 1.5rem;
+  }
+}
+
+/* ========================================
+   NAV — Secondary injury link
+   ======================================== */
+
+.rm-nav-injury {
+  color: var(--color-text-muted) !important;
+  font-weight: 400 !important;
+  font-style: italic;
+}

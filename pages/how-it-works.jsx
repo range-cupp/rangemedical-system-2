@@ -27,11 +27,11 @@ export default function HowItWorks() {
   const faqs = [
     {
       q: "What’s included in the $197 Assessment?",
-      a: "A 60-minute visit with a board-certified provider where we review your full history, symptoms, and goals. You’ll leave with a clear plan, treatment recommendations, timeline, and transparent pricing. The full $197 is credited toward treatment if you move forward."
+      a: "A 30-minute visit with a board-certified provider where we review your full history, symptoms, and goals. You’ll leave with a clear plan, treatment recommendations, timeline, and transparent pricing. The full $197 is credited toward treatment if you move forward."
     },
     {
       q: "How long does the Assessment take?",
-      a: "About 60 minutes. We take the time to understand what’s going on before recommending anything."
+      a: "About 30 minutes. We take the time to understand what’s going on before recommending anything."
     },
     {
       q: "What if I don’t move forward with treatment after the Assessment?",
@@ -56,11 +56,11 @@ export default function HowItWorks() {
     <>
       <Head>
         <title>How It Works | Range Medical Newport Beach</title>
-        <meta name="description" content="Every patient at Range Medical starts with the $197 Assessment. Sixty minutes with a board-certified provider, a personalized plan, and full credit toward your treatment." />
+        <meta name="description" content="Every patient at Range Medical starts with the $197 Assessment. Thirty minutes with a board-certified provider, a personalized plan, and full credit toward your treatment." />
         <link rel="canonical" href="https://www.range-medical.com/how-it-works" />
 
         <meta property="og:title" content="How It Works | Range Medical Newport Beach" />
-        <meta property="og:description" content="Every patient at Range Medical starts with the $197 Assessment. Sixty minutes with a board-certified provider, a personalized plan, and full credit toward your treatment." />
+        <meta property="og:description" content="Every patient at Range Medical starts with the $197 Assessment. Thirty minutes with a board-certified provider, a personalized plan, and full credit toward your treatment." />
         <meta property="og:url" content="https://www.range-medical.com/how-it-works" />
         <meta property="og:type" content="website" />
 
@@ -99,7 +99,7 @@ export default function HowItWorks() {
           <section id="s-assess" className={`hiw-sect hiw-fade${visible['s-assess'] ? ' hiw-in' : ''}`}>
             <div className="hiw-wrap">
               <span className="hiw-eyebrow">THE ASSESSMENT</span>
-              <h2>Sixty minutes that <em>change everything.</em></h2>
+              <h2>Thirty minutes that <em>change everything.</em></h2>
               <p className="hiw-body-lg">
                 Every patient at Range Medical starts with the $197 Range Assessment. It&apos;s not a sales pitch. It&apos;s a real conversation with a board-certified provider &mdash; about what&apos;s actually going on, what we can help with, and what comes next.
               </p>
@@ -214,7 +214,7 @@ export default function HowItWorks() {
 
               <div className="hiw-pricing-card">
                 <ul>
-                  <li>60-minute Assessment with a board-certified provider</li>
+                  <li>30-minute Assessment with a board-certified provider</li>
                   <li>Personalized plan recommendation</li>
                   <li>Full $197 credited toward treatment</li>
                   <li>HSA/FSA accepted</li>

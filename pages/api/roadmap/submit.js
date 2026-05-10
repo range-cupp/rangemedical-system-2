@@ -156,7 +156,7 @@ export default async function handler(req, res) {
         const normalized = normalizePhone(phone);
         let message;
         if (scoreTier === 'assessment') {
-          message = `Thanks ${capFirst} — your roadmap is ready.\n\nYou said you're ready to solve this now. The fastest path is your Range Assessment: 45 min with a provider, real plan, $197 credited back toward treatment.\n\nBook here:\nhttps://range-medical.com/assessment?from=roadmap\n\n- Range Medical`;
+          message = `Thanks ${capFirst} — your roadmap is ready.\n\nYou said you're ready to solve this now. The fastest path is your Range Assessment: 30 min with a provider, real plan, $197 credited back toward treatment.\n\nBook here:\nhttps://range-medical.com/assessment?from=roadmap\n\n- Range Medical`;
         } else {
           message = `Thanks ${capFirst} — your 6-month roadmap is in your email.\n\nTake your time with it. When you're ready to make it real, we'll be here.\n\n- Range Medical`;
         }
@@ -394,7 +394,7 @@ function buildPatientRoadmapEmail({ firstName, path, missingOut, successVision, 
         <div style="font-size:20px;font-weight:900;margin-bottom:10px;line-height:1.2;">Book your Range Assessment.</div>
         <div style="font-size:14px;line-height:1.6;margin-bottom:20px;color:#f0fdf4;">
           You said you're ready. This is how we turn your roadmap into a real plan.
-          45 minutes with a provider. $197 — credited toward treatment if you move forward.
+          30 minutes with a provider. $197 — credited toward treatment if you move forward.
         </div>
         <a href="https://range-medical.com/assessment?from=roadmap" style="display:inline-block;background:#fff;color:#16a34a;padding:14px 28px;font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;text-decoration:none;">
           Book My Assessment →

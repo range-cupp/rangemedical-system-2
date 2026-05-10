@@ -1125,7 +1125,7 @@ export default function RoadmapPage() {
                   <div className="label">Your Next Step</div>
                   <h3>Book Your Range Assessment.</h3>
                   <p>
-                    This is how we turn your roadmap into a real plan. 45 minutes with a provider, a full review
+                    This is how we turn your roadmap into a real plan. 30 minutes with a provider, a full review
                     of your history and goals, and a protocol you can start on. $197 — credited back if you move forward.
                     Your contact info is already saved, so booking takes about 2 minutes.
                   </p>

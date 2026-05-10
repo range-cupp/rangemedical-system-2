@@ -360,8 +360,7 @@
      ═══════════════════════════════════════════════════════════════════ */
   var QUIZ = {
     urls: {
-      assessmentBooking: 'https://range-medical.com/assessment-booking',
-      recoveryConsult: 'https://range-medical.com/recovery-consult'
+      assessmentBooking: '/book-assessment'
     },
 
     pathQuestion: {
@@ -804,6 +803,10 @@
     state.screen = 'results';
     var a = state.answers;
     var name = esc(state.lead.firstName);
+    var bookingUrl = QUIZ.urls.assessmentBooking
+      + '?firstName=' + encodeURIComponent(state.lead.firstName)
+      + '&email=' + encodeURIComponent(state.lead.email)
+      + '&phone=' + encodeURIComponent(phoneDigits(state.lead.mobile));
     var h = '';
 
     if (state.path === 'energy') {
@@ -824,15 +827,19 @@
         + 'but they still feel tired, foggy, or not like themselves. At Range Medical, we match how you feel '
         + 'with more detailed labs, then build a simple step‑by‑step plan instead of guessing.</p>';
 
-      h += '<p class="results-text">The next step in our process is a Range Assessment. In one visit, '
-        + 'we review focused labs and your symptoms together and give you a written plan you can follow.</p>';
+      h += '<p class="results-text">The next step in our process is a Range Assessment ($197). In one visit, '
+        + 'we review focused labs and your symptoms together and give you a written plan you can follow. '
+        + 'Your $197 applies as a credit toward any labs or treatment plan, so it is not an extra cost on top.</p>';
+
+      h += '<p class="results-text"><strong>Tip:</strong> Come fasted (no food for 12 hours, water is fine). '
+        + 'If your provider recommends labs, we can draw blood during the same visit so you do not need a second trip.</p>';
 
       h += '<div class="urgency-box">We reserve a limited number of Range Assessment spots each week '
         + 'so we can spend real time with each person. Since you rated fixing this as ' + aOrAn(uScore) + ' ' + uScore
         + ' out of 10, it makes sense to grab a time while this is fresh in your mind.</div>';
 
       h += '<div class="cta-section">';
-      h += '<a class="cta-link" href="' + QUIZ.urls.assessmentBooking + '">Step 1: Schedule Your Range Assessment</a>';
+      h += '<a class="cta-link" href="' + bookingUrl + '">Step 1: Schedule Your Range Assessment — $197</a>';
       h += '<p class="cta-secondary">Not ready to book right now? We&#39;ll email your quiz answers so you can review them later.</p>';
       h += '</div>';
 
@@ -860,8 +867,12 @@
         + 'when they pair hands‑on care with recovery support tools like red light therapy, oxygen, peptide therapy, and targeted '
         + 'treatments to help tissues heal and settle.</p>';
 
-      h += '<p class="results-text">The next step is a Range Assessment with our team. '
-        + 'We listen to what has been tried so far, look at your goals, and map out a recovery plan tailored to you.</p>';
+      h += '<p class="results-text">The next step is a Range Assessment ($197) with our team. '
+        + 'We listen to what has been tried so far, look at your goals, and map out a recovery plan tailored to you. '
+        + 'Your $197 applies as a credit toward any labs or treatment plan, so it is not an extra cost on top.</p>';
+
+      h += '<p class="results-text"><strong>Tip:</strong> Come fasted (no food for 12 hours, water is fine). '
+        + 'If your provider recommends labs, we can draw blood during the same visit so you do not need a second trip.</p>';
 
       h += '<div class="urgency-box">You rated speeding this up as ' + aOrAn(uScore2) + ' ' + uScore2
         + ' out of 10. The sooner we see you, the sooner we can map out a plan so this does not keep dragging on.</div>';
@@ -871,7 +882,7 @@
         h += '<div class="cta-link" style="cursor:default">Show this screen to your therapist and ask about a Range Assessment.</div>';
         h += '<div class="range-st-note">We&#39;re in the same building and work together often on recovery cases like yours.</div>';
       } else {
-        h += '<a class="cta-link" href="' + QUIZ.urls.assessmentBooking + '">Step 1: Schedule Your Range Assessment</a>';
+        h += '<a class="cta-link" href="' + bookingUrl + '">Step 1: Schedule Your Range Assessment — $197</a>';
       }
       h += '</div>';
     }

@@ -33,8 +33,8 @@ export default function BookRecovery() {
 
   return (
     <Layout 
-      title="Recovery Consultation | Range Medical"
-      description="Schedule your Recovery Assessment at Range Medical in Newport Beach. Consultation for peptide therapy, PRP, and IV support. No labs required."
+      title="Recovery Assessment | Range Medical"
+      description="Schedule your Recovery Assessment at Range Medical in Newport Beach. Assessment for peptide therapy, PRP, and IV support. No labs required."
     >
       {/* Trust Bar */}
       <div className="trust-bar">
@@ -51,8 +51,8 @@ export default function BookRecovery() {
       <section className="hero">
         <div className="container">
           <span className="hero-badge">No Labs Required</span>
-          <h1>Book Your Recovery Consultation</h1>
-          <p className="hero-sub">A consultation to evaluate whether peptide therapy, PRP, IVs, or other tools can support your recovery.</p>
+          <h1>Book Your Recovery Assessment</h1>
+          <p className="hero-sub">An assessment to evaluate whether peptide therapy, PRP, IVs, or other tools can support your recovery.</p>
         </div>
       </section>
 
@@ -66,7 +66,7 @@ export default function BookRecovery() {
           <div className="included-box">
             <div className="included-left">
               <div className="included-price">free</div>
-              <div className="included-duration">One-on-one consultation</div>
+              <div className="included-duration">One-on-one assessment</div>
               <span className="included-credit">✓ Credited toward any treatment</span>
             </div>
             <div className="included-right">
@@ -141,7 +141,7 @@ export default function BookRecovery() {
                 checked={checkboxes.check1}
                 onChange={() => handleCheckboxChange('check1')}
               />
-              <label htmlFor="check1"><strong>This is a consultation, not treatment.</strong> We'll evaluate your situation and discuss options. Treatment begins after if appropriate.</label>
+              <label htmlFor="check1"><strong>This is an assessment, not treatment.</strong> We'll evaluate your situation and discuss options. Treatment begins after if appropriate.</label>
             </div>
             <div className="checkbox-item">
               <input 

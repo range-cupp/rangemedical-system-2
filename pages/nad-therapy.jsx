@@ -248,7 +248,7 @@ export default function NADTherapy() {
         {/* Hero */}
         <section className="nad-hero">
           <div className="v2-label"><span className="v2-dot" /> NAD+ THERAPY</div>
-          <h1>TIRED ALL THE TIME? THE PROBLEM MIGHT BE DEEPER THAN YOU THINK.</h1>
+          <h1>Tired all the time? The problem might be <em>deeper than you think.</em></h1>
           <div className="nad-hero-rule" />
           <p className="nad-body-text">NAD+ is the molecule your cells need to produce energy, repair DNA, and keep you functioning at full capacity. After 40, your levels drop fast. We put them back. Newport Beach.</p>
           <div className="nad-hero-scroll">
@@ -262,7 +262,7 @@ export default function NADTherapy() {
           <div className="nad-container">
             <div className="nad-animate">
               <div className="v2-label"><span className="v2-dot" /> What Is NAD+</div>
-              <h2>The Molecule Behind<br />Cellular Energy.</h2>
+              <h2>The molecule behind <em>cellular energy.</em></h2>
               <div className="nad-divider"></div>
               <p className="nad-body-text">
                 NAD+ (nicotinamide adenine dinucleotide) is a coenzyme present in every cell of your body. It's essential for converting food into energy, repairing DNA, and activating sirtuins &mdash; the proteins that regulate aging and inflammation.
@@ -294,7 +294,7 @@ export default function NADTherapy() {
           <div className="nad-container">
             <div className="nad-animate">
               <div className="v2-label"><span className="v2-dot" /> The Science</div>
-              <h2>How NAD+ Actually<br />Enters Your Cells.</h2>
+              <h2>How NAD+ actually enters <em>your cells.</em></h2>
               <div className="nad-divider"></div>
               <p className="nad-body-text">
                 For years, scientists believed NAD+ couldn't cross cell membranes. We now know it enters cells through two distinct mechanisms &mdash; which is why IV and injection delivery works.
@@ -329,7 +329,7 @@ export default function NADTherapy() {
           <div className="nad-container">
             <div className="nad-animate">
               <div className="v2-label"><span className="v2-dot" /> Who It&apos;s For</div>
-              <h2>Signs Your NAD+ Levels<br />May Be Depleted.</h2>
+              <h2>Signs your NAD+ levels may be <em>depleted.</em></h2>
               <div className="nad-divider"></div>
               <p className="nad-body-text">
                 NAD+ depletion shows up in many ways. If any of these sound familiar, NAD+ therapy at our Orange County clinic may help.
@@ -349,7 +349,7 @@ export default function NADTherapy() {
           <div className="nad-container">
             <div className="nad-animate">
               <div className="v2-label"><span className="v2-dot" /> Our Protocols</div>
-              <h2>Two Proven Approaches<br />to Restore NAD+.</h2>
+              <h2>Two proven approaches to <em>restore</em> NAD+.</h2>
               <div className="nad-divider"></div>
               <p className="nad-body-text">
                 We offer two clinical protocols for NAD+ restoration. Both are effective &mdash; the right choice depends on your goals and lifestyle.
@@ -384,7 +384,7 @@ export default function NADTherapy() {
           <div className="nad-container">
             <div className="nad-animate">
               <div className="v2-label"><span className="v2-dot" /> Protocol Options</div>
-              <h2>Choose Your<br />NAD+ Protocol.</h2>
+              <h2>Choose your <em>NAD+ protocol.</em></h2>
               <div className="nad-divider"></div>
               <p className="nad-body-text">
                 Every protocol is tailored by your provider based on your labs, goals, and current health status. Pricing is transparent &mdash; no hidden fees, no upsells during treatment.
@@ -467,7 +467,7 @@ export default function NADTherapy() {
           <div className="nad-container">
             <div className="nad-animate">
               <div className="v2-label"><span className="v2-dot" /> Why NAD+ Matters</div>
-              <h2>What NAD+ Does<br />for Your Body.</h2>
+              <h2>What NAD+ does for <em>your body.</em></h2>
               <div className="nad-divider"></div>
               <p className="nad-body-text">
                 NAD+ isn't just another supplement &mdash; it's foundational to how your cells function.
@@ -491,7 +491,7 @@ export default function NADTherapy() {
           <div className="nad-container">
             <div className="nad-animate">
               <div className="v2-label"><span className="v2-dot" /> Backed by Science</div>
-              <h2>Evidence-Based<br />Results</h2>
+              <h2>Evidence-based <em>results</em></h2>
               <div className="nad-divider"></div>
               <p className="nad-body-text">
                 We've summarized the peer-reviewed research. Click any study to get the full breakdown &mdash; free.
@@ -525,7 +525,7 @@ export default function NADTherapy() {
           <div className="nad-container">
             <div className="nad-animate">
               <div className="v2-label"><span className="v2-dot" /> SAFETY & TRANSPARENCY</div>
-              <h2>WHAT WE WANT YOU TO KNOW UPFRONT.</h2>
+              <h2>What we want you to know <em>upfront.</em></h2>
               <div className="nad-divider"></div>
               <p className="nad-body-text">
                 NAD+ is one of the more intense IV infusions &mdash; you will likely feel something during the session. That is normal, expected, and manageable. Your nurse adjusts the drip rate to keep you comfortable.
@@ -602,7 +602,7 @@ export default function NADTherapy() {
           <div className="nad-container">
             <div className="nad-animate">
               <div className="v2-label"><span className="v2-dot" /> Real Results</div>
-              <h2>WHAT PATIENTS FEEL AFTER<br />THEIR FIRST PROTOCOL.</h2>
+              <h2>What patients feel after their <em>first protocol.</em></h2>
               <div className="nad-divider"></div>
               <p className="nad-body-text">
                 These are real outcomes from real patients. Names withheld for privacy &mdash; results speak for themselves.
@@ -658,7 +658,7 @@ export default function NADTherapy() {
         <section className="nad-section-alt">
           <div className="nad-container">
             <div className="v2-label"><span className="v2-dot" /> Questions</div>
-            <h2>Common<br />Questions</h2>
+            <h2>Common <em>questions</em></h2>
 
             <div className="nad-faq-list">
               {faqs.map((faq, index) => (
@@ -681,7 +681,7 @@ export default function NADTherapy() {
           <div className="nad-container">
             <div className="nad-animate">
               <div className="v2-label" style={{ marginBottom: '1.5rem', justifyContent: 'center' }}><span className="v2-dot" /> Next Steps</div>
-              <h2 className="nad-cta-title">WHAT IF YOU COULD<br />THINK CLEARLY AGAIN?</h2>
+              <h2 className="nad-cta-title">What if you could <em>think clearly</em> again?</h2>
               <p className="nad-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
                 Patients describe their first NAD+ infusion as a &ldquo;mental reset.&rdquo; The fog lifts. Energy returns. Focus sharpens. It&apos;s not magic &mdash; it&apos;s giving your brain the fuel it&apos;s been missing. $197 assessment, credited toward treatment.
               </p>
@@ -759,6 +759,11 @@ export default function NADTherapy() {
 
         .nad-section-inverted .nad-body-text {
           color: rgba(255, 255, 255, 0.55);
+        }
+
+        .nad-page h1 em,
+        .nad-page h2 em {
+          font-style: italic;
         }
 
         /* Divider */

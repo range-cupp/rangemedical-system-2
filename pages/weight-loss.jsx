@@ -252,7 +252,7 @@ export default function WeightLoss() {
         {/* Hero */}
         <section className="wl-hero">
           <div className="v2-label"><span className="v2-dot" /> WEIGHT LOSS</div>
-          <h1>STOP FIGHTING YOUR BODY.<br />START WORKING WITH IT.</h1>
+          <h1>Stop fighting your body. <em>Start working with it.</em></h1>
           <div className="wl-hero-rule"></div>
           <p className="wl-body-text">GLP-1 medications like Tirzepatide and Semaglutide are changing everything about weight loss. Real science, real medical support, real results — in Newport Beach.</p>
           <div className="wl-hero-scroll">
@@ -266,7 +266,7 @@ export default function WeightLoss() {
           <div className="wl-container">
             <div className="wl-animate">
               <div className="v2-label"><span className="v2-dot" /> WHAT IS IT</div>
-              <h2>A NEW CLASS OF MEDICATIONS THAT ACTUALLY WORK.</h2>
+              <h2>A new class of medications that <em>actually work.</em></h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
                 GLP-1 medications (like Tirzepatide and Semaglutide) work differently than anything before them. They target hormones that control hunger, satiety, and metabolism — helping your body naturally want less food while improving how you process what you eat.
@@ -298,7 +298,7 @@ export default function WeightLoss() {
           <div className="wl-container">
             <div className="wl-animate">
               <div className="v2-label"><span className="v2-dot" /> WHO IT'S FOR</div>
-              <h2>YOU'VE TRIED EVERYTHING. THIS IS DIFFERENT.</h2>
+              <h2>You've tried everything. This is <em>different.</em></h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
                 If diets and exercise haven't worked long-term, it's not a character flaw — it's biology working against you. GLP-1 medications can help level the playing field. Sound familiar?
@@ -318,7 +318,7 @@ export default function WeightLoss() {
           <div className="wl-container">
             <div className="wl-animate">
               <div className="v2-label"><span className="v2-dot" /> MEDICATIONS WE OFFER</div>
-              <h2>THE RIGHT MEDICATION FOR YOUR SITUATION.</h2>
+              <h2>The right medication for <em>your situation.</em></h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
                 We offer both major GLP-1 medications. Your provider will recommend the best option based on your labs, history, and goals.
@@ -343,7 +343,7 @@ export default function WeightLoss() {
           <div className="wl-container">
             <div className="wl-animate">
               <div className="v2-label"><span className="v2-dot" /> HOW IT MAY HELP</div>
-              <h2>MORE THAN JUST WEIGHT LOSS.</h2>
+              <h2>More than <em>just</em> weight loss.</h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
                 GLP-1 medications don't just help you lose weight — they change your relationship with food and improve your metabolic health.
@@ -367,7 +367,7 @@ export default function WeightLoss() {
           <div className="wl-container">
             <div className="wl-animate">
               <div className="v2-label"><span className="v2-dot" /> WHAT TO EXPECT</div>
-              <h2>YOUR WEIGHT LOSS JOURNEY, WEEK BY WEEK.</h2>
+              <h2>Your weight loss journey, <em>week by week.</em></h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
                 Results don't happen overnight, but they do happen. Here's the typical timeline our patients experience.
@@ -393,7 +393,7 @@ export default function WeightLoss() {
           <div className="wl-container">
             <div className="wl-animate">
               <div className="v2-label"><span className="v2-dot" /> BACKED BY SCIENCE</div>
-              <h2>EVIDENCE-BASED RESULTS</h2>
+              <h2>Evidence-based <em>results</em></h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
                 We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
@@ -427,7 +427,7 @@ export default function WeightLoss() {
           <div className="wl-container">
             <div className="wl-animate">
               <div className="v2-label"><span className="v2-dot" /> GETTING STARTED</div>
-              <h2>YOUR FIRST VISIT, STEP BY STEP.</h2>
+              <h2>Your first visit, <em>step by step.</em></h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
                 Getting started is straightforward — and your first assessment is free with no commitment. Here's exactly what happens.
@@ -453,7 +453,7 @@ export default function WeightLoss() {
           <div className="wl-container">
             <div className="wl-animate">
               <div className="v2-label"><span className="v2-dot" /> SAFETY & TRANSPARENCY</div>
-              <h2>WHAT WE WANT YOU TO KNOW UPFRONT.</h2>
+              <h2>What we want you to know <em>upfront.</em></h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
                 We believe you should know exactly what to expect — including the parts other clinics gloss over. Here are the most common side effects and who should not take these medications.
@@ -530,7 +530,7 @@ export default function WeightLoss() {
           <div className="wl-container">
             <div className="wl-animate">
               <div className="v2-label"><span className="v2-dot" /> REAL RESULTS</div>
-              <h2>WHAT LIFE LOOKS LIKE ON THE OTHER SIDE.</h2>
+              <h2>What life looks like on <em>the other side.</em></h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
                 These are real outcomes from Range Medical patients. Names omitted for privacy — but the results speak for themselves.
@@ -584,7 +584,7 @@ export default function WeightLoss() {
         <section className="wl-section wl-section-alt">
           <div className="wl-container">
             <div className="v2-label"><span className="v2-dot" /> QUESTIONS</div>
-            <h2>COMMON QUESTIONS</h2>
+            <h2>Common <em>questions</em></h2>
 
             <div className="wl-faq-list">
               {faqs.map((faq, index) => (
@@ -607,7 +607,7 @@ export default function WeightLoss() {
           <div className="wl-container">
             <div className="wl-animate">
               <div className="v2-label" style={{ marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
-              <h2 className="wl-cta-title">IMAGINE WAKING UP AND NOT<br />THINKING ABOUT FOOD FIRST.</h2>
+              <h2 className="wl-cta-title">Imagine waking up and not <em>thinking about food first.</em></h2>
               <p className="wl-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
                 That's what our patients tell us within the first month. The constant mental battle with food quiets down — and you start living again. $197 assessment, credited toward treatment.
               </p>
@@ -668,21 +668,24 @@ export default function WeightLoss() {
         /* Headlines */
         .wl-page h1 {
           font-size: clamp(2.5rem, 6vw, 4rem);
-          font-weight: 900;
+          font-weight: 400;
           line-height: 0.95;
           letter-spacing: -0.03em;
           color: #171717;
-          text-transform: uppercase;
         }
 
         .wl-page h2 {
           font-size: 2rem;
-          font-weight: 900;
+          font-weight: 400;
           letter-spacing: -0.03em;
           line-height: 0.95;
           color: #171717;
           margin-bottom: 1rem;
-          text-transform: uppercase;
+        }
+
+        .wl-page h1 em,
+        .wl-page h2 em {
+          font-style: italic;
         }
 
         .wl-page h3 {
@@ -1182,7 +1185,6 @@ export default function WeightLoss() {
           line-height: 0.95;
           color: #ffffff;
           margin-bottom: 1.25rem;
-          text-transform: uppercase;
         }
 
         .wl-cta-buttons {

@@ -266,7 +266,7 @@ export default function PeptideTherapy() {
         <section className="pep-hero">
           <div className="pep-hero-inner">
             <div className="v2-label"><span className="v2-dot" /> PEPTIDE THERAPY</div>
-            <h1>SLOW RECOVERY, POOR SLEEP, LOW DRIVE. YOUR PEPTIDES ARE THE MISSING PIECE.</h1>
+            <h1>Slow recovery, poor sleep, low drive. Your peptides are the <em>missing piece.</em></h1>
             <div className="pep-hero-rule" />
             <p className="pep-hero-sub">Targeted peptide protocols that accelerate healing, boost growth hormone, and restore what your body used to do on its own. Physician-supervised in Newport Beach.</p>
             <div className="pep-hero-scroll">
@@ -281,7 +281,7 @@ export default function PeptideTherapy() {
           <div className="pep-container">
             <div className="pep-animate">
               <div className="v2-label"><span className="v2-dot" /> What Are Peptides</div>
-              <h2>SMALL PROTEINS WITH TARGETED EFFECTS.</h2>
+              <h2>Small proteins with <em>targeted</em> effects.</h2>
               <p className="pep-body-text">
                 Peptides are short chains of amino acids — essentially small proteins that signal your body to do specific things. Different peptides trigger different responses: healing tissue, releasing growth hormone, reducing inflammation, or supporting immune function.
               </p>
@@ -312,7 +312,7 @@ export default function PeptideTherapy() {
           <div className="pep-container">
             <div className="pep-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> Who It's For</div>
-              <h2>FOR PEOPLE WHO WANT TO HEAL AND PERFORM BETTER.</h2>
+              <h2>For people who want to heal and <em>perform better.</em></h2>
               <p className="pep-body-text">
                 Peptides aren't just for athletes or biohackers. If any of these sound familiar, peptide therapy at our Newport Beach clinic might help.
               </p>
@@ -331,7 +331,7 @@ export default function PeptideTherapy() {
           <div className="pep-container">
             <div className="pep-animate">
               <div className="v2-label"><span className="v2-dot" /> What We Treat</div>
-              <h2>CONDITIONS THAT RESPOND WELL TO PEPTIDE THERAPY.</h2>
+              <h2>Conditions that respond well to <em>peptide therapy.</em></h2>
               <p className="pep-body-text">
                 Different peptides target different issues. Tell us what you're dealing with, and we'll design a protocol tailored to your needs.
               </p>
@@ -355,7 +355,7 @@ export default function PeptideTherapy() {
           <div className="pep-container">
             <div className="pep-animate">
               <div className="v2-label"><span className="v2-dot" /> How Peptides May Help</div>
-              <h2>TARGETED SUPPORT FOR YOUR BODY.</h2>
+              <h2>Targeted support for <em>your body.</em></h2>
               <p className="pep-body-text">
                 Different peptides support different goals. Here are the main ways peptide therapy could help.
               </p>
@@ -380,7 +380,7 @@ export default function PeptideTherapy() {
           <div className="pep-container">
             <div className="pep-animate">
               <div className="v2-label"><span className="v2-dot" /> Backed by Science</div>
-              <h2>EVIDENCE-BASED RESULTS</h2>
+              <h2>Evidence-based <em>results</em></h2>
               <p className="pep-body-text">
                 We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
               </p>
@@ -413,7 +413,7 @@ export default function PeptideTherapy() {
           <div className="pep-container">
             <div className="pep-animate">
               <div className="v2-label"><span className="v2-dot" /> Getting Started</div>
-              <h2>YOUR FIRST VISIT, STEP BY STEP.</h2>
+              <h2>Your first visit, <em>step by step.</em></h2>
               <p className="pep-body-text">
                 Getting started with peptides is straightforward. Here's exactly what happens at our Newport Beach clinic. $197 assessment, credited toward treatment.
               </p>
@@ -438,7 +438,7 @@ export default function PeptideTherapy() {
           <div className="pep-container">
             <div className="pep-animate">
               <div className="v2-label"><span className="v2-dot" /> Safety & Transparency</div>
-              <h2>WHAT WE WANT YOU TO KNOW UPFRONT.</h2>
+              <h2>What we want you to know <em>upfront.</em></h2>
               <p className="pep-body-text">
                 We believe you should know exactly what to expect — including the parts other clinics gloss over. Here are the most common side effects and who may not be a candidate.
               </p>
@@ -514,7 +514,7 @@ export default function PeptideTherapy() {
           <div className="pep-container">
             <div className="pep-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> Real Results</div>
-              <h2>WHAT PATIENTS TELL US AFTER 90 DAYS.</h2>
+              <h2>What patients tell us after <em>90 days.</em></h2>
               <div className="pep-hero-rule" style={{ background: 'rgba(255,255,255,0.1)' }} />
               <p className="pep-body-text">
                 Real outcomes from Range Medical patients. Details anonymized, results documented during follow-up visits.
@@ -570,7 +570,7 @@ export default function PeptideTherapy() {
         <section className="pep-section pep-section-alt">
           <div className="pep-container">
             <div className="v2-label"><span className="v2-dot" /> Questions</div>
-            <h2>COMMON QUESTIONS</h2>
+            <h2>Common <em>questions</em></h2>
 
             <div className="pep-faq-list">
               {faqs.map((faq, index) => (
@@ -593,7 +593,7 @@ export default function PeptideTherapy() {
           <div className="container">
             <div className="pep-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', justifyContent: 'center' }}><span className="v2-dot" /> Next Steps</div>
-              <h2>IMAGINE RECOVERING LIKE YOU DID IN YOUR 20s.</h2>
+              <h2>Imagine recovering like you did in <em>your 20s.</em></h2>
               <div className="cta-rule" />
               <p>
                 Better sleep. Faster recovery. Joints that don't ache every morning. That's what peptide therapy patients tell us within the first 8 weeks. $197 assessment, credited toward treatment.
@@ -656,21 +656,24 @@ export default function PeptideTherapy() {
         /* Headlines */
         .pep-page h1 {
           font-size: clamp(2.5rem, 6vw, 4rem);
-          font-weight: 900;
+          font-weight: 400;
           line-height: 0.95;
           letter-spacing: -0.03em;
           color: #1a1a1a;
-          text-transform: uppercase;
         }
 
         .pep-page h2 {
           font-size: clamp(2rem, 5vw, 3rem);
-          font-weight: 900;
+          font-weight: 400;
           line-height: 0.95;
           letter-spacing: -0.02em;
           color: #1a1a1a;
-          text-transform: uppercase;
           margin-bottom: 1.5rem;
+        }
+
+        .pep-page h1 em,
+        .pep-page h2 em {
+          font-style: italic;
         }
 
         .pep-page h3 {

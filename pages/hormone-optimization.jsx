@@ -294,7 +294,7 @@ export default function HormoneOptimization() {
         {/* Hero */}
         <section className="hrt-hero">
           <div className="v2-label"><span className="v2-dot" /> HORMONE OPTIMIZATION</div>
-          <h1>TIRED, FOGGY, AND GAINING WEIGHT FOR NO REASON? IT&apos;S PROBABLY YOUR HORMONES.</h1>
+          <h1>Tired, foggy, and gaining weight for no reason? It&apos;s probably <em>your hormones.</em></h1>
           <div className="hrt-hero-rule" />
           <p className="hrt-body-text">We test what your regular doctor doesn&apos;t, find the imbalance, and fix it. Physician-supervised hormone optimization in Newport Beach.</p>
           <div className="hrt-hero-scroll">
@@ -308,7 +308,7 @@ export default function HormoneOptimization() {
           <div className="hrt-container">
             <div className="hrt-animate">
               <div className="v2-label"><span className="v2-dot" /> What Is It</div>
-              <h2>HORMONES CONTROL<br />HOW YOU FEEL<br />EVERY DAY.</h2>
+              <h2>Hormones control how you <em>feel</em> every day.</h2>
               <p className="hrt-body-text">
                 Hormone optimization is about restoring your hormones — testosterone, estrogen, progesterone, thyroid — to levels where your body functions best. When hormones decline or become imbalanced, you feel it: fatigue, brain fog, weight gain, low mood, poor sleep.
               </p>
@@ -339,7 +339,7 @@ export default function HormoneOptimization() {
           <div className="hrt-container">
             <div className="hrt-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> Who It&apos;s For</div>
-              <h2>YOUR LABS SAY<br />&ldquo;NORMAL&rdquo; BUT YOU<br />DON&apos;T FEEL NORMAL.</h2>
+              <h2>Your labs say &ldquo;normal&rdquo; but you don&apos;t <em>feel normal.</em></h2>
               <p className="hrt-body-text">
                 Standard lab ranges are based on population averages — not optimal function. If any of these sound like you, hormone optimization at our Newport Beach clinic could help.
               </p>
@@ -358,7 +358,7 @@ export default function HormoneOptimization() {
           <div className="hrt-container">
             <div className="hrt-animate">
               <div className="v2-label"><span className="v2-dot" /> Women&apos;s Hormone Health</div>
-              <h2>HORMONE THERAPY<br />ISN&apos;T JUST<br />FOR MEN.</h2>
+              <h2>Hormone therapy isn&apos;t <em>just for men.</em></h2>
               <p className="hrt-body-text">
                 Women experience hormone decline too &mdash; often earlier and more dramatically than they expect. Perimenopause can start in your late 30s, and by menopause, estrogen, progesterone, and testosterone have all dropped significantly. The symptoms are real, and they&apos;re treatable.
               </p>
@@ -393,7 +393,7 @@ export default function HormoneOptimization() {
           <div className="hrt-container">
             <div className="hrt-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> What We Prescribe</div>
-              <h2>MEDICATIONS<br />TAILORED FOR<br />WOMEN.</h2>
+              <h2>Medications tailored for <em>women.</em></h2>
               <p className="hrt-body-text">
                 Every protocol is personalized based on your labs, symptoms, and goals. Here are the hormones we commonly optimize for women.
               </p>
@@ -422,7 +422,7 @@ export default function HormoneOptimization() {
           <div className="hrt-container">
             <div className="hrt-animate">
               <div className="v2-label"><span className="v2-dot" /> How It May Help</div>
-              <h2>WHAT BALANCED<br />HORMONES CAN DO.</h2>
+              <h2>What balanced hormones <em>can do.</em></h2>
               <p className="hrt-body-text">
                 When your hormones are optimized, your body works the way it's supposed to. Here's what patients typically experience.
               </p>
@@ -447,7 +447,7 @@ export default function HormoneOptimization() {
           <div className="hrt-container">
             <div className="hrt-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> HRT Membership</div>
-              <h2>$250/MONTH.<br />EVERYTHING<br />INCLUDED.</h2>
+              <h2>$250/month. <em>Everything included.</em></h2>
               <p className="hrt-body-text">
                 No surprise bills. No separate charges for follow-up labs or medications. One monthly price that covers everything you need for ongoing hormone optimization.
               </p>
@@ -474,7 +474,7 @@ export default function HormoneOptimization() {
           <div className="hrt-container">
             <div className="hrt-animate">
               <div className="v2-label"><span className="v2-dot" /> What to Expect</div>
-              <h2>WHEN YOU&apos;LL START<br />FEELING BETTER.</h2>
+              <h2>When you&apos;ll start <em>feeling better.</em></h2>
               <p className="hrt-body-text">
                 Hormone optimization isn't instant — but it's not slow either. Here's the typical timeline most patients experience.
               </p>
@@ -499,7 +499,7 @@ export default function HormoneOptimization() {
           <div className="hrt-container">
             <div className="hrt-animate">
               <div className="v2-label"><span className="v2-dot" /> Backed by Science</div>
-              <h2>EVIDENCE-BASED<br />RESULTS</h2>
+              <h2>Evidence-based <em>results</em></h2>
               <p className="hrt-body-text">
                 We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
               </p>
@@ -532,7 +532,7 @@ export default function HormoneOptimization() {
           <div className="hrt-container">
             <div className="hrt-animate">
               <div className="v2-label"><span className="v2-dot" /> Getting Started</div>
-              <h2>YOUR FIRST VISIT,<br />STEP BY STEP.</h2>
+              <h2>Your first visit, <em>step by step.</em></h2>
               <p className="hrt-body-text">
                 Getting started is simple. $197 assessment, credited toward treatment. Here&apos;s exactly what happens.
               </p>
@@ -557,7 +557,7 @@ export default function HormoneOptimization() {
           <div className="hrt-container">
             <div className="hrt-animate">
               <div className="v2-label"><span className="v2-dot" /> SAFETY & TRANSPARENCY</div>
-              <h2>WHAT WE WANT YOU TO KNOW UPFRONT.</h2>
+              <h2>What we want you to know <em>upfront.</em></h2>
               <div className="hrt-divider"></div>
               <p className="hrt-body-text">
                 Hormone therapy is safe when properly monitored — but you should know exactly what to expect, including what we watch for.
@@ -634,7 +634,7 @@ export default function HormoneOptimization() {
           <div className="hrt-container">
             <div className="hrt-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> Real Results</div>
-              <h2>WHAT LIFE LOOKS LIKE<br />AFTER OPTIMIZATION.</h2>
+              <h2>What life looks like after <em>optimization.</em></h2>
               <div className="hrt-divider" style={{ background: 'rgba(255,255,255,0.15)' }}></div>
               <p className="hrt-body-text">
                 These are composite snapshots based on real patient outcomes. Names and identifying details are removed &mdash; the patterns are consistent.
@@ -688,7 +688,7 @@ export default function HormoneOptimization() {
         <section className="hrt-section hrt-section-alt">
           <div className="hrt-container">
             <div className="v2-label"><span className="v2-dot" /> Questions</div>
-            <h2>COMMON<br />QUESTIONS</h2>
+            <h2>Common <em>questions</em></h2>
 
             <div className="hrt-faq-list">
               {faqs.map((faq, index) => (
@@ -711,7 +711,7 @@ export default function HormoneOptimization() {
           <div className="hrt-container">
             <div className="hrt-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> Next Steps</div>
-              <h2 className="hrt-cta-title">IMAGINE HAVING<br />THE ENERGY AND DRIVE<br />YOU HAD 10 YEARS AGO.</h2>
+              <h2 className="hrt-cta-title">Imagine having the energy and drive you had <em>10 years ago.</em></h2>
               <p className="hrt-body-text" style={{ margin: '0 auto 2.5rem' }}>
                 Waking up rested. Thinking clearly all day. Feeling strong in the gym and present at home. That&apos;s what optimized hormones feel like &mdash; and it&apos;s closer than you think. $197 assessment, credited toward treatment.
               </p>
@@ -775,7 +775,6 @@ export default function HormoneOptimization() {
           font-weight: 900;
           line-height: 0.95;
           letter-spacing: -0.03em;
-          text-transform: uppercase;
           color: #171717;
         }
 
@@ -784,9 +783,13 @@ export default function HormoneOptimization() {
           font-weight: 900;
           letter-spacing: -0.03em;
           line-height: 0.95;
-          text-transform: uppercase;
           color: #171717;
           margin-bottom: 1rem;
+        }
+
+        .hrt-page h1 em,
+        .hrt-page h2 em {
+          font-style: italic;
         }
 
         .hrt-page h3 {
@@ -1235,7 +1238,6 @@ export default function HormoneOptimization() {
           font-weight: 900;
           letter-spacing: -0.03em;
           line-height: 0.95;
-          text-transform: uppercase;
           color: #ffffff;
           margin-bottom: 1.25rem;
         }

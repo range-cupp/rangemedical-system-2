@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import stripe from '../../../lib/stripe';
 import { todayPacific } from '../../../lib/date-utils';
 import { postToStaffChannel } from '../../../lib/post-to-staff-channel';
+import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -372,6 +373,19 @@ export default async function handler(req, res) {
         sendType: send_type
       })
     });
+
+    await logComm({
+      channel: 'email',
+      messageType: 'mothers_day_purchase_confirmation',
+      message: `Mother's Day Wellness Credit purchase confirmation — ${qty}x $400 credit (codes: ${codes.join(', ')})`,
+      source: 'mothers-day/admin-purchase',
+      patientId: patient.id,
+      patientName: patient.name,
+      recipient: normalizedEmail,
+      subject: "Your Mother's Day Wellness Credit — Range Medical",
+      status: 'sent',
+      provider: 'resend',
+    }).catch(() => {});
 
     if (isGift) {
       const recipEmail = recipient_email.toLowerCase().trim();

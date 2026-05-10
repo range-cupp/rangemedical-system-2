@@ -509,7 +509,7 @@ export default async function handler(req, res) {
       },
     }).catch(err => console.error("Mother's Day staff alert error:", err));
 
-    sendSMS({
+    await sendSMS({
       to: '+19496900339',
       message: `Mother's Day sale: ${purchaser_name} just purchased ${qty}x Wellness Credit ($${totalPaidDollars} paid).${isGift ? ` Gift for ${recipient_name}.` : ''}`,
       log: {

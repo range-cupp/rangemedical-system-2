@@ -46,9 +46,9 @@ export default function Layout({ children, title, description, logoOnly }) {
               {/* Desktop Navigation */}
               <nav className="rm-nav">
                 <div className="rm-nav-links">
-                  <Link href="/injury-recovery" className="rm-nav-link">Recovery</Link>
+                  <Link href="/" className="rm-nav-link">Start</Link>
 
-                  {/* How We Treat Dropdown */}
+                  {/* Treatments Dropdown */}
                   <div
                     className="rm-dropdown"
                     onMouseEnter={() => setDropdownOpen(true)}
@@ -78,14 +78,12 @@ export default function Layout({ children, title, description, logoOnly }) {
                     </div>
                   </div>
 
-                  <Link href="/lab-panels" className="rm-nav-link">Labs</Link>
-                  <Link href="/reviews" className="rm-nav-link">Reviews</Link>
-                  <Link href="/grand-opening" className="rm-nav-link">Grand Opening</Link>
+                  <a href="#home-testimonials" className="rm-nav-link">Reviews</a>
                 </div>
 
-                <Link href="/assessment" className="rm-nav-cta">
-                  Book Your Range Assessment
-                </Link>
+                <a href="#home-hero" className="rm-nav-cta">
+                  Book Assessment
+                </a>
               </nav>
 
               {/* Mobile Menu Toggle */}
@@ -103,7 +101,7 @@ export default function Layout({ children, title, description, logoOnly }) {
 
         {!logoOnly && (
           <div className={`rm-mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
-            <Link href="/injury-recovery" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Recovery</Link>
+            <a href="/" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Start</a>
             <button
               className="rm-mobile-accordion"
               onClick={() => setMobileTreatmentsOpen(!mobileTreatmentsOpen)}
@@ -133,10 +131,8 @@ export default function Layout({ children, title, description, logoOnly }) {
                 <Link href="/services" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)} style={{ fontWeight: 600, color: '#1a1a1a', marginTop: '0.25rem' }}>View All Services →</Link>
               </div>
             )}
-            <Link href="/lab-panels" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Labs & Testing</Link>
-            <Link href="/reviews" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Reviews</Link>
-            <Link href="/grand-opening" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Grand Opening</Link>
-            <Link href="/assessment" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Book Your Range Assessment</Link>
+            <a href="#home-testimonials" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Reviews</a>
+            <a href="#home-hero" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Book Assessment</a>
           </div>
         )}
       </header>

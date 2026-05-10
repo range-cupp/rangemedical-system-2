@@ -105,24 +105,6 @@ export default function Home() {
       </Head>
 
       <Layout>
-        {/* Special Offer Banner */}
-        <div className="promo-bar">
-          <div className="promo-bar-shimmer" aria-hidden="true" />
-          <div className="promo-bar-inner">
-            <span className="promo-bar-badge">Free This Month</span>
-            <span className="promo-bar-text">
-              Try a session on us &mdash;
-            </span>
-            <Link href="/hbot-trial" className="promo-bar-cta">
-              Free HBOT <span>&rarr;</span>
-            </Link>
-            <span className="promo-bar-divider" aria-hidden="true">•</span>
-            <Link href="/rlt-trial" className="promo-bar-cta">
-              Free Red Light <span>&rarr;</span>
-            </Link>
-          </div>
-        </div>
-
         {/* Trust Bar */}
         <div className="trust-bar">
           <div className="trust-inner">
@@ -134,23 +116,36 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Hero Section */}
-        <section className="hero">
+        {/* 1. Hero Section */}
+        <section id="home-hero" className="hero">
           <div className="v2-label"><span className="v2-dot" /> Recovery &middot; Energy &middot; Optimization</div>
           <h1>One Assessment.<br />One Plan.<br />Feel Like<br />Yourself Again.</h1>
           <div className="hero-rule" />
           <p className="hero-sub">
-            Start with a $197 Range Assessment. We&apos;ll review your history, symptoms, and goals &mdash; then build your plan.
-            If you move forward with treatment, the full $197 goes toward it.
+            Start with a $197 Range Assessment. We review your history, symptoms, and goals, then build your plan. If you move forward with treatment, the full $197 is credited toward it.
           </p>
           <div style={{ marginTop: '2rem' }}>
             <Link href="/assessment" className="btn-primary">
               Book Your Range Assessment
             </Link>
           </div>
+          <p className="hero-bonus">
+            This month only: Book your $197 Assessment and get a free red light or hyperbaric session included.
+          </p>
         </section>
 
-        {/* Two Paths Section */}
+        {/* 2. Clarity Finder (Secondary Path) */}
+        <section className="clarity-finder-block">
+          <div className="clarity-finder-inner">
+            <h3>Not ready to book an assessment yet?</h3>
+            <p>Answer a few quick questions and we&apos;ll show you the best starting point for you.</p>
+            <Link href="/clarity-finder" className="btn-outline clarity-finder-btn">
+              Take the Clarity Finder
+            </Link>
+          </div>
+        </section>
+
+        {/* 3. One Assessment. Two Paths. */}
         <section id="home-doors" className={`home-section-alt home-animate ${isVisible['home-doors'] ? 'home-visible' : ''}`}>
           <div className="home-container">
             <div className="v2-label"><span className="v2-dot" /> How It Works</div>
@@ -194,13 +189,13 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Services Section */}
+        {/* 4. Tools We Use */}
         <section id="home-services" className={`home-section home-animate ${isVisible['home-services'] ? 'home-visible' : ''}`}>
           <div className="home-container">
             <div className="v2-label"><span className="v2-dot" /> What We Offer</div>
             <h2>Tools We Use<br />to Help You<br />Feel Better.</h2>
             <p className="home-section-intro">
-              Your provider picks the right tools for your situation. You don&apos;t have to figure it out yourself.
+              You don&apos;t need to choose your therapies. Your provider picks the right tools for your situation after the Assessment.
             </p>
 
             <div className="tools-grid">
@@ -223,7 +218,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Testimonials Section */}
+        {/* 5. Testimonials / Reviews */}
         <section id="home-testimonials" className={`home-section-alt home-animate ${isVisible['home-testimonials'] ? 'home-visible' : ''}`}>
           <div className="home-container">
             <div className="v2-label"><span className="v2-dot" /> Results</div>
@@ -273,7 +268,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Cash-Pay Model Section */}
+        {/* 6. No Insurance. On Purpose. */}
         <section id="home-cashpay" className={`home-section home-animate ${isVisible['home-cashpay'] ? 'home-visible' : ''}`}>
           <div className="home-container">
             <div className="v2-label"><span className="v2-dot" /> How We Work</div>
@@ -312,12 +307,12 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Final CTA Section */}
+        {/* 7. Final CTA */}
         <section className="final-cta">
           <div className="container">
             <h2>Ready to Feel<br />Like Yourself<br />Again?</h2>
             <div className="cta-rule" />
-            <p>One assessment. One plan. $197 credited toward your treatment.</p>
+            <p>Start with the $197 Range Assessment. Your full visit cost is credited toward treatment if you move forward.</p>
             <div className="cta-buttons">
               <Link href="/assessment" className="btn-white">
                 Book Your Range Assessment

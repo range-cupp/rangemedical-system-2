@@ -883,6 +883,52 @@ p {
   margin: 2rem 0;
 }
 
+.hero-bonus {
+  margin-top: 1.25rem;
+  font-size: 0.8125rem;
+  color: #737373;
+  max-width: 460px;
+  line-height: 1.6;
+}
+
+/* ========================================
+   CLARITY FINDER — SECONDARY PATH
+   ======================================== */
+
+.clarity-finder-block {
+  background: #fafafa;
+  border-top: 1px solid #ebebeb;
+  border-bottom: 1px solid #ebebeb;
+  padding: 2.5rem 2rem;
+  text-align: center;
+}
+
+.clarity-finder-inner {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.clarity-finder-block h3 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #404040;
+  margin: 0 0 0.5rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.clarity-finder-block p {
+  font-size: 0.8125rem;
+  color: #737373;
+  line-height: 1.6;
+  margin: 0 0 1.25rem;
+}
+
+.clarity-finder-btn {
+  font-size: 11px !important;
+  padding: 0.625rem 1.5rem !important;
+}
+
 /* ========================================
    DOORS / TWO PATHS — V2
    ======================================== */

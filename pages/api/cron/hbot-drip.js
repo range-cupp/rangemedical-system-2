@@ -1,6 +1,6 @@
 // /pages/api/cron/hbot-drip.js
-// Runs daily. Sends a 3-email drip to patients who completed a free HBOT
-// session, offering exclusive 7-day membership pricing.
+// Runs daily. Sends a 5-email drip to patients who completed a free HBOT
+// session — personalized educational content + 7-day membership pricing.
 //
 // Eligibility:
 //   - appointment with service_category='hbot', service_name LIKE '%Free%',
@@ -8,7 +8,8 @@
 //   - patient has NOT purchased any HBOT membership/package since the session
 //   - email not already sent (dedup via comms_log)
 //
-// Schedule: Day 1 (~22h), Day 3 (~70h), Day 7 (~166h) after session
+// Schedule: Day 1 (~22h), Day 2 (~46h), Day 3 (~70h), Day 5 (~118h), Day 7 (~166h)
+// Day 2 + Day 5 are personalized based on patient's main_problem from trial_passes
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
@@ -19,6 +20,9 @@ import {
   getEmail1Subject, getEmail1Html,
   getEmail2Subject, getEmail2Html,
   getEmail3Subject, getEmail3Html,
+  getEmail4Subject, getEmail4Html,
+  getEmail5Subject, getEmail5Html,
+  parseStruggles,
 } from '../../../lib/hbot-drip-emails';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -29,9 +33,13 @@ const supabase = createClient(
 
 const STEPS = [
   { step: 1, minHours: 22,  emailFn: getEmail1Html, subjectFn: getEmail1Subject },
-  { step: 2, minHours: 70,  emailFn: getEmail2Html, subjectFn: getEmail2Subject },
-  { step: 3, minHours: 166, emailFn: getEmail3Html, subjectFn: getEmail3Subject },
+  { step: 2, minHours: 46,  emailFn: getEmail2Html, subjectFn: getEmail2Subject },
+  { step: 3, minHours: 70,  emailFn: getEmail3Html, subjectFn: getEmail3Subject },
+  { step: 4, minHours: 118, emailFn: getEmail4Html, subjectFn: getEmail4Subject },
+  { step: 5, minHours: 166, emailFn: getEmail5Html, subjectFn: getEmail5Subject },
 ];
+
+const ALL_MESSAGE_TYPES = STEPS.map(s => `hbot_free_drip_${s.step}`);
 
 function formatExpiryDate(sessionDate) {
   const expiry = new Date(sessionDate);
@@ -104,6 +112,20 @@ export default async function handler(req, res) {
 
     const patientIds = eligible.map(a => a.patient_id);
 
+    // Fetch trial_passes to get main_problem (what they're struggling with)
+    const { data: trialPasses } = await supabase
+      .from('trial_passes')
+      .select('patient_id, main_problem')
+      .in('patient_id', patientIds)
+      .eq('trial_type', 'hbot');
+
+    const struggleMap = new Map();
+    for (const tp of (trialPasses || [])) {
+      if (tp.main_problem && !struggleMap.has(tp.patient_id)) {
+        struggleMap.set(tp.patient_id, parseStruggles(tp.main_problem));
+      }
+    }
+
     // Check for conversions — patients who purchased HBOT after their free session
     const { data: hbotPurchases } = await supabase
       .from('purchases')
@@ -119,7 +141,7 @@ export default async function handler(req, res) {
       .from('comms_log')
       .select('patient_id, message_type')
       .in('patient_id', patientIds)
-      .in('message_type', ['hbot_free_drip_1', 'hbot_free_drip_2', 'hbot_free_drip_3']);
+      .in('message_type', ALL_MESSAGE_TYPES);
 
     const sentSteps = new Map();
     for (const comm of (priorComms || [])) {
@@ -140,7 +162,7 @@ export default async function handler(req, res) {
       const hoursSince = (now - sessionTime) / (1000 * 60 * 60);
       const highestSent = sentSteps.get(appt.patient_id) || 0;
 
-      if (highestSent >= 3) {
+      if (highestSent >= 5) {
         results.skipped.push({ patientId: appt.patient_id, reason: 'all_sent' });
         continue;
       }
@@ -156,10 +178,11 @@ export default async function handler(req, res) {
 
       const firstName = (appt.patient_name || '').split(' ')[0] || 'there';
       const expiryDate = formatExpiryDate(appt.start_time);
+      const struggles = struggleMap.get(appt.patient_id) || [];
 
       try {
-        const html = nextStep.emailFn({ firstName, expiryDate });
-        const subject = nextStep.subjectFn({ firstName });
+        const html = nextStep.emailFn({ firstName, expiryDate, struggles });
+        const subject = nextStep.subjectFn({ firstName, struggles });
 
         await resend.emails.send({
           from: 'Range Medical <hello@range-medical.com>',

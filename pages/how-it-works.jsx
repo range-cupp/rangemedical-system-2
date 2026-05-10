@@ -579,7 +579,7 @@ export default function HowItWorks() {
         }
 
         .hiw-pricing-card li::before {
-          content: '\\2713';
+          content: '✓';
           position: absolute;
           left: 0;
           color: var(--color-accent);

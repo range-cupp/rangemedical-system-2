@@ -80,7 +80,7 @@ export default async function handler(req, res) {
 
     const { data: appointments, error: queryErr } = await supabase
       .from('appointments')
-      .select('id, patient_id, patient_name, patient_email, start_time')
+      .select('id, patient_id, patient_name, start_time')
       .eq('service_category', 'hbot')
       .eq('status', 'completed')
       .ilike('service_name', '%Free%')
@@ -99,7 +99,7 @@ export default async function handler(req, res) {
     // Deduplicate by patient_id (keep most recent session)
     const patientMap = new Map();
     for (const appt of appointments) {
-      if (!appt.patient_email || !appt.patient_id) continue;
+      if (!appt.patient_id) continue;
       if (!patientMap.has(appt.patient_id)) {
         patientMap.set(appt.patient_id, appt);
       }
@@ -111,6 +111,26 @@ export default async function handler(req, res) {
     }
 
     const patientIds = eligible.map(a => a.patient_id);
+
+    // Fetch patient emails (not stored on appointments table)
+    const { data: patientEmails } = await supabase
+      .from('patients')
+      .select('id, email')
+      .in('id', patientIds);
+
+    const emailMap = new Map();
+    for (const p of (patientEmails || [])) {
+      if (p.email) emailMap.set(p.id, p.email);
+    }
+
+    // Attach emails and filter out patients without one
+    for (const appt of eligible) {
+      appt.patient_email = emailMap.get(appt.patient_id) || null;
+    }
+    const withEmail = eligible.filter(a => a.patient_email);
+    if (withEmail.length === 0) {
+      return res.status(200).json({ message: 'No eligible patients with email', ...results });
+    }
 
     // Fetch trial_passes to get main_problem (what they're struggling with)
     const { data: trialPasses } = await supabase
@@ -152,7 +172,7 @@ export default async function handler(req, res) {
 
     const now = new Date();
 
-    for (const appt of eligible) {
+    for (const appt of withEmail) {
       if (convertedIds.has(appt.patient_id)) {
         results.skipped.push({ patientId: appt.patient_id, reason: 'converted' });
         continue;
@@ -212,7 +232,7 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.status(200).json({ ...results, total: eligible.length });
+    return res.status(200).json({ ...results, total: withEmail.length });
   } catch (error) {
     console.error('HBOT drip error:', error);
     return res.status(500).json({ error: error.message });

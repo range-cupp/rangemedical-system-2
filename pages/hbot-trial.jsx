@@ -29,6 +29,7 @@ export default function HBOTTrial() {
     phone: '',
     consent: false,
   });
+  const [struggles, setStruggles] = useState([]);
 
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
@@ -97,7 +98,7 @@ export default function HBOTTrial() {
           email: contact.email.trim().toLowerCase(),
           phone: contact.phone.trim(),
           consentMarketing: contact.consent,
-          struggleMains: [],
+          struggleMains: struggles,
           struggleOther: null,
           badDayDescription: null,
           importance90d: null,
@@ -290,6 +291,39 @@ export default function HBOTTrial() {
           }
           @media (max-width: 480px) {
             .fs-two-col { grid-template-columns: 1fr; }
+          }
+
+          .fs-struggles-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #525252;
+            margin: 0 0 10px;
+          }
+          .fs-struggles-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+          }
+          @media (max-width: 480px) {
+            .fs-struggles-grid { grid-template-columns: 1fr; }
+          }
+          .fs-struggle-opt {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border: 1px solid #e5e5e5;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+            user-select: none;
+            font-size: 14px;
+            color: #333;
+          }
+          .fs-struggle-opt:hover { border-color: ${ACCENT}; background: ${ACCENT_BG}; }
+          .fs-struggle-opt.fs-selected { border-color: ${ACCENT}; background: ${ACCENT_BG}; }
+          .fs-struggle-opt input[type="checkbox"] {
+            width: 16px; height: 16px; min-width: 16px;
+            accent-color: ${ACCENT}; margin: 0; flex-shrink: 0;
           }
 
           .fs-consent {
@@ -518,6 +552,34 @@ export default function HBOTTrial() {
                       onChange={(e) => { setContact({ ...contact, email: e.target.value }); clearFieldError('email'); }}
                     />
                     {errors.email && <div className="fs-field-errmsg">{errors.email}</div>}
+                  </div>
+
+                  <div className="fs-field" style={{ marginBottom: 22 }}>
+                    <p className="fs-struggles-label">What are you hoping HBOT helps with? <span style={{ fontWeight: 400, color: '#999' }}>(optional)</span></p>
+                    <div className="fs-struggles-grid">
+                      {[
+                        { key: 'energy', label: 'Low energy' },
+                        { key: 'brain_fog', label: 'Brain fog / focus' },
+                        { key: 'recovery', label: 'Recovery / injury' },
+                        { key: 'sleep', label: 'Sleep' },
+                        { key: 'pain', label: 'Pain / inflammation' },
+                        { key: 'headaches', label: 'Headaches' },
+                        { key: 'skin', label: 'Skin' },
+                        { key: 'mood', label: 'Mood / stress' },
+                      ].map(({ key, label }) => (
+                        <label
+                          key={key}
+                          className={`fs-struggle-opt${struggles.includes(key) ? ' fs-selected' : ''}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={struggles.includes(key)}
+                            onChange={() => setStruggles(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])}
+                          />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
                   </div>
 
                   <div className={`fs-consent${errors.consent ? ' fs-has-error' : ''}`} data-field-error={errors.consent ? 'true' : 'false'}>

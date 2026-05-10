@@ -51,8 +51,6 @@ export default function Layout({ children, title, description, logoOnly }) {
               {/* Desktop Navigation */}
               <nav className="rm-nav" aria-label="Main navigation">
                 <div className="rm-nav-links">
-                  <Link href="/assessment" className="rm-nav-link">Range Assessment</Link>
-
                   <div
                     className="rm-mega-wrap"
                     onMouseEnter={() => setMegaOpen(true)}
@@ -63,14 +61,24 @@ export default function Layout({ children, title, description, logoOnly }) {
                       aria-expanded={megaOpen}
                       aria-haspopup="true"
                     >
-                      Programs
+                      Treatments
                       <svg width="8" height="5" viewBox="0 0 10 6" fill="none" aria-hidden="true">
                         <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </button>
-                    <div className={`rm-mega${megaOpen ? ' open' : ''}`} role="menu" aria-label="Programs menu">
+                    <div className={`rm-mega${megaOpen ? ' open' : ''}`} role="menu" aria-label="Treatments menu">
                       <div className="rm-mega-inner">
-                        <div className="rm-mega-col" role="group" aria-label="Optimization programs">
+                        <div className="rm-mega-col" role="group" aria-label="Recovery treatments">
+                          <span className="rm-mega-label">Recovery</span>
+                          <Link href="/hyperbaric-oxygen-therapy" role="menuitem">Hyperbaric Oxygen</Link>
+                          <Link href="/red-light-therapy" role="menuitem">Red Light Therapy</Link>
+                          <Link href="/cellular-energy-reset" role="menuitem">Cellular Reset</Link>
+                          <Link href="/prp-therapy" role="menuitem">PRP Therapy</Link>
+                          <Link href="/exosome-therapy" role="menuitem">Exosome Therapy</Link>
+                          <Link href="/injection-therapy" role="menuitem">Injection Therapy</Link>
+                          <Link href="/peptide-therapy" role="menuitem">Peptide Therapy</Link>
+                        </div>
+                        <div className="rm-mega-col" role="group" aria-label="Optimization treatments">
                           <span className="rm-mega-label">Optimization</span>
                           <Link href="/hormone-optimization" role="menuitem">Hormone Optimization</Link>
                           <Link href="/weight-loss" role="menuitem">Weight Loss</Link>
@@ -78,24 +86,16 @@ export default function Layout({ children, title, description, logoOnly }) {
                           <Link href="/iv-therapy" role="menuitem">IV Therapy</Link>
                           <Link href="/peptide-therapy" role="menuitem">Peptide Therapy</Link>
                         </div>
-                        <div className="rm-mega-col" role="group" aria-label="Recovery programs">
-                          <span className="rm-mega-label">Recovery</span>
-                          <Link href="/hyperbaric-oxygen-therapy" role="menuitem">Hyperbaric Oxygen</Link>
-                          <Link href="/red-light-therapy" role="menuitem">Red Light Therapy</Link>
-                          <Link href="/cellular-energy-reset" role="menuitem">Cellular Reset</Link>
-                          <Link href="/prp-therapy" role="menuitem">PRP Therapy</Link>
-                          <Link href="/exosome-therapy" role="menuitem">Exosome Therapy</Link>
-                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <Link href="/reviews" className="rm-nav-link">Patient Stories</Link>
-                  <Link href="/injury-recovery" className="rm-nav-link rm-nav-injury">Dealing with an Injury?</Link>
+                  <Link href="/how-it-works" className="rm-nav-link">How It Works</Link>
+                  <Link href="/reviews" className="rm-nav-link">Reviews</Link>
                 </div>
 
                 <Link href="/assessment" className="rm-nav-cta">
-                  Start Your Assessment
+                  Book Assessment
                 </Link>
               </nav>
 
@@ -115,13 +115,12 @@ export default function Layout({ children, title, description, logoOnly }) {
 
         {!logoOnly && (
           <div className={`rm-mobile-menu ${mobileMenuOpen ? 'open' : ''}`} role="navigation" aria-label="Mobile navigation">
-            <Link href="/assessment" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Range Assessment</Link>
             <button
               className="rm-mobile-accordion"
               onClick={() => setMobileTreatmentsOpen(!mobileTreatmentsOpen)}
               aria-expanded={mobileTreatmentsOpen}
             >
-              <span>Programs</span>
+              <span>Treatments</span>
               <svg
                 width="10" height="6" viewBox="0 0 12 7" fill="none" aria-hidden="true"
                 style={{ transform: mobileTreatmentsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
@@ -131,23 +130,25 @@ export default function Layout({ children, title, description, logoOnly }) {
             </button>
             {mobileTreatmentsOpen && (
               <div className="rm-mobile-sub">
-                <span className="rm-mobile-cat">Optimization</span>
-                <Link href="/hormone-optimization" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hormone Optimization</Link>
-                <Link href="/weight-loss" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Weight Loss</Link>
-                <Link href="/nad-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>NAD+ Therapy</Link>
-                <Link href="/iv-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>IV Therapy</Link>
-                <Link href="/peptide-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Peptide Therapy</Link>
-                <span className="rm-mobile-cat" style={{ marginTop: '0.75rem' }}>Recovery</span>
+                <span className="rm-mobile-cat">Recovery</span>
                 <Link href="/hyperbaric-oxygen-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hyperbaric Oxygen</Link>
                 <Link href="/red-light-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Red Light Therapy</Link>
                 <Link href="/cellular-energy-reset" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Cellular Reset</Link>
                 <Link href="/prp-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>PRP Therapy</Link>
                 <Link href="/exosome-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Exosome Therapy</Link>
+                <Link href="/injection-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Injection Therapy</Link>
+                <Link href="/peptide-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Peptide Therapy</Link>
+                <span className="rm-mobile-cat" style={{ marginTop: '0.75rem' }}>Optimization</span>
+                <Link href="/hormone-optimization" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hormone Optimization</Link>
+                <Link href="/weight-loss" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Weight Loss</Link>
+                <Link href="/nad-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>NAD+ Therapy</Link>
+                <Link href="/iv-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>IV Therapy</Link>
+                <Link href="/peptide-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Peptide Therapy</Link>
               </div>
             )}
-            <Link href="/reviews" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Patient Stories</Link>
-            <Link href="/injury-recovery" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Dealing with an Injury?</Link>
-            <Link href="/assessment" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Start Your Assessment</Link>
+            <Link href="/how-it-works" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>How It Works</Link>
+            <Link href="/reviews" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Reviews</Link>
+            <Link href="/assessment" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Book Assessment</Link>
             <div className="rm-mobile-contact">
               <a href="tel:9499973988">(949) 997-3988</a>
               <span>1901 Westcliff Dr, Suite 10, Newport Beach, CA</span>
@@ -181,30 +182,34 @@ export default function Layout({ children, title, description, logoOnly }) {
             <div className="rm-footer-col">
               <h4>START</h4>
               <ul>
-                <li><Link href="/assessment">Range Assessment</Link></li>
-                <li><Link href="/injury-recovery">Injury Recovery</Link></li>
-                <li><Link href="/reviews">Patient Stories</Link></li>
+                <li><Link href="/assessment">Book Your Range Assessment</Link></li>
+                <li><Link href="/injury-recovery">Injury & Recovery</Link></li>
+                <li><Link href="/energy-optimization">Energy & Optimization</Link></li>
               </ul>
             </div>
             <div className="rm-footer-col">
-              <h4>PROGRAMS</h4>
+              <h4>TREATMENTS</h4>
               <ul>
                 <li><Link href="/hormone-optimization">Hormones</Link></li>
                 <li><Link href="/weight-loss">Weight Loss</Link></li>
                 <li><Link href="/peptide-therapy">Peptides</Link></li>
                 <li><Link href="/nad-therapy">NAD+</Link></li>
                 <li><Link href="/iv-therapy">IV Therapy</Link></li>
+                <li><Link href="/injection-therapy">Injections</Link></li>
                 <li><Link href="/cellular-energy-reset">Cellular Reset</Link></li>
               </ul>
             </div>
             <div className="rm-footer-col">
-              <h4>RECOVERY</h4>
+              <h4>MORE</h4>
               <ul>
                 <li><Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link></li>
                 <li><Link href="/red-light-therapy">Red Light</Link></li>
                 <li><Link href="/prp-therapy">PRP Therapy</Link></li>
                 <li><Link href="/exosome-therapy">Exosomes</Link></li>
+                <li><Link href="/methylene-blue">Methylene Blue</Link></li>
+                <li><Link href="/reviews">Reviews</Link></li>
                 <li><Link href="/gift-cards">Gift Cards</Link></li>
+                <li><Link href="/grand-opening">Grand Opening</Link></li>
               </ul>
             </div>
           </div>

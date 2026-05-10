@@ -1884,12 +1884,3 @@ p {
   }
 }
 
-/* ========================================
-   NAV — Secondary injury link
-   ======================================== */
-
-.rm-nav-injury {
-  color: var(--color-text-muted) !important;
-  font-weight: 400 !important;
-  font-style: italic;
-}

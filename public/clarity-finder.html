@@ -557,13 +557,20 @@
      LEAD SUBMISSION (wire to your API)
      ═══════════════════════════════════════════════════════════════════ */
   function submitLead(data) {
-    // Replace with your API endpoint, e.g.:
-    // fetch('/api/quiz/submit', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(data)
-    // });
-    console.log('Quiz submission:', data);
+    fetch('/api/quiz/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName: data.lead.firstName,
+        email: data.lead.email,
+        phone: phoneDigits(data.lead.mobile || ''),
+        path: data.path,
+        answers: {
+          pathChoice: data.pathChoice,
+          responses: data.answers
+        }
+      })
+    }).catch(function(err) { console.error('Lead submit error:', err); });
   }
 
   /* ═══════════════════════════════════════════════════════════════════

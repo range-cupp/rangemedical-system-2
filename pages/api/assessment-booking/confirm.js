@@ -33,6 +33,19 @@ export default async function handler(req, res) {
       }
     }
 
+    supabase
+      .from('quiz_leads')
+      .update({
+        status: 'converted',
+        converted_at: new Date().toISOString(),
+        payment_intent_id: paymentIntentId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('email', patientEmail.toLowerCase().trim())
+      .neq('status', 'converted')
+      .then(() => {})
+      .catch(err => console.error('Quiz lead conversion update (non-fatal):', err));
+
     await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com'}/api/stripe/record-purchase`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -20,7 +20,7 @@ export default async function handler(req, res) {
       .from('comms_log')
       .select('id, patient_id, patient_name, recipient')
       .eq('message_type', 'mothers_day_promo_link')
-      .eq('status', 'sent')
+      .in('status', ['sent', 'delivered', 'read'])
       .lte('created_at', twoHoursAgo)
       .gte('created_at', twentyFourHoursAgo);
 

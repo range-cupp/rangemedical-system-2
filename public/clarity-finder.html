@@ -725,12 +725,16 @@
     app.innerHTML = h;
 
     // Phone formatting
-    document.getElementById('f-mobile').addEventListener('input', function() {
+    var mobileEl = document.getElementById('f-mobile');
+    function handlePhoneInput() {
       var pos = this.selectionStart;
       var old = this.value;
       this.value = formatPhone(this.value);
       if (this.value.length > old.length) pos++;
-    });
+      try { this.setSelectionRange(pos, pos); } catch(e) {}
+    }
+    mobileEl.addEventListener('input', handlePhoneInput);
+    mobileEl.addEventListener('change', handlePhoneInput);
 
     // Back
     document.getElementById('back').addEventListener('click', function() {

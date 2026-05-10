@@ -147,6 +147,10 @@
     {
       "path": "/api/cron/quiz-drip",
       "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/hbot-drip",
+      "schedule": "20 17 * * *"
     }
   ]
 }

@@ -58,11 +58,6 @@ export default async function handler(req, res) {
     const now = new Date();
     const leadEmails = leads.map(l => l.email.toLowerCase().trim());
 
-    const { data: bookedPatients } = await supabase
-      .from('patients')
-      .select('email')
-      .in('email', leadEmails);
-
     const { data: assessmentPurchases } = await supabase
       .from('purchases')
       .select('patient_email')
@@ -75,7 +70,6 @@ export default async function handler(req, res) {
       .in('status', ['scheduled', 'completed']);
 
     const convertedEmails = new Set();
-    (bookedPatients || []).forEach(p => { if (p.email) convertedEmails.add(p.email.toLowerCase()); });
     (assessmentPurchases || []).forEach(p => { if (p.patient_email) convertedEmails.add(p.patient_email.toLowerCase()); });
     (assessmentAppointments || []).forEach(a => { if (a.patient_email) convertedEmails.add(a.patient_email.toLowerCase()); });
 

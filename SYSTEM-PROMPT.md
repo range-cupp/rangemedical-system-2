@@ -5,7 +5,7 @@
 **App URL:** app.range-medical.com
 **Stack:** Next.js 14 (Pages Router), Supabase (PostgreSQL + Storage), Vercel (hosting + cron)
 **Styling:** Inline styles (no Tailwind/CSS modules)
-**Key Integrations:** GoHighLevel CRM, Stripe Payments, Cal.com Booking, Resend Email, Twilio SMS
+**Key Integrations:** Stripe Payments, Resend Email, Blooio SMS, Native Scheduling (lib/scheduling.js)
 
 ---
 
@@ -34,7 +34,7 @@
 ### Appointments
 | Table | Purpose | Key Columns |
 |-------|---------|-------------|
-| `calcom_bookings` | Cal.com booking records | id, calcom_booking_id, calcom_uid, patient_id, service_name, service_slug, event_type_id, start_time, end_time, status (scheduled/confirmed/completed/cancelled/no_show), booked_by |
+| `calcom_bookings` | **ARCHIVED** — legacy Cal.com records (no longer read or written by app code) | id, calcom_booking_id, calcom_uid, patient_id, service_name, service_slug, event_type_id, start_time, end_time, status, booked_by |
 | `clinic_appointments` | GHL appointment records | id, ghl_appointment_id, patient_id, title, status, appointment_date, calendar_name |
 | `appointments` | Unified appointment table | id, patient_id, start_time, end_time, status, type |
 | `appointment_logs` | Appointment action audit trail | id, appointment_id, action, details |
@@ -166,7 +166,7 @@ All scheduled in `/vercel.json`. Times shown in PT.
 | `/api/webhooks/intake` | Patient submits intake form | Saves to `intakes` table, matches to patient |
 | `/api/webhooks/ghl-contact` | GHL contact created/updated/deleted | Syncs to `ghl_contacts` table |
 | `/api/webhooks/appointment` | GHL appointment status change | Logs to `clinic_appointments`, maps to service category |
-| `/api/webhooks/calcom` | Cal.com booking created/cancelled/rescheduled | Syncs to `calcom_bookings`, updates lab pipeline, sends staff email |
+| `/api/webhooks/calcom` | **DISABLED** — legacy Cal.com webhook (returns 200, no processing) |
 | `/api/webhooks/ghl-hrt-appointment` | GHL "HRT Range IV" workflow | Marks IV as used for HRT membership patients |
 
 ---
@@ -178,7 +178,7 @@ All scheduled in `/vercel.json`. Times shown in PT.
 - **Protocols Tab:** View/search/filter all protocols, assign new protocols, edit existing, bulk actions
 - **Service Log Tab:** Log all service deliveries (injections, sessions, pickups)
 - **Labs Pipeline Tab:** 5-stage drag-to-advance lab tracking
-- **Booking Tab:** Staff booking interface via Cal.com
+- **Booking Tab:** Staff booking interface (native scheduling engine)
 - **Calendar Tab:** Native appointment calendar (day/week/month views)
 - **POS Tab:** Stripe payment processing with service catalog
 - **Forms Tab:** Consent and intake form management
@@ -227,7 +227,7 @@ All scheduled in `/vercel.json`. Times shown in PT.
 | `lib/hrt-lab-schedule.js` | HRT blood draw schedule calculator (5 draws over 44 weeks) |
 | `lib/protocol-tracking.js` | Protocol status/urgency calculations (remaining days/sessions, overdue detection) |
 | `lib/biomarker-config.js` | 100+ biomarker definitions (12 categories, units, display names) |
-| `lib/calcom.js` | Cal.com API integration (event types, slots, create/cancel/reschedule bookings) |
+| `lib/scheduling.js` | Native scheduling engine (slot availability, working windows, provider schedules) |
 | `lib/comms-log.js` | Shared utility to log all SMS/email to `comms_log` table |
 | `lib/appointment-services.js` | Service catalog for native calendar (25+ services, 5 categories, durations) |
 | `lib/wl-side-effect-guidance.js` | Conversational side effect guidance for WL check-ins |
@@ -249,7 +249,7 @@ All scheduled in `/vercel.json`. Times shown in PT.
 | `components/ServiceLogContent.js` | Reusable service log form (8 service types, dynamic fields, medication/dosage selection) |
 | `components/POSChargeModal.js` | Multi-step POS charge (patient → service → payment → result) |
 | `components/LabsPipelineTab.js` | 5-stage drag-to-advance lab pipeline |
-| `components/BookingTab.js` | Staff booking via Cal.com (5 categories, cascading dropdowns) |
+| `components/BookingTab.js` | Staff booking (5 categories, cascading dropdowns, native scheduling) |
 | `components/CalendarView.js` | Native appointment calendar (day/week/month views) |
 | `components/labs/LabDashboard.jsx` | Lab result visualization with biomarker ranges, trends, comparisons |
 | `components/AdminLayout.js` | Shared admin layout with nav + exported `sharedStyles` |
@@ -288,8 +288,8 @@ All scheduled in `/vercel.json`. Times shown in PT.
 | `/api/purchases/*` | Purchase CRUD, sync, dedup |
 | `/api/service-log/*` | Service log CRUD, patient protocols lookup |
 | `/api/labs/*` | Lab results, orders, biomarkers, patient history |
-| `/api/appointments/*` | Appointment CRUD, sync with Cal.com |
-| `/api/bookings/*` | Cal.com booking create/cancel/reschedule |
+| `/api/appointments/*` | Appointment CRUD (native scheduling) |
+| `/api/bookings/*` | Booking create/cancel/reschedule (native scheduling) |
 
 ### Admin Operations
 | Route Pattern | Purpose |
@@ -327,7 +327,6 @@ All scheduled in `/vercel.json`. Times shown in PT.
 | `STRIPE_SECRET_KEY` | Stripe API key |
 | `GHL_API_KEY` | GoHighLevel API key |
 | `GHL_LOCATION_ID` | GHL location ID |
-| `CALCOM_API_KEY` | Cal.com API key |
 | `RESEND_API_KEY` | Resend email API key |
 | `CRON_SECRET` | Cron job authentication |
 | `RESEARCH_NOTIFY_CONTACT_ID` | GHL contact ID for staff notifications |

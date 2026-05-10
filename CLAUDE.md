@@ -107,6 +107,15 @@ scripts/                # One-off utility scripts
 - State management is local (useState/useEffect) — no global state library
 - Data fetching happens in `useEffect` with Supabase client calls
 
+### Scheduling — Cal.com is FULLY DEPRECATED
+- All scheduling uses the **native scheduling engine** (`lib/scheduling.js`) and local tables: `services`, `service_providers`, `provider_schedules`, `provider_schedule_overrides`, `appointments`
+- `lib/calcom.js` has been **deleted** — do NOT recreate or reference it
+- Never use Cal.com iframes, embeds, API calls, or suggest Cal.com as a solution
+- The `calcom_bookings` table is a historical archive — no app code reads or writes it
+- Booking flows: `/api/appointments/create`, `/api/bookings/create`, `lib/create-appointment.js`
+- Slot availability: `lib/scheduling.getAvailableSlots()`
+- Admin manages services at `/admin/services`, provider hours at `/admin/provider-schedule`
+
 ### Service Log
 - The Service Log is the **single source of truth** for all session tracking (IV, HBOT, RLT, injections, peptide pickups, weight loss pickups, HRT pickups)
 - Do not add session counting to GHL webhooks or other systems

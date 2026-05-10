@@ -9,10 +9,7 @@ export async function getServerSideProps({ query }) {
   if (path === 'injury' || path === 'both') {
     return { redirect: { destination: '/assessment/injury', permanent: false } };
   }
-  if (path === 'energy') {
-    return { redirect: { destination: '/assessment/energy', permanent: false } };
-  }
-  return { props: {} };
+  return { redirect: { destination: '/assessment/energy', permanent: false } };
 }
 
 const selectorStyles = {

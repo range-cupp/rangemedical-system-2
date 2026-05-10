@@ -11,6 +11,7 @@ import { logComm } from '../../../lib/comms-log';
 import { isInQuietHours } from '../../../lib/quiet-hours';
 import { pacificDayUTCBounds } from '../../../lib/date-utils';
 import { createLabPrepToken, buildLabPrepUrl } from '../../../lib/lab-prep-token';
+import { hasBlooioOptIn, isBlooioProvider, queuePendingLinkMessage } from '../../../lib/blooio-optin';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -119,6 +120,45 @@ async function sendLabPrepSMS({ booking, patient, messageType, results }) {
   }
 
   try {
+    // Blooio two-step opt-in: if patient hasn't replied via Blooio before,
+    // send a plain text prompt and queue the link message for auto-delivery
+    if (isBlooioProvider() && !(await hasBlooioOptIn(normalizedPhone))) {
+      const optinPrompt = `Hi ${firstName}! Range Medical here — we have lab prep instructions for your upcoming blood draw. Reply YES and we'll send the link right over!`;
+
+      const promptResult = await sendSMS({ to: normalizedPhone, message: optinPrompt });
+
+      await logComm({
+        channel: 'sms',
+        messageType: `${messageType}_optin_prompt`,
+        message: optinPrompt,
+        source: 'cron/lab-prep-reminder(blooio-optin)',
+        patientId: booking.patient_id || null,
+        patientName: displayName,
+        recipient: normalizedPhone,
+        status: promptResult.success ? 'sent' : 'error',
+        errorMessage: promptResult.error || null,
+        twilioMessageSid: promptResult.messageSid || null,
+        provider: promptResult.provider || 'blooio',
+        direction: 'outbound',
+      }).catch(err => console.error('[lab-prep-reminder] Log error:', err));
+
+      if (promptResult.success) {
+        await queuePendingLinkMessage({
+          phone: normalizedPhone,
+          message,
+          messageType: 'lab_prep_links',
+          patientId: booking.patient_id || null,
+          patientName: displayName,
+        });
+        results.sent.push({ name: displayName, phone: normalizedPhone, type: messageType, optinRequired: true });
+        console.log(`[lab-prep-reminder] Sent opt-in prompt + queued link for ${displayName} (${normalizedPhone})`);
+      } else {
+        results.errors.push({ name: displayName, type: messageType, error: promptResult.error });
+        console.error(`[lab-prep-reminder] Opt-in prompt failed for ${displayName}:`, promptResult.error);
+      }
+      return;
+    }
+
     const smsResult = await sendSMS({ to: normalizedPhone, message });
 
     if (smsResult.success) {

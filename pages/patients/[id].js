@@ -1032,6 +1032,45 @@ export default function PatientProfile() {
   const [showConditionModal, setShowConditionModal] = useState(false);
   const [savingConditions, setSavingConditions] = useState(false);
 
+  // Communication preferences
+  const [commsPrefSaving, setCommsPrefSaving] = useState(false);
+  const [commsNotesEdit, setCommsNotesEdit] = useState(null);
+
+  const toggleCommsPref = async (field, value) => {
+    setCommsPrefSaving(field);
+    try {
+      const res = await fetch('/api/patient/comms-preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patient_id: patient.id, [field]: value }),
+      });
+      if (!res.ok) throw new Error('Failed to update');
+      setPatient(prev => ({ ...prev, [field]: value, comms_updated_at: new Date().toISOString() }));
+    } catch (err) {
+      console.error('Comms pref error:', err);
+    } finally {
+      setCommsPrefSaving(false);
+    }
+  };
+
+  const saveCommsNotes = async () => {
+    setCommsPrefSaving('comms_notes');
+    try {
+      const res = await fetch('/api/patient/comms-preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patient_id: patient.id, comms_notes: commsNotesEdit }),
+      });
+      if (!res.ok) throw new Error('Failed to save notes');
+      setPatient(prev => ({ ...prev, comms_notes: commsNotesEdit, comms_updated_at: new Date().toISOString() }));
+      setCommsNotesEdit(null);
+    } catch (err) {
+      console.error('Comms notes error:', err);
+    } finally {
+      setCommsPrefSaving(false);
+    }
+  };
+
   // Load data
   useEffect(() => {
     if (id) {
@@ -6726,6 +6765,157 @@ export default function PatientProfile() {
                   </section>
                 );
               })()}
+
+              {/* Communication Preferences */}
+              <section className="card" style={{ marginBottom: '16px' }}>
+                <div className="card-header">
+                  <h3>Communication Preferences</h3>
+                  {patient?.comms_updated_at && (
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      Updated {new Date(patient.comms_updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })}
+                    </span>
+                  )}
+                </div>
+                <div style={{ padding: '16px' }}>
+                  {(patient?.sms_opt_out || patient?.email_opt_out || patient?.call_opt_out || patient?.marketing_opt_out || patient?.automations_opt_out) && (
+                    <div style={{
+                      padding: '8px 12px', marginBottom: '14px', background: '#fef2f2',
+                      border: '1px solid #fecaca', fontSize: '12px', color: '#991b1b', fontWeight: 600,
+                    }}>
+                      This patient has opted out of some communications
+                    </div>
+                  )}
+                  <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginBottom: '8px' }}>
+                    Channels
+                  </div>
+                  {[
+                    { field: 'sms_opt_out', label: 'Text / SMS', icon: '💬' },
+                    { field: 'email_opt_out', label: 'Email', icon: '📧' },
+                    { field: 'call_opt_out', label: 'Phone Calls', icon: '📞' },
+                  ].map(({ field, label, icon }) => (
+                    <div key={field} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '10px 0', borderBottom: '1px solid #f1f5f9',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '16px' }}>{icon}</span>
+                        <span style={{ fontSize: '14px', fontWeight: 500, color: '#1e293b' }}>{label}</span>
+                      </div>
+                      <button
+                        onClick={() => toggleCommsPref(field, !patient?.[field])}
+                        disabled={commsPrefSaving === field}
+                        style={{
+                          width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer',
+                          position: 'relative', transition: 'background 0.2s',
+                          background: patient?.[field] ? '#fca5a5' : '#86efac',
+                          opacity: commsPrefSaving === field ? 0.5 : 1,
+                        }}
+                      >
+                        <span style={{
+                          position: 'absolute', top: '2px', width: '20px', height: '20px',
+                          borderRadius: '50%', background: '#fff', transition: 'left 0.2s',
+                          left: patient?.[field] ? '2px' : '22px',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                        }} />
+                      </button>
+                      <span style={{
+                        fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', width: '60px', textAlign: 'right',
+                        color: patient?.[field] ? '#dc2626' : '#16a34a',
+                      }}>
+                        {patient?.[field] ? 'Stopped' : 'Active'}
+                      </span>
+                    </div>
+                  ))}
+
+                  <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginTop: '16px', marginBottom: '8px' }}>
+                    Communication Types
+                  </div>
+                  {[
+                    { field: 'marketing_opt_out', label: 'Marketing', desc: 'Promotions, offers, newsletters' },
+                    { field: 'automations_opt_out', label: 'Automations', desc: 'Reminders, check-ins, follow-ups' },
+                  ].map(({ field, label, desc }) => (
+                    <div key={field} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '10px 0', borderBottom: '1px solid #f1f5f9',
+                    }}>
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: 500, color: '#1e293b' }}>{label}</div>
+                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>{desc}</div>
+                      </div>
+                      <button
+                        onClick={() => toggleCommsPref(field, !patient?.[field])}
+                        disabled={commsPrefSaving === field}
+                        style={{
+                          width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer',
+                          position: 'relative', transition: 'background 0.2s',
+                          background: patient?.[field] ? '#fca5a5' : '#86efac',
+                          opacity: commsPrefSaving === field ? 0.5 : 1,
+                        }}
+                      >
+                        <span style={{
+                          position: 'absolute', top: '2px', width: '20px', height: '20px',
+                          borderRadius: '50%', background: '#fff', transition: 'left 0.2s',
+                          left: patient?.[field] ? '2px' : '22px',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                        }} />
+                      </button>
+                      <span style={{
+                        fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', width: '60px', textAlign: 'right',
+                        color: patient?.[field] ? '#dc2626' : '#16a34a',
+                      }}>
+                        {patient?.[field] ? 'Stopped' : 'Active'}
+                      </span>
+                    </div>
+                  ))}
+
+                  <div style={{ marginTop: '14px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginBottom: '6px' }}>
+                      Notes
+                    </div>
+                    {commsNotesEdit !== null ? (
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                        <textarea
+                          value={commsNotesEdit}
+                          onChange={e => setCommsNotesEdit(e.target.value)}
+                          placeholder="e.g. Patient requested no contact after 5pm..."
+                          rows={2}
+                          style={{
+                            flex: 1, padding: '8px 10px', fontSize: '13px', border: '1px solid #cbd5e1',
+                            borderRadius: 0, resize: 'vertical', fontFamily: 'inherit',
+                          }}
+                        />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <button
+                            onClick={saveCommsNotes}
+                            disabled={commsPrefSaving === 'comms_notes'}
+                            style={{
+                              padding: '6px 12px', fontSize: '12px', fontWeight: 600,
+                              background: '#2563eb', color: '#fff', border: 'none', cursor: 'pointer',
+                            }}
+                          >Save</button>
+                          <button
+                            onClick={() => setCommsNotesEdit(null)}
+                            style={{
+                              padding: '6px 12px', fontSize: '12px',
+                              background: 'none', color: '#64748b', border: '1px solid #e2e8f0', cursor: 'pointer',
+                            }}
+                          >Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => setCommsNotesEdit(patient?.comms_notes || '')}
+                        style={{
+                          padding: '8px 10px', fontSize: '13px', color: patient?.comms_notes ? '#374151' : '#94a3b8',
+                          background: '#f8fafc', border: '1px solid #f1f5f9', cursor: 'pointer', minHeight: '36px',
+                        }}
+                      >
+                        {patient?.comms_notes || 'Click to add notes...'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
 
               {/* Recent Documents removed — use Documents tab */}
             </>

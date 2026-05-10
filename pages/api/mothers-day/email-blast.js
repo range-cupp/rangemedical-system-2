@@ -91,7 +91,8 @@ export default async function handler(req, res) {
       .not('email', 'is', null)
       .neq('email', '')
       .not('referral_source', 'in', '("Range Sports Therapy","Dr. G","Aaron Berger")')
-      .or('marketing_opt_out.is.null,marketing_opt_out.eq.false');
+      .or('marketing_opt_out.is.null,marketing_opt_out.eq.false')
+      .or('email_opt_out.is.null,email_opt_out.eq.false');
 
     if (fetchError) {
       return res.status(500).json({ error: fetchError.message });

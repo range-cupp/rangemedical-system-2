@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     if (patient) {
       await supabase
         .from('patients')
-        .update({ marketing_opt_out: true })
+        .update({ marketing_opt_out: true, comms_updated_at: new Date().toISOString() })
         .eq('id', patient.id);
     }
 

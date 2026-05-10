@@ -71,7 +71,8 @@ export default async function handler(req, res) {
       .not('phone', 'is', null)
       .neq('phone', '')
       .not('referral_source', 'in', '("Range Sports Therapy","Dr. G","Aaron Berger")')
-      .or('marketing_opt_out.is.null,marketing_opt_out.eq.false');
+      .or('marketing_opt_out.is.null,marketing_opt_out.eq.false')
+      .or('sms_opt_out.is.null,sms_opt_out.eq.false');
 
     if (rmError) {
       return res.status(500).json({ error: rmError.message });
@@ -85,7 +86,8 @@ export default async function handler(req, res) {
       .not('phone', 'is', null)
       .neq('phone', '')
       .in('referral_source', ['Range Sports Therapy', 'Dr. G', 'Aaron Berger'])
-      .or('marketing_opt_out.is.null,marketing_opt_out.eq.false');
+      .or('marketing_opt_out.is.null,marketing_opt_out.eq.false')
+      .or('sms_opt_out.is.null,sms_opt_out.eq.false');
 
     if (pepError) {
       return res.status(500).json({ error: pepError.message });

@@ -16,19 +16,20 @@ const ASSESSMENT_EVENT_TYPE_ID = process.env.NEXT_PUBLIC_ASSESSMENT_EVENT_TYPE_I
 export const styles = {
   page: {
     minHeight: '100vh',
-    background: '#ffffff',
+    background: '#FAF9F6',
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     WebkitFontSmoothing: 'antialiased',
   },
   header: {
-    borderBottom: '1px solid #e8e8e8',
+    borderBottom: '1px solid #e0e0e0',
     padding: '0 2.5rem',
     height: 64,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    background: '#FAF9F6',
   },
-  logo: { height: 48, display: 'block' },
+  logo: { height: 28, display: 'block' },
   container: { maxWidth: 640, margin: '0 auto', padding: '0 2rem 80px' },
 
   label: {
@@ -54,9 +55,9 @@ export const styles = {
   },
 
   btn: {
-    width: '100%', padding: '16px 32px', background: '#1a1a1a', color: '#ffffff',
-    fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase',
-    border: 'none', cursor: 'pointer', transition: 'background 0.2s',
+    width: '100%', padding: '16px 32px', background: '#2E5D3A', color: '#ffffff',
+    fontSize: 15, fontWeight: 500, letterSpacing: 0, textTransform: 'none',
+    border: 'none', borderRadius: 999, cursor: 'pointer', transition: 'background 0.2s',
   },
   btnDisabled: { opacity: 0.35, cursor: 'not-allowed' },
 

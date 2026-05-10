@@ -27,9 +27,10 @@ export default function Header() {
     <header className="rm-header">
       <div className="rm-header-inner">
         <Link href="/" className="rm-logo">
-          <img 
-            src="https://www.range-medical.com/brand/range_logo_transparent_black.png" 
-            alt="Range Medical" 
+          <img
+            src="https://www.range-medical.com/brand/range_logo_transparent_black.png"
+            alt="Range Medical"
+            className="rm-logo-img"
           />
         </Link>
         

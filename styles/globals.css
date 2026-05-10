@@ -109,7 +109,7 @@ p {
   align-items: center;
   justify-content: space-between;
   padding: 0 2.5rem;
-  height: 64px;
+  height: 80px;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -124,13 +124,13 @@ p {
 }
 
 .rm-logo-img {
-  height: 28px;
+  height: 38px;
   width: auto;
 }
 
 @media (max-width: 1024px) {
   .rm-logo-img {
-    height: 24px;
+    height: 32px;
   }
 }
 

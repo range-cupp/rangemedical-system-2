@@ -808,18 +808,18 @@ export default function RedLightTherapy() {
 
         /* Headlines — V2: uppercase, 900 weight, tight leading */
         .rlt-page h1 {
-          font-size: clamp(2.5rem, 6vw, 4rem);
+          font-size: 88px;
           font-weight: 400;
-          line-height: 0.95;
-          letter-spacing: -0.03em;
+          line-height: 1.05;
+          letter-spacing: -0.02em;
           color: #171717;
         }
 
         .rlt-page h2 {
-          font-size: 2rem;
+          font-size: 56px;
           font-weight: 400;
-          line-height: 0.95;
-          letter-spacing: -0.03em;
+          line-height: 1.1;
+          letter-spacing: -0.02em;
           color: #171717;
           margin-bottom: 1rem;
         }
@@ -1929,11 +1929,11 @@ export default function RedLightTherapy() {
           }
 
           .rlt-page h1 {
-            font-size: 2rem;
+            font-size: 48px;
           }
 
           .rlt-page h2 {
-            font-size: 1.5rem;
+            font-size: 36px;
           }
 
           .rlt-hero {

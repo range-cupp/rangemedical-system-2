@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { paymentIntentId, patientInfo } = req.body;
+    const { paymentIntentId, patientInfo, appointmentTime } = req.body;
 
     const patientName = `${patientInfo.firstName} ${patientInfo.lastName}`;
     const patientEmail = patientInfo.email;
@@ -65,6 +65,11 @@ export default async function handler(req, res) {
             <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;">Payment</p>
             <p style="margin:0;color:#171717;font-size:16px;font-weight:700;">$197.00 paid</p>
           </div>
+          ${appointmentTime ? `
+          <div style="border-left:4px solid #7c3aed;padding-left:16px;margin-bottom:20px;">
+            <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;">Appointment</p>
+            <p style="margin:0;color:#171717;font-size:14px;">${new Date(appointmentTime).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })}</p>
+          </div>` : ''}
           <div style="background:#f5f5f5;padding:12px 16px;margin-top:16px;">
             <p style="margin:0;color:#525252;font-size:13px;">
               Patient booked a Range Assessment via the Clarity Finder quiz. Send consent forms manually from the patient profile.

@@ -1,13 +1,48 @@
 import Layout from '../components/Layout';
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useRouter } from 'next/router';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
-const CAL_SLUG = 'range-assessment';
+const SERVICE_SLUG = 'range-assessment';
+
+function ptDateParts(date) {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  });
+  return fmt.formatToParts(date).reduce((acc, p) => ({ ...acc, [p.type]: p.value }), {});
+}
+
+function getNext14Days() {
+  const out = [];
+  const now = new Date();
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(now.getTime() + i * 86400000);
+    const { year, month, day } = ptDateParts(d);
+    const iso = `${year}-${month}-${day}`;
+    const weekday = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', weekday: 'short' }).format(d);
+    const monthShort = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', month: 'short' }).format(d);
+    out.push({ dateISO: iso, weekdayShort: weekday, day: Number(day), monthShort });
+  }
+  return out;
+}
+
+function formatSlotTime(iso) {
+  return new Date(iso).toLocaleString('en-US', {
+    timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit', hour12: true,
+  });
+}
+
+function formatSlotFull(iso) {
+  return new Date(iso).toLocaleString('en-US', {
+    timeZone: 'America/Los_Angeles', weekday: 'long', month: 'long', day: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+  });
+}
 
 function CheckoutForm({ patientInfo, onSuccess, onBack }) {
   const stripe = useStripe();
@@ -92,10 +127,20 @@ export default function BookAssessment() {
   const router = useRouter();
   const [step, setStep] = useState('info');
   const [patientInfo, setPatientInfo] = useState({ firstName: '', lastName: '', email: '', phone: '', dob: '' });
-  const [calUrl, setCalUrl] = useState('');
   const [paymentIntentId, setPaymentIntentId] = useState('');
-  const [confirming, setConfirming] = useState(false);
   const [formErrors, setFormErrors] = useState({});
+
+  const days = useMemo(() => getNext14Days(), []);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [slotsByDate, setSlotsByDate] = useState({});
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [booking, setBooking] = useState(false);
+  const [bookError, setBookError] = useState('');
+
+  useEffect(() => {
+    if (days.length > 0 && !selectedDate) setSelectedDate(days[0].dateISO);
+  }, [days]);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -107,6 +152,21 @@ export default function BookAssessment() {
       phone: q.phone || prev.phone,
     }));
   }, [router.isReady, router.query]);
+
+  useEffect(() => {
+    if (step !== 'book' || !selectedDate) return;
+    if (slotsByDate[selectedDate] !== undefined) return;
+    setLoadingSlots(true);
+    fetch(`/api/bookings/slots?serviceSlug=${SERVICE_SLUG}&date=${selectedDate}`)
+      .then(r => r.json())
+      .then(data => {
+        const raw = data?.slots;
+        const list = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? (raw[selectedDate] || []) : []);
+        setSlotsByDate(prev => ({ ...prev, [selectedDate]: list }));
+      })
+      .catch(() => setSlotsByDate(prev => ({ ...prev, [selectedDate]: [] })))
+      .finally(() => setLoadingSlots(false));
+  }, [step, selectedDate]);
 
   function validateInfo() {
     const errors = {};
@@ -125,32 +185,62 @@ export default function BookAssessment() {
 
   function handlePaymentSuccess(piId) {
     setPaymentIntentId(piId);
-    const base = `https://range-medical.cal.com/range-team/${CAL_SLUG}`;
-    const params = new URLSearchParams({
-      embed: 'true',
-      layout: 'month_view',
-      theme: 'light',
-      name: `${patientInfo.firstName} ${patientInfo.lastName}`,
-      email: patientInfo.email,
-    });
-    setCalUrl(`${base}?${params.toString()}`);
     setStep('book');
   }
 
-  async function handleBookingComplete() {
-    setConfirming(true);
+  async function handleBookSlot() {
+    if (!selectedSlot) return;
+    setBooking(true);
+    setBookError('');
     try {
-      await fetch('/api/assessment-booking/confirm', {
+      const confirmRes = await fetch('/api/assessment-booking/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentIntentId, patientInfo }),
+        body: JSON.stringify({
+          paymentIntentId,
+          patientInfo,
+          appointmentTime: selectedSlot,
+        }),
       });
+      if (!confirmRes.ok) {
+        const d = await confirmRes.json().catch(() => ({}));
+        throw new Error(d.error || 'Failed to confirm booking');
+      }
+
+      const bookRes = await fetch('/api/bookings/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceSlug: SERVICE_SLUG,
+          start: selectedSlot,
+          patientId: null,
+          patientName: `${patientInfo.firstName} ${patientInfo.lastName}`,
+          patientEmail: patientInfo.email,
+          patientPhone: patientInfo.phone,
+          serviceName: 'Range Assessment',
+          notes: `Paid $197 (PI: ${paymentIntentId}). DOB: ${patientInfo.dob}`,
+        }),
+      });
+      const bookData = await bookRes.json().catch(() => ({}));
+      if (!bookRes.ok) {
+        if (bookData.slotUnavailable) {
+          setSlotsByDate(prev => { const n = { ...prev }; delete n[selectedDate]; return n; });
+          setSelectedSlot(null);
+          setBookError('That time was just taken. Please pick another.');
+        } else {
+          throw new Error(bookData.error || 'Could not book. Please try again.');
+        }
+        setBooking(false);
+        return;
+      }
+      setStep('done');
     } catch (err) {
-      console.error('Confirm error:', err);
+      setBookError(err.message);
     }
-    setConfirming(false);
-    setStep('done');
+    setBooking(false);
   }
+
+  const slots = slotsByDate[selectedDate];
 
   return (
     <Layout
@@ -170,7 +260,6 @@ export default function BookAssessment() {
       </div>
 
       <div style={s.page}>
-        {/* Progress Steps */}
         <div style={s.progressBar}>
           {['Your Info', 'Pay', 'Schedule'].map((label, i) => {
             const stepMap = ['info', 'pay', 'book'];
@@ -185,7 +274,6 @@ export default function BookAssessment() {
           })}
         </div>
 
-        {/* ── Step 1: Patient Info ── */}
         {step === 'info' && (
           <div style={s.stepContainer}>
             <h1 style={s.pageTitle}>Range Assessment</h1>
@@ -240,7 +328,6 @@ export default function BookAssessment() {
           </div>
         )}
 
-        {/* ── Step 2: Pay ── */}
         {step === 'pay' && (
           <div style={s.stepContainer}>
             <h2 style={s.pageTitle}>Payment</h2>
@@ -256,7 +343,6 @@ export default function BookAssessment() {
           </div>
         )}
 
-        {/* ── Step 3: Book Appointment ── */}
         {step === 'book' && (
           <div style={s.stepContainer}>
             <div style={s.paymentSuccess}>
@@ -266,42 +352,110 @@ export default function BookAssessment() {
             </div>
 
             <h2 style={{ ...s.pageTitle, marginTop: '2rem' }}>Schedule Your Assessment</h2>
-            <p style={s.pageSubtitle}>Choose a time that works for you.</p>
+            <p style={s.pageSubtitle}>Pacific time. Choose a time that works for you.</p>
 
             <div style={s.fastingReminder}>
               Remember: come fasted (no food for 12 hours, water is fine) so we can draw labs during the same visit if needed.
             </div>
 
-            <div style={s.calContainer}>
-              {calUrl && (
-                <iframe
-                  src={calUrl}
-                  style={{ width: '100%', height: '700px', border: 'none', overflow: 'hidden' }}
-                  scrolling="no"
-                />
+            <div style={s.dayRow}>
+              {days.slice(0, 7).map(d => (
+                <button
+                  key={d.dateISO}
+                  onClick={() => { setSelectedDate(d.dateISO); setSelectedSlot(null); }}
+                  style={{
+                    ...s.dayBtn,
+                    ...(d.dateISO === selectedDate ? s.dayBtnActive : {}),
+                  }}
+                >
+                  <span style={s.dayWeekday}>{d.weekdayShort}</span>
+                  <span style={s.dayNum}>{d.day}</span>
+                  <span style={s.dayMonth}>{d.monthShort}</span>
+                </button>
+              ))}
+            </div>
+            <div style={{ ...s.dayRow, marginTop: '8px' }}>
+              {days.slice(7, 14).map(d => (
+                <button
+                  key={d.dateISO}
+                  onClick={() => { setSelectedDate(d.dateISO); setSelectedSlot(null); }}
+                  style={{
+                    ...s.dayBtn,
+                    ...(d.dateISO === selectedDate ? s.dayBtnActive : {}),
+                  }}
+                >
+                  <span style={s.dayWeekday}>{d.weekdayShort}</span>
+                  <span style={s.dayNum}>{d.day}</span>
+                  <span style={s.dayMonth}>{d.monthShort}</span>
+                </button>
+              ))}
+            </div>
+
+            <div style={{ padding: '16px 0', borderTop: '1px solid #e5e5e5', marginTop: '12px' }}>
+              {loadingSlots && (
+                <p style={{ fontSize: '14px', color: '#737373', textAlign: 'center', padding: '24px 0' }}>Loading open times...</p>
+              )}
+              {!loadingSlots && slots?.length === 0 && (
+                <p style={{ fontSize: '14px', color: '#737373', textAlign: 'center', padding: '24px 0' }}>
+                  No openings this day. Try another date.
+                </p>
+              )}
+              {!loadingSlots && slots?.length > 0 && (
+                <div style={s.slotGrid}>
+                  {slots.map(slot => {
+                    const iso = typeof slot === 'string' ? slot : slot.start;
+                    const isSelected = selectedSlot === iso;
+                    return (
+                      <button
+                        key={iso}
+                        onClick={() => setSelectedSlot(iso)}
+                        style={{
+                          ...s.slotBtn,
+                          ...(isSelected ? s.slotBtnActive : {}),
+                        }}
+                      >
+                        {formatSlotTime(iso)}
+                      </button>
+                    );
+                  })}
+                </div>
               )}
             </div>
 
-            <div style={{ textAlign: 'center', marginTop: '24px' }}>
-              <button onClick={handleBookingComplete} disabled={confirming} style={s.btnPrimary}>
-                {confirming ? 'Confirming...' : "I've Booked My Appointment"}
-              </button>
-              <p style={{ color: '#737373', fontSize: '13px', marginTop: '12px' }}>
-                Click the button above after selecting your time slot.
-              </p>
-            </div>
+            {bookError && (
+              <div style={s.errorMsg}>{bookError}</div>
+            )}
+
+            {selectedSlot && (
+              <div style={{ textAlign: 'center', marginTop: '8px' }}>
+                <p style={{ fontSize: '15px', color: '#171717', fontWeight: 600, marginBottom: '16px' }}>
+                  {formatSlotFull(selectedSlot)}
+                </p>
+                <button
+                  onClick={handleBookSlot}
+                  disabled={booking}
+                  style={{ ...s.btnPrimary, opacity: booking ? 0.6 : 1, width: '100%', padding: '16px' }}
+                >
+                  {booking ? 'Booking...' : 'Book This Time'}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
-        {/* ── Step 4: Done ── */}
         {step === 'done' && (
           <div style={s.stepContainer}>
             <div style={s.doneContainer}>
               <div style={s.doneIcon}>&#10003;</div>
-              <h2 style={s.doneTitle}>You're All Set!</h2>
+              <h2 style={s.doneTitle}>You&#39;re All Set!</h2>
               <p style={s.doneText}>
                 Your Range Assessment has been booked and paid for. Here is what happens next:
               </p>
+              {selectedSlot && (
+                <p style={{ fontSize: '17px', fontWeight: 700, color: '#171717', marginBottom: '2rem' }}>
+                  {formatSlotFull(selectedSlot)}
+                </p>
+              )}
               <div style={s.doneSteps}>
                 <div style={s.doneStep}>
                   <div style={s.doneStepNum}>1</div>
@@ -373,7 +527,16 @@ const s = {
   cardElement: { padding: '14px', border: '1px solid #d1d5db', background: '#fff' },
   errorMsg: { padding: '12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '14px', marginBottom: '1rem' },
 
-  calContainer: { border: '1px solid #e5e5e5', overflow: 'hidden', marginTop: '1rem' },
+  dayRow: { display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' },
+  dayBtn: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '10px 12px', border: '1px solid #e5e5e5', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', minWidth: '60px', transition: 'all 0.15s' },
+  dayBtnActive: { background: '#171717', borderColor: '#171717', color: '#fff' },
+  dayWeekday: { fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.6 },
+  dayNum: { fontSize: '18px', fontWeight: 700 },
+  dayMonth: { fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.6 },
+
+  slotGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '8px' },
+  slotBtn: { padding: '12px 8px', border: '1px solid #e5e5e5', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: 600, color: '#171717', transition: 'all 0.15s', textAlign: 'center' },
+  slotBtnActive: { background: '#171717', borderColor: '#171717', color: '#fff' },
 
   paymentSuccess: { textAlign: 'center', padding: '24px', background: '#f0fdf4', border: '1px solid #bbf7d0', marginBottom: '1rem' },
   successIcon: { width: '48px', height: '48px', borderRadius: '50%', background: '#16a34a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', margin: '0 auto 12px' },

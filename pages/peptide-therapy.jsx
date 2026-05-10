@@ -56,7 +56,7 @@ export default function PeptideTherapy() {
     },
     {
       question: "How much do peptides cost?",
-      answer: "Pricing varies by peptide and dosing protocol. After your assessment, we'll provide a clear cost breakdown. Most patients spend $150-400/month depending on their protocol. No hidden fees."
+      answer: "Pricing varies based on your protocol. After your Assessment, we'll provide a clear cost breakdown with no hidden fees."
     },
     {
       question: "Do I need a prescription?",

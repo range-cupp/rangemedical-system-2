@@ -5,8 +5,16 @@ import Script from 'next/script';
 
 export default function Layout({ children, title, description, logoOnly }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [megaOpen, setMegaOpen] = useState(false);
   const [mobileTreatmentsOpen, setMobileTreatmentsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
     <>
@@ -21,7 +29,7 @@ export default function Layout({ children, title, description, logoOnly }) {
       </Head>
 
       {/* Header */}
-      <header className="rm-header">
+      <header className={`rm-header${scrolled ? ' rm-header-scrolled' : ''}`}>
         <div className="rm-header-inner">
           {logoOnly ? (
             <span className="rm-wordmark" style={{ cursor: 'default' }}>
@@ -44,46 +52,54 @@ export default function Layout({ children, title, description, logoOnly }) {
           {!logoOnly && (
             <>
               {/* Desktop Navigation */}
-              <nav className="rm-nav">
+              <nav className="rm-nav" aria-label="Main navigation">
                 <div className="rm-nav-links">
-                  <Link href="/" className="rm-nav-link">Start</Link>
-
-                  {/* Treatments Dropdown */}
                   <div
-                    className="rm-dropdown"
-                    onMouseEnter={() => setDropdownOpen(true)}
-                    onMouseLeave={() => setDropdownOpen(false)}
+                    className="rm-mega-wrap"
+                    onMouseEnter={() => setMegaOpen(true)}
+                    onMouseLeave={() => setMegaOpen(false)}
                   >
-                    <button className="rm-nav-link rm-dropdown-trigger">
+                    <button
+                      className="rm-nav-link rm-mega-trigger"
+                      aria-expanded={megaOpen}
+                      aria-haspopup="true"
+                    >
                       Treatments
-                      <svg width="8" height="5" viewBox="0 0 10 6" fill="none">
+                      <svg width="8" height="5" viewBox="0 0 10 6" fill="none" aria-hidden="true">
                         <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </button>
-                    <div className={`rm-dropdown-menu ${dropdownOpen ? 'open' : ''}`}>
-                      <Link href="/hormone-optimization">Hormone Optimization</Link>
-                      <Link href="/weight-loss">Weight Loss</Link>
-                      <Link href="/peptide-therapy">Peptide Therapy</Link>
-                      <Link href="/nad-therapy">NAD+ Therapy</Link>
-                      <Link href="/iv-therapy">IV Therapy</Link>
-                      <Link href="/injection-therapy">Injection Therapy</Link>
-                      <Link href="/cellular-energy-reset">Cellular Reset</Link>
-                      <Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link>
-                      <Link href="/red-light-therapy">Red Light Therapy</Link>
-                      <Link href="/prp-therapy">PRP Therapy</Link>
-                      <Link href="/exosome-therapy">Exosome Therapy</Link>
-                      <Link href="/methylene-blue">Methylene Blue</Link>
-                      <div className="rm-dropdown-divider"></div>
-                      <Link href="/services" className="rm-dropdown-all">View All Services →</Link>
+                    <div className={`rm-mega${megaOpen ? ' open' : ''}`} role="menu" aria-label="Treatments menu">
+                      <div className="rm-mega-inner">
+                        <div className="rm-mega-col" role="group" aria-label="Recovery treatments">
+                          <span className="rm-mega-label">Recovery</span>
+                          <Link href="/hyperbaric-oxygen-therapy" role="menuitem">Hyperbaric Oxygen</Link>
+                          <Link href="/red-light-therapy" role="menuitem">Red Light Therapy</Link>
+                          <Link href="/cellular-energy-reset" role="menuitem">Cellular Reset</Link>
+                          <Link href="/prp-therapy" role="menuitem">PRP Therapy</Link>
+                          <Link href="/exosome-therapy" role="menuitem">Exosome Therapy</Link>
+                          <Link href="/injection-therapy" role="menuitem">Injection Therapy</Link>
+                          <Link href="/peptide-therapy" role="menuitem">Peptide Therapy</Link>
+                        </div>
+                        <div className="rm-mega-col" role="group" aria-label="Optimization treatments">
+                          <span className="rm-mega-label">Optimization</span>
+                          <Link href="/hormone-optimization" role="menuitem">Hormone Optimization</Link>
+                          <Link href="/weight-loss" role="menuitem">Weight Loss</Link>
+                          <Link href="/nad-therapy" role="menuitem">NAD+ Therapy</Link>
+                          <Link href="/iv-therapy" role="menuitem">IV Therapy</Link>
+                          <Link href="/peptide-therapy" role="menuitem">Peptide Therapy</Link>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <a href="#home-testimonials" className="rm-nav-link">Reviews</a>
+                  <Link href="/how-it-works" className="rm-nav-link">How It Works</Link>
+                  <Link href="/reviews" className="rm-nav-link">Reviews</Link>
                 </div>
 
-                <a href="#home-hero" className="rm-nav-cta">
+                <Link href="/assessment" className="rm-nav-cta">
                   Book Assessment
-                </a>
+                </Link>
               </nav>
 
               {/* Mobile Menu Toggle */}
@@ -91,6 +107,7 @@ export default function Layout({ children, title, description, logoOnly }) {
                 className="rm-mobile-toggle"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label="Toggle menu"
+                aria-expanded={mobileMenuOpen}
               >
                 <span></span>
                 <span></span>
@@ -100,15 +117,15 @@ export default function Layout({ children, title, description, logoOnly }) {
         </div>
 
         {!logoOnly && (
-          <div className={`rm-mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
-            <a href="/" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Start</a>
+          <div className={`rm-mobile-menu ${mobileMenuOpen ? 'open' : ''}`} role="navigation" aria-label="Mobile navigation">
             <button
               className="rm-mobile-accordion"
               onClick={() => setMobileTreatmentsOpen(!mobileTreatmentsOpen)}
+              aria-expanded={mobileTreatmentsOpen}
             >
               <span>Treatments</span>
               <svg
-                width="10" height="6" viewBox="0 0 12 7" fill="none"
+                width="10" height="6" viewBox="0 0 12 7" fill="none" aria-hidden="true"
                 style={{ transform: mobileTreatmentsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
               >
                 <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -116,23 +133,25 @@ export default function Layout({ children, title, description, logoOnly }) {
             </button>
             {mobileTreatmentsOpen && (
               <div className="rm-mobile-sub">
-                <Link href="/hormone-optimization" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hormone Optimization</Link>
-                <Link href="/weight-loss" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Weight Loss</Link>
-                <Link href="/peptide-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Peptide Therapy</Link>
-                <Link href="/nad-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>NAD+ Therapy</Link>
-                <Link href="/iv-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>IV Therapy</Link>
-                <Link href="/injection-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Injection Therapy</Link>
-                <Link href="/cellular-energy-reset" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Cellular Reset</Link>
+                <span className="rm-mobile-cat">Recovery</span>
                 <Link href="/hyperbaric-oxygen-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hyperbaric Oxygen</Link>
                 <Link href="/red-light-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Red Light Therapy</Link>
+                <Link href="/cellular-energy-reset" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Cellular Reset</Link>
                 <Link href="/prp-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>PRP Therapy</Link>
                 <Link href="/exosome-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Exosome Therapy</Link>
-                <Link href="/methylene-blue" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Methylene Blue</Link>
-                <Link href="/services" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)} style={{ fontWeight: 600, color: '#1a1a1a', marginTop: '0.25rem' }}>View All Services →</Link>
+                <Link href="/injection-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Injection Therapy</Link>
+                <Link href="/peptide-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Peptide Therapy</Link>
+                <span className="rm-mobile-cat" style={{ marginTop: '0.75rem' }}>Optimization</span>
+                <Link href="/hormone-optimization" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hormone Optimization</Link>
+                <Link href="/weight-loss" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Weight Loss</Link>
+                <Link href="/nad-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>NAD+ Therapy</Link>
+                <Link href="/iv-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>IV Therapy</Link>
+                <Link href="/peptide-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Peptide Therapy</Link>
               </div>
             )}
-            <a href="#home-testimonials" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Reviews</a>
-            <a href="#home-hero" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Book Assessment</a>
+            <Link href="/how-it-works" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>How It Works</Link>
+            <Link href="/reviews" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Reviews</Link>
+            <Link href="/assessment" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Book Assessment</Link>
           </div>
         )}
       </header>
@@ -210,9 +229,16 @@ export default function Layout({ children, title, description, logoOnly }) {
         .rm-header {
           position: sticky;
           top: 0;
-          background: #ffffff;
+          background: rgba(255,255,255,0.95);
           border-bottom: 1px solid #e8e8e8;
           z-index: 1000;
+          transition: box-shadow 0.2s ease-out, backdrop-filter 0.2s ease-out;
+        }
+
+        .rm-header-scrolled {
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          box-shadow: 0 1px 8px rgba(0,0,0,0.04);
         }
 
         .rm-header-inner {
@@ -238,23 +264,21 @@ export default function Layout({ children, title, description, logoOnly }) {
         .rm-nav {
           display: flex;
           align-items: center;
-          gap: 2rem;
+          gap: 2.5rem;
         }
 
         .rm-nav-links {
           display: flex;
           align-items: center;
-          gap: 1.75rem;
+          gap: 2rem;
         }
 
-        .rm-nav-link {
-          color: #737373;
+        :global(.rm-nav-link) {
+          color: #404040;
           text-decoration: none;
-          font-size: 12px;
+          font-size: 14px;
           font-weight: 500;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          transition: color 0.2s;
+          transition: color 0.15s ease-out;
           background: none;
           border: none;
           cursor: pointer;
@@ -263,82 +287,93 @@ export default function Layout({ children, title, description, logoOnly }) {
           gap: 0.375rem;
           font-family: inherit;
           line-height: 1;
+          padding: 0;
         }
 
-        .rm-nav-link:hover {
-          color: #1a1a1a;
+        :global(.rm-nav-link:hover) {
+          color: #0A0A0A;
         }
 
         :global(.rm-nav-cta) {
-          background: #1a1a1a;
+          background: #0A0A0A;
           color: #ffffff;
-          padding: 10px 20px;
-          font-weight: 700;
-          font-size: 11px;
-          letter-spacing: 0.12em;
+          padding: 10px 22px;
+          border-radius: 100px;
+          font-weight: 600;
+          font-size: 14px;
           text-decoration: none;
-          transition: background 0.2s;
+          transition: background 0.15s ease-out;
           line-height: 1;
+          white-space: nowrap;
         }
 
         :global(.rm-nav-cta:hover) {
-          background: #404040;
+          background: #333333;
         }
 
-        /* Dropdown */
-        .rm-dropdown {
-          position: relative;
+        /* Mega-Menu */
+        .rm-mega-wrap {
+          position: static;
         }
 
-        .rm-dropdown-trigger {
+        .rm-mega-trigger {
           font-family: inherit;
         }
 
-        .rm-dropdown-menu {
+        .rm-mega {
           position: absolute;
           top: 100%;
-          left: 50%;
-          transform: translateX(-50%);
+          left: 0;
+          right: 0;
           background: #ffffff;
-          border: 1px solid #e8e8e8;
-          padding: 0.5rem 0;
-          min-width: 200px;
-          box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+          border-bottom: 1px solid #e8e8e8;
+          box-shadow: 0 12px 40px rgba(0,0,0,0.06);
           opacity: 0;
           visibility: hidden;
-          transition: all 0.2s;
-          margin-top: 0.5rem;
+          transition: opacity 0.15s ease-out, visibility 0.15s ease-out;
         }
 
-        .rm-dropdown-menu.open {
+        .rm-mega.open {
           opacity: 1;
           visibility: visible;
         }
 
-        .rm-dropdown-menu :global(a) {
+        .rm-mega-inner {
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 2rem 2.5rem 2.25rem;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 3rem;
+        }
+
+        .rm-mega-col {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .rm-mega-label {
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #9a9a9a;
+          margin-bottom: 0.75rem;
+        }
+
+        .rm-mega-col :global(a) {
           display: block;
-          padding: 0.5rem 1rem;
-          font-size: 12px;
-          color: #737373;
+          padding: 0.4rem 0;
+          font-size: 14px;
+          font-weight: 500;
+          color: #404040;
           text-decoration: none;
-          transition: all 0.15s;
-          letter-spacing: 0.02em;
+          transition: color 0.15s ease-out;
+          line-height: 1.4;
         }
 
-        .rm-dropdown-menu :global(a:hover) {
-          background: #fafafa;
-          color: #1a1a1a;
-        }
-
-        .rm-dropdown-divider {
-          height: 1px;
-          background: #e8e8e8;
-          margin: 0.375rem 0;
-        }
-
-        .rm-dropdown-menu :global(.rm-dropdown-all) {
-          font-weight: 600;
-          color: #1a1a1a;
+        .rm-mega-col :global(a:hover) {
+          color: #0A0A0A;
         }
 
         /* Mobile Toggle */
@@ -412,18 +447,28 @@ export default function Layout({ children, title, description, logoOnly }) {
           color: #737373;
         }
 
+        :global(.rm-mobile-cat) {
+          display: block;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #9a9a9a;
+          padding: 0.625rem 0 0.25rem;
+        }
+
         :global(.rm-mobile-cta) {
           display: block;
-          background: #1a1a1a;
+          background: #0A0A0A;
           color: #ffffff !important;
           text-align: center;
           padding: 0.875rem 1rem !important;
           margin-top: 1rem;
-          font-weight: 700 !important;
-          font-size: 11px !important;
-          letter-spacing: 0.12em;
+          font-weight: 600 !important;
+          font-size: 14px !important;
           text-decoration: none;
           border: none !important;
+          border-radius: 100px;
         }
 
         /* ── FOOTER ── */

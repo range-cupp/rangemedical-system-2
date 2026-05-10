@@ -226,7 +226,7 @@ export default function WLSupportPage() {
           background: #000000;
           color: #ffffff;
           padding: 0.5rem 1rem;
-          border-radius: 0;
+          border-radius: 999px;
           font-size: 0.8125rem;
           font-weight: 600;
           margin-bottom: 1.25rem;
@@ -308,7 +308,7 @@ export default function WLSupportPage() {
         .wl-tip-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.75rem;
           transition: all 0.2s ease;
         }
@@ -336,7 +336,7 @@ export default function WLSupportPage() {
           border-left: 4px solid #000000;
           padding: 1.25rem 1.5rem;
           margin-bottom: 1.25rem;
-          border-radius: 0;
+          border-radius: 999px;
         }
         .wl-reassurance-box p {
           font-size: 0.9375rem;
@@ -349,7 +349,7 @@ export default function WLSupportPage() {
         .wl-callus-box {
           background: #fafafa;
           border: 1px solid #e5e5e5;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.25rem 1.5rem;
         }
         .wl-callus-box strong {
@@ -409,7 +409,7 @@ export default function WLSupportPage() {
           background: #ffffff;
           color: #000000;
           padding: 0.875rem 1.75rem;
-          border-radius: 0;
+          border-radius: 999px;
           text-decoration: none;
           font-weight: 600;
           font-size: 0.9375rem;
@@ -424,7 +424,7 @@ export default function WLSupportPage() {
           background: transparent;
           color: #ffffff;
           padding: 0.875rem 1.75rem;
-          border-radius: 0;
+          border-radius: 999px;
           border: 2px solid #ffffff;
           text-decoration: none;
           font-weight: 600;

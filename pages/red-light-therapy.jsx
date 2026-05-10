@@ -873,7 +873,7 @@ export default function RedLightTherapy() {
           background: #ffffff;
           color: #1a1a1a;
           border: none;
-          border-radius: 0;
+          border-radius: 999px;
           cursor: pointer;
           text-decoration: none;
           transition: background 0.2s ease;
@@ -973,7 +973,7 @@ export default function RedLightTherapy() {
           font-size: 0.8125rem;
           font-weight: 600;
           padding: 0.75rem 1.5rem;
-          border-radius: 0;
+          border-radius: 999px;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.6);
@@ -997,13 +997,13 @@ export default function RedLightTherapy() {
 
         .rlt-photo-wrapper {
           overflow: hidden;
-          border-radius: 0;
+          border-radius: 999px;
         }
 
         .rlt-photo-wrapper img {
           width: 100%;
           height: auto;
-          border-radius: 0;
+          border-radius: 999px;
           transition: opacity 0.2s ease;
         }
 
@@ -1022,7 +1022,7 @@ export default function RedLightTherapy() {
 
         .rlt-benefit-card {
           padding: 2rem;
-          border-radius: 0;
+          border-radius: 999px;
           border: none;
           border-bottom: 1px solid #e0e0e0;
           border-right: 1px solid #e0e0e0;
@@ -1074,7 +1074,7 @@ export default function RedLightTherapy() {
 
         .rlt-research-card {
           padding: 2rem;
-          border-radius: 0;
+          border-radius: 999px;
           border: none;
           border-bottom: 1px solid #e0e0e0;
           border-right: 1px solid #e0e0e0;
@@ -1149,7 +1149,7 @@ export default function RedLightTherapy() {
           align-items: center;
           gap: 1rem;
           padding: 1.25rem 1.5rem;
-          border-radius: 0;
+          border-radius: 999px;
           background: transparent;
           border: none;
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -1168,7 +1168,7 @@ export default function RedLightTherapy() {
         .rlt-athlete-icon {
           width: 44px;
           height: 44px;
-          border-radius: 0;
+          border-radius: 999px;
           background: rgba(255, 255, 255, 0.06);
           display: flex;
           align-items: center;
@@ -1307,7 +1307,7 @@ export default function RedLightTherapy() {
         .rlt-pricing-membership {
           background: #ffffff;
           border: 2px solid #171717;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 2.5rem 2rem;
           position: relative;
         }
@@ -1323,7 +1323,7 @@ export default function RedLightTherapy() {
           letter-spacing: 0.08em;
           text-transform: uppercase;
           padding: 0.375rem 1rem;
-          border-radius: 0;
+          border-radius: 999px;
         }
 
         .rlt-pricing-membership-title {
@@ -1398,7 +1398,7 @@ export default function RedLightTherapy() {
           background: #1a1a1a;
           color: #ffffff;
           border: none;
-          border-radius: 0;
+          border-radius: 999px;
           cursor: pointer;
           text-decoration: none;
           transition: background 0.2s ease;
@@ -1415,7 +1415,7 @@ export default function RedLightTherapy() {
           background: transparent;
           color: #1a1a1a;
           border: 1px solid #e0e0e0;
-          border-radius: 0;
+          border-radius: 999px;
           font-size: 11px;
           font-weight: 700;
           letter-spacing: 0.12em;
@@ -1434,7 +1434,7 @@ export default function RedLightTherapy() {
         .rlt-pricing-packs {
           background: #ffffff;
           border: 1px solid #e0e0e0;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 2rem;
         }
 
@@ -1507,7 +1507,7 @@ export default function RedLightTherapy() {
           margin-top: 2.5rem;
           padding: 1.5rem 2rem;
           background: #fafafa;
-          border-radius: 0;
+          border-radius: 999px;
           border: 1px solid #e0e0e0;
         }
 
@@ -1530,7 +1530,7 @@ export default function RedLightTherapy() {
         .rlt-pricing-compare-item {
           text-align: center;
           padding: 1rem;
-          border-radius: 0;
+          border-radius: 999px;
           background: #ffffff;
           border: 1px solid #e0e0e0;
         }

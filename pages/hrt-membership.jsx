@@ -531,7 +531,7 @@ export default function HRTMembership() {
           background: #ffffff;
           color: #1a1a1a;
           border: none;
-          border-radius: 0;
+          border-radius: 999px;
           text-decoration: none;
           transition: background 0.2s ease, transform 0.2s ease;
         }
@@ -550,7 +550,7 @@ export default function HRTMembership() {
         .included-card {
           background: #ffffff;
           border: 1px solid #e0e0e0;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 2rem;
           transition: border-color 0.2s;
           position: relative;
@@ -579,7 +579,7 @@ export default function HRTMembership() {
           background: #1a1a1a;
           color: #ffffff;
           padding: 0.25rem 0.75rem;
-          border-radius: 0;
+          border-radius: 999px;
           font-size: 11px;
           font-weight: 700;
           letter-spacing: 0.12em;
@@ -597,7 +597,7 @@ export default function HRTMembership() {
         .comparison-card {
           background: #ffffff;
           border: 1px solid #e0e0e0;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 2rem;
         }
         .comparison-card.membership {
@@ -635,7 +635,7 @@ export default function HRTMembership() {
           justify-content: space-between;
           padding: 1rem;
           background: #fafafa;
-          border-radius: 0;
+          border-radius: 999px;
           font-weight: 700;
           color: #171717;
         }
@@ -657,7 +657,7 @@ export default function HRTMembership() {
         .benefit-block {
           background: #ffffff;
           border: 1px solid #e0e0e0;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.5rem;
           display: flex;
           gap: 1rem;
@@ -726,7 +726,7 @@ export default function HRTMembership() {
           padding: 1.5rem;
           background: #fafafa;
           border: 1px solid #e0e0e0;
-          border-radius: 0;
+          border-radius: 999px;
           font-size: 0.875rem;
           color: #737373;
           line-height: 1.6;
@@ -745,7 +745,7 @@ export default function HRTMembership() {
         .step-card {
           background: #ffffff;
           border: 1px solid #e0e0e0;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 2rem 1.5rem;
           position: relative;
           text-align: center;
@@ -779,7 +779,7 @@ export default function HRTMembership() {
         .symptom-card {
           background: #ffffff;
           border: 1px solid #e0e0e0;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.5rem;
           text-align: center;
           display: flex;
@@ -821,7 +821,7 @@ export default function HRTMembership() {
         }
         .intro-visual {
           background: #1a1a1a;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 3rem;
           display: flex;
           align-items: center;

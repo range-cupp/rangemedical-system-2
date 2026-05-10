@@ -414,7 +414,7 @@ function Page({ title, progress, children }) {
           -webkit-appearance: none;
           width: 100%;
           height: 6px;
-          border-radius: 0;
+          border-radius: 999px;
           background: #e0e0e0;
           outline: none;
         }

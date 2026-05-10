@@ -867,7 +867,7 @@ export default function HyperbaricOxygenTherapy() {
           background: #ffffff;
           color: #1a1a1a;
           border: none;
-          border-radius: 0;
+          border-radius: 999px;
           cursor: pointer;
           text-decoration: none;
           transition: background 0.2s ease;
@@ -966,7 +966,7 @@ export default function HyperbaricOxygenTherapy() {
           font-size: 0.8125rem;
           font-weight: 600;
           padding: 0.75rem 1.5rem;
-          border-radius: 0;
+          border-radius: 999px;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.6);
@@ -990,13 +990,13 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-photo-wrapper {
           overflow: hidden;
-          border-radius: 0;
+          border-radius: 999px;
         }
 
         .hbot-photo-wrapper img {
           width: 100%;
           height: auto;
-          border-radius: 0;
+          border-radius: 999px;
           transition: transform 0.2s ease;
         }
 
@@ -1015,7 +1015,7 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-benefit-card {
           padding: 2rem;
-          border-radius: 0;
+          border-radius: 999px;
           border: none;
           border-right: 1px solid #e0e0e0;
           border-bottom: 1px solid #e0e0e0;
@@ -1068,7 +1068,7 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-research-card {
           padding: 2rem;
-          border-radius: 0;
+          border-radius: 999px;
           border: none;
           border-right: 1px solid #e0e0e0;
           border-bottom: 1px solid #e0e0e0;
@@ -1141,7 +1141,7 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-athlete-card {
           padding: 2rem 1.75rem;
-          border-radius: 0;
+          border-radius: 999px;
           text-align: center;
           background: rgba(255, 255, 255, 0.03);
           border: none;
@@ -1165,7 +1165,7 @@ export default function HyperbaricOxygenTherapy() {
         .hbot-athlete-icon {
           width: 48px;
           height: 48px;
-          border-radius: 0;
+          border-radius: 999px;
           background: rgba(255, 255, 255, 0.06);
           margin: 0 auto 1rem;
           display: flex;
@@ -1349,7 +1349,7 @@ export default function HyperbaricOxygenTherapy() {
         /* Featured card — V2: no radius, no shadow */
         .hbot-pricing-featured {
           border: 1px solid #e0e0e0;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 2.5rem;
           position: relative;
           background: #fff;
@@ -1364,7 +1364,7 @@ export default function HyperbaricOxygenTherapy() {
           padding: 0.375rem 0.75rem;
           background: #1a1a1a;
           color: #fff;
-          border-radius: 0;
+          border-radius: 999px;
           margin-bottom: 1.25rem;
         }
 
@@ -1424,7 +1424,7 @@ export default function HyperbaricOxygenTherapy() {
         .hbot-pricing-membership-card {
           border: none;
           border-right: 1px solid #e0e0e0;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 2rem;
           background: #fff;
           position: relative;
@@ -1455,7 +1455,7 @@ export default function HyperbaricOxygenTherapy() {
           padding: 0.25rem 0.75rem;
           background: #1a1a1a;
           color: #fff;
-          border-radius: 0;
+          border-radius: 999px;
           white-space: nowrap;
         }
 
@@ -1508,7 +1508,7 @@ export default function HyperbaricOxygenTherapy() {
           grid-template-columns: repeat(3, 1fr);
           gap: 0;
           border: 1px solid #e0e0e0;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 0;
           background: #fff;
         }
@@ -1518,7 +1518,7 @@ export default function HyperbaricOxygenTherapy() {
           padding: 2rem 1rem;
           border: none;
           border-right: 1px solid #e0e0e0;
-          border-radius: 0;
+          border-radius: 999px;
         }
 
         .hbot-pricing-pack-card:last-child {
@@ -1549,7 +1549,7 @@ export default function HyperbaricOxygenTherapy() {
         /* Comparison table — V2 */
         .hbot-pricing-comparison {
           border: 1px solid #e0e0e0;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.5rem 2rem;
           background: #fff;
         }
@@ -1602,7 +1602,7 @@ export default function HyperbaricOxygenTherapy() {
           background: #1a1a1a;
           color: #ffffff;
           border: none;
-          border-radius: 0;
+          border-radius: 999px;
           text-decoration: none;
           transition: background 0.2s ease;
           cursor: pointer;
@@ -1623,7 +1623,7 @@ export default function HyperbaricOxygenTherapy() {
           background: #fff;
           color: #1a1a1a;
           border: 1px solid #e0e0e0;
-          border-radius: 0;
+          border-radius: 999px;
           text-decoration: none;
           transition: all 0.2s ease;
           cursor: pointer;
@@ -1644,7 +1644,7 @@ export default function HyperbaricOxygenTherapy() {
           background: #fff;
           color: #1a1a1a;
           border: 1px solid #e0e0e0;
-          border-radius: 0;
+          border-radius: 999px;
           text-decoration: none;
           transition: all 0.2s ease;
           cursor: pointer;

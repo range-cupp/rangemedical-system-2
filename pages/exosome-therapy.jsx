@@ -525,7 +525,7 @@ export default function ExosomeTherapy() {
           background: #ffffff;
           color: #1a1a1a;
           border: none;
-          border-radius: 0;
+          border-radius: 999px;
           cursor: pointer;
           text-decoration: none;
           transition: background 0.2s ease, transform 0.2s ease;
@@ -625,7 +625,7 @@ export default function ExosomeTherapy() {
           font-size: 0.8125rem;
           font-weight: 600;
           padding: 0.75rem 1.5rem;
-          border-radius: 0;
+          border-radius: 999px;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.6);
@@ -685,7 +685,7 @@ export default function ExosomeTherapy() {
 
         .exo-benefit-card {
           padding: 2rem;
-          border-radius: 0;
+          border-radius: 999px;
           border-bottom: 1px solid #e0e0e0;
           border-right: 1px solid #e0e0e0;
           background: #ffffff;
@@ -732,7 +732,7 @@ export default function ExosomeTherapy() {
 
         .exo-research-card {
           padding: 2rem;
-          border-radius: 0;
+          border-radius: 999px;
           border-bottom: 1px solid #e0e0e0;
           border-right: 1px solid #e0e0e0;
           background: #ffffff;

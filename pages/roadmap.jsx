@@ -1130,7 +1130,7 @@ export default function RoadmapPage() {
                     Your contact info is already saved, so booking takes about 2 minutes.
                   </p>
                   <button className="rm-cta-btn" onClick={goToAssessment}>
-                    Book My Range Assessment →
+                    Book Your Range Assessment
                   </button>
                 </div>
               ) : (

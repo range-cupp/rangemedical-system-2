@@ -119,9 +119,9 @@ export default function HowItWorks() {
                 </div>
               </div>
 
-              <p className="hiw-link-cta">
-                <Link href="/assessment">Book your Assessment <span>&rarr;</span></Link>
-              </p>
+              <div style={{ marginTop: '2rem' }}>
+                <Link href="/assessment" className="btn-primary">Book Your Range Assessment</Link>
+              </div>
             </div>
           </section>
 
@@ -221,7 +221,7 @@ export default function HowItWorks() {
                 </ul>
               </div>
 
-              <Link href="/assessment" className="hiw-btn-primary">Book Your Assessment</Link>
+              <Link href="/assessment" className="btn-primary">Book Your Range Assessment</Link>
             </div>
           </section>
 
@@ -275,8 +275,8 @@ export default function HowItWorks() {
               <p className="hiw-sub-text" style={{ maxWidth: '400px', margin: '0 auto' }}>You don&apos;t have to.</p>
 
               <div className="hiw-final-btns">
-                <Link href="/assessment" className="hiw-btn-primary">Book Your Range Assessment</Link>
-                <Link href="/clarity-finder" className="hiw-btn-ghost">Take the Clarity Finder</Link>
+                <Link href="/assessment" className="btn-primary">Book Your Range Assessment</Link>
+                <Link href="/clarity-finder" className="btn-outline">Take the Clarity Finder</Link>
               </div>
             </div>
           </section>

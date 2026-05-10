@@ -848,9 +848,9 @@ p {
 }
 
 .trust-bar {
-  background: #1a1a1a;
+  background: var(--color-accent);
   color: #ffffff;
-  padding: 0.75rem 2rem;
+  padding: 0.625rem 2rem;
 }
 
 .trust-inner {
@@ -1754,10 +1754,19 @@ p {
     padding: 96px 1.5rem;
   }
 
+  .trust-bar {
+    padding: 0.5rem 1rem;
+  }
+
   .trust-inner {
-    flex-direction: column;
-    gap: 0.5rem;
+    gap: 1rem;
     align-items: center;
+    justify-content: center;
+  }
+
+  .trust-item {
+    font-size: 10px;
+    gap: 0.375rem;
   }
 
   .process-steps {

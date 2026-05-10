@@ -302,7 +302,7 @@ export default function MedrolDosePakGuide() {
           background: #000000;
           color: #ffffff;
           padding: 0.5rem 1rem;
-          border-radius: 0;
+          border-radius: 999px;
           font-size: 0.8125rem;
           font-weight: 600;
           margin-bottom: 1.25rem;
@@ -321,7 +321,7 @@ export default function MedrolDosePakGuide() {
           padding: 1rem 1.5rem;
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 0;
+          border-radius: 999px;
           font-size: 0.9rem;
           color: #525252;
         }
@@ -381,7 +381,7 @@ export default function MedrolDosePakGuide() {
         .schedule-table {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 0;
+          border-radius: 999px;
           overflow: hidden;
         }
         .schedule-header {
@@ -426,7 +426,7 @@ export default function MedrolDosePakGuide() {
         .info-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.75rem;
         }
         .info-card h3 {
@@ -478,7 +478,7 @@ export default function MedrolDosePakGuide() {
           background: #ffffff;
           border-left: 4px solid #000000;
           padding: 1.25rem 1.5rem;
-          border-radius: 0;
+          border-radius: 999px;
         }
         .tip-box strong {
           display: block;
@@ -499,7 +499,7 @@ export default function MedrolDosePakGuide() {
         .timeline-card {
           background: rgba(255,255,255,0.1);
           border: 1px solid rgba(255,255,255,0.2);
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.5rem;
         }
         .timeline-card h4 {
@@ -521,7 +521,7 @@ export default function MedrolDosePakGuide() {
         .safety-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.5rem;
         }
         .safety-card h4 {
@@ -580,7 +580,7 @@ export default function MedrolDosePakGuide() {
         .avoid-item {
           background: #fff7ed;
           border: 1px solid #fed7aa;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.25rem;
           text-align: center;
         }
@@ -600,7 +600,7 @@ export default function MedrolDosePakGuide() {
         .disclaimer {
           background: #fafafa;
           border: 1px solid #e5e5e5;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.25rem;
           margin-top: 1.5rem;
         }
@@ -639,7 +639,7 @@ export default function MedrolDosePakGuide() {
           background: #ffffff;
           color: #000000;
           padding: 0.875rem 1.75rem;
-          border-radius: 0;
+          border-radius: 999px;
           text-decoration: none;
           font-weight: 600;
           font-size: 0.9375rem;
@@ -654,7 +654,7 @@ export default function MedrolDosePakGuide() {
           background: transparent;
           color: #ffffff;
           padding: 0.875rem 1.75rem;
-          border-radius: 0;
+          border-radius: 999px;
           border: 2px solid #ffffff;
           text-decoration: none;
           font-weight: 600;

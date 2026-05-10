@@ -779,7 +779,7 @@ export default function IVTherapy() {
           background: #ffffff;
           color: #1a1a1a;
           border: none;
-          border-radius: 0;
+          border-radius: 999px;
           cursor: pointer;
           text-decoration: none;
           transition: background 0.2s ease, transform 0.2s ease;
@@ -871,7 +871,7 @@ export default function IVTherapy() {
         .iv-range-card {
           margin-top: 2.5rem;
           padding: 2.5rem;
-          border-radius: 0;
+          border-radius: 999px;
           border: 1px solid #e0e0e0;
           background: #ffffff;
           box-shadow: none;
@@ -890,7 +890,7 @@ export default function IVTherapy() {
           padding: 0.375rem 0.75rem;
           background: #1a1a1a;
           color: #ffffff;
-          border-radius: 0;
+          border-radius: 999px;
           margin-bottom: 0.75rem;
         }
 
@@ -930,7 +930,7 @@ export default function IVTherapy() {
 
         .iv-formula-card {
           padding: 2rem;
-          border-radius: 0;
+          border-radius: 999px;
           border: none;
           border-bottom: 1px solid #e0e0e0;
           border-right: 1px solid #e0e0e0;
@@ -975,7 +975,7 @@ export default function IVTherapy() {
           font-size: 0.6875rem;
           font-weight: 600;
           padding: 0.375rem 0.75rem;
-          border-radius: 0;
+          border-radius: 999px;
           background: #f5f5f5;
           color: #737373;
           border: 1px solid #e0e0e0;
@@ -984,7 +984,7 @@ export default function IVTherapy() {
         .iv-formulas-note {
           margin-top: 2rem;
           padding: 1.25rem 1.5rem;
-          border-radius: 0;
+          border-radius: 999px;
           background: #ffffff;
           border: 1px solid #e0e0e0;
           text-align: center;
@@ -1008,7 +1008,7 @@ export default function IVTherapy() {
 
         .iv-nutrient-card {
           padding: 1.25rem;
-          border-radius: 0;
+          border-radius: 999px;
           border-bottom: 1px solid #e0e0e0;
           border-right: 1px solid #e0e0e0;
           background: #fafafa;
@@ -1053,7 +1053,7 @@ export default function IVTherapy() {
 
         .iv-glut-card {
           padding: 1.5rem;
-          border-radius: 0;
+          border-radius: 999px;
           border-right: 1px solid #e0e0e0;
           background: #ffffff;
           text-align: center;
@@ -1101,7 +1101,7 @@ export default function IVTherapy() {
           font-size: 0.8125rem;
           font-weight: 600;
           padding: 0.75rem 1.5rem;
-          border-radius: 0;
+          border-radius: 999px;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.6);
@@ -1123,7 +1123,7 @@ export default function IVTherapy() {
 
         .iv-benefit-card {
           padding: 2rem;
-          border-radius: 0;
+          border-radius: 999px;
           border-bottom: 1px solid #e0e0e0;
           border-right: 1px solid #e0e0e0;
           background: #ffffff;
@@ -1175,7 +1175,7 @@ export default function IVTherapy() {
 
         .iv-research-card {
           padding: 2rem;
-          border-radius: 0;
+          border-radius: 999px;
           border-bottom: 1px solid #e0e0e0;
           border-right: 1px solid #e0e0e0;
           background: #ffffff;

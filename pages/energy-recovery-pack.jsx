@@ -807,7 +807,7 @@ export default function EnergyRecoveryPack() {
           width: 100%;
           padding: 12px 14px;
           border: 1px solid #d4d4d4;
-          border-radius: 0;
+          border-radius: 999px;
           font-size: 15px;
           font-family: inherit;
           box-sizing: border-box;

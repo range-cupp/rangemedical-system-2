@@ -289,7 +289,7 @@ export default function TesamorelinIpamorelinGuide() {
           background: #000000;
           color: #ffffff;
           padding: 0.5rem 1rem;
-          border-radius: 0;
+          border-radius: 999px;
           font-size: 0.8125rem;
           font-weight: 600;
           margin-bottom: 1.25rem;
@@ -309,7 +309,7 @@ export default function TesamorelinIpamorelinGuide() {
           padding: 0.75rem 1.5rem;
           background: #000000;
           color: #ffffff;
-          border-radius: 0;
+          border-radius: 999px;
           font-size: 1.25rem;
           font-weight: 700;
         }
@@ -386,7 +386,7 @@ export default function TesamorelinIpamorelinGuide() {
         .info-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.5rem;
         }
 
@@ -435,7 +435,7 @@ export default function TesamorelinIpamorelinGuide() {
         .benefits-box {
           background: #fafafa;
           border: 1px solid #e5e5e5;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.5rem 2rem;
           margin-top: 1.5rem;
         }
@@ -469,7 +469,7 @@ export default function TesamorelinIpamorelinGuide() {
         .combo-box {
           background: #000000;
           color: #ffffff;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.75rem;
           margin-top: 1.5rem;
           text-align: center;
@@ -498,7 +498,7 @@ export default function TesamorelinIpamorelinGuide() {
         .phase-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.5rem;
           text-align: center;
         }
@@ -537,7 +537,7 @@ export default function TesamorelinIpamorelinGuide() {
           background: #000000;
           color: #ffffff;
           padding: 0.375rem 1rem;
-          border-radius: 0;
+          border-radius: 999px;
           font-size: 0.9375rem;
           font-weight: 700;
         }
@@ -590,7 +590,7 @@ export default function TesamorelinIpamorelinGuide() {
           border-left: 4px solid #000000;
           padding: 1.25rem 1.5rem;
           margin-top: 1.5rem;
-          border-radius: 0;
+          border-radius: 999px;
         }
 
         .section-gray .tip-box {
@@ -620,7 +620,7 @@ export default function TesamorelinIpamorelinGuide() {
         .timeline-card {
           background: rgba(255,255,255,0.1);
           border: 1px solid rgba(255,255,255,0.2);
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.5rem;
         }
 
@@ -647,7 +647,7 @@ export default function TesamorelinIpamorelinGuide() {
         .safety-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.5rem;
         }
 
@@ -700,7 +700,7 @@ export default function TesamorelinIpamorelinGuide() {
         .disclaimer {
           background: #fafafa;
           border: 1px solid #e5e5e5;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1.25rem;
           margin-top: 1.5rem;
         }
@@ -746,7 +746,7 @@ export default function TesamorelinIpamorelinGuide() {
           background: #ffffff;
           color: #000000;
           padding: 0.875rem 1.75rem;
-          border-radius: 0;
+          border-radius: 999px;
           text-decoration: none;
           font-weight: 600;
           font-size: 0.9375rem;
@@ -763,7 +763,7 @@ export default function TesamorelinIpamorelinGuide() {
           background: transparent;
           color: #ffffff;
           padding: 0.875rem 1.75rem;
-          border-radius: 0;
+          border-radius: 999px;
           border: 2px solid #ffffff;
           text-decoration: none;
           font-weight: 600;

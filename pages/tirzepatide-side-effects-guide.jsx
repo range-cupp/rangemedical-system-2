@@ -832,7 +832,7 @@ export default function TirzepatideSideEffectsGuide() {
         .reassure-box strong { display: block; color: #065f46; margin-bottom: 0.25rem; }
         .reassure-box p { font-size: 0.9rem; color: #525252; line-height: 1.6; margin: 0; }
         .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
-        .contact-card { padding: 1.5rem; border-radius: 0; }
+        .contact-card { padding: 1.5rem; border-radius: 999px; }
         .contact-card.urgent { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); }
         .contact-card.routine { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); }
         .contact-card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; }

@@ -105,7 +105,7 @@ export default function IntakeForm() {
 
         .form-container {
           background: var(--white);
-          border-radius: 0;
+          border-radius: 999px;
           padding: 2rem;
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
@@ -158,7 +158,7 @@ export default function IntakeForm() {
         .form-group textarea {
           padding: 0.75rem;
           border: 1px solid var(--gray-300);
-          border-radius: 0;
+          border-radius: 999px;
           font-size: 1rem;
           transition: border-color 0.2s, box-shadow 0.2s;
         }
@@ -212,7 +212,7 @@ export default function IntakeForm() {
         .validation-summary {
           background: #fef2f2;
           border: 1px solid #fecaca;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 1rem 1.5rem;
           margin-bottom: 1rem;
           display: none;
@@ -242,7 +242,7 @@ export default function IntakeForm() {
         .condition-item.has-error {
           background: #fef2f2;
           border: 1px solid #fecaca;
-          border-radius: 0;
+          border-radius: 999px;
           padding: 0.5rem;
           margin-bottom: 0.75rem;
         }
@@ -284,7 +284,7 @@ export default function IntakeForm() {
           margin-top: 1rem;
           padding: 1rem;
           background: var(--gray-50);
-          border-radius: 0;
+          border-radius: 999px;
           border-left: 3px solid var(--black);
         }
 
@@ -302,7 +302,7 @@ export default function IntakeForm() {
           margin-top: 0.75rem;
           padding: 0.75rem;
           background: var(--gray-50);
-          border-radius: 0;
+          border-radius: 999px;
           border: 1px solid var(--gray-200);
         }
 
@@ -313,7 +313,7 @@ export default function IntakeForm() {
         .file-preview img {
           max-width: 200px;
           max-height: 150px;
-          border-radius: 0;
+          border-radius: 999px;
           margin-bottom: 0.5rem;
         }
 
@@ -328,7 +328,7 @@ export default function IntakeForm() {
           border-left: 4px solid #0284c7;
           padding: 1.5rem;
           margin: 1.5rem 0;
-          border-radius: 0;
+          border-radius: 999px;
         }
 
         .symptom-section-title {
@@ -356,7 +356,7 @@ export default function IntakeForm() {
         .symptom-item {
           background: var(--white);
           border: 1px solid var(--gray-200);
-          border-radius: 0;
+          border-radius: 999px;
           padding: 0.75rem 1rem;
           transition: all 0.2s;
         }
@@ -417,7 +417,7 @@ export default function IntakeForm() {
           padding: 0.5rem 0.75rem;
           font-size: 0.875rem;
           border: 1px solid var(--gray-300);
-          border-radius: 0;
+          border-radius: 999px;
         }
 
         .symptom-duration {
@@ -425,7 +425,7 @@ export default function IntakeForm() {
           margin-top: 1rem;
           padding: 1rem;
           background: var(--white);
-          border-radius: 0;
+          border-radius: 999px;
           border: 1px solid var(--gray-200);
         }
 
@@ -454,7 +454,7 @@ export default function IntakeForm() {
           padding: 0.5rem 0.75rem;
           background: var(--gray-50);
           border: 1px solid var(--gray-200);
-          border-radius: 0;
+          border-radius: 999px;
           cursor: pointer;
           transition: all 0.2s;
         }
@@ -479,7 +479,7 @@ export default function IntakeForm() {
         .condition-category {
           margin-bottom: 1.5rem;
           padding: 1rem;
-          border-radius: 0;
+          border-radius: 999px;
         }
 
         .condition-category h3 {
@@ -506,7 +506,7 @@ export default function IntakeForm() {
           margin-top: 0.75rem;
           padding: 0.75rem;
           background: rgba(255,255,255,0.5);
-          border-radius: 0;
+          border-radius: 999px;
         }
 
         .condition-details.visible {
@@ -518,7 +518,7 @@ export default function IntakeForm() {
           background: #fef3c7;
           border: 2px solid #f59e0b;
           padding: 1.5rem;
-          border-radius: 0;
+          border-radius: 999px;
           margin-bottom: 1.5rem;
         }
 
@@ -538,7 +538,7 @@ export default function IntakeForm() {
         /* Signature */
         .signature-container {
           border: 2px solid var(--gray-300);
-          border-radius: 0;
+          border-radius: 999px;
           background: var(--white);
           margin-bottom: 0.5rem;
         }
@@ -559,7 +559,7 @@ export default function IntakeForm() {
           padding: 0.5rem 1rem;
           background: var(--gray-100);
           border: 1px solid var(--gray-300);
-          border-radius: 0;
+          border-radius: 999px;
           font-size: 0.875rem;
           cursor: pointer;
           transition: background 0.2s;
@@ -576,7 +576,7 @@ export default function IntakeForm() {
           background: var(--black);
           color: var(--white);
           border: none;
-          border-radius: 0;
+          border-radius: 999px;
           font-size: 1rem;
           font-weight: 600;
           cursor: pointer;
@@ -595,7 +595,7 @@ export default function IntakeForm() {
         /* Status Message */
         .status-message {
           padding: 1rem;
-          border-radius: 0;
+          border-radius: 999px;
           margin-bottom: 1rem;
           display: none;
         }
@@ -649,7 +649,7 @@ export default function IntakeForm() {
         .thank-you-details {
           background: var(--gray-50);
           padding: 1.5rem;
-          border-radius: 0;
+          border-radius: 999px;
           margin-bottom: 2rem;
           border-left: 4px solid var(--black);
           text-align: left;
@@ -718,15 +718,15 @@ export default function IntakeForm() {
 
         /* Step Navigation */
         .step-nav { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--gray-200); }
-        .btn-back { padding: 0.75rem 2rem; background: var(--white); color: var(--black); border: 1px solid var(--gray-300); border-radius: 0; font-size: 1rem; font-weight: 500; cursor: pointer; }
+        .btn-back { padding: 0.75rem 2rem; background: var(--white); color: var(--black); border: 1px solid var(--gray-300); border-radius: 999px; font-size: 1rem; font-weight: 500; cursor: pointer; }
         .btn-back:hover { background: var(--gray-50); }
-        .btn-next { padding: 0.75rem 2rem; background: var(--black); color: var(--white); border: none; border-radius: 0; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        .btn-next { padding: 0.75rem 2rem; background: var(--black); color: var(--white); border: none; border-radius: 999px; font-size: 1rem; font-weight: 600; cursor: pointer; }
         .btn-next:hover { background: var(--gray-800); }
 
         /* NRS Slider */
         .nrs-slider-container { margin-top: 0.5rem; }
         .nrs-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--gray-500); margin-bottom: 4px; }
-        .nrs-slider { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 0; background: var(--gray-200); outline: none; }
+        .nrs-slider { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 999px; background: var(--gray-200); outline: none; }
         .nrs-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: var(--black); cursor: pointer; border: 2px solid var(--white); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
         .nrs-slider::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--black); cursor: pointer; border: 2px solid var(--white); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
         .nrs-value { font-size: 1.5rem; font-weight: 700; min-width: 32px; text-align: center; }

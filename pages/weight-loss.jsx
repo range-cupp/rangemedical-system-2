@@ -737,7 +737,7 @@ export default function WeightLoss() {
           background: #ffffff;
           color: #1a1a1a;
           border: none;
-          border-radius: 0;
+          border-radius: 999px;
           cursor: pointer;
           text-decoration: none;
           transition: background 0.2s ease, transform 0.2s ease;
@@ -837,7 +837,7 @@ export default function WeightLoss() {
           font-size: 0.8125rem;
           font-weight: 600;
           padding: 0.75rem 1.5rem;
-          border-radius: 0;
+          border-radius: 999px;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.6);
@@ -858,7 +858,7 @@ export default function WeightLoss() {
 
         .wl-med-card {
           padding: 2rem;
-          border-radius: 0;
+          border-radius: 999px;
           border: 1px solid #e0e0e0;
           border-right: none;
           background: #ffffff;
@@ -885,7 +885,7 @@ export default function WeightLoss() {
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 0.375rem 0.75rem;
-          border-radius: 0;
+          border-radius: 999px;
         }
 
         .wl-med-name {
@@ -918,7 +918,7 @@ export default function WeightLoss() {
 
         .wl-benefit-card {
           padding: 2rem;
-          border-radius: 0;
+          border-radius: 999px;
           border-bottom: 1px solid #e0e0e0;
           border-right: 1px solid #e0e0e0;
           background: #ffffff;
@@ -983,7 +983,7 @@ export default function WeightLoss() {
           letter-spacing: 0.02em;
           background: #808080;
           padding: 0.375rem 0.75rem;
-          border-radius: 0;
+          border-radius: 999px;
           text-align: center;
         }
 
@@ -1011,7 +1011,7 @@ export default function WeightLoss() {
 
         .wl-research-card {
           padding: 2rem;
-          border-radius: 0;
+          border-radius: 999px;
           border-bottom: 1px solid #e0e0e0;
           border-right: 1px solid #e0e0e0;
           background: #ffffff;

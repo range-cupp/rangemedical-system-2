@@ -706,7 +706,7 @@ export default function MothersDay() {
           outline: none;
           transition: border-color 0.2s;
           -webkit-appearance: none;
-          border-radius: 0;
+          border-radius: 999px;
         }
 
         .md-input:focus {

@@ -48,6 +48,8 @@ export default function PatientsList() {
       result = result.filter(p => {
         if (activeFilter === 'online') return getSourceTag(p) === 'Online Assessment';
         if (activeFilter === 'walk-in') return getSourceTag(p) === 'Walk-in';
+        if (activeFilter === 'free-hbot') return (p.tags || []).includes('free-session-hbot');
+        if (activeFilter === 'free-rlt') return (p.tags || []).includes('free-session-rlt');
         if (activeFilter === 'status:active') return p.patientStatus === 'active';
         if (activeFilter === 'status:inactive') return p.patientStatus === 'inactive';
         if (activeFilter === 'status:new') return p.patientStatus === 'new';
@@ -208,6 +210,19 @@ export default function PatientsList() {
     return 'Walk-in';
   };
 
+  const FREE_SESSION_COLORS = {
+    hbot: { bg: '#ecfdf5', text: '#047857', label: 'Free HBOT' },
+    rlt:  { bg: '#fff1f2', text: '#be123c', label: 'Free RLT' },
+  };
+
+  const getFreeSessionTags = (patient) => {
+    const tags = patient.tags || [];
+    const result = [];
+    if (tags.includes('free-session-hbot')) result.push('hbot');
+    if (tags.includes('free-session-rlt')) result.push('rlt');
+    return result;
+  };
+
   const FILTER_OPTIONS = [
     { key: 'all', label: 'All' },
     { key: 'hrt', label: 'HRT' },
@@ -216,6 +231,8 @@ export default function PatientsList() {
     { key: 'iv', label: 'IV' },
     { key: 'hbot', label: 'HBOT' },
     { key: 'rlt', label: 'RLT' },
+    { key: 'free-hbot', label: 'Free HBOT' },
+    { key: 'free-rlt', label: 'Free RLT' },
     { key: 'online', label: 'Online' },
     { key: 'walk-in', label: 'Walk-in' },
   ];
@@ -554,6 +571,18 @@ export default function PatientsList() {
                               {c.label}
                             </span>
                           ) : null;
+                        })}
+                        {getFreeSessionTags(patient).map(ft => {
+                          const fc = FREE_SESSION_COLORS[ft];
+                          return (
+                            <span
+                              key={`free-${ft}`}
+                              style={{ ...styles.tag, background: fc.bg, color: fc.text, fontWeight: '600' }}
+                              onClick={(e) => { e.preventDefault(); setActiveFilter(`free-${ft}`); }}
+                            >
+                              {fc.label}
+                            </span>
+                          );
                         })}
                         {conditions.map(cond => (
                           <span

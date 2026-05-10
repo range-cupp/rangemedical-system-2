@@ -257,7 +257,7 @@ export default function HyperbaricOxygenTherapy() {
         {/* Hero */}
         <section className="hbot-hero">
           <div className="v2-label"><span className="v2-dot" /> HYPERBARIC OXYGEN THERAPY</div>
-          <h1>STILL NOT HEALING? YOUR TISSUES AREN&apos;T GETTING ENOUGH OXYGEN.</h1>
+          <h1>STILL NOT HEALING? YOUR TISSUES AREN&apos;T GETTING <em>ENOUGH OXYGEN.</em></h1>
           <div className="hbot-hero-rule"></div>
           <p className="hbot-body-text">Hyperbaric oxygen therapy saturates your body with pure oxygen under pressure &mdash; accelerating recovery, cutting inflammation, and unlocking repair mechanisms nothing else can reach. Newport Beach.</p>
           <div className="hbot-hero-scroll">
@@ -271,7 +271,7 @@ export default function HyperbaricOxygenTherapy() {
           <div className="hbot-container">
             <div className="hbot-animate">
               <div className="v2-label"><span className="v2-dot" /> WHAT IS IT</div>
-              <h2>A SIMPLE IDEA WITH POWERFUL RESULTS.</h2>
+              <h2>A SIMPLE IDEA WITH <em>POWERFUL RESULTS.</em></h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
                 Hyperbaric oxygen therapy (HBOT) is when you sit inside a special chamber and breathe in concentrated oxygen. The air pressure inside is raised to about twice the normal level. This pushes more oxygen into your blood — so it can reach the parts of your body that need healing the most.
@@ -323,7 +323,7 @@ export default function HyperbaricOxygenTherapy() {
           <div className="hbot-container">
             <div className="hbot-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> WHO IT'S FOR</div>
-              <h2>YOU DON'T HAVE TO BE A PRO ATHLETE.</h2>
+              <h2>YOU DON'T HAVE TO BE A <em>PRO ATHLETE.</em></h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
                 If any of these sound like you, hyperbaric oxygen therapy could be worth exploring at our Newport Beach clinic. It's for everyday people who want to give their body a little extra help.
@@ -343,7 +343,7 @@ export default function HyperbaricOxygenTherapy() {
           <div className="hbot-container">
             <div className="hbot-animate">
               <div className="v2-label"><span className="v2-dot" /> HOW IT MAY HELP</div>
-              <h2>MORE OXYGEN. BETTER HEALING.</h2>
+              <h2>MORE OXYGEN. <em>BETTER HEALING.</em></h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
                 When your body gets more oxygen than usual, a lot of good things may start to happen. Here are the main ways HBOT could support your body.
@@ -401,7 +401,7 @@ export default function HyperbaricOxygenTherapy() {
           <div className="hbot-container">
             <div className="hbot-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> WHO USES IT</div>
-              <h2>TRUSTED BY THE BEST IN THE WORLD.</h2>
+              <h2>TRUSTED BY THE BEST <em>IN THE WORLD.</em></h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
                 Some of the biggest names in sports and the military use hyperbaric oxygen therapy as part of their recovery. Here are a few you might know.
@@ -425,7 +425,7 @@ export default function HyperbaricOxygenTherapy() {
           <div className="hbot-container">
             <div className="hbot-animate">
               <div className="v2-label"><span className="v2-dot" /> WHAT TO EXPECT</div>
-              <h2>YOUR FIRST SESSION, STEP BY STEP.</h2>
+              <h2>YOUR FIRST SESSION, <em>STEP BY STEP.</em></h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
                 It's easier than you think. There's nothing to be nervous about — most people say it's actually relaxing.
@@ -451,7 +451,7 @@ export default function HyperbaricOxygenTherapy() {
           <div className="hbot-container">
             <div className="hbot-animate" style={{ textAlign: 'center', marginBottom: '3rem' }}>
               <div className="v2-label" style={{ justifyContent: 'center' }}><span className="v2-dot" /> PRICING</div>
-              <h2>CHOOSE THE PATH THAT FITS YOUR GOALS.</h2>
+              <h2>CHOOSE THE PATH THAT FITS <em>YOUR GOALS.</em></h2>
               <div className="hbot-divider" style={{ margin: '1.25rem auto' }}></div>
               <p className="hbot-body-text" style={{ textAlign: 'center', margin: '0 auto' }}>
                 Whether you want a full protocol, a regular weekly schedule, or just a few sessions — we have an option for you.
@@ -587,7 +587,7 @@ export default function HyperbaricOxygenTherapy() {
           <div className="hbot-container">
             <div className="hbot-animate">
               <div className="v2-label"><span className="v2-dot" /> SAFETY & TRANSPARENCY</div>
-              <h2>WHAT WE WANT YOU TO KNOW UPFRONT.</h2>
+              <h2>WHAT WE WANT YOU TO KNOW <em>UPFRONT.</em></h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
                 HBOT is safe and well-studied. Your technician monitors you throughout every session. Here is what you might experience.
@@ -664,7 +664,7 @@ export default function HyperbaricOxygenTherapy() {
           <div className="hbot-container">
             <div className="hbot-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> REAL RESULTS</div>
-              <h2>WHAT 20 SESSIONS CAN CHANGE.</h2>
+              <h2>WHAT 20 SESSIONS <em>CAN CHANGE.</em></h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
                 These are real patient outcomes from our Newport Beach clinic. Names withheld for privacy. Every case started with a Range Assessment.
@@ -741,7 +741,7 @@ export default function HyperbaricOxygenTherapy() {
           <div className="hbot-container">
             <div className="hbot-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
-              <h2 className="hbot-cta-title">YOUR BODY IS CAPABLE OF MORE THAN YOU THINK.</h2>
+              <h2 className="hbot-cta-title">YOUR BODY IS CAPABLE OF MORE <em>THAN YOU THINK.</em></h2>
               <p className="hbot-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
                 Patients tell us HBOT is the treatment they wish they'd started sooner. Faster healing, clearer thinking, deeper sleep. Come see what pressurized oxygen can do. $197 assessment, credited toward treatment.
               </p>
@@ -803,21 +803,19 @@ export default function HyperbaricOxygenTherapy() {
         /* Headlines — V2: uppercase, 900 weight, tight leading */
         .hbot-page h1 {
           font-size: clamp(2.5rem, 6vw, 4rem);
-          font-weight: 900;
+          font-weight: 400;
           line-height: 0.95;
           letter-spacing: -0.03em;
           color: #171717;
-          text-transform: uppercase;
         }
 
         .hbot-page h2 {
           font-size: 2rem;
-          font-weight: 900;
+          font-weight: 400;
           letter-spacing: -0.03em;
           line-height: 0.95;
           color: #171717;
           margin-bottom: 1rem;
-          text-transform: uppercase;
         }
 
         .hbot-page h3 {

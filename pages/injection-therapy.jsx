@@ -221,7 +221,7 @@ export default function InjectionTherapy() {
         {/* Hero */}
         <section className="inj-hero">
           <div className="v2-label"><span className="v2-dot" /> INJECTION THERAPY</div>
-          <h1>SKIP THE IV. GET WHAT YOU NEED IN 5 MINUTES.</h1>
+          <h1>SKIP THE IV. GET WHAT YOU NEED <em>IN 5 MINUTES.</em></h1>
           <div className="inj-hero-rule" />
           <p className="inj-body-text">Targeted vitamin, nutrient, and NAD+ injections. No appointment hassle, no sitting in a chair for an hour. In and out. Newport Beach.</p>
           <div className="inj-hero-scroll">
@@ -235,7 +235,7 @@ export default function InjectionTherapy() {
           <div className="inj-container">
             <div className="inj-animate">
               <div className="v2-label"><span className="v2-dot" /> What Is Injection Therapy</div>
-              <h2>Skip the Gut.<br />Get Exactly What<br />You Need.</h2>
+              <h2>Skip the Gut. Get Exactly <em>What You Need.</em></h2>
               <div className="inj-divider"></div>
               <p className="inj-body-text">
                 When you take vitamins orally, your body only absorbs a fraction. Injections deliver nutrients directly to your bloodstream &mdash; 100% absorption, zero guesswork.
@@ -267,7 +267,7 @@ export default function InjectionTherapy() {
           <div className="inj-container">
             <div className="inj-animate">
               <div className="v2-label"><span className="v2-dot" /> Standard Injections</div>
-              <h2>Essential Vitamins<br />&amp; Nutrients &mdash;<br />$35 Each</h2>
+              <h2>Essential Vitamins &amp; Nutrients &mdash; <em>$35 Each</em></h2>
               <div className="inj-divider"></div>
               <p className="inj-body-text">
                 Our core lineup of vitamin and nutrient injections. Targeted support for energy, immunity, recovery, and more.
@@ -293,7 +293,7 @@ export default function InjectionTherapy() {
           <div className="inj-container">
             <div className="inj-animate">
               <div className="v2-label"><span className="v2-dot" /> Premium Injections</div>
-              <h2>Specialty Formulas<br />&mdash; $50 Each</h2>
+              <h2>Specialty Formulas &mdash; <em>$50 Each</em></h2>
               <div className="inj-divider"></div>
               <p className="inj-body-text">
                 Advanced injections for fat metabolism, detox, and skin health. Higher-concentration formulas for targeted results.
@@ -319,7 +319,7 @@ export default function InjectionTherapy() {
           <div className="inj-container">
             <div className="inj-animate">
               <div className="v2-label"><span className="v2-dot" /> NAD+ Injections</div>
-              <h2>Cellular Energy<br />at Every Dose &mdash;<br />$0.50/mg</h2>
+              <h2>Cellular Energy at Every Dose &mdash; <em>$0.50/mg</em></h2>
               <div className="inj-divider"></div>
               <p className="inj-body-text">
                 NAD+ supports cellular energy, DNA repair, and healthy aging. Choose a dose based on your goals &mdash; from a quick boost to a full therapeutic dose.
@@ -343,7 +343,7 @@ export default function InjectionTherapy() {
           <div className="inj-container">
             <div className="inj-animate">
               <div className="v2-label"><span className="v2-dot" /> Save More</div>
-              <h2>Injection<br />Packages</h2>
+              <h2>Injection <em>Packages</em></h2>
               <div className="inj-divider"></div>
               <p className="inj-body-text">
                 Buy in bulk and save. Our injection packages are designed for patients on weekly or bi-weekly protocols &mdash; take your injections home and stay on track.
@@ -389,7 +389,7 @@ export default function InjectionTherapy() {
           <div className="inj-container">
             <div className="inj-animate">
               <div className="v2-label"><span className="v2-dot" /> Who It&apos;s For</div>
-              <h2>Targeted Support<br />for Real Goals.</h2>
+              <h2>Targeted Support for <em>Real Goals.</em></h2>
               <div className="inj-divider"></div>
               <p className="inj-body-text">
                 Whether you're looking for an energy boost, weight loss support, or just want to stay on top of your health &mdash; injections are a fast, affordable way to get what you need.
@@ -409,7 +409,7 @@ export default function InjectionTherapy() {
           <div className="inj-container">
             <div className="inj-animate">
               <div className="v2-label"><span className="v2-dot" /> Why Injections</div>
-              <h2>The Fastest Way<br />to Feel the<br />Difference.</h2>
+              <h2>The Fastest Way to Feel <em>the Difference.</em></h2>
               <div className="inj-divider"></div>
               <p className="inj-body-text">
                 Injections aren't just convenient &mdash; they're one of the most effective ways to deliver nutrients to your body. Here's why.
@@ -432,7 +432,7 @@ export default function InjectionTherapy() {
         <section className="inj-section-alt">
           <div className="inj-container">
             <div className="v2-label"><span className="v2-dot" /> Questions</div>
-            <h2>Common<br />Questions</h2>
+            <h2>Common Questions</h2>
 
             <div className="inj-faq-list">
               {faqs.map((faq, index) => (
@@ -455,7 +455,7 @@ export default function InjectionTherapy() {
           <div className="inj-container">
             <div className="inj-animate">
               <div className="v2-label" style={{ marginBottom: '1.5rem', justifyContent: 'center' }}><span className="v2-dot" /> Next Steps</div>
-              <h2 className="inj-cta-title">Ready to Feel<br />the Difference?</h2>
+              <h2 className="inj-cta-title">Ready to Feel <em>the Difference?</em></h2>
               <p className="inj-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
                 Walk-ins welcome for established patients. New to Range? Start with a quick assessment to get set up. Our Newport Beach team is ready to help.
               </p>

@@ -173,7 +173,7 @@ export default function MethyleneBlue() {
         <section className="mb-hero">
           <div className="mb-hero-inner">
             <div className="v2-label"><span className="v2-dot" /> Cellular Energy + Mood Support</div>
-            <h1>Your Brain Uses More Energy Than Any Part of Your Body. What Happens When It Runs Low?</h1>
+            <h1>Your Brain Uses More Energy Than Any Part of Your Body. What Happens When It <em>Runs Low?</em></h1>
             <div className="mb-hero-rule" />
             <p className="mb-hero-sub">
               Methylene blue helps your cells make more energy, keeps your mood chemicals working longer, and cleans up the damage that slows you down.
@@ -188,7 +188,7 @@ export default function MethyleneBlue() {
           <div className="mb-container">
             <div className="mb-animate">
               <div className="v2-label"><span className="v2-dot" /> The Problem</div>
-              <h2>Why You Feel Tired, Flat, and Off by 2pm</h2>
+              <h2>Why You Feel Tired, Flat, and <em>Off by 2pm</em></h2>
               <p className="mb-section-body">
                 It's not about sleep. It's not about willpower. It starts inside your cells.
               </p>
@@ -238,7 +238,7 @@ export default function MethyleneBlue() {
           <div className="mb-container">
             <div className="mb-animate">
               <div className="v2-label"><span className="v2-dot" /> How It Helps</div>
-              <h2>Methylene Blue Fixes Three Problems at Once</h2>
+              <h2>Methylene Blue Fixes Three Problems <em>at Once</em></h2>
               <p className="mb-section-body">
                 It doesn't cover up symptoms. It works at the cell level where the problem starts.
               </p>
@@ -269,7 +269,7 @@ export default function MethyleneBlue() {
           <div className="mb-container">
             <div className="mb-animate">
               <div className="v2-label"><span className="v2-dot" /> What It Is</div>
-              <h2>Methylene Blue Is Not New. It's Just Been Forgotten.</h2>
+              <h2>Methylene Blue Is Not New. It's Just Been <em>Forgotten.</em></h2>
               <p className="mb-section-body">
                 Methylene blue is one of the oldest compounds in modern medicine. It was first made in 1876. Doctors have used it safely for over a century.
               </p>
@@ -404,7 +404,7 @@ export default function MethyleneBlue() {
         {/* Final CTA */}
         <section className="final-cta">
           <div className="container">
-            <h2>Want to Know If Methylene<br />Blue Is Right for You?</h2>
+            <h2>Want to Know If Methylene Blue Is <em>Right for You?</em></h2>
             <div className="cta-rule" />
             <p>Text us. We'll answer your questions and help you decide.</p>
             <div className="mb-cta-buttons">
@@ -472,20 +472,18 @@ export default function MethyleneBlue() {
         /* Headlines */
         .mb-page h1 {
           font-size: clamp(2.5rem, 6vw, 4rem);
-          font-weight: 900;
+          font-weight: 400;
           line-height: 0.95;
           letter-spacing: -0.03em;
           color: #1a1a1a;
-          text-transform: uppercase;
         }
 
         .mb-page h2 {
           font-size: clamp(2rem, 5vw, 3rem);
-          font-weight: 900;
+          font-weight: 400;
           line-height: 0.95;
           letter-spacing: -0.02em;
           color: #1a1a1a;
-          text-transform: uppercase;
           margin: 0 0 1.5rem;
         }
 

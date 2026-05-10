@@ -218,7 +218,7 @@ export default function CellularEnergyReset() {
         <section className="cer-hero">
           <div className="cer-hero-inner">
             <div className="v2-label"><span className="v2-dot" /> Energy &middot; Recovery &middot; Cellular</div>
-            <h1>Your Guide to Cellular Energy Reset</h1>
+            <h1>Your Guide to Cellular <em>Energy Reset</em></h1>
             <div className="cer-hero-rule" />
             <p className="cer-hero-sub">
               A structured 6-week protocol combining HBOT and Red Light Therapy to restore energy
@@ -236,7 +236,7 @@ export default function CellularEnergyReset() {
         <section id="cer-what" className={`cer-section cer-section-alt cer-animate ${isVisible['cer-what'] ? 'cer-visible' : ''}`}>
           <div className="cer-container">
             <div className="v2-label"><span className="v2-dot" /> The Benefits</div>
-            <h2>What Red Light + HBOT Does for Your Body</h2>
+            <h2>What Red Light + HBOT Does for <em>Your Body</em></h2>
 
             <div className="cer-cards-grid">
               <div className="cer-card">
@@ -282,7 +282,7 @@ export default function CellularEnergyReset() {
         <section id="cer-who" className={`cer-section cer-animate ${isVisible['cer-who'] ? 'cer-visible' : ''}`}>
           <div className="cer-container">
             <div className="v2-label"><span className="v2-dot" /> Is This You?</div>
-            <h2>Signs Your Cells Need a Reset</h2>
+            <h2>Signs Your Cells Need a <em>Reset</em></h2>
 
             <div className="cer-cards-grid">
               <div className="cer-card">
@@ -516,7 +516,7 @@ export default function CellularEnergyReset() {
         <section id="cer-testimonials" className={`cer-section cer-section-alt cer-animate ${isVisible['cer-testimonials'] ? 'cer-visible' : ''}`}>
           <div className="cer-container">
             <div className="v2-label"><span className="v2-dot" /> Results</div>
-            <h2>What Patients Are Saying</h2>
+            <h2>What Patients Are <em>Saying</em></h2>
 
             <div className="cer-testimonials">
               <div className="cer-testimonial">
@@ -567,7 +567,7 @@ export default function CellularEnergyReset() {
         {/* CTA Section */}
         <section className="final-cta">
           <div className="container">
-            <h2>Stop Guessing.<br />Start Fixing.</h2>
+            <h2>Stop Guessing. <em>Start Fixing.</em></h2>
             <div className="cta-rule" />
             <p>Book the 6-Week Cellular Energy Reset and we'll build your schedule.</p>
             <button onClick={openCheckout} className="btn-white" style={{ cursor: 'pointer' }}>Get Started — $2,999</button>
@@ -591,11 +591,10 @@ export default function CellularEnergyReset() {
 
           .cer-hero h1 {
             font-size: clamp(2.5rem, 6vw, 4rem);
-            font-weight: 900;
+            font-weight: 400;
             line-height: 0.95;
             letter-spacing: -0.03em;
             color: #1a1a1a;
-            text-transform: uppercase;
             margin: 0 0 2rem;
           }
 
@@ -654,11 +653,10 @@ export default function CellularEnergyReset() {
 
           .cer-section h2 {
             font-size: clamp(2rem, 5vw, 3rem);
-            font-weight: 900;
+            font-weight: 400;
             line-height: 0.95;
             letter-spacing: -0.02em;
             color: #1a1a1a;
-            text-transform: uppercase;
             margin: 0 0 1.5rem;
           }
 

@@ -226,7 +226,7 @@ export default function PRPTherapy() {
         {/* Hero */}
         <section className="prp-hero">
           <div className="v2-label"><span className="v2-dot" /> PRP THERAPY</div>
-          <h1>YOUR BLOOD ALREADY HAS WHAT IT TAKES TO HEAL. WE CONCENTRATE IT.</h1>
+          <h1>YOUR BLOOD ALREADY HAS WHAT IT TAKES TO HEAL. <em>WE CONCENTRATE IT.</em></h1>
           <div className="prp-hero-rule"></div>
           <p className="prp-body-text">Platelet-rich plasma therapy uses your own growth factors to accelerate healing &mdash; for joints, tendons, and injuries that won&apos;t resolve on their own. Newport Beach.</p>
           <div className="prp-hero-scroll">
@@ -240,7 +240,7 @@ export default function PRPTherapy() {
           <div className="prp-container">
             <div className="prp-animate">
               <div className="v2-label"><span className="v2-dot" /> WHAT IS PRP</div>
-              <h2>YOUR OWN BLOOD, CONCENTRATED TO HEAL.</h2>
+              <h2>YOUR OWN BLOOD, CONCENTRATED TO <em>HEAL.</em></h2>
               <div className="prp-divider"></div>
               <p className="prp-body-text">
                 PRP (Platelet-Rich Plasma) is exactly what it sounds like — plasma from your blood with a concentrated amount of platelets. Platelets contain growth factors that signal your body to repair damaged tissue.
@@ -272,7 +272,7 @@ export default function PRPTherapy() {
           <div className="prp-container">
             <div className="prp-animate">
               <div className="v2-label"><span className="v2-dot" /> WHO IT'S FOR</div>
-              <h2>WHEN YOUR BODY NEEDS HELP HEALING.</h2>
+              <h2>WHEN YOUR BODY NEEDS <em>HELP HEALING.</em></h2>
               <div className="prp-divider"></div>
               <p className="prp-body-text">
                 PRP is commonly used for musculoskeletal injuries that haven't responded to conservative treatment. If any of these sound familiar, PRP might help.
@@ -318,7 +318,7 @@ export default function PRPTherapy() {
           <div className="prp-container">
             <div className="prp-animate">
               <div className="v2-label"><span className="v2-dot" /> WHY PRP</div>
-              <h2>THE ADVANTAGES OF PLATELET-RICH PLASMA.</h2>
+              <h2>THE ADVANTAGES OF <em>PLATELET-RICH PLASMA.</em></h2>
               <div className="prp-divider"></div>
               <p className="prp-body-text">
                 PRP offers several benefits over other treatments for musculoskeletal injuries.
@@ -398,7 +398,7 @@ export default function PRPTherapy() {
           <div className="prp-container">
             <div className="prp-animate">
               <div className="v2-label" style={{ marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
-              <h2 className="prp-cta-title">READY TO EXPLORE PRP THERAPY?</h2>
+              <h2 className="prp-cta-title">READY TO EXPLORE <em>PRP THERAPY?</em></h2>
               <p className="prp-body-text" style={{ textAlign: 'left', margin: '0 auto 2.5rem', maxWidth: '600px' }}>
                 Get started with Range Medical. Your provider will evaluate your injury and determine if PRP is right for your situation. Our Newport Beach team is here to help.
               </p>
@@ -460,19 +460,17 @@ export default function PRPTherapy() {
         /* Headlines — V2: uppercase, weight 900, tight line-height */
         .prp-page h1 {
           font-size: clamp(2.5rem, 6vw, 4rem);
-          font-weight: 900;
+          font-weight: 400;
           line-height: 0.95;
           letter-spacing: -0.03em;
-          text-transform: uppercase;
           color: #171717;
         }
 
         .prp-page h2 {
           font-size: 2rem;
-          font-weight: 900;
+          font-weight: 400;
           letter-spacing: -0.03em;
           line-height: 0.95;
-          text-transform: uppercase;
           color: #171717;
           margin-bottom: 1rem;
         }

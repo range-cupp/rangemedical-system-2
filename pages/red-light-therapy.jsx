@@ -262,7 +262,7 @@ export default function RedLightTherapy() {
         {/* Hero */}
         <section className="rlt-hero">
           <div className="v2-label"><span className="v2-dot" /> RED LIGHT THERAPY</div>
-          <h1>CHRONIC PAIN, SLOW RECOVERY, DULL SKIN? LIGHT THERAPY FIXES WHAT YOU CAN&apos;T SEE.</h1>
+          <h1>CHRONIC PAIN, SLOW RECOVERY, DULL SKIN? LIGHT THERAPY FIXES WHAT <em>YOU CAN&apos;T SEE.</em></h1>
           <div className="rlt-hero-rule"></div>
           <p className="rlt-body-text">Medical-grade red and near-infrared light reduces inflammation, accelerates tissue repair, and restores cellular energy. No drugs, no downtime. Newport Beach.</p>
           <div className="rlt-hero-scroll">
@@ -276,7 +276,7 @@ export default function RedLightTherapy() {
           <div className="rlt-container">
             <div className="rlt-animate">
               <div className="v2-label"><span className="v2-dot" /> WHAT IS IT</div>
-              <h2>LIGHT THAT WORKS AT THE CELLULAR LEVEL.</h2>
+              <h2>LIGHT THAT WORKS AT THE <em>CELLULAR LEVEL.</em></h2>
               <div className="rlt-divider"></div>
               <p className="rlt-body-text">
                 Red light therapy (also called photobiomodulation) uses specific wavelengths of red and near-infrared light to penetrate your skin and reach your cells. These wavelengths are absorbed by your mitochondria — the "power plants" inside your cells — which may help them produce more energy.
@@ -328,7 +328,7 @@ export default function RedLightTherapy() {
           <div className="rlt-container">
             <div className="rlt-animate">
               <div className="v2-label"><span className="v2-dot" /> WHO IT'S FOR</div>
-              <h2>FOR ANYONE LOOKING TO FEEL AND FUNCTION BETTER.</h2>
+              <h2>FOR ANYONE LOOKING TO FEEL AND <em>FUNCTION BETTER.</em></h2>
               <div className="rlt-divider"></div>
               <p className="rlt-body-text">
                 Red light therapy isn't just for athletes or biohackers. If any of these sound like you, it could be worth exploring at our Newport Beach clinic.
@@ -348,7 +348,7 @@ export default function RedLightTherapy() {
           <div className="rlt-container">
             <div className="rlt-animate">
               <div className="v2-label"><span className="v2-dot" /> HOW IT MAY HELP</div>
-              <h2>LIGHT THAT SUPPORTS YOUR WHOLE BODY.</h2>
+              <h2>LIGHT THAT SUPPORTS YOUR <em>WHOLE BODY.</em></h2>
               <div className="rlt-divider"></div>
               <p className="rlt-body-text">
                 Red and near-infrared light can reach different depths of tissue, which is why the benefits may be felt throughout your body. Here are the main ways it could help.
@@ -406,7 +406,7 @@ export default function RedLightTherapy() {
           <div className="rlt-container">
             <div className="rlt-animate">
               <div className="v2-label"><span className="v2-dot" /> WHO USES IT</div>
-              <h2>TRUSTED BY ELITE PERFORMERS.</h2>
+              <h2>TRUSTED BY <em>ELITE PERFORMERS.</em></h2>
               <div className="rlt-divider"></div>
               <p className="rlt-body-text">
                 From NFL quarterbacks to Olympic swimmers, red light therapy has become a staple in elite recovery protocols. Here are some who've made it part of their routine.
@@ -432,7 +432,7 @@ export default function RedLightTherapy() {
           <div className="rlt-container">
             <div className="rlt-animate">
               <div className="v2-label"><span className="v2-dot" /> WHAT TO EXPECT</div>
-              <h2>YOUR FIRST SESSION, STEP BY STEP.</h2>
+              <h2>YOUR FIRST SESSION, <em>STEP BY STEP.</em></h2>
               <div className="rlt-divider"></div>
               <p className="rlt-body-text">
                 It's simple, relaxing, and takes just 20 minutes. Here's exactly what happens.
@@ -487,7 +487,7 @@ export default function RedLightTherapy() {
           <div className="rlt-container">
             <div className="rlt-animate">
               <div className="v2-label"><span className="v2-dot" /> PRICING</div>
-              <h2>SIMPLE, TRANSPARENT PRICING.</h2>
+              <h2>SIMPLE, <em>TRANSPARENT PRICING.</em></h2>
               <div className="rlt-divider"></div>
               <p className="rlt-body-text">
                 Whether you want to try a single session or commit to a membership for the best value — we keep it straightforward.
@@ -594,7 +594,7 @@ export default function RedLightTherapy() {
           <div className="rlt-container">
             <div className="rlt-animate">
               <div className="v2-label"><span className="v2-dot" /> SAFETY & TRANSPARENCY</div>
-              <h2>WHAT WE WANT YOU TO KNOW UPFRONT.</h2>
+              <h2>WHAT WE WANT YOU TO KNOW <em>UPFRONT.</em></h2>
               <div className="rlt-divider"></div>
               <p className="rlt-body-text">
                 Red light therapy is one of the safest therapies available — no UV, no radiation, no downtime. Here is what you might notice.
@@ -667,7 +667,7 @@ export default function RedLightTherapy() {
           <div className="rlt-container">
             <div className="rlt-animate">
               <div className="v2-label"><span className="v2-dot" /> REAL RESULTS</div>
-              <h2>WHAT CONSISTENT SESSIONS LOOK LIKE.</h2>
+              <h2>WHAT CONSISTENT SESSIONS <em>LOOK LIKE.</em></h2>
               <div className="rlt-divider"></div>
               <p className="rlt-body-text">
                 These are real outcomes from Range Medical patients who committed to a consistent red light therapy protocol. Names withheld for privacy.
@@ -748,7 +748,7 @@ export default function RedLightTherapy() {
           <div className="rlt-container">
             <div className="rlt-animate">
               <div className="v2-label" style={{ marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
-              <h2 className="rlt-cta-title">WHAT IF RECOVERY DIDN'T HAVE TO TAKE SO LONG?</h2>
+              <h2 className="rlt-cta-title">WHAT IF RECOVERY DIDN'T HAVE TO TAKE <em>SO LONG?</em></h2>
               <p className="rlt-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
                 Our patients combine red light therapy with their existing protocols and notice the difference within weeks. Less pain, better skin, faster recovery. Come see what light can do. $197 assessment, credited toward treatment.
               </p>
@@ -809,19 +809,17 @@ export default function RedLightTherapy() {
         /* Headlines — V2: uppercase, 900 weight, tight leading */
         .rlt-page h1 {
           font-size: clamp(2.5rem, 6vw, 4rem);
-          font-weight: 900;
+          font-weight: 400;
           line-height: 0.95;
           letter-spacing: -0.03em;
-          text-transform: uppercase;
           color: #171717;
         }
 
         .rlt-page h2 {
           font-size: 2rem;
-          font-weight: 900;
+          font-weight: 400;
           line-height: 0.95;
           letter-spacing: -0.03em;
-          text-transform: uppercase;
           color: #171717;
           margin-bottom: 1rem;
         }

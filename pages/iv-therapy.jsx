@@ -266,7 +266,7 @@ export default function IVTherapy() {
         {/* Hero */}
         <section className="iv-hero">
           <div className="v2-label"><span className="v2-dot" /> IV THERAPY</div>
-          <h1>DEHYDRATED, DRAINED, OR HUNGOVER? ONE SESSION CHANGES EVERYTHING.</h1>
+          <h1>DEHYDRATED, DRAINED, OR HUNGOVER? ONE SESSION <em>CHANGES EVERYTHING.</em></h1>
           <div className="iv-hero-rule"></div>
           <p className="iv-body-text">Clinical-grade IV therapy delivers vitamins, minerals, and amino acids straight to your bloodstream &mdash; 100% absorption, zero gut issues. Walk in running on empty, walk out recharged. Newport Beach.</p>
           <div className="iv-hero-scroll">
@@ -280,7 +280,7 @@ export default function IVTherapy() {
           <div className="iv-container">
             <div className="iv-animate">
               <div className="v2-label"><span className="v2-dot" /> WHAT IS IV THERAPY</div>
-              <h2>SKIP THE GUT. FEED YOUR CELLS DIRECTLY.</h2>
+              <h2>SKIP THE GUT. FEED YOUR CELLS <em>DIRECTLY.</em></h2>
               <div className="iv-divider"></div>
               <p className="iv-body-text">
                 When you take vitamins orally, you lose 20-80% to digestion. IV therapy bypasses your GI tract entirely, delivering nutrients directly to your bloodstream where your cells can use them immediately.
@@ -371,7 +371,7 @@ export default function IVTherapy() {
           <div className="iv-container">
             <div className="iv-animate">
               <div className="v2-label"><span className="v2-dot" /> AVAILABLE NUTRIENTS</div>
-              <h2>BUILD YOUR OWN OR ADD ON.</h2>
+              <h2>BUILD YOUR OWN OR <em>ADD ON.</em></h2>
               <div className="iv-divider"></div>
               <p className="iv-body-text">
                 Every Range IV includes 5 of these vitamins and minerals. Want more? Add any extra for $35 each.
@@ -421,7 +421,7 @@ export default function IVTherapy() {
           <div className="iv-container">
             <div className="iv-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> WHO IT'S FOR</div>
-              <h2>FEEL BETTER FASTER.</h2>
+              <h2>FEEL BETTER <em>FASTER.</em></h2>
               <div className="iv-divider"></div>
               <p className="iv-body-text">
                 IV therapy helps a wide range of people. If any of these sound familiar, you might benefit from a session at our Newport Beach clinic.
@@ -441,7 +441,7 @@ export default function IVTherapy() {
           <div className="iv-container">
             <div className="iv-animate">
               <div className="v2-label"><span className="v2-dot" /> WHY IV THERAPY WORKS</div>
-              <h2>THE SCIENCE OF DIRECT DELIVERY.</h2>
+              <h2>THE SCIENCE OF <em>DIRECT DELIVERY.</em></h2>
               <div className="iv-divider"></div>
               <p className="iv-body-text">
                 IV therapy isn't just about convenience — it's about efficacy. Here's why direct nutrient delivery makes a difference.
@@ -499,7 +499,7 @@ export default function IVTherapy() {
           <div className="iv-container">
             <div className="iv-animate">
               <div className="v2-label"><span className="v2-dot" /> SAFETY & TRANSPARENCY</div>
-              <h2>WHAT WE WANT YOU TO KNOW UPFRONT.</h2>
+              <h2>WHAT WE WANT YOU TO KNOW <em>UPFRONT.</em></h2>
               <div className="iv-divider"></div>
               <p className="iv-body-text">
                 IV therapy is one of the safest treatments we offer. Your nurse monitors you throughout every session. Here is what you might notice.
@@ -576,7 +576,7 @@ export default function IVTherapy() {
           <div className="iv-container">
             <div className="iv-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> REAL RESULTS</div>
-              <h2>WHAT ONE SESSION CAN DO.</h2>
+              <h2>WHAT ONE SESSION <em>CAN DO.</em></h2>
               <div className="iv-divider"></div>
               <p className="iv-body-text">
                 These are real outcomes from Range Medical patients. Names omitted for privacy. Results vary by individual.
@@ -653,7 +653,7 @@ export default function IVTherapy() {
           <div className="iv-container">
             <div className="iv-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
-              <h2 className="iv-cta-title">STOP RUNNING ON EMPTY.</h2>
+              <h2 className="iv-cta-title">STOP RUNNING <em>ON EMPTY.</em></h2>
               <p className="iv-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
                 Most people are chronically dehydrated and nutrient-depleted without knowing it. One session and you'll feel the difference. Walk in tired, walk out recharged. $197 assessment, credited toward treatment.
               </p>
@@ -715,19 +715,17 @@ export default function IVTherapy() {
         /* Headlines */
         .iv-page h1 {
           font-size: clamp(2.5rem, 6vw, 4rem);
-          font-weight: 900;
+          font-weight: 400;
           line-height: 0.95;
           letter-spacing: -0.03em;
-          text-transform: uppercase;
           color: #171717;
         }
 
         .iv-page h2 {
           font-size: 2.25rem;
-          font-weight: 900;
+          font-weight: 400;
           letter-spacing: -0.03em;
           line-height: 0.95;
-          text-transform: uppercase;
           color: #171717;
           margin-bottom: 1rem;
         }

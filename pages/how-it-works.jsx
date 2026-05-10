@@ -5,62 +5,62 @@ import { useState, useEffect } from 'react';
 
 export default function HowItWorks() {
   const [openFaq, setOpenFaq] = useState(null);
-  const [isVisible, setIsVisible] = useState({});
+  const [visible, setVisible] = useState({});
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            setIsVisible((prev) => ({ ...prev, [entry.target.id]: true }));
+            setVisible((prev) => ({ ...prev, [entry.target.id]: true }));
           }
         });
       },
-      { threshold: 0.12 }
+      { threshold: 0.1 }
     );
 
-    const sections = document.querySelectorAll('.hiw-animate');
-    sections.forEach((section) => observer.observe(section));
-
-    return () => sections.forEach((section) => observer.unobserve(section));
+    const els = document.querySelectorAll('.hiw-fade');
+    els.forEach((el) => observer.observe(el));
+    return () => els.forEach((el) => observer.unobserve(el));
   }, []);
 
   const faqs = [
     {
-      question: "What’s included in the $197 Assessment?",
-      answer: "A 60-minute visit with your provider where we review your full history, symptoms, and goals. You’ll leave with a clear plan — and the $197 is credited toward treatment if you move forward."
+      q: "What’s included in the $197 Assessment?",
+      a: "A 60-minute visit with a board-certified provider where we review your full history, symptoms, and goals. You’ll leave with a clear plan, treatment recommendations, timeline, and transparent pricing. The full $197 is credited toward treatment if you move forward."
     },
     {
-      question: "How long is the Assessment?",
-      answer: "About 60 minutes. We take the time to understand what’s going on before recommending anything."
+      q: "How long does the Assessment take?",
+      a: "About 60 minutes. We take the time to understand what’s going on before recommending anything."
     },
     {
-      question: "What if I don’t need treatment after the Assessment?",
-      answer: "That’s completely fine. If we don’t think treatment is the right call, we’ll tell you. You’ll still leave with a clear picture of where things stand and what to watch for."
+      q: "What if I don’t move forward with treatment after the Assessment?",
+      a: "That’s completely fine. If we don’t think treatment is the right call, we’ll tell you. You’ll still leave with a clear picture of where things stand and what to watch for."
     },
     {
-      question: "Do I need labs before the Assessment?",
-      answer: "No. We’ll discuss whether labs make sense during your Assessment. If they do, we’ll order them afterward and review the results with you at a follow-up."
+      q: "Do I need labs done before I come in?",
+      a: "No. We’ll discuss whether labs make sense during your Assessment. If they do, we’ll order them afterward and review the results with you at a follow-up."
     },
     {
-      question: "Can I use HSA/FSA?",
-      answer: "Yes. You can use your Health Savings Account or Flexible Spending Account for any of our services, including the Assessment. Just swipe it like a credit card."
+      q: "Can I use my HSA or FSA?",
+      a: "Yes. You can use your Health Savings Account or Flexible Spending Account for any of our services, including the Assessment. Just swipe it like a credit card."
     },
     {
-      question: "What if I’m not sure which path is right for me?",
-      answer: "That’s what the Assessment is for. You don’t need to decide beforehand. Your provider will help you figure out the right starting point. You can also take the Clarity Finder quiz to get a recommendation before booking."
+      q: "I’m not sure which path is right for me — what should I do?",
+      a: "That’s what the Assessment is for. You don’t need to decide beforehand. Your provider will help you figure out the right starting point.",
+      link: true
     },
   ];
 
   return (
     <>
       <Head>
-        <title>How It Works | Range Medical</title>
-        <meta name="description" content="Start with a $197 Range Assessment. We review your history, symptoms, and goals, then build a personalized plan. Your full $197 is credited toward treatment." />
+        <title>How It Works | Range Medical Newport Beach</title>
+        <meta name="description" content="Every patient at Range Medical starts with the $197 Assessment. Sixty minutes with a board-certified provider, a personalized plan, and full credit toward your treatment." />
         <link rel="canonical" href="https://www.range-medical.com/how-it-works" />
 
-        <meta property="og:title" content="How It Works | Range Medical" />
-        <meta property="og:description" content="Start with a $197 Range Assessment. We review your history, symptoms, and goals, then build a personalized plan." />
+        <meta property="og:title" content="How It Works | Range Medical Newport Beach" />
+        <meta property="og:description" content="Every patient at Range Medical starts with the $197 Assessment. Sixty minutes with a board-certified provider, a personalized plan, and full credit toward your treatment." />
         <meta property="og:url" content="https://www.range-medical.com/how-it-works" />
         <meta property="og:type" content="website" />
 
@@ -70,12 +70,12 @@ export default function HowItWorks() {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "FAQPage",
-              "mainEntity": faqs.map(faq => ({
+              "mainEntity": faqs.map(f => ({
                 "@type": "Question",
-                "name": faq.question,
+                "name": f.q,
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": faq.answer
+                  "text": f.a
                 }
               }))
             })
@@ -84,410 +84,564 @@ export default function HowItWorks() {
       </Head>
 
       <Layout>
-        {/* Trust Bar */}
-        <div className="trust-bar">
-          <div className="trust-inner">
-            <span className="trust-item">
-              <span className="trust-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span> 5.0 on Google
-            </span>
-            <span className="trust-item">Newport Beach, CA</span>
-            <span className="trust-item">Board-Certified Providers</span>
-          </div>
-        </div>
+        <div className="hiw">
 
-        {/* Hero */}
-        <section className="hiw-hero">
-          <div className="v2-label"><span className="v2-dot" /> How It Works</div>
-          <h1>Start with One Assessment.<br />Get a Plan Built<br />Around You.</h1>
-          <div className="hiw-rule" />
-          <p className="hiw-hero-sub">
-            Every patient starts the same way &mdash; a 60-minute Assessment where we listen, review your history, and build a plan that makes sense for your body and your goals.
-          </p>
-          <div style={{ marginTop: '2rem' }}>
-            <Link href="/assessment" className="btn-primary">
-              Book Your Range Assessment
-            </Link>
-          </div>
-        </section>
-
-        {/* Section 1: The Range Assessment */}
-        <section id="hiw-assessment" className={`hiw-section-alt hiw-animate ${isVisible['hiw-assessment'] ? 'hiw-visible' : ''}`}>
-          <div className="hiw-container">
-            <div className="v2-label"><span className="v2-dot" /> The Assessment</div>
-            <h2>What Happens in<br />Your Assessment</h2>
-            <p className="hiw-section-intro">
-              This is where everything starts. No guesswork, no menu of services to pick from &mdash; just a clear conversation about what&apos;s going on and what to do about it.
+          {/* ── Hero ── */}
+          <section className="hiw-hero">
+            <span className="hiw-eyebrow">HOW IT WORKS</span>
+            <h1>It starts with <em>one Assessment.</em></h1>
+            <p className="hiw-sub">
+              We review your history, symptoms, and goals &mdash; then build the plan that fits your situation. No guessing. No menu shopping.
             </p>
+          </section>
 
-            <div className="hiw-steps-grid">
-              <div className="hiw-step">
-                <span className="hiw-step-num">01</span>
-                <h4>We review your history, symptoms, and goals</h4>
-                <p>Your provider takes the time to understand the full picture &mdash; not just what hurts or what&apos;s off, but why.</p>
-              </div>
-              <div className="hiw-step">
-                <span className="hiw-step-num">02</span>
-                <h4>We discuss the right diagnostic path</h4>
-                <p>Labs, imaging, or symptom-based intake &mdash; we figure out what information we need to build your plan.</p>
-              </div>
-              <div className="hiw-step">
-                <span className="hiw-step-num">03</span>
-                <h4>Your provider designs a personalized plan</h4>
-                <p>Based on what we find, you get a clear protocol recommendation with transparent pricing and timeline.</p>
-              </div>
-              <div className="hiw-step">
-                <span className="hiw-step-num">04</span>
-                <h4>The full $197 is credited toward treatment</h4>
-                <p>If you move forward with treatment, your Assessment cost goes directly toward your plan. Nothing wasted.</p>
-              </div>
-            </div>
+          {/* ── Section 1: The Assessment ── */}
+          <section id="s-assess" className={`hiw-sect hiw-fade${visible['s-assess'] ? ' hiw-in' : ''}`}>
+            <div className="hiw-wrap">
+              <span className="hiw-eyebrow">THE ASSESSMENT</span>
+              <h2>Sixty minutes that <em>change everything.</em></h2>
+              <p className="hiw-body-lg">
+                Every patient at Range Medical starts with the $197 Range Assessment. It&apos;s not a sales pitch. It&apos;s a real conversation with a board-certified provider &mdash; about what&apos;s actually going on, what we can help with, and what comes next.
+              </p>
 
-            <div className="hiw-callout">
-              <span className="hiw-callout-text">$197 &middot; 60 minutes &middot; Credited toward your plan</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 2: Two Paths */}
-        <section id="hiw-paths" className={`hiw-section hiw-animate ${isVisible['hiw-paths'] ? 'hiw-visible' : ''}`}>
-          <div className="hiw-container">
-            <div className="v2-label"><span className="v2-dot" /> Two Paths</div>
-            <h2>Two Paths.<br />One Assessment.</h2>
-            <p className="hiw-section-intro">
-              You don&apos;t need to know which path is right before you book. Your provider will help you figure that out during the Assessment.
-            </p>
-
-            <div className="doors-grid">
-              <div className="door-card">
-                <span className="door-number">01</span>
-                <h3>Injury &<br />Recovery</h3>
-                <p>You&apos;re rehabbing an injury and healing feels slow. You want to speed things up.</p>
-                <ul>
-                  <li>Review your injury and rehab history</li>
-                  <li>Discuss recovery timeline and goals</li>
-                  <li>Get a clear protocol recommendation</li>
-                  <li>$197 credited toward your treatment</li>
-                </ul>
-                <p className="hiw-path-experience">
-                  Patients on this path typically work with tools like hyperbaric oxygen, red light therapy, PRP, and targeted peptides. Most see meaningful progress within 4&ndash;8 weeks.
-                </p>
-                <Link href="/assessment?path=injury" className="v2-link-cta">
-                  Book Assessment <span>&rarr;</span>
-                </Link>
-              </div>
-
-              <div className="door-card featured">
-                <span className="door-badge">Most Popular</span>
-                <span className="door-number">02</span>
-                <h3>Energy,<br />Hormones &<br />Weight</h3>
-                <p>You&apos;re tired, foggy, or just don&apos;t feel like yourself. You want answers and a plan.</p>
-                <ul>
-                  <li>Review symptoms, goals, and history</li>
-                  <li>Discuss the right lab panel for you</li>
-                  <li>Get a clear path forward</li>
-                  <li>$197 credited toward your program</li>
-                </ul>
-                <p className="hiw-path-experience">
-                  Patients on this path typically start with comprehensive labs, then move into hormone optimization, weight management, or peptide therapy. Most feel a noticeable difference within 6&ndash;10 weeks.
-                </p>
-                <Link href="/assessment?path=energy" className="v2-link-cta">
-                  Book Assessment <span>&rarr;</span>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 3: After the Assessment */}
-        <section id="hiw-after" className={`hiw-section-alt hiw-animate ${isVisible['hiw-after'] ? 'hiw-visible' : ''}`}>
-          <div className="hiw-container">
-            <div className="v2-label"><span className="v2-dot" /> After the Assessment</div>
-            <h2>What Happens Next</h2>
-            <p className="hiw-section-intro">
-              The Assessment is just the starting point. Here&apos;s what the experience looks like once you move forward.
-            </p>
-
-            <div className="hiw-next-grid">
-              <div className="hiw-next-card">
-                <span className="hiw-next-num">01</span>
-                <h4>Your Plan</h4>
-                <p>Built around what you actually need, not a menu of services to pick from. Your provider selects the right tools based on your Assessment, your labs, and your goals &mdash; then explains exactly why.</p>
-              </div>
-              <div className="hiw-next-card">
-                <span className="hiw-next-num">02</span>
-                <h4>Your Provider</h4>
-                <p>Board-certified and available. Your provider takes the time to explain everything, answer your questions, and adjust your plan as you progress. No assembly line.</p>
-              </div>
-              <div className="hiw-next-card">
-                <span className="hiw-next-num">03</span>
-                <h4>Your Progress</h4>
-                <p>Regular check-ins, plan adjustments based on how you&apos;re responding, and transparent pricing at every step. You always know where you stand and what comes next.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 4: Why Cash-Pay */}
-        <section id="hiw-cashpay" className={`hiw-section hiw-animate ${isVisible['hiw-cashpay'] ? 'hiw-visible' : ''}`}>
-          <div className="hiw-container">
-            <div className="v2-label"><span className="v2-dot" /> How We Work</div>
-            <h2>No Insurance.<br />On Purpose.</h2>
-            <p className="hiw-section-intro">
-              We&apos;re a cash-pay clinic &mdash; and that&apos;s by design. It means more time with your provider,
-              transparent pricing, and zero insurance red tape.
-            </p>
-
-            <div className="cashpay-grid">
-              <div className="cashpay-item">
-                <span className="cashpay-num">01</span>
-                <h4>More Time With You</h4>
-                <p>Insurance-based clinics move fast because they have to. We don&apos;t. Your visits are longer, your provider actually listens, and your plan is built around you &mdash; not a billing code.</p>
-              </div>
-              <div className="cashpay-item">
-                <span className="cashpay-num">02</span>
-                <h4>Transparent Pricing</h4>
-                <p>You know what everything costs before you commit. No surprise bills, no co-pay confusion, no &ldquo;we&apos;ll see what insurance covers.&rdquo; The price we quote is the price you pay.</p>
-              </div>
-              <div className="cashpay-item">
-                <span className="cashpay-num">03</span>
-                <h4>Better Treatment Options</h4>
-                <p>Many of the therapies we offer &mdash; peptides, hyperbaric oxygen, advanced labs &mdash; aren&apos;t covered by insurance anyway. Going cash-pay means we can offer what actually works, not just what gets approved.</p>
-              </div>
-              <div className="cashpay-item">
-                <span className="cashpay-num">04</span>
-                <h4>HSA & FSA Accepted</h4>
-                <p>You can use your Health Savings Account or Flexible Spending Account for any of our services. Same card, same process &mdash; just swipe it like a credit card.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 5: FAQ */}
-        <section id="hiw-faq" className={`hiw-section-alt hiw-animate ${isVisible['hiw-faq'] ? 'hiw-visible' : ''}`}>
-          <div className="hiw-container">
-            <div className="v2-label"><span className="v2-dot" /> Questions</div>
-            <h2>Frequently Asked</h2>
-
-            <div className="hiw-faq-list">
-              {faqs.map((faq, i) => (
-                <div key={i} className={`hiw-faq-item ${openFaq === i ? 'open' : ''}`}>
-                  <button
-                    className="hiw-faq-q"
-                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    aria-expanded={openFaq === i}
-                  >
-                    <span>{faq.question}</span>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                      <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
-                        style={{ opacity: openFaq === i ? 0 : 1, transition: 'opacity 0.2s' }} />
-                      <path d="M1 7h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
-                  </button>
-                  {openFaq === i && (
-                    <div className="hiw-faq-a">
-                      <p>{faq.answer}{' '}
-                        {i === faqs.length - 1 && (
-                          <Link href="/clarity-finder" style={{ color: '#0A0A0A', fontWeight: 600 }}>
-                            Take the Clarity Finder &rarr;
-                          </Link>
-                        )}
-                      </p>
-                    </div>
-                  )}
+              <div className="hiw-deep">
+                <div className="hiw-deep-block">
+                  <h3>What we cover.</h3>
+                  <p>Your full history, current symptoms, and what you actually want to feel like. We talk through diagnostics &mdash; labs, imaging, or symptom-based intake &mdash; and decide what makes sense for you.</p>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
+                <div className="hiw-deep-block">
+                  <h3>What you walk out with.</h3>
+                  <p>A clear plan, written down. Treatment recommendations, timeline, and pricing &mdash; no surprises after the fact.</p>
+                </div>
+                <div className="hiw-deep-block">
+                  <h3>What it costs.</h3>
+                  <p>$197. The full amount is credited toward your treatment if you move forward. HSA and FSA accepted.</p>
+                </div>
+              </div>
 
-        {/* Section 6: Final CTA */}
-        <section className="final-cta">
-          <div className="container">
-            <h2>Ready to Start?</h2>
-            <div className="cta-rule" />
-            <p>Start with the $197 Range Assessment. Your full visit cost is credited toward treatment if you move forward.</p>
-            <div className="cta-buttons">
-              <Link href="/assessment" className="btn-white">
-                Book Your Range Assessment
-              </Link>
+              <p className="hiw-link-cta">
+                <Link href="/assessment">Book your Assessment <span>&rarr;</span></Link>
+              </p>
             </div>
-            <p className="cta-location">
-              Range Medical &bull; 1901 Westcliff Dr, Newport Beach
-            </p>
-          </div>
-        </section>
+          </section>
+
+          {/* ── Section 2: What Happens Next ── */}
+          <section id="s-next" className={`hiw-sect hiw-fade${visible['s-next'] ? ' hiw-in' : ''}`}>
+            <div className="hiw-wrap">
+              <span className="hiw-eyebrow">AFTER THE ASSESSMENT</span>
+              <h2>Then we <em>get to work.</em></h2>
+
+              <div className="hiw-trio">
+                <div className="hiw-trio-item">
+                  <span className="hiw-numeral">01</span>
+                  <h3>Your plan.</h3>
+                  <p>Built around what you actually need. Not a menu of services to pick from. Your provider chooses the right tools for your situation.</p>
+                </div>
+                <div className="hiw-trio-item">
+                  <span className="hiw-numeral">02</span>
+                  <h3>Your treatment.</h3>
+                  <p>Delivered at our Newport Beach clinic. Self-administered protocols come with hands-on training. You&apos;re never figuring it out alone.</p>
+                </div>
+                <div className="hiw-trio-item">
+                  <span className="hiw-numeral">03</span>
+                  <h3>Your follow-up.</h3>
+                  <p>Regular check-ins built into your plan. We adjust as your body responds. Direct access to your provider &mdash; no patient portal maze.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ── Section 3: Two Paths ── */}
+          <section id="s-paths" className={`hiw-sect hiw-fade${visible['s-paths'] ? ' hiw-in' : ''}`}>
+            <div className="hiw-wrap">
+              <span className="hiw-eyebrow">TWO PATHS</span>
+              <h2>Most people come for <em>one of two reasons.</em></h2>
+              <p className="hiw-sub-text">Tell us which one is you, and we&apos;ll take it from there.</p>
+
+              <div className="hiw-cards">
+                <div className="hiw-card">
+                  <span className="hiw-card-eyebrow">PATH 01</span>
+                  <h3>You&apos;re rehabbing an injury and healing feels slow.</h3>
+                  <p>You&apos;ve tried rest, PT, maybe a cortisone shot. But recovery has stalled and you want to know what else is available. We work with tools like hyperbaric oxygen, PRP, red light therapy, and targeted peptides to help your body heal faster.</p>
+                  <p className="hiw-link-cta">
+                    <Link href="/assessment?path=injury">Start with Recovery <span>&rarr;</span></Link>
+                  </p>
+                </div>
+                <div className="hiw-card">
+                  <span className="hiw-card-eyebrow">PATH 02</span>
+                  <h3>You&apos;re tired, foggy, or just don&apos;t feel like yourself.</h3>
+                  <p>Something shifted &mdash; your energy, your sleep, your weight, your focus. You know something&apos;s off but your labs keep coming back &ldquo;normal.&rdquo; We run deeper diagnostics and build a plan around hormone optimization, peptides, weight management, or cellular-level support.</p>
+                  <p className="hiw-link-cta">
+                    <Link href="/assessment?path=energy">Start with Optimization <span>&rarr;</span></Link>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ── Section 4: Why Cash-Pay ── */}
+          <section id="s-cash" className={`hiw-sect hiw-fade${visible['s-cash'] ? ' hiw-in' : ''}`}>
+            <div className="hiw-wrap">
+              <span className="hiw-eyebrow">OUR MODEL</span>
+              <h2>No insurance. <em>On purpose.</em></h2>
+
+              <div className="hiw-grid-2x2">
+                <div className="hiw-grid-item">
+                  <h3>More Time With You</h3>
+                  <p>Insurance-based clinics move fast because they have to. We don&apos;t. Your visits are longer, your provider actually listens, and your plan is built around you &mdash; not a billing code.</p>
+                </div>
+                <div className="hiw-grid-item">
+                  <h3>Transparent Pricing</h3>
+                  <p>You know what everything costs before you commit. No surprise bills, no co-pay confusion, no &ldquo;we&apos;ll see what insurance covers.&rdquo; The price we quote is the price you pay.</p>
+                </div>
+                <div className="hiw-grid-item">
+                  <h3>Better Treatment Options</h3>
+                  <p>Many of the therapies we offer &mdash; peptides, hyperbaric oxygen, advanced labs &mdash; aren&apos;t covered by insurance anyway. Going cash-pay means we can offer what actually works, not just what gets approved.</p>
+                </div>
+                <div className="hiw-grid-item">
+                  <h3>HSA &amp; FSA Accepted</h3>
+                  <p>You can use your Health Savings Account or Flexible Spending Account for any of our services. Same card, same process &mdash; just swipe it like a credit card.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ── Section 5: Pricing ── */}
+          <section id="s-pricing" className={`hiw-sect hiw-sect-center hiw-fade${visible['s-pricing'] ? ' hiw-in' : ''}`}>
+            <div className="hiw-wrap">
+              <span className="hiw-eyebrow">PRICING</span>
+              <h2>$197 <em>Assessment.</em> Credited toward your plan.</h2>
+
+              <div className="hiw-pricing-card">
+                <ul>
+                  <li>60-minute Assessment with a board-certified provider</li>
+                  <li>Personalized plan recommendation</li>
+                  <li>Full $197 credited toward treatment</li>
+                  <li>HSA/FSA accepted</li>
+                </ul>
+              </div>
+
+              <Link href="/assessment" className="hiw-btn-primary">Book Your Assessment</Link>
+            </div>
+          </section>
+
+          {/* ── Section 6: FAQ ── */}
+          <section id="s-faq" className={`hiw-sect hiw-fade${visible['s-faq'] ? ' hiw-in' : ''}`}>
+            <div className="hiw-wrap">
+              <span className="hiw-eyebrow">QUESTIONS</span>
+              <h2>Common <em>questions.</em></h2>
+
+              <div className="hiw-faq-list">
+                {faqs.map((faq, i) => (
+                  <div key={i} className={`hiw-faq-item${openFaq === i ? ' open' : ''}`}>
+                    <button
+                      className="hiw-faq-q"
+                      onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                      aria-expanded={openFaq === i}
+                    >
+                      <span>{faq.q}</span>
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                        <path d="M7 1v12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
+                          style={{ opacity: openFaq === i ? 0 : 1, transition: 'opacity 0.2s' }} />
+                        <path d="M1 7h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                    {openFaq === i && (
+                      <div className="hiw-faq-a">
+                        <p>
+                          {faq.a}
+                          {faq.link && (
+                            <>
+                              {' '}You can also{' '}
+                              <Link href="/clarity-finder" style={{ color: 'var(--color-accent)', fontWeight: 500 }}>
+                                take the Clarity Finder
+                              </Link>
+                              {' '}to get a recommendation before booking.
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* ── Section 7: Final CTA ── */}
+          <section id="s-final" className={`hiw-sect hiw-sect-center hiw-fade${visible['s-final'] ? ' hiw-in' : ''}`}>
+            <div className="hiw-wrap">
+              <h2>Most people wait until they&apos;re <em>not feeling like themselves.</em></h2>
+              <p className="hiw-sub-text" style={{ maxWidth: '400px', margin: '0 auto' }}>You don&apos;t have to.</p>
+
+              <div className="hiw-final-btns">
+                <Link href="/assessment" className="hiw-btn-primary">Book Your Range Assessment</Link>
+                <Link href="/clarity-finder" className="hiw-btn-ghost">Take the Clarity Finder</Link>
+              </div>
+            </div>
+          </section>
+
+        </div>
       </Layout>
 
       <style jsx>{`
+        .hiw {
+          background: var(--color-bg);
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        /* ── Typography overrides ── */
+        .hiw h1, .hiw h2 {
+          font-family: 'Fraunces', serif;
+          font-weight: 400;
+          text-transform: none;
+          letter-spacing: -0.02em;
+          color: var(--color-text);
+        }
+
+        .hiw h1 {
+          font-size: 88px;
+          line-height: 1.05;
+        }
+
+        .hiw h2 {
+          font-size: 56px;
+          line-height: 1.1;
+        }
+
+        .hiw h3 {
+          font-family: 'Fraunces', serif;
+          font-weight: 500;
+          font-size: 32px;
+          line-height: 1.2;
+          text-transform: none;
+          letter-spacing: -0.01em;
+          color: var(--color-text);
+        }
+
+        .hiw h1 :global(em), .hiw h2 :global(em), .hiw h3 :global(em) {
+          font-style: italic;
+        }
+
+        .hiw p {
+          color: var(--color-text-muted);
+        }
+
+        /* ── Eyebrow ── */
+        .hiw-eyebrow {
+          display: block;
+          font-family: 'Inter', sans-serif;
+          font-size: 12px;
+          font-weight: 500;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+          color: var(--color-text-muted);
+          line-height: 1.4;
+          margin-bottom: 1.25rem;
+        }
+
+        /* ── Hero ── */
         .hiw-hero {
-          padding: 6rem 2rem 5rem;
+          padding: 120px 2rem 100px;
           max-width: 1200px;
           margin: 0 auto;
         }
 
-        .hiw-hero h1 {
-          margin-bottom: 2rem;
-          max-width: 800px;
-        }
-
-        .hiw-hero-sub {
-          font-size: 1.0625rem;
-          color: #737373;
-          max-width: 520px;
-          line-height: 1.75;
-        }
-
-        .hiw-rule {
-          width: 100%;
-          max-width: 700px;
-          height: 1px;
-          background: #e0e0e0;
-          margin: 2rem 0;
-        }
-
-        .hiw-container {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 2rem;
-        }
-
-        .hiw-section {
-          padding: 5rem 0;
-        }
-
-        .hiw-section-alt {
-          padding: 5rem 0;
-          background: #fafafa;
-        }
-
-        .hiw-section-intro {
-          font-size: 1.0625rem;
-          color: #737373;
+        .hiw-sub {
+          font-size: 20px;
+          line-height: 1.6;
+          color: var(--color-text-muted);
           max-width: 560px;
-          line-height: 1.75;
-          margin-top: 1rem;
+          margin-top: 1.5rem;
         }
 
-        .hiw-animate {
+        /* ── Section defaults ── */
+        .hiw-sect {
+          padding: 160px 2rem;
+        }
+
+        .hiw-sect-center {
+          text-align: center;
+        }
+
+        .hiw-sect-center .hiw-wrap {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .hiw-wrap {
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        /* ── Fade animation ── */
+        .hiw-fade {
           opacity: 0;
           transform: translateY(20px);
-          transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+          transition: opacity 600ms cubic-bezier(0.4, 0, 0.2, 1),
+                      transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .hiw-visible {
+        .hiw-in {
           opacity: 1;
           transform: translateY(0);
         }
 
-        /* Steps Grid */
-        .hiw-steps-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 2rem;
-          margin-top: 3rem;
-        }
-
-        .hiw-step {
-          padding: 1.5rem;
-          background: #ffffff;
-          border: 1px solid #ebebeb;
-        }
-
-        .hiw-step-num {
-          display: block;
-          font-size: 28px;
-          font-weight: 800;
-          color: #e0e0e0;
-          margin-bottom: 1rem;
-          line-height: 1;
-        }
-
-        .hiw-step h4 {
-          font-size: 0.9375rem;
-          font-weight: 700;
-          color: #1a1a1a;
-          margin: 0 0 0.5rem;
-          line-height: 1.4;
-        }
-
-        .hiw-step p {
-          font-size: 0.875rem;
-          color: #737373;
+        /* ── Body large ── */
+        .hiw-body-lg {
+          font-size: 20px;
           line-height: 1.6;
-          margin: 0;
+          color: var(--color-text-muted);
+          max-width: 640px;
+          margin-top: 1.25rem;
         }
 
-        .hiw-callout {
-          margin-top: 2.5rem;
-          text-align: center;
-        }
-
-        .hiw-callout-text {
-          display: inline-block;
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: #404040;
-          padding: 0.75rem 2rem;
-          border: 1px solid #e0e0e0;
-          letter-spacing: 0.02em;
-        }
-
-        /* Path experience text */
-        :global(.hiw-path-experience) {
-          font-size: 0.8125rem !important;
-          color: #737373 !important;
-          font-style: italic;
-          line-height: 1.6 !important;
+        .hiw-sub-text {
+          font-size: 20px;
+          line-height: 1.6;
+          color: var(--color-text-muted);
           margin-top: 0.75rem;
-          padding-top: 0.75rem;
-          border-top: 1px solid #e8e8e8;
         }
 
-        /* After Assessment Grid */
-        .hiw-next-grid {
+        /* ── Section 1: Deep blocks ── */
+        .hiw-deep {
+          margin-top: 3.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 2.5rem;
+        }
+
+        .hiw-deep-block h3 {
+          font-size: 24px;
+          margin-bottom: 0.5rem;
+        }
+
+        .hiw-deep-block p {
+          font-size: 17px;
+          line-height: 1.6;
+          max-width: 600px;
+        }
+
+        /* ── Inline link CTA ── */
+        :global(.hiw-link-cta) {
+          margin-top: 2rem;
+        }
+
+        :global(.hiw-link-cta a) {
+          font-family: 'Inter', sans-serif;
+          font-size: 17px;
+          font-weight: 500;
+          color: var(--color-accent);
+          text-decoration: none;
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.375rem;
+        }
+
+        :global(.hiw-link-cta a)::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: var(--color-accent);
+          transform: scaleX(0);
+          transform-origin: left;
+          transition: transform var(--transition);
+        }
+
+        :global(.hiw-link-cta a:hover)::after {
+          transform: scaleX(1);
+        }
+
+        :global(.hiw-link-cta a span) {
+          transition: transform var(--transition);
+        }
+
+        :global(.hiw-link-cta a:hover span) {
+          transform: translateX(4px);
+        }
+
+        /* ── Section 2: Trio ── */
+        .hiw-trio {
+          margin-top: 3.5rem;
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 2rem;
-          margin-top: 3rem;
+          gap: 3rem;
         }
 
-        .hiw-next-card {
-          padding: 2rem;
-          background: #ffffff;
-          border: 1px solid #ebebeb;
-        }
-
-        .hiw-next-num {
+        .hiw-numeral {
           display: block;
-          font-size: 28px;
-          font-weight: 800;
-          color: #e0e0e0;
+          font-family: 'Fraunces', serif;
+          font-style: italic;
+          font-size: 32px;
+          font-weight: 400;
+          color: var(--color-accent);
           margin-bottom: 1rem;
           line-height: 1;
         }
 
-        .hiw-next-card h4 {
-          font-size: 1rem;
-          font-weight: 700;
-          color: #1a1a1a;
-          margin: 0 0 0.75rem;
+        .hiw-trio-item h3 {
+          font-size: 24px;
+          margin-bottom: 0.75rem;
         }
 
-        .hiw-next-card p {
-          font-size: 0.875rem;
-          color: #737373;
-          line-height: 1.7;
+        .hiw-trio-item p {
+          font-size: 17px;
+          line-height: 1.6;
+        }
+
+        /* ── Section 3: Two cards ── */
+        .hiw-cards {
+          margin-top: 3rem;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 2rem;
+        }
+
+        .hiw-card {
+          background: #ffffff;
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          padding: 2.5rem;
+        }
+
+        .hiw-card-eyebrow {
+          display: block;
+          font-family: 'Inter', sans-serif;
+          font-size: 12px;
+          font-weight: 500;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+          color: var(--color-text-muted);
+          margin-bottom: 1rem;
+        }
+
+        .hiw-card h3 {
+          font-size: 24px;
+          margin-bottom: 1rem;
+        }
+
+        .hiw-card > p {
+          font-size: 17px;
+          line-height: 1.6;
+        }
+
+        /* ── Section 4: 2x2 grid ── */
+        .hiw-grid-2x2 {
+          margin-top: 3rem;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 2rem;
+        }
+
+        .hiw-grid-item h3 {
+          font-size: 24px;
+          margin-bottom: 0.5rem;
+        }
+
+        .hiw-grid-item p {
+          font-size: 17px;
+          line-height: 1.6;
+        }
+
+        /* ── Section 5: Pricing card ── */
+        .hiw-pricing-card {
+          margin: 2.5rem 0;
+          background: #ffffff;
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          padding: 2.5rem 3rem;
+          max-width: 480px;
+          text-align: left;
+        }
+
+        .hiw-pricing-card ul {
+          list-style: none;
+          padding: 0;
           margin: 0;
         }
 
-        /* FAQ */
+        .hiw-pricing-card li {
+          font-size: 17px;
+          color: var(--color-text);
+          padding: 0.625rem 0 0.625rem 1.5rem;
+          position: relative;
+          line-height: 1.5;
+          border-bottom: 1px solid #f0f0f0;
+        }
+
+        .hiw-pricing-card li:last-child {
+          border-bottom: none;
+        }
+
+        .hiw-pricing-card li::before {
+          content: '\\2713';
+          position: absolute;
+          left: 0;
+          color: var(--color-accent);
+          font-weight: 600;
+        }
+
+        /* ── Buttons ── */
+        :global(.hiw-btn-primary) {
+          display: inline-block;
+          background: var(--color-accent);
+          color: #ffffff;
+          padding: 16px 32px;
+          border-radius: 999px;
+          font-family: 'Inter', sans-serif;
+          font-size: 15px;
+          font-weight: 500;
+          line-height: 1;
+          text-decoration: none;
+          transition: background var(--transition);
+        }
+
+        :global(.hiw-btn-primary:hover) {
+          background: var(--color-accent-hover);
+        }
+
+        :global(.hiw-btn-ghost) {
+          display: inline-block;
+          background: transparent;
+          color: var(--color-accent);
+          padding: 16px 32px;
+          border: 1px solid var(--color-accent);
+          border-radius: 999px;
+          font-family: 'Inter', sans-serif;
+          font-size: 15px;
+          font-weight: 500;
+          line-height: 1;
+          text-decoration: none;
+          transition: background var(--transition), color var(--transition);
+        }
+
+        :global(.hiw-btn-ghost:hover) {
+          background: var(--color-accent);
+          color: #ffffff;
+        }
+
+        .hiw-final-btns {
+          margin-top: 2.5rem;
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+
+        /* ── FAQ ── */
         .hiw-faq-list {
           margin-top: 2.5rem;
           max-width: 720px;
+          width: 100%;
         }
 
         .hiw-faq-item {
-          border-bottom: 1px solid #e8e8e8;
+          border-bottom: 1px solid var(--color-border);
         }
 
         .hiw-faq-q {
@@ -499,16 +653,17 @@ export default function HowItWorks() {
           background: none;
           border: none;
           cursor: pointer;
-          font-family: inherit;
-          font-size: 0.9375rem;
-          font-weight: 600;
-          color: #1a1a1a;
+          font-family: 'Inter', sans-serif;
+          font-size: 17px;
+          font-weight: 500;
+          color: var(--color-text);
           text-align: left;
           gap: 1rem;
+          transition: color var(--transition);
         }
 
         .hiw-faq-q:hover {
-          color: #404040;
+          color: var(--color-accent);
         }
 
         .hiw-faq-a {
@@ -516,25 +671,65 @@ export default function HowItWorks() {
         }
 
         .hiw-faq-a p {
-          font-size: 0.875rem;
-          color: #737373;
-          line-height: 1.7;
+          font-size: 17px;
+          color: var(--color-text-muted);
+          line-height: 1.6;
           margin: 0;
         }
 
+        /* ── Responsive ── */
         @media (max-width: 768px) {
+          .hiw h1 {
+            font-size: 48px;
+          }
+
+          .hiw h2 {
+            font-size: 36px;
+          }
+
+          .hiw h3 {
+            font-size: 24px;
+          }
+
+          .hiw-body-lg, .hiw-sub, .hiw-sub-text {
+            font-size: 18px;
+          }
+
           .hiw-hero {
-            padding: 4rem 1.5rem 3rem;
+            padding: 80px 1.5rem 64px;
           }
 
-          .hiw-steps-grid {
-            grid-template-columns: 1fr;
-            gap: 1rem;
+          .hiw-sect {
+            padding: 96px 1.5rem;
           }
 
-          .hiw-next-grid {
+          .hiw-trio {
             grid-template-columns: 1fr;
-            gap: 1rem;
+            gap: 2.5rem;
+          }
+
+          .hiw-cards {
+            grid-template-columns: 1fr;
+          }
+
+          .hiw-grid-2x2 {
+            grid-template-columns: 1fr;
+          }
+
+          .hiw-pricing-card {
+            padding: 2rem;
+          }
+
+          .hiw-final-btns {
+            flex-direction: column;
+            align-items: center;
+          }
+
+          .hiw-deep-block p,
+          .hiw-trio-item p,
+          .hiw-card > p,
+          .hiw-grid-item p {
+            font-size: 16px;
           }
         }
       `}</style>

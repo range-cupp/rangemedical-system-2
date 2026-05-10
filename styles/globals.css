@@ -483,7 +483,7 @@ p {
    ======================================== */
 
 :root {
-  --accent: #808080;  /* was #808080 gold, now neutral gray */
+  --accent: #808080;
   --black: #1a1a1a;
   --dark-gray: #404040;
   --mid-gray: #737373;
@@ -491,6 +491,15 @@ p {
   --rule: #e0e0e0;
   --bg-light: #fafafa;
   --white: #ffffff;
+
+  /* Phase 1 Design System */
+  --color-bg: #FAF9F6;
+  --color-text: #1a1a1a;
+  --color-text-muted: #737373;
+  --color-accent: #2E5D3A;
+  --color-accent-hover: #234A2E;
+  --color-border: #e0e0e0;
+  --transition: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ========================================

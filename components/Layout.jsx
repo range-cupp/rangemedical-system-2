@@ -10,7 +10,7 @@ export default function Layout({ children, title, description, logoOnly }) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10);
+    const onScroll = () => setScrolled(window.scrollY > 100);
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener('scroll', onScroll);
@@ -25,7 +25,7 @@ export default function Layout({ children, title, description, logoOnly }) {
         <link rel="icon" href="/favicon.ico" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;1,400&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </Head>
 
       {/* Header */}
@@ -152,6 +152,10 @@ export default function Layout({ children, title, description, logoOnly }) {
             <Link href="/how-it-works" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>How It Works</Link>
             <Link href="/reviews" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Reviews</Link>
             <Link href="/assessment" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Book Assessment</Link>
+            <div className="rm-mobile-contact">
+              <a href="tel:9499973988">(949) 997-3988</a>
+              <span>1901 Westcliff Dr, Suite 10, Newport Beach, CA</span>
+            </div>
           </div>
         )}
       </header>
@@ -229,13 +233,14 @@ export default function Layout({ children, title, description, logoOnly }) {
         .rm-header {
           position: sticky;
           top: 0;
-          background: rgba(255,255,255,0.95);
-          border-bottom: 1px solid #e8e8e8;
+          background: #ffffff;
+          border-bottom: 1px solid var(--color-border);
           z-index: 1000;
-          transition: box-shadow 0.2s ease-out, backdrop-filter 0.2s ease-out;
+          transition: background var(--transition), box-shadow var(--transition), backdrop-filter var(--transition);
         }
 
         .rm-header-scrolled {
+          background: rgba(255,255,255,0.9);
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
           box-shadow: 0 1px 8px rgba(0,0,0,0.04);
@@ -273,12 +278,15 @@ export default function Layout({ children, title, description, logoOnly }) {
           gap: 2rem;
         }
 
-        :global(.rm-nav-link) {
-          color: #404040;
+        .rm-nav-links :global(a),
+        .rm-nav-links :global(button) {
+          color: var(--color-text);
           text-decoration: none;
-          font-size: 14px;
+          font-size: 15px;
           font-weight: 500;
-          transition: color 0.15s ease-out;
+          text-transform: none;
+          letter-spacing: 0;
+          transition: color var(--transition);
           background: none;
           border: none;
           cursor: pointer;
@@ -288,27 +296,52 @@ export default function Layout({ children, title, description, logoOnly }) {
           font-family: inherit;
           line-height: 1;
           padding: 0;
+          position: relative;
         }
 
-        :global(.rm-nav-link:hover) {
-          color: #0A0A0A;
+        .rm-nav-links :global(a:hover),
+        .rm-nav-links :global(button:hover) {
+          color: var(--color-text);
+        }
+
+        .rm-nav-links :global(a)::after,
+        .rm-nav-links :global(button)::after {
+          content: '';
+          position: absolute;
+          bottom: -4px;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: var(--color-text);
+          transform: scaleX(0);
+          transform-origin: left;
+          transition: transform var(--transition);
+        }
+
+        .rm-nav-links :global(a:hover)::after,
+        .rm-nav-links :global(button:hover)::after {
+          transform: scaleX(1);
+        }
+
+        .rm-nav-links :global(.rm-mega-trigger)::after {
+          display: none;
         }
 
         :global(.rm-nav-cta) {
-          background: #0A0A0A;
+          background: var(--color-accent);
           color: #ffffff;
-          padding: 10px 22px;
-          border-radius: 100px;
-          font-weight: 600;
-          font-size: 14px;
+          padding: 14px 28px;
+          border-radius: 999px;
+          font-weight: 500;
+          font-size: 15px;
           text-decoration: none;
-          transition: background 0.15s ease-out;
+          transition: background var(--transition);
           line-height: 1;
           white-space: nowrap;
         }
 
         :global(.rm-nav-cta:hover) {
-          background: #333333;
+          background: var(--color-accent-hover);
         }
 
         /* Mega-Menu */
@@ -326,7 +359,7 @@ export default function Layout({ children, title, description, logoOnly }) {
           left: 0;
           right: 0;
           background: #ffffff;
-          border-bottom: 1px solid #e8e8e8;
+          border-bottom: 1px solid var(--color-border);
           box-shadow: 0 12px 40px rgba(0,0,0,0.06);
           opacity: 0;
           visibility: hidden;
@@ -339,9 +372,9 @@ export default function Layout({ children, title, description, logoOnly }) {
         }
 
         .rm-mega-inner {
-          max-width: 600px;
+          max-width: 720px;
           margin: 0 auto;
-          padding: 2rem 2.5rem 2.25rem;
+          padding: 3rem 5rem 3.25rem;
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 3rem;
@@ -353,27 +386,42 @@ export default function Layout({ children, title, description, logoOnly }) {
         }
 
         .rm-mega-label {
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.1em;
+          font-size: 12px;
+          font-weight: 500;
+          letter-spacing: 0.15em;
           text-transform: uppercase;
-          color: #9a9a9a;
+          color: var(--color-text-muted);
           margin-bottom: 0.75rem;
         }
 
         .rm-mega-col :global(a) {
           display: block;
-          padding: 0.4rem 0;
-          font-size: 14px;
-          font-weight: 500;
-          color: #404040;
+          padding: 0.375rem 0 0.375rem 14px;
+          font-size: 17px;
+          font-weight: 400;
+          color: var(--color-text);
           text-decoration: none;
-          transition: color 0.15s ease-out;
+          transition: color var(--transition);
           line-height: 1.4;
+          position: relative;
         }
 
-        .rm-mega-col :global(a:hover) {
-          color: #0A0A0A;
+        .rm-mega-col :global(a)::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: var(--color-accent);
+          opacity: 0;
+          transition: opacity var(--transition);
+        }
+
+        .rm-mega-col :global(a:hover)::before {
+          opacity: 1;
         }
 
         /* Mobile Toggle */
@@ -403,7 +451,7 @@ export default function Layout({ children, title, description, logoOnly }) {
           left: 0;
           right: 0;
           background: #ffffff;
-          border-bottom: 1px solid #e8e8e8;
+          border-bottom: 1px solid var(--color-border);
           padding: 1rem 2rem 1.5rem;
           box-shadow: 0 8px 30px rgba(0,0,0,0.06);
         }
@@ -417,7 +465,7 @@ export default function Layout({ children, title, description, logoOnly }) {
           padding: 0.75rem 0;
           color: #404040;
           text-decoration: none;
-          font-size: 14px;
+          font-size: 15px;
           font-weight: 500;
           border-bottom: 1px solid #f0f0f0;
         }
@@ -431,7 +479,7 @@ export default function Layout({ children, title, description, logoOnly }) {
           background: none;
           border: none;
           border-bottom: 1px solid #f0f0f0;
-          font-size: 14px;
+          font-size: 15px;
           font-weight: 500;
           color: #404040;
           cursor: pointer;
@@ -443,32 +491,55 @@ export default function Layout({ children, title, description, logoOnly }) {
         }
 
         .rm-mobile-sub :global(a) {
-          font-size: 13px;
-          color: #737373;
+          font-size: 14px;
+          color: var(--color-text-muted);
         }
 
         :global(.rm-mobile-cat) {
           display: block;
-          font-size: 10px;
-          font-weight: 700;
-          letter-spacing: 0.1em;
+          font-size: 11px;
+          font-weight: 500;
+          letter-spacing: 0.15em;
           text-transform: uppercase;
-          color: #9a9a9a;
+          color: var(--color-text-muted);
           padding: 0.625rem 0 0.25rem;
         }
 
         :global(.rm-mobile-cta) {
           display: block;
-          background: #0A0A0A;
+          background: var(--color-accent);
           color: #ffffff !important;
           text-align: center;
           padding: 0.875rem 1rem !important;
           margin-top: 1rem;
-          font-weight: 600 !important;
-          font-size: 14px !important;
+          font-weight: 500 !important;
+          font-size: 15px !important;
           text-decoration: none;
           border: none !important;
-          border-radius: 100px;
+          border-radius: 999px;
+        }
+
+        .rm-mobile-contact {
+          margin-top: 1.25rem;
+          padding-top: 1rem;
+          border-top: 1px solid #f0f0f0;
+          text-align: center;
+        }
+
+        .rm-mobile-contact a {
+          display: block;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--color-text);
+          text-decoration: none;
+          margin-bottom: 0.375rem;
+        }
+
+        .rm-mobile-contact span {
+          display: block;
+          font-size: 13px;
+          color: var(--color-text-muted);
+          line-height: 1.4;
         }
 
         /* ── FOOTER ── */
@@ -595,7 +666,7 @@ export default function Layout({ children, title, description, logoOnly }) {
         }
 
         /* Responsive */
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
           .rm-nav {
             display: none;
           }
@@ -603,7 +674,9 @@ export default function Layout({ children, title, description, logoOnly }) {
           .rm-mobile-toggle {
             display: flex;
           }
+        }
 
+        @media (max-width: 768px) {
           .rm-footer-inner {
             flex-direction: column;
             gap: 2.5rem;

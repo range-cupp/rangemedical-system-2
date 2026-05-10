@@ -116,6 +116,7 @@ scripts/                # One-off utility scripts
 - Services, providers, and schedules are managed in Supabase tables: `services`, `service_providers`, `provider_schedules`, `provider_schedule_overrides`
 - For patient-facing date/slot pickers, use the 14-day day-selector + slot grid pattern (see `FreeSessionScheduler.js` or `book-assessment.jsx`)
 - `calcom_bookings` table is a historical archive only — never read from or write to it in new code
+- Admin manages services at `/admin/services`, provider hours at `/admin/provider-schedule`
 - **GoHighLevel (GHL) is also fully deprecated.** Never reference GHL webhooks, GHL contact sync, GHL API calls, or `lib/ghl-sync.js`.
 
 ### Service Log

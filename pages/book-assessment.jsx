@@ -1,4 +1,3 @@
-import Layout from '../components/Layout';
 import Head from 'next/head';
 import { useState, useEffect, useMemo } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
@@ -243,19 +242,24 @@ export default function BookAssessment() {
   const slots = slotsByDate[selectedDate];
 
   return (
-    <Layout
-      title="Book Your Range Assessment | Range Medical | Newport Beach"
-      description="Schedule your Range Assessment at Range Medical in Newport Beach. Pay online and book your appointment instantly."
-    >
+    <>
       <Head>
+        <title>Book Your Range Assessment | Range Medical</title>
+        <meta name="description" content="Schedule your Range Assessment at Range Medical in Newport Beach. Pay online and book your appointment instantly." />
         <meta name="robots" content="noindex, nofollow" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
 
-      <div className="trust-bar">
-        <div className="trust-inner">
-          <span className="trust-item"><span className="trust-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span> 5.0 on Google</span>
-          <span className="trust-item">Newport Beach, CA</span>
-          <span className="trust-item">&#10003; Book &amp; Pay Online</span>
+      <div style={s.funnelHeader}>
+        <div style={s.funnelHeaderInner}>
+          <div style={s.funnelLogo}>RANGE</div>
+          <div style={s.funnelTrust}>
+            <span>&#9733;&#9733;&#9733;&#9733;&#9733; 5.0 on Google</span>
+            <span style={s.funnelDot}>&middot;</span>
+            <span>Newport Beach, CA</span>
+          </div>
         </div>
       </div>
 
@@ -488,11 +492,17 @@ export default function BookAssessment() {
           </div>
         )}
       </div>
-    </Layout>
+    </>
   );
 }
 
 const s = {
+  funnelHeader: { borderBottom: '1px solid #e5e5e5', background: '#fff' },
+  funnelHeaderInner: { maxWidth: '720px', margin: '0 auto', padding: '16px 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  funnelLogo: { fontSize: '18px', fontWeight: 800, letterSpacing: '0.12em', color: '#171717', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" },
+  funnelTrust: { fontSize: '13px', color: '#737373', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" },
+  funnelDot: { margin: '0 6px' },
+
   page: { maxWidth: '720px', margin: '0 auto', padding: '2rem 1.5rem 4rem', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" },
 
   progressBar: { display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '2.5rem', flexWrap: 'wrap', position: 'sticky', top: 0, zIndex: 100, background: '#fff', padding: '16px 0', borderBottom: '1px solid #e5e5e5', margin: '0 -1.5rem 2.5rem', paddingLeft: '1.5rem', paddingRight: '1.5rem' },

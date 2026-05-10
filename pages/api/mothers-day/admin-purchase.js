@@ -3,6 +3,7 @@ import stripe from '../../../lib/stripe';
 import { todayPacific } from '../../../lib/date-utils';
 import { postToStaffChannel } from '../../../lib/post-to-staff-channel';
 import { logComm } from '../../../lib/comms-log';
+import { sendSMS } from '../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -449,6 +450,11 @@ export default async function handler(req, res) {
         'Processed by staff via admin checkout',
       ].filter(Boolean).join('\n'),
     }).catch(err => console.error("Mother's Day staff alert error:", err));
+
+    sendSMS({
+      to: '+19496900339',
+      message: `Mother's Day sale: ${patient.name} just purchased ${qty}x Wellness Credit ($${totalPaidDollars} paid).${isGift ? ` Gift for ${recipient_name}.` : ''} (admin checkout)`,
+    }).catch(() => {});
 
     return res.status(201).json({
       success: true,

@@ -56,8 +56,41 @@ export default async function handler(req, res) {
     }
 
     const now = new Date();
+    const leadEmails = leads.map(l => l.email.toLowerCase().trim());
+
+    const { data: bookedPatients } = await supabase
+      .from('patients')
+      .select('email')
+      .in('email', leadEmails);
+
+    const { data: assessmentPurchases } = await supabase
+      .from('purchases')
+      .select('patient_email')
+      .ilike('description', '%assessment%');
+
+    const { data: assessmentAppointments } = await supabase
+      .from('appointments')
+      .select('patient_email')
+      .ilike('service_name', '%assessment%')
+      .in('status', ['scheduled', 'completed']);
+
+    const convertedEmails = new Set();
+    (bookedPatients || []).forEach(p => { if (p.email) convertedEmails.add(p.email.toLowerCase()); });
+    (assessmentPurchases || []).forEach(p => { if (p.patient_email) convertedEmails.add(p.patient_email.toLowerCase()); });
+    (assessmentAppointments || []).forEach(a => { if (a.patient_email) convertedEmails.add(a.patient_email.toLowerCase()); });
 
     for (const lead of leads) {
+      const emailLower = lead.email.toLowerCase().trim();
+
+      if (convertedEmails.has(emailLower)) {
+        await supabase
+          .from('quiz_leads')
+          .update({ status: 'converted', converted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+          .eq('id', lead.id);
+        results.skipped.push({ id: lead.id, reason: 'converted (detected from patients/purchases/appointments)' });
+        continue;
+      }
+
       const createdAt = new Date(lead.created_at);
       const hoursSince = (now - createdAt) / (1000 * 60 * 60);
       const currentStep = lead.nurture_step || 1;

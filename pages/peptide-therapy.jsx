@@ -1,17 +1,11 @@
-// pages/peptide-therapy.jsx
-// Peptide Therapy - Full service page with site nav/footer
-
 import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
-import { getStudiesByService } from '../data/researchStudies';
 
 export default function PeptideTherapy() {
   const [openFaq, setOpenFaq] = useState(null);
-  const studies = getStudiesByService('peptide-therapy');
 
-  // Scroll-based animations with IntersectionObserver
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -24,1404 +18,239 @@ export default function PeptideTherapy() {
       },
       { threshold: 0.12 }
     );
-
-    const elements = document.querySelectorAll('.pep-page .pep-animate');
+    const elements = document.querySelectorAll('.tx-page .tx-animate');
     elements.forEach((el) => observer.observe(el));
-
-    return () => {
-      elements.forEach((el) => observer.unobserve(el));
-    };
+    return () => elements.forEach((el) => observer.unobserve(el));
   }, []);
 
-  const toggleFaq = (index) => {
-    setOpenFaq(openFaq === index ? null : index);
-  };
+  const toggleFaq = (index) => setOpenFaq(openFaq === index ? null : index);
 
   const faqs = [
     {
-      question: "Are peptides safe?",
-      answer: "Yes, when prescribed by a licensed provider and sourced from licensed compounding pharmacies. Peptides have been studied for decades and have a strong safety profile. We only use peptides from reputable, FDA-registered pharmacies."
+      question: "How do I know if peptide therapy is right for me?",
+      answer: "Start with a Range Assessment. Your provider will review your labs, symptoms, and goals to determine if peptides — and which ones — make sense for your situation."
+    },
+    {
+      question: "Do I need labs first?",
+      answer: "Yes. Understanding your full picture helps us design the right peptide protocol. We don't prescribe peptides based on guesswork."
     },
     {
       question: "Do I have to inject myself?",
-      answer: "Most peptides are subcutaneous injections — a tiny needle just under the skin, similar to what diabetics use for insulin. It's much easier than people expect. We'll teach you exactly how to do it, and most patients are comfortable after their first try."
+      answer: "Most peptides are subcutaneous injections — a tiny needle just under the skin, similar to what diabetics use for insulin. We teach you how, and most patients are comfortable after their first try."
     },
     {
       question: "How long until I see results?",
-      answer: "It depends on the peptide and your goals. Healing peptides often show improvement in 2-4 weeks. Growth hormone peptides may take 4-8 weeks for noticeable changes. We'll set realistic expectations based on your protocol."
+      answer: "It depends on the peptide and your goals. Healing peptides often show improvement in 2–4 weeks. Growth hormone peptides may take 4–8 weeks. Your provider will set realistic expectations."
+    },
+    {
+      question: "Are peptides safe?",
+      answer: "Yes, when prescribed by a licensed provider and sourced from FDA-registered compounding pharmacies. Peptides have been studied for decades and have a strong safety profile."
     },
     {
       question: "Can I combine peptides with other treatments?",
-      answer: "Absolutely. Peptides often work synergistically with other therapies like hormone optimization, IV therapy, and hyperbaric oxygen. Many of our patients use peptides as part of a broader protocol."
-    },
-    {
-      question: "How much do peptides cost?",
-      answer: "Pricing varies based on your protocol. After your Assessment, we'll provide a clear cost breakdown with no hidden fees."
-    },
-    {
-      question: "Do I need a prescription?",
-      answer: "Yes. All peptides we provide require a prescription from our medical provider. This ensures proper dosing, monitoring, and sourcing from legitimate pharmacies."
+      answer: "Absolutely. Peptides often work well alongside hormone optimization, IV therapy, HBOT, and red light therapy. Your provider will design a plan that fits together."
     }
   ];
 
-  const benefits = [
-    { number: "01", title: "Injury Healing", desc: "Therapeutic peptides may accelerate tissue repair by promoting angiogenesis, reducing inflammation, and supporting collagen synthesis." },
-    { number: "02", title: "Faster Recovery", desc: "Whether from workouts, surgery, or illness, certain peptides may help your body recover faster by supporting natural repair mechanisms." },
-    { number: "03", title: "Better Sleep", desc: "Growth hormone-releasing peptides may improve sleep quality and depth, which is when your body does most of its repair and recovery work." },
-    { number: "04", title: "Reduced Inflammation", desc: "Several peptides have anti-inflammatory properties that may help with chronic pain, gut issues, and systemic inflammation." },
-    { number: "05", title: "Immune Support", desc: "Certain peptides may support immune function, helping your body fight infections and maintain optimal health." },
-    { number: "06", title: "Performance & Longevity", desc: "Growth hormone peptides may support lean muscle, fat metabolism, and cellular health — key factors in performance and healthy aging." }
+  const symptoms = [
+    "An injury that isn't healing the way it should",
+    "Slow recovery from workouts or surgery",
+    "Poor sleep quality — waking up tired",
+    "Chronic inflammation or joint pain",
+    "Low energy, motivation, or drive",
+    "Feeling like your body is aging faster than it should"
   ];
 
-  const treatmentAreas = [
+  const plans = [
     {
-      name: "Recovery & Healing",
-      category: "Most Common",
-      desc: "Struggling with an injury that won't heal? Recovering from surgery? Our recovery protocols support tissue repair, reduce inflammation, and accelerate your body's natural healing process.",
-      highlight: "Most Popular"
+      name: 'Recovery & Healing',
+      desc: 'For injuries, post-surgical healing, or chronic inflammation. Peptides that support tissue repair and reduce inflammation.',
+      freq: 'Daily injections for 4–12 weeks depending on the protocol.',
+      price: 'Typical investment: varies by peptide — discussed after your assessment'
     },
     {
-      name: "Growth Hormone Optimization",
-      category: "Performance",
-      desc: "Poor sleep, slow recovery, declining body composition? Growth hormone-releasing peptides may support deeper sleep, faster recovery, and improved vitality without suppressing natural production.",
-      highlight: null
+      name: 'Sleep & Growth Hormone Support',
+      desc: 'For poor sleep, slow recovery, and declining body composition. Growth hormone-releasing peptides.',
+      freq: 'Nightly injections for 8–12 weeks with labs at baseline and follow-up.',
+      price: 'Typical investment: varies by peptide — discussed after your assessment'
     },
     {
-      name: "Immune Support",
-      category: "Wellness",
-      desc: "Getting sick frequently? Feeling run down? Certain peptides may help strengthen your immune system and support your body's natural defense mechanisms.",
-      highlight: null
-    },
-    {
-      name: "Sexual Wellness",
-      category: "Intimacy",
-      desc: "Experiencing decreased libido or sexual function? We offer peptide protocols that work with your nervous system to support arousal and function in both men and women.",
-      highlight: null
-    },
-    {
-      name: "Mitochondrial Health",
-      category: "Energy & Longevity",
-      desc: "Chronic fatigue? Low energy? Mitochondrial peptides support cellular energy production, metabolic function, and healthy aging at the cellular level.",
-      highlight: null
-    },
-    {
-      name: "Gut Health",
-      category: "Digestive",
-      desc: "Dealing with gut issues, IBS, or digestive discomfort? Certain peptides have been studied for their protective effects on the GI tract and may support mucosal healing.",
-      highlight: null
+      name: 'Immune & Gut Support',
+      desc: 'For frequent illness, gut issues, or systemic inflammation. Targeted peptides for immune and GI support.',
+      freq: 'Protocol length depends on the specific peptide and your response.',
+      price: 'Typical investment: varies by peptide — discussed after your assessment'
     }
   ];
-
-  const tags = [
-    "Healing From Injury",
-    "Slow Recovery",
-    "Poor Sleep Quality",
-    "Chronic Inflammation",
-    "Low Energy",
-    "Want Better Performance",
-    "Post-Surgery Healing",
-    "Optimizing Longevity"
-  ];
-
-  const steps = [
-    { step: "01", title: "Get started", desc: "Get started with Range Medical. We'll discuss your goals, medical history, and determine which peptides might help your situation." },
-    { step: "02", title: "Get your protocol", desc: "Your provider designs a personalized peptide protocol — which peptides, what doses, and how long. We explain everything clearly." },
-    { step: "03", title: "Learn to inject", desc: "We teach you how to self-administer subcutaneous injections. It's easier than you think — most patients are comfortable immediately." },
-    { step: "04", title: "Track & adjust", desc: "Regular check-ins to monitor your progress. We adjust your protocol as needed to optimize results." }
-  ];
-
 
   return (
     <Layout
       title="Peptide Therapy | Healing, Recovery & Performance | Newport Beach | Range Medical"
-      description="Advanced peptide therapy in Newport Beach for healing, recovery, immune support, and optimization. Expert-guided protocols tailored to your goals."
+      description="Slow recovery, poor sleep, or chronic inflammation? Peptide therapy may be part of your plan. Start with a Range Assessment at Range Medical in Newport Beach."
     >
       <Head>
-        {/* Basic Meta Tags */}
-        <meta name="keywords" content="peptide therapy Newport Beach, healing peptides Orange County, recovery peptides, immune support peptides, growth hormone peptides, Range Medical" />
+        <meta name="keywords" content="peptide therapy Newport Beach, BPC-157, healing peptides, recovery peptides, growth hormone peptides, Range Medical" />
         <link rel="canonical" href="https://www.range-medical.com/peptide-therapy" />
-
-        {/* Open Graph */}
-        <meta property="og:title" content="Peptide Therapy | Healing, Recovery & Performance | Newport Beach" />
-        <meta property="og:description" content="Advanced peptide therapy for healing, recovery, and optimization. Expert-guided protocols in Newport Beach." />
+        <meta property="og:title" content="Peptide Therapy | Newport Beach | Range Medical" />
+        <meta property="og:description" content="Peptide therapy for healing, recovery, and performance. Start with a Range Assessment." />
         <meta property="og:url" content="https://www.range-medical.com/peptide-therapy" />
-        <meta property="og:image" content="https://www.range-medical.com/brand/range_logo_transparent_black.png" />
         <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="Range Medical" />
-
-        {/* Twitter Card */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Peptide Therapy | Healing & Recovery | Newport Beach" />
-        <meta name="twitter:description" content="Advanced peptide therapy for healing and recovery. Expert-guided protocols in Newport Beach." />
-        <meta name="twitter:image" content="https://www.range-medical.com/brand/range_logo_transparent_black.png" />
-
-        {/* Geo Tags */}
+        <meta name="twitter:card" content="summary" />
         <meta name="geo.region" content="US-CA" />
         <meta name="geo.placename" content="Newport Beach" />
-        <meta name="geo.position" content="33.6189;-117.9298" />
-        <meta name="ICBM" content="33.6189, -117.9298" />
 
-        {/* JSON-LD Structured Data */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify([
-              {
-                "@context": "https://schema.org",
-                "@type": "MedicalBusiness",
-                "name": "Range Medical",
-                "url": "https://www.range-medical.com",
-                "telephone": "(949) 997-3988",
-                "image": "https://www.range-medical.com/brand/range_logo_transparent_black.png",
-                "address": {
-                  "@type": "PostalAddress",
-                  "streetAddress": "1901 Westcliff Dr. Suite 10",
-                  "addressLocality": "Newport Beach",
-                  "addressRegion": "CA",
-                  "postalCode": "92660",
-                  "addressCountry": "US"
-                },
-                "geo": {
-                  "@type": "GeoCoordinates",
-                  "latitude": 33.6189,
-                  "longitude": -117.9298
-                },
-                "areaServed": [
-                  { "@type": "City", "name": "Newport Beach" },
-                  { "@type": "City", "name": "Costa Mesa" },
-                  { "@type": "City", "name": "Irvine" },
-                  { "@type": "City", "name": "Huntington Beach" },
-                  { "@type": "City", "name": "Laguna Beach" },
-                  { "@type": "City", "name": "Corona del Mar" },
-                  { "@type": "AdministrativeArea", "name": "Orange County" }
-                ],
-                "priceRange": "$",
-                "aggregateRating": {
-                  "@type": "AggregateRating",
-                  "ratingValue": "5.0",
-                  "reviewCount": "10",
-                  "bestRating": "5"
-                },
-                "openingHoursSpecification": [
-                  {
-                    "@type": "OpeningHoursSpecification",
-                    "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-                    "opens": "07:00",
-                    "closes": "18:00"
-                  },
-                  {
-                    "@type": "OpeningHoursSpecification",
-                    "dayOfWeek": ["Saturday"],
-                    "opens": "09:00",
-                    "closes": "14:00"
-                  }
-                ]
-              },
-              {
-                "@context": "https://schema.org",
-                "@type": "MedicalTherapy",
-                "name": "Peptide Therapy",
-                "description": "Advanced peptide therapy protocols for healing, recovery, immune support, and optimization. Personalized protocols tailored to your health goals.",
-                "url": "https://www.range-medical.com/peptide-therapy",
-                "provider": {
-                  "@type": "MedicalBusiness",
-                  "name": "Range Medical",
-                  "url": "https://www.range-medical.com"
-                },
-                "areaServed": {
-                  "@type": "City",
-                  "name": "Newport Beach, CA"
-                }
-              },
-              {
-                "@context": "https://schema.org",
-                "@type": "FAQPage",
-                "mainEntity": faqs.map(faq => ({
-                  "@type": "Question",
-                  "name": faq.question,
-                  "acceptedAnswer": {
-                    "@type": "Answer",
-                    "text": faq.answer
-                  }
-                }))
-              }
+              { "@context": "https://schema.org", "@type": "MedicalBusiness", "name": "Range Medical", "url": "https://www.range-medical.com", "telephone": "(949) 997-3988", "address": { "@type": "PostalAddress", "streetAddress": "1901 Westcliff Dr. Suite 10", "addressLocality": "Newport Beach", "addressRegion": "CA", "postalCode": "92660", "addressCountry": "US" } },
+              { "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": faqs.map(faq => ({ "@type": "Question", "name": faq.question, "acceptedAnswer": { "@type": "Answer", "text": faq.answer } })) }
             ])
           }}
         />
       </Head>
 
-      {/* Trust Bar */}
       <div className="trust-bar">
         <div className="trust-inner">
-          <span className="trust-item">
-            <span className="trust-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span> 5.0 on Google
-          </span>
+          <span className="trust-item"><span className="trust-rating">5.0</span> on Google</span>
           <span className="trust-item">Newport Beach, CA</span>
           <span className="trust-item">Board-Certified Providers</span>
         </div>
       </div>
 
-      <div className="pep-page">
-        {/* Hero */}
-        <section className="pep-hero">
-          <div className="pep-hero-inner">
-            <div className="v2-label"><span className="v2-dot" /> PEPTIDE THERAPY</div>
-            <h1>Slow recovery, poor sleep, low drive. Your peptides are the <em>missing piece.</em></h1>
-            <div className="pep-hero-rule" />
-            <p className="pep-hero-sub">Targeted peptide protocols that accelerate healing, boost growth hormone, and restore what your body used to do on its own. Physician-supervised in Newport Beach.</p>
-            <div className="pep-hero-scroll">
-              Scroll to explore
-              <span>&#8595;</span>
+      <div className="tx-page">
+
+        <section className="tx-hero">
+          <div className="tx-container">
+            <div className="tx-label">PEPTIDE THERAPY</div>
+            <h1>Slow recovery, poor sleep, low drive? <em>Your body needs help.</em></h1>
+            <div className="tx-rule" />
+            <p className="tx-hero-sub">
+              Range Medical starts with labs and a full assessment. If peptide therapy fits your situation, your provider will build it into a plan designed around you.
+            </p>
+            <Link href="/assessment" className="tx-btn">Book Your Range Assessment</Link>
+            <span className="tx-btn-note">
+              We&apos;ll review your labs and symptoms, then decide together if peptides belong in your plan.
+            </span>
+          </div>
+        </section>
+
+        <section className="tx-section">
+          <div className="tx-container">
+            <div className="tx-animate">
+              <div className="tx-label">IS THIS YOU</div>
+              <h2>Is this you?</h2>
+              <div className="tx-rule" />
+            </div>
+            <ul className="tx-symptoms tx-animate">
+              {symptoms.map((s, i) => <li key={i}>{s}</li>)}
+            </ul>
+          </div>
+        </section>
+
+        <section className="tx-section-alt">
+          <div className="tx-container">
+            <div className="tx-animate">
+              <div className="tx-label">HOW WE HELP AT RANGE MEDICAL</div>
+              <h2>We don&apos;t guess. <em>We test first.</em></h2>
+              <div className="tx-rule" />
+              <p className="tx-section-intro">
+                Every patient starts with the Range Assessment &mdash; detailed labs, a symptom review, and a one-on-one conversation with your provider. From there, we build a plan that may include peptides alongside other tools like hormone support, IV therapy, HBOT, or red light therapy. What goes into your plan depends entirely on what your labs and symptoms show.
+              </p>
+            </div>
+
+            <div className="tx-science tx-animate">
+              <div className="tx-science-label">For the science-minded</div>
+              <p>
+                Peptides are short chains of amino acids that act as targeted signaling molecules in your body. Different peptides support different functions &mdash; tissue repair, growth hormone release, immune modulation, or gut healing. We prescribe from FDA-registered compounding pharmacies and design protocols around your specific labs and goals, not a one-size-fits-all approach.
+              </p>
             </div>
           </div>
         </section>
 
-        {/* What Is It */}
-        <section className="pep-section pep-section-alt">
-          <div className="pep-container">
-            <div className="pep-animate">
-              <div className="v2-label"><span className="v2-dot" /> What Are Peptides</div>
-              <h2>Small proteins with <em>targeted</em> effects.</h2>
-              <p className="pep-body-text">
-                Peptides are short chains of amino acids — essentially small proteins that signal your body to do specific things. Different peptides trigger different responses: healing tissue, releasing growth hormone, reducing inflammation, or supporting immune function.
-              </p>
-              <p className="pep-body-text" style={{ marginTop: '1rem' }}>
-                Unlike drugs that force a response, peptides work with your body's natural systems. At Range Medical in Newport Beach, we design personalized peptide protocols based on your specific goals — whether that's healing an injury, improving recovery, or optimizing performance.
-              </p>
+        <section className="tx-section">
+          <div className="tx-container">
+            <div className="tx-animate">
+              <div className="tx-label">YOUR JOURNEY</div>
+              <h2>Three steps to <em>feeling better.</em></h2>
+              <div className="tx-rule" />
             </div>
-
-            <div className="pep-stat-row">
-              <div className="pep-stat-item pep-animate">
-                <div className="pep-stat-number">2-4</div>
-                <div className="pep-stat-label">Weeks to see results<br />with healing peptides</div>
+            <div className="tx-steps tx-animate">
+              <div className="tx-step">
+                <div className="tx-step-num">01</div>
+                <h3>Range Assessment</h3>
+                <p>Labs, a symptom questionnaire, and a one-on-one provider review to understand what&apos;s really going on.</p>
               </div>
-              <div className="pep-stat-item pep-animate">
-                <div className="pep-stat-number">60+</div>
-                <div className="pep-stat-label">Years of peptide research<br />in medical literature</div>
+              <div className="tx-step">
+                <div className="tx-step-num">02</div>
+                <h3>Personalized Plan</h3>
+                <p>Your provider designs a plan that may include peptides &mdash; which ones, what doses, and how long &mdash; based on your goals and labs.</p>
               </div>
-              <div className="pep-stat-item pep-animate">
-                <div className="pep-stat-number">6</div>
-                <div className="pep-stat-label">Treatment areas<br />we address with peptides</div>
+              <div className="tx-step">
+                <div className="tx-step-num">03</div>
+                <h3>Ongoing Support</h3>
+                <p>Regular check-ins to monitor your progress. We adjust your protocol as needed and update labs to track results.</p>
               </div>
+            </div>
+            <div className="tx-animate" style={{ marginTop: '3rem' }}>
+              <Link href="/assessment" className="tx-btn">Book Your Range Assessment</Link>
             </div>
           </div>
         </section>
 
-        {/* Who Is It For */}
-        <section className="pep-section pep-section-inverted">
-          <div className="pep-container">
-            <div className="pep-animate">
-              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> Who It's For</div>
-              <h2>For people who want to heal and <em>perform better.</em></h2>
-              <p className="pep-body-text">
-                Peptides aren't just for athletes or biohackers. If any of these sound familiar, peptide therapy at our Newport Beach clinic might help.
+        <section className="tx-section-alt">
+          <div className="tx-container">
+            <div className="tx-animate">
+              <div className="tx-label">WHAT YOUR PLAN MIGHT INCLUDE</div>
+              <h2>Example treatment plans</h2>
+              <div className="tx-rule" />
+              <p className="tx-section-intro">
+                Your provider will only recommend peptides if your labs and symptoms show they&apos;re a good fit. These are common examples, not a self-serve menu.
               </p>
             </div>
-
-            <div className="pep-tags-grid pep-animate">
-              {tags.map((tag, i) => (
-                <div key={i} className="pep-tag-pill">{tag}</div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Treatment Areas */}
-        <section className="pep-section">
-          <div className="pep-container">
-            <div className="pep-animate">
-              <div className="v2-label"><span className="v2-dot" /> What We Treat</div>
-              <h2>Conditions that respond well to <em>peptide therapy.</em></h2>
-              <p className="pep-body-text">
-                Different peptides target different issues. Tell us what you're dealing with, and we'll design a protocol tailored to your needs.
-              </p>
-            </div>
-
-            <div className="pep-cards-grid">
-              {treatmentAreas.map((area, i) => (
-                <div key={i} className="pep-card pep-animate">
-                  {area.highlight && <div className="pep-card-badge">{area.highlight}</div>}
-                  <div className="pep-card-category">{area.category}</div>
-                  <div className="pep-card-name">{area.name}</div>
-                  <div className="pep-card-desc">{area.desc}</div>
+            <div className="tx-plans tx-animate">
+              {plans.map((plan, i) => (
+                <div key={i} className="tx-plan-card">
+                  <div className="tx-plan-name">{plan.name}</div>
+                  <p className="tx-plan-freq">{plan.desc}</p>
+                  <p className="tx-plan-freq">{plan.freq}</p>
+                  <div className="tx-plan-price">{plan.price}</div>
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* How It May Help */}
-        <section className="pep-section pep-section-alt">
-          <div className="pep-container">
-            <div className="pep-animate">
-              <div className="v2-label"><span className="v2-dot" /> How Peptides May Help</div>
-              <h2>Targeted support for <em>your body.</em></h2>
-              <p className="pep-body-text">
-                Different peptides support different goals. Here are the main ways peptide therapy could help.
-              </p>
-            </div>
-
-            <div className="pep-benefits-list">
-              {benefits.map((benefit, i) => (
-                <div key={i} className="pep-benefit-row pep-animate">
-                  <div className="pep-benefit-number">{benefit.number}</div>
-                  <div className="pep-benefit-content">
-                    <div className="pep-benefit-title">{benefit.title}</div>
-                    <div className="pep-benefit-desc">{benefit.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Research Section */}
-        <section className="pep-section" id="pep-research">
-          <div className="pep-container">
-            <div className="pep-animate">
-              <div className="v2-label"><span className="v2-dot" /> Backed by Science</div>
-              <h2>Evidence-based <em>results</em></h2>
-              <p className="pep-body-text">
-                We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
-              </p>
-            </div>
-
-            <div className="pep-research-grid">
-              {studies.map((study) => (
-                <div
-                  key={study.id}
-                  className="pep-research-card pep-animate"
-                  onClick={() => window.location.href = '/research/' + study.id}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className="pep-research-category">{study.category}</div>
-                  <h3 className="pep-research-headline">{study.headline}</h3>
-                  <p className="pep-research-summary">{study.summary}</p>
-                  <p className="pep-research-source">{study.sourceJournal}, {study.sourceYear}</p>
-                </div>
-              ))}
-            </div>
-
-            <p className="pep-research-disclaimer pep-animate">
-              These studies reflect research findings. Individual results may vary. Peptide therapy at Range Medical is provided under medical supervision with proper monitoring.
+            <p className="tx-disclaimer tx-animate">
+              Pricing depends on which peptides your provider recommends. Costs are discussed during or after your Range Assessment.
             </p>
           </div>
         </section>
 
-        {/* How It Works */}
-        <section className="pep-section pep-section-alt">
-          <div className="pep-container">
-            <div className="pep-animate">
-              <div className="v2-label"><span className="v2-dot" /> Getting Started</div>
-              <h2>Your first visit, <em>step by step.</em></h2>
-              <p className="pep-body-text">
-                Getting started with peptides is straightforward. Here's exactly what happens at our Newport Beach clinic. $197 assessment, credited toward treatment.
-              </p>
-            </div>
-
-            <div className="pep-expect-list">
-              {steps.map((item, i) => (
-                <div key={i} className="pep-expect-item pep-animate">
-                  <div className="pep-expect-step">{item.step}</div>
-                  <div className="pep-expect-content">
-                    <h3>{item.title}</h3>
-                    <p>{item.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Safety & Transparency */}
-        <section className="pep-section">
-          <div className="pep-container">
-            <div className="pep-animate">
-              <div className="v2-label"><span className="v2-dot" /> Safety & Transparency</div>
-              <h2>What we want you to know <em>upfront.</em></h2>
-              <p className="pep-body-text">
-                We believe you should know exactly what to expect — including the parts other clinics gloss over. Here are the most common side effects and who may not be a candidate.
-              </p>
-            </div>
-
-            <div className="pep-safety-grid pep-animate">
-              <div className="pep-safety-card">
-                <div className="pep-safety-label">Common Side Effects</div>
-                <div className="pep-safety-items">
-                  <div className="pep-safety-item">
-                    <span className="pep-safety-icon">1</span>
-                    <div>
-                      <strong>Injection Site Reactions</strong>
-                      <p>Redness, stinging, or small bumps at the injection site. Improves with technique and rotation.</p>
-                    </div>
-                  </div>
-                  <div className="pep-safety-item">
-                    <span className="pep-safety-icon">2</span>
-                    <div>
-                      <strong>Flushing & Warmth</strong>
-                      <p>Brief warmth or facial redness after growth hormone peptides. A sign the peptide is active.</p>
-                    </div>
-                  </div>
-                  <div className="pep-safety-item">
-                    <span className="pep-safety-icon">3</span>
-                    <div>
-                      <strong>Increased Hunger</strong>
-                      <p>Growth hormone peptides stimulate ghrelin. Inject at bedtime to sleep through the spike.</p>
-                    </div>
-                  </div>
-                  <div className="pep-safety-item">
-                    <span className="pep-safety-icon">4</span>
-                    <div>
-                      <strong>Water Retention</strong>
-                      <p>Mild puffiness in first 2-3 weeks, especially with GH peptides. Stabilizes quickly.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pep-safety-card pep-safety-card-dark">
-                <div className="pep-safety-label">Who May Not Be a Candidate</div>
-                <div className="pep-safety-items">
-                  <div className="pep-safety-item">
-                    <span className="pep-safety-warn">!</span>
-                    <p>Active cancer or history of cancer (some peptides may stimulate cell growth)</p>
-                  </div>
-                  <div className="pep-safety-item">
-                    <span className="pep-safety-warn">!</span>
-                    <p>Pregnant or breastfeeding</p>
-                  </div>
-                  <div className="pep-safety-item">
-                    <span className="pep-safety-warn">!</span>
-                    <p>Active infection at injection site</p>
-                  </div>
-                  <div className="pep-safety-item">
-                    <span className="pep-safety-warn">!</span>
-                    <p>Known allergy to specific peptide compounds</p>
-                  </div>
-                  <div className="pep-safety-item">
-                    <span className="pep-safety-warn">!</span>
-                    <p>Certain autoimmune conditions (discuss with provider)</p>
-                  </div>
-                </div>
-                <p className="pep-safety-note">We review your medical history before prescribing any peptide. Not all peptides carry the same considerations — we'll discuss what applies to you.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Real Results */}
-        <section className="pep-section pep-section-inverted">
-          <div className="pep-container">
-            <div className="pep-animate">
-              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> Real Results</div>
-              <h2>What patients tell us after <em>90 days.</em></h2>
-              <div className="pep-hero-rule" style={{ background: 'rgba(255,255,255,0.1)' }} />
-              <p className="pep-body-text">
-                Real outcomes from Range Medical patients. Details anonymized, results documented during follow-up visits.
-              </p>
-            </div>
-
-            <div className="pep-results-grid pep-animate">
-              <div className="pep-result-card">
-                <div className="pep-result-profile">Male, 50</div>
-                <div className="pep-result-before">
-                  <span className="pep-result-label">Before</span>
-                  Chronic joint pain limiting workouts. Shoulder injury lingering 8 months. Considering surgery.
-                </div>
-                <div className="pep-result-after">
-                  <span className="pep-result-label">After 10 Weeks &mdash; BPC-157 / TB-4</span>
-                  Back to full training. Pain resolved. Surgery cancelled.
-                </div>
-              </div>
-              <div className="pep-result-card">
-                <div className="pep-result-profile">Male, 34</div>
-                <div className="pep-result-before">
-                  <span className="pep-result-label">Before</span>
-                  Sleeping 5 hours. Waking exhausted. Recovery from workouts taking 3&ndash;4 days.
-                </div>
-                <div className="pep-result-after">
-                  <span className="pep-result-label">After 8 Weeks &mdash; CJC / Ipamorelin</span>
-                  Sleeping 7+ hours. Recovery down to 24 hours. Body composition noticeably leaner.
-                </div>
-              </div>
-              <div className="pep-result-card">
-                <div className="pep-result-profile">Female, 46</div>
-                <div className="pep-result-before">
-                  <span className="pep-result-label">Before</span>
-                  Energy crashing by noon. Hair thinning. Skin losing elasticity.
-                </div>
-                <div className="pep-result-after">
-                  <span className="pep-result-label">After 12 Weeks &mdash; Peptide Protocol</span>
-                  Sustained energy all day. Hair thickening. Skin visibly improved.
-                </div>
-              </div>
-            </div>
-
-            <div className="pep-inaction pep-animate">
-              <div className="pep-inaction-label">The Cost of Waiting</div>
-              <p>
-                Growth hormone production declines roughly 14% per decade after 30. Recovery slows. Sleep quality deteriorates. Injuries that used to heal in weeks start taking months. Peptide therapy works with your body's existing biology — but the longer you wait, the more ground there is to recover.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* FAQ */}
-        <section className="pep-section pep-section-alt">
-          <div className="pep-container">
-            <div className="v2-label"><span className="v2-dot" /> Questions</div>
-            <h2>Common <em>questions</em></h2>
-
-            <div className="pep-faq-list">
+        <section className="tx-section-alt">
+          <div className="tx-container">
+            <div className="tx-label">COMMON QUESTIONS</div>
+            <h2>Questions about peptide therapy</h2>
+            <div className="tx-faq-list">
               {faqs.map((faq, index) => (
-                <div key={index} className={`pep-faq-item ${openFaq === index ? 'pep-faq-open' : ''}`}>
-                  <button className="pep-faq-question" onClick={() => toggleFaq(index)}>
+                <div key={index} className={`tx-faq-item ${openFaq === index ? 'tx-faq-open' : ''}`}>
+                  <button className="tx-faq-question" onClick={() => toggleFaq(index)}>
                     <span>{faq.question}</span>
-                    <span className="pep-faq-toggle">{openFaq === index ? '\u2212' : '+'}</span>
+                    <span className="tx-faq-toggle">{openFaq === index ? '−' : '+'}</span>
                   </button>
-                  <div className="pep-faq-answer">
-                    <p>{faq.answer}</p>
-                  </div>
+                  <div className="tx-faq-answer"><p>{faq.answer}</p></div>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* CTA */}
-        <section className="final-cta">
-          <div className="container">
-            <div className="pep-animate">
-              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', justifyContent: 'center' }}><span className="v2-dot" /> Next Steps</div>
-              <h2>Imagine recovering like you did in <em>your 20s.</em></h2>
-              <div className="cta-rule" />
-              <p>
-                Better sleep. Faster recovery. Joints that don't ache every morning. That's what peptide therapy patients tell us within the first 8 weeks. $197 assessment, credited toward treatment.
-              </p>
-              <div className="pep-cta-buttons">
-                <Link href="/assessment" className="btn-white">Book Your Range Assessment</Link>
-                <div className="pep-cta-or">or</div>
-                <a href="tel:9499973988" className="pep-cta-phone">(949) 997-3988</a>
-              </div>
-            </div>
+        <section className="tx-cta">
+          <div className="tx-container tx-animate">
+            <h2>If you&apos;re not healing, not sleeping, or just not performing the way you want &mdash; <em>start here.</em></h2>
+            <p>The first step is understanding what your labs and symptoms are telling us. Your provider will take it from there.</p>
+            <Link href="/assessment" className="tx-btn">Book Your Range Assessment</Link>
+            <a href="tel:9499973988" className="tx-cta-phone">(949) 997-3988</a>
           </div>
         </section>
+
       </div>
-
-      <style jsx>{`
-        /* ===== PEPTIDE PAGE — V2 EDITORIAL ===== */
-        .pep-page {
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          -webkit-font-smoothing: antialiased;
-          background: #ffffff;
-          color: #1a1a1a;
-          overflow-x: hidden;
-        }
-
-        /* Animations */
-        .pep-animate {
-          opacity: 0;
-          transform: translateY(24px);
-          transition: opacity 0.7s ease, transform 0.7s ease;
-        }
-
-        :global(.pep-animate.visible) {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
-        /* Container */
-        .pep-container {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 2rem;
-        }
-
-        /* Sections */
-        .pep-section {
-          padding: 6rem 2rem;
-        }
-
-        .pep-section-alt {
-          background: #fafafa;
-          padding: 6rem 2rem;
-        }
-
-        .pep-section-inverted {
-          background: #1a1a1a;
-          color: #ffffff;
-          padding: 6rem 2rem;
-        }
-
-        /* Headlines */
-        .pep-page h1 {
-          font-size: clamp(2.5rem, 6vw, 4rem);
-          font-weight: 400;
-          line-height: 0.95;
-          letter-spacing: -0.03em;
-          color: #1a1a1a;
-        }
-
-        .pep-page h2 {
-          font-size: clamp(2rem, 5vw, 3rem);
-          font-weight: 400;
-          line-height: 0.95;
-          letter-spacing: -0.02em;
-          color: #1a1a1a;
-          margin-bottom: 1.5rem;
-        }
-
-        .pep-page h1 em,
-        .pep-page h2 em {
-          font-style: italic;
-        }
-
-        .pep-page h3 {
-          font-size: 1rem;
-          font-weight: 800;
-          color: #1a1a1a;
-          text-transform: uppercase;
-        }
-
-        .pep-section-inverted h1,
-        .pep-section-inverted h2,
-        .pep-section-inverted h3 {
-          color: #ffffff;
-        }
-
-        /* Body Text */
-        .pep-body-text {
-          font-size: 1.0625rem;
-          font-weight: 400;
-          line-height: 1.75;
-          color: #737373;
-          max-width: 520px;
-        }
-
-        .pep-section-inverted .pep-body-text {
-          color: rgba(255, 255, 255, 0.55);
-        }
-
-        /* Hero */
-        .pep-hero {
-          padding: 6rem 2rem 7rem;
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-
-        .pep-hero-inner {
-          max-width: 800px;
-        }
-
-        .pep-hero h1 {
-          margin: 0 0 2rem;
-        }
-
-        .pep-hero-rule {
-          width: 100%;
-          max-width: 600px;
-          height: 1px;
-          background: #e0e0e0;
-          margin-bottom: 2rem;
-        }
-
-        .pep-hero-sub {
-          font-size: 1.0625rem;
-          line-height: 1.75;
-          color: #737373;
-          max-width: 520px;
-          margin: 0 0 2.5rem;
-        }
-
-        .pep-hero-scroll {
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: #737373;
-          margin-top: 2rem;
-        }
-
-        .pep-hero-scroll span {
-          display: block;
-          margin-top: 0.75rem;
-          font-size: 1.125rem;
-          animation: pep-bounce 2s ease-in-out infinite;
-        }
-
-        @keyframes pep-bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(6px); }
-        }
-
-        /* Stat Row */
-        .pep-stat-row {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 0;
-          margin-top: 3rem;
-          border-top: 1px solid #e0e0e0;
-        }
-
-        .pep-stat-item {
-          text-align: center;
-          padding: 2rem 1rem;
-          border-right: 1px solid #e0e0e0;
-        }
-
-        .pep-stat-item:last-child {
-          border-right: none;
-        }
-
-        .pep-stat-number {
-          font-size: 2.75rem;
-          font-weight: 900;
-          letter-spacing: -0.02em;
-          line-height: 1;
-          margin-bottom: 0.5rem;
-          color: #808080;
-        }
-
-        .pep-stat-label {
-          font-size: 0.8125rem;
-          font-weight: 500;
-          color: #737373;
-          line-height: 1.5;
-        }
-
-        /* Tags */
-        .pep-tags-grid {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.625rem;
-          margin-top: 2rem;
-        }
-
-        .pep-tag-pill {
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          padding: 0.75rem 1.5rem;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          background: rgba(255, 255, 255, 0.04);
-          color: rgba(255, 255, 255, 0.6);
-          transition: all 0.2s ease;
-        }
-
-        .pep-tag-pill:hover {
-          border-color: rgba(255, 255, 255, 0.25);
-        }
-
-        /* Treatment Area Cards — V2 hairline grid */
-        .pep-cards-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 0;
-          margin-top: 2.5rem;
-          border-top: 1px solid #e0e0e0;
-        }
-
-        .pep-card {
-          padding: 2rem;
-          border-bottom: 1px solid #e0e0e0;
-          border-right: 1px solid #e0e0e0;
-          background: #ffffff;
-          position: relative;
-        }
-
-        .pep-card:nth-child(3n) {
-          border-right: none;
-        }
-
-        .pep-card-badge {
-          position: absolute;
-          top: 0.75rem;
-          right: 0.75rem;
-          background: #1a1a1a;
-          color: #ffffff;
-          font-size: 9px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          padding: 0.25rem 0.625rem;
-        }
-
-        .pep-card-category {
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #808080;
-          margin-bottom: 0.5rem;
-        }
-
-        .pep-card-name {
-          font-size: 1.125rem;
-          font-weight: 800;
-          color: #1a1a1a;
-          text-transform: uppercase;
-          margin-bottom: 0.75rem;
-        }
-
-        .pep-card-desc {
-          font-size: 0.9375rem;
-          line-height: 1.7;
-          color: #737373;
-        }
-
-        /* Benefits — V2 hairline rows */
-        .pep-benefits-list {
-          border-top: 1px solid #e0e0e0;
-          margin-top: 2.5rem;
-          max-width: 800px;
-        }
-
-        .pep-benefit-row {
-          display: flex;
-          gap: 2rem;
-          padding: 1.75rem 0;
-          border-bottom: 1px solid #e0e0e0;
-          align-items: flex-start;
-        }
-
-        .pep-benefit-number {
-          font-size: 12px;
-          font-weight: 600;
-          color: #808080;
-          letter-spacing: 0.05em;
-          min-width: 2rem;
-          padding-top: 0.25rem;
-        }
-
-        .pep-benefit-title {
-          font-size: 1rem;
-          font-weight: 800;
-          color: #1a1a1a;
-          text-transform: uppercase;
-          margin-bottom: 0.5rem;
-        }
-
-        .pep-benefit-desc {
-          font-size: 0.9375rem;
-          line-height: 1.7;
-          color: #737373;
-        }
-
-        /* Research Cards — V2 hairline grid */
-        .pep-research-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 0;
-          margin-top: 2.5rem;
-          border-top: 1px solid #e0e0e0;
-        }
-
-        .pep-research-card {
-          padding: 2rem;
-          border-bottom: 1px solid #e0e0e0;
-          border-right: 1px solid #e0e0e0;
-          background: #ffffff;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .pep-research-card:nth-child(2n) {
-          border-right: none;
-        }
-
-        .pep-research-card:hover {
-          background: #fafafa;
-        }
-
-        .pep-research-category {
-          display: inline-block;
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: #808080;
-          margin-bottom: 0.875rem;
-        }
-
-        .pep-research-headline {
-          font-size: 1.0625rem;
-          font-weight: 700;
-          color: #1a1a1a;
-          margin-bottom: 0.75rem;
-          line-height: 1.4;
-        }
-
-        .pep-research-summary {
-          font-size: 0.9375rem;
-          line-height: 1.7;
-          color: #737373;
-          margin-bottom: 1rem;
-        }
-
-        .pep-research-source {
-          font-size: 0.8125rem;
-          font-style: italic;
-          color: #737373;
-        }
-
-        .pep-research-disclaimer {
-          font-size: 0.8125rem;
-          color: #737373;
-          text-align: center;
-          max-width: 700px;
-          margin: 3rem auto 0;
-          line-height: 1.7;
-        }
-
-        /* Steps List — V2 */
-        .pep-expect-list {
-          margin-top: 2.5rem;
-          border-top: 1px solid #e0e0e0;
-          max-width: 800px;
-        }
-
-        .pep-expect-item {
-          display: flex;
-          gap: 2rem;
-          padding: 1.75rem 0;
-          border-bottom: 1px solid #e0e0e0;
-          align-items: flex-start;
-        }
-
-        .pep-expect-step {
-          font-size: 12px;
-          font-weight: 600;
-          color: #808080;
-          letter-spacing: 0.05em;
-          min-width: 2rem;
-          padding-top: 0.25rem;
-        }
-
-        .pep-expect-content h3 {
-          font-size: 1rem;
-          font-weight: 800;
-          color: #1a1a1a;
-          text-transform: uppercase;
-          margin-bottom: 0.5rem;
-        }
-
-        .pep-expect-content p {
-          font-size: 0.9375rem;
-          color: #737373;
-          line-height: 1.7;
-        }
-
-        /* FAQ — V2 accordion with +/- toggle */
-        .pep-faq-list {
-          max-width: 800px;
-          border-top: 1px solid #e0e0e0;
-        }
-
-        .pep-faq-item {
-          border-bottom: 1px solid #e0e0e0;
-        }
-
-        .pep-faq-question {
-          width: 100%;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1.5rem 0;
-          background: none;
-          border: none;
-          cursor: pointer;
-          text-align: left;
-          font-family: inherit;
-          gap: 1rem;
-        }
-
-        .pep-faq-question span:first-child {
-          font-size: 1rem;
-          font-weight: 700;
-          color: #1a1a1a;
-        }
-
-        .pep-faq-toggle {
-          font-size: 1.25rem;
-          color: #a0a0a0;
-          flex-shrink: 0;
-        }
-
-        .pep-faq-answer {
-          max-height: 0;
-          overflow: hidden;
-          transition: max-height 0.3s ease, padding 0.3s ease;
-        }
-
-        .pep-faq-open .pep-faq-answer {
-          max-height: 300px;
-          padding-bottom: 1.5rem;
-        }
-
-        .pep-faq-answer p {
-          font-size: 0.9375rem;
-          color: #737373;
-          line-height: 1.75;
-          margin: 0;
-        }
-
-        /* Understanding Peptides Guide Link */
-        .pep-peptide-guide {
-          padding: 0 2rem 3rem;
-        }
-
-        .pep-guide-card {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 2rem 2.5rem;
-          border: 1px solid #e0e0e0;
-          background: #fafafa;
-          text-decoration: none;
-          transition: border-color 0.2s ease, transform 0.2s ease;
-          gap: 1.5rem;
-        }
-
-        .pep-guide-card:hover {
-          border-color: #1a1a1a;
-        }
-
-        .pep-guide-content {
-          flex: 1;
-        }
-
-        .pep-guide-kicker {
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #808080;
-          margin-bottom: 0.5rem;
-        }
-
-        .pep-guide-title {
-          font-size: 1.125rem;
-          font-weight: 800;
-          color: #1a1a1a;
-          text-transform: uppercase;
-          margin-bottom: 0.375rem;
-        }
-
-        .pep-guide-desc {
-          font-size: 0.9375rem;
-          color: #737373;
-          line-height: 1.6;
-          margin: 0;
-        }
-
-        .pep-guide-arrow {
-          flex-shrink: 0;
-          color: #a3a3a3;
-          transition: color 0.2s ease, transform 0.2s ease;
-        }
-
-        .pep-guide-card:hover .pep-guide-arrow {
-          color: #1a1a1a;
-          transform: translateX(4px);
-        }
-
-        /* Final CTA text visibility on dark background */
-        :global(.final-cta) h2 {
-          color: #ffffff;
-        }
-
-        :global(.final-cta) p {
-          color: rgba(255, 255, 255, 0.5);
-        }
-
-        /* CTA buttons in final-cta */
-        .pep-cta-buttons {
-          display: flex;
-          gap: 1rem;
-          justify-content: center;
-          align-items: center;
-          flex-wrap: wrap;
-        }
-
-        .pep-cta-or {
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: rgba(255, 255, 255, 0.25);
-        }
-
-        .pep-cta-phone {
-          font-size: 1.0625rem;
-          font-weight: 600;
-          color: #ffffff;
-          text-decoration: none;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-          padding-bottom: 2px;
-          transition: border-color 0.2s ease;
-        }
-
-        .pep-cta-phone:hover {
-          border-color: rgba(255, 255, 255, 0.6);
-        }
-
-        /* Safety & Transparency */
-        .pep-safety-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
-          margin-top: 2.5rem;
-        }
-        .pep-safety-card {
-          border: 1px solid #e0e0e0;
-          padding: 2rem;
-          background: #ffffff;
-        }
-        .pep-safety-card-dark {
-          background: #0a0a0a;
-          border-color: #0a0a0a;
-          color: #ffffff;
-        }
-        .pep-safety-label {
-          font-size: 0.7rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.12em;
-          color: #737373;
-          margin-bottom: 1.5rem;
-        }
-        .pep-safety-card-dark .pep-safety-label {
-          color: rgba(255,255,255,0.5);
-        }
-        .pep-safety-items {
-          display: flex;
-          flex-direction: column;
-          gap: 0;
-        }
-        .pep-safety-item {
-          display: flex;
-          gap: 1rem;
-          align-items: flex-start;
-          padding: 0.875rem 0;
-          border-bottom: 1px solid #f0f0f0;
-        }
-        .pep-safety-card-dark .pep-safety-item {
-          border-bottom-color: rgba(255,255,255,0.1);
-        }
-        .pep-safety-item:last-child {
-          border-bottom: none;
-        }
-        .pep-safety-icon {
-          width: 1.5rem;
-          height: 1.5rem;
-          background: #171717;
-          color: #ffffff;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 0.6875rem;
-          flex-shrink: 0;
-          margin-top: 0.125rem;
-        }
-        .pep-safety-warn {
-          width: 1.5rem;
-          height: 1.5rem;
-          background: rgba(239, 68, 68, 0.15);
-          color: #ef4444;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 0.75rem;
-          flex-shrink: 0;
-          margin-top: 0.125rem;
-        }
-        .pep-safety-item strong {
-          display: block;
-          font-size: 0.9rem;
-          color: #171717;
-          margin-bottom: 0.125rem;
-        }
-        .pep-safety-item p {
-          font-size: 0.8125rem;
-          line-height: 1.6;
-          color: #737373;
-          margin: 0;
-        }
-        .pep-safety-card-dark .pep-safety-item p {
-          color: rgba(255,255,255,0.7);
-        }
-        .pep-safety-guides {
-          display: flex;
-          gap: 1rem;
-          margin-top: 1.5rem;
-          padding-top: 1rem;
-          border-top: 1px solid #e0e0e0;
-        }
-        .pep-safety-guide-link {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.375rem;
-          font-size: 0.8125rem;
-          font-weight: 600;
-          color: #171717;
-          text-decoration: none;
-          padding: 0.5rem 1rem;
-          border: 1px solid #e0e0e0;
-          transition: all 0.2s;
-        }
-        .pep-safety-guide-link:hover {
-          border-color: #171717;
-        }
-        .pep-safety-guide-link span {
-          transition: transform 0.2s;
-        }
-        .pep-safety-guide-link:hover span {
-          transform: translateX(3px);
-        }
-        .pep-safety-note {
-          font-size: 0.8125rem;
-          color: rgba(255,255,255,0.5);
-          margin-top: 1.25rem;
-          line-height: 1.6;
-        }
-
-        /* Real Results */
-        .pep-results-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 0;
-          margin-top: 2.5rem;
-        }
-        .pep-result-card {
-          padding: 2rem;
-          border-right: 1px solid rgba(255,255,255,0.1);
-        }
-        .pep-result-card:last-child {
-          border-right: none;
-        }
-        .pep-result-profile {
-          font-size: 0.75rem;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: rgba(255,255,255,0.4);
-          margin-bottom: 1.25rem;
-          font-weight: 600;
-        }
-        .pep-result-before,
-        .pep-result-after {
-          font-size: 0.9375rem;
-          line-height: 1.7;
-          color: rgba(255,255,255,0.7);
-          margin-bottom: 1rem;
-        }
-        .pep-result-after {
-          color: rgba(255,255,255,0.95);
-        }
-        .pep-result-label {
-          display: block;
-          font-size: 0.6875rem;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          font-weight: 700;
-          margin-bottom: 0.5rem;
-          color: rgba(255,255,255,0.3);
-        }
-        .pep-result-after .pep-result-label {
-          color: #4ade80;
-        }
-        .pep-inaction {
-          margin-top: 3rem;
-          padding: 2rem 2.5rem;
-          border-left: 3px solid rgba(255,255,255,0.15);
-        }
-        .pep-inaction-label {
-          font-size: 0.6875rem;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          font-weight: 700;
-          color: rgba(255,255,255,0.35);
-          margin-bottom: 0.75rem;
-        }
-        .pep-inaction p {
-          font-size: 0.9375rem;
-          line-height: 1.7;
-          color: rgba(255,255,255,0.7);
-          margin: 0;
-        }
-
-        /* Responsive */
-        @media (max-width: 900px) {
-          .pep-cards-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .pep-card {
-            border-right: none;
-          }
-
-          .pep-research-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .pep-research-card {
-            border-right: none;
-          }
-
-          .pep-safety-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .pep-results-grid {
-            grid-template-columns: 1fr;
-          }
-          .pep-result-card {
-            border-right: none;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding: 1.5rem 0;
-          }
-          .pep-result-card:last-child {
-            border-bottom: none;
-          }
-          .pep-inaction {
-            padding: 1.5rem;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .pep-section,
-          .pep-section-alt,
-          .pep-section-inverted {
-            padding: 4rem 1.5rem;
-          }
-
-          .pep-hero {
-            padding: 4rem 1.5rem 5rem;
-          }
-
-          .pep-stat-row {
-            grid-template-columns: 1fr;
-            gap: 0;
-          }
-
-          .pep-stat-item {
-            border-right: none;
-          }
-
-          .pep-expect-item {
-            flex-direction: column;
-            gap: 0.75rem;
-          }
-
-          .pep-cta-buttons {
-            flex-direction: column;
-          }
-        }
-      `}</style>
     </Layout>
   );
 }

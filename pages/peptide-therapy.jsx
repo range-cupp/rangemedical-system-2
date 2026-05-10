@@ -66,19 +66,19 @@ export default function PeptideTherapy() {
       name: 'Recovery & Healing',
       desc: 'For injuries, post-surgical healing, or chronic inflammation. Peptides that support tissue repair and reduce inflammation.',
       freq: 'Daily injections for 4–12 weeks depending on the protocol.',
-      price: 'Typical investment: varies by peptide — discussed after your assessment'
+      price: 'Pricing discussed after your assessment'
     },
     {
       name: 'Sleep & Growth Hormone Support',
       desc: 'For poor sleep, slow recovery, and declining body composition. Growth hormone-releasing peptides.',
       freq: 'Nightly injections for 8–12 weeks with labs at baseline and follow-up.',
-      price: 'Typical investment: varies by peptide — discussed after your assessment'
+      price: 'Pricing discussed after your assessment'
     },
     {
       name: 'Immune & Gut Support',
       desc: 'For frequent illness, gut issues, or systemic inflammation. Targeted peptides for immune and GI support.',
       freq: 'Protocol length depends on the specific peptide and your response.',
-      price: 'Typical investment: varies by peptide — discussed after your assessment'
+      price: 'Pricing discussed after your assessment'
     }
   ];
 

@@ -68,19 +68,19 @@ export default function HyperbaricOxygenTherapy() {
       name: 'Recovery Support',
       desc: 'For post-surgical healing, injury recovery, or concussion support.',
       freq: '2–3 HBOT sessions per week for 4–6 weeks, often paired with red light therapy.',
-      price: 'Typical investment: $1,600–$3,999'
+      price: 'Pricing discussed after your assessment'
     },
     {
       name: 'Energy & Inflammation Reset',
       desc: 'For chronic fatigue, ongoing inflammation, or autoimmune-related symptoms.',
       freq: '2–3 sessions per week for 6 weeks, with provider check-ins.',
-      price: 'Typical investment: $2,500–$3,999'
+      price: 'Pricing discussed after your assessment'
     },
     {
       name: 'Ongoing Maintenance',
       desc: 'For athletes or patients who want consistent recovery support.',
       freq: '1–3 sessions per week on a monthly membership.',
-      price: 'Typical investment: $549–$1,399 every 4 weeks'
+      price: 'Pricing discussed after your assessment'
     }
   ];
 
@@ -218,22 +218,6 @@ export default function HyperbaricOxygenTherapy() {
             <span className="tx-btn-note">
               We&apos;ll review your labs and symptoms, then decide together if HBOT belongs in your plan.
             </span>
-          </div>
-        </section>
-
-        {/* Photos */}
-        <section style={{ padding: '0 2rem' }}>
-          <div className="tx-container">
-            <div className="tx-photos tx-animate">
-              <img
-                src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/697fbd4f1f68d10a92caef4d.jpeg"
-                alt="Hyperbaric oxygen chamber at Range Medical"
-              />
-              <img
-                src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/697fbd4f1f68d11e2acaef4e.jpeg"
-                alt="Inside the hyperbaric chamber at Range Medical"
-              />
-            </div>
           </div>
         </section>
 

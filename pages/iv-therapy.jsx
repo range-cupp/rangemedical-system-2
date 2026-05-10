@@ -66,19 +66,19 @@ export default function IVTherapy() {
       name: 'Immune & Energy Support',
       desc: 'For frequent illness, low energy, or recovering from being sick.',
       freq: 'Weekly IV sessions for 4 weeks, then monthly maintenance.',
-      price: 'Typical investment: $150–$250 per session'
+      price: 'Pricing discussed after your assessment'
     },
     {
       name: 'Recovery & Performance',
       desc: 'For athletes or active patients dealing with soreness, fatigue, or slow recovery.',
       freq: '1–2 sessions per week during training blocks, monthly otherwise.',
-      price: 'Typical investment: $150–$250 per session'
+      price: 'Pricing discussed after your assessment'
     },
     {
       name: 'Detox & Cellular Repair',
       desc: 'For patients whose labs show oxidative stress or who want liver and cellular support.',
       freq: 'Weekly glutathione or NAC-based IVs for 4–6 weeks.',
-      price: 'Typical investment: $170–$250 per session'
+      price: 'Pricing discussed after your assessment'
     }
   ];
 

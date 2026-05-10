@@ -75,7 +75,7 @@ export default function PRPTherapy() {
           <h1>Your body already knows how to heal. <em>We concentrate it.</em></h1>
           <div className="tx-rule" />
           <p className="tx-hero-sub">Range Medical starts with a full assessment of your injury and goals. If PRP therapy fits your situation, your provider will build it into a recovery plan designed around you.</p>
-          <Link href="/assessment" className="tx-btn">Book Your Range Assessment</Link>
+          <Link href="/assessment/injury" className="tx-btn">Book Your Range Assessment</Link>
           <span className="tx-btn-note">We&apos;ll evaluate your injury and determine together if PRP belongs in your plan.</span>
         </div></section>
 
@@ -104,7 +104,7 @@ export default function PRPTherapy() {
             <div className="tx-step"><div className="tx-step-num">02</div><h3>Personalized Plan</h3><p>Your provider determines if PRP is the right approach and designs a recovery plan that may include other supportive therapies.</p></div>
             <div className="tx-step"><div className="tx-step-num">03</div><h3>Ongoing Support</h3><p>We monitor your healing, schedule follow-up sessions if needed, and adjust your plan based on your progress.</p></div>
           </div>
-          <div className="tx-animate" style={{ marginTop: '3rem' }}><Link href="/assessment" className="tx-btn">Book Your Range Assessment</Link></div>
+          <div className="tx-animate" style={{ marginTop: '3rem' }}><Link href="/assessment/injury" className="tx-btn">Book Your Range Assessment</Link></div>
         </div></section>
 
         <section className="tx-section-alt"><div className="tx-container">
@@ -120,7 +120,7 @@ export default function PRPTherapy() {
         <section className="tx-cta"><div className="tx-container tx-animate">
           <h2>If you have an injury that won&apos;t heal or joint pain that won&apos;t quit &mdash; <em>start here.</em></h2>
           <p>The first step is understanding what&apos;s going on and whether PRP can help. Your provider will take it from there.</p>
-          <Link href="/assessment" className="tx-btn">Book Your Range Assessment</Link>
+          <Link href="/assessment/injury" className="tx-btn">Book Your Range Assessment</Link>
           <a href="tel:9499973988" className="tx-cta-phone">(949) 997-3988</a>
         </div></section>
       </div>

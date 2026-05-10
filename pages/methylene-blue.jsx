@@ -46,7 +46,7 @@ export default function MethyleneBlue() {
   const plans = [
     { name: 'Daily Capsule Protocol', desc: 'Methylene blue capsules (25mg) for daily cellular energy and mood support. Easy to take at home.', freq: 'Daily, as directed by your provider.', price: '$197 per bottle' },
     { name: 'Blu Liquid Dropper', desc: 'Liquid methylene blue for easy dosing and adjustment. Same benefits as capsules in dropper form.', freq: 'Daily, dose adjusted by your provider.', price: '$197 per bottle' },
-    { name: 'Methylene Blue IV', desc: 'Pharmaceutical-grade methylene blue delivered IV with high-dose vitamin C and magnesium for deeper support.', freq: 'Sessions as recommended by your provider.', price: '$550 per session' }
+    { name: 'Methylene Blue IV', desc: 'Pharmaceutical-grade methylene blue delivered IV with high-dose vitamin C and magnesium for deeper support.', freq: 'Sessions as recommended by your provider.', price: 'Pricing discussed after your assessment' }
   ];
 
   return (

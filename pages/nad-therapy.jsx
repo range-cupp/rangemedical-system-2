@@ -66,19 +66,19 @@ export default function NADTherapy() {
       name: 'NAD+ Recharge',
       desc: 'For patients with significant fatigue, brain fog, or cognitive concerns. A front-loaded IV approach.',
       freq: '3–5 IV sessions over 7–10 days, then monthly maintenance IVs.',
-      price: 'Typical investment: $1,500–$2,500 for the initial protocol'
+      price: 'Pricing discussed after your assessment'
     },
     {
       name: 'NAD+ Injection Protocol',
       desc: 'For patients who want consistent NAD+ support with the convenience of at-home injections.',
       freq: 'Self-administered injections 3x/week for 12 weeks.',
-      price: 'Typical investment: $1,000–$1,500 for a 12-week cycle'
+      price: 'Pricing discussed after your assessment'
     },
     {
       name: 'Longevity & Maintenance',
       desc: 'For patients who have completed an initial protocol and want to maintain elevated NAD+ levels.',
       freq: 'Monthly IV or continued injections, with quarterly labs.',
-      price: 'Typical investment: $250–$500 per month'
+      price: 'Pricing discussed after your assessment'
     }
   ];
 

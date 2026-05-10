@@ -66,19 +66,19 @@ export default function InjectionTherapy() {
       name: 'Energy & Vitality',
       desc: 'B12, B-Complex, and other energy-supporting injections for fatigue and brain fog.',
       freq: 'Weekly or bi-weekly injections based on your labs.',
-      price: 'Starting at $35 per injection'
+      price: 'Pricing discussed after your assessment'
     },
     {
       name: 'Recovery & Immune Support',
       desc: 'Glutathione, vitamin C, and immune-boosting injections for illness prevention and recovery.',
       freq: 'Weekly during cold season or recovery periods.',
-      price: 'Starting at $35–$50 per injection'
+      price: 'Pricing discussed after your assessment'
     },
     {
       name: 'Cellular Energy (NAD+)',
       desc: 'NAD+ injections for cellular energy, mental clarity, and anti-aging support.',
       freq: 'Dose and frequency based on your protocol.',
-      price: '$0.50/mg — dose determined by your provider'
+      price: 'Pricing discussed after your assessment'
     }
   ];
 

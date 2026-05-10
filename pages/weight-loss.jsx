@@ -66,19 +66,19 @@ export default function WeightLoss() {
       name: 'Weight Loss Support',
       desc: 'For patients ready to start a GLP-1 medication protocol with full provider supervision.',
       freq: 'Weekly injections, monthly check-ins, labs at baseline and throughout.',
-      price: 'Typical investment: $350–$500 per 4-injection block'
+      price: 'Pricing discussed after your assessment'
     },
     {
       name: 'Metabolic Reset',
       desc: 'For patients whose labs show hormonal or metabolic factors contributing to weight gain.',
       freq: 'GLP-1 medication plus hormone or thyroid support as needed.',
-      price: 'Varies based on your plan — discussed after your assessment'
+      price: 'Pricing discussed after your assessment'
     },
     {
       name: 'Maintenance & Optimization',
       desc: 'For patients nearing their goal who want to transition to long-term habits.',
       freq: 'Lower maintenance dose, quarterly labs, ongoing provider support.',
-      price: 'Typically lower than the active phase'
+      price: 'Pricing discussed after your assessment'
     }
   ];
 

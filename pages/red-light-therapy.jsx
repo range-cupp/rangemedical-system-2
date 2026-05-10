@@ -66,19 +66,19 @@ export default function RedLightTherapy() {
       name: 'Recovery & Inflammation Support',
       desc: 'For muscle soreness, joint stiffness, or chronic inflammation.',
       freq: '3–5 sessions per week for 4–6 weeks, often paired with HBOT.',
-      price: 'Typical investment: $49–$199 every 4 weeks (membership)'
+      price: 'Pricing discussed after your assessment'
     },
     {
       name: 'Skin & Energy Reset',
       desc: 'For patients looking to improve skin health, energy, and overall vitality.',
       freq: '3 sessions per week for 4 weeks as a reset, then maintenance.',
-      price: 'Typical investment: $49–$199 every 4 weeks (membership)'
+      price: 'Pricing discussed after your assessment'
     },
     {
       name: 'Cellular Energy Reset',
       desc: 'A structured 6-week protocol combining red light and HBOT for full-body recovery.',
       freq: '3 red light + 3 HBOT sessions per week for 6 weeks with weekly check-ins.',
-      price: 'Typical investment: $3,999'
+      price: 'Pricing discussed after your assessment'
     }
   ];
 

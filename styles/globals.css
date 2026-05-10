@@ -2033,10 +2033,13 @@ p {
 }
 
 .tx-symptoms li::before {
-  content: '\2014';
-  color: var(--color-accent);
-  font-weight: 700;
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
   flex-shrink: 0;
+  margin-top: 9px;
 }
 
 /* 3-Step Journey */

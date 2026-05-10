@@ -44,9 +44,9 @@ export default function CellularEnergyReset() {
   ];
 
   const plans = [
-    { name: '6-Week Cellular Energy Reset', desc: '18 HBOT sessions + 18 Red Light sessions over 6 weeks. The most comprehensive approach to restoring cellular energy.', freq: '3 sessions per week for 6 weeks, plus provider consultations.', price: '$2,999 (save $1,861 vs. individual sessions)' },
-    { name: 'Maintenance Protocol', desc: 'After completing the reset, periodic HBOT + Red Light sessions to maintain your gains.', freq: '4 HBOT + 4 Red Light sessions every 4 weeks.', price: 'Starting at $599 per cycle' },
-    { name: 'Maintenance + IV', desc: 'Maintenance sessions plus a monthly Energy IV for additional cellular support.', freq: '4 HBOT + 4 Red Light + 1 IV every 4 weeks.', price: 'Starting at $799 per cycle' }
+    { name: '6-Week Cellular Energy Reset', desc: '18 HBOT sessions + 18 Red Light sessions over 6 weeks. The most comprehensive approach to restoring cellular energy.', freq: '3 sessions per week for 6 weeks, plus provider consultations.', price: 'Pricing discussed after your assessment' },
+    { name: 'Maintenance Protocol', desc: 'After completing the reset, periodic HBOT + Red Light sessions to maintain your gains.', freq: '4 HBOT + 4 Red Light sessions every 4 weeks.', price: 'Pricing discussed after your assessment' },
+    { name: 'Maintenance + IV', desc: 'Maintenance sessions plus a monthly Energy IV for additional cellular support.', freq: '4 HBOT + 4 Red Light + 1 IV every 4 weeks.', price: 'Pricing discussed after your assessment' }
   ];
 
   const results = [

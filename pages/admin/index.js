@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [smsTarget, setSmsTarget] = useState(null); // { phone, name, patientId }
   const [upcomingLabDraws, setUpcomingLabDraws] = useState([]);
+  const [wlPaymentDue, setWlPaymentDue] = useState([]);
   const [pipelineCards, setPipelineCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
 
@@ -34,6 +35,12 @@ export default function Dashboard() {
       setTodayAppointments(data.todayAppointments || []);
       setRecentComms(data.recentComms || []);
       setUpcomingLabDraws(data.upcomingLabDraws || []);
+
+      // Build WL payment due list from wlSchedule
+      const wlDue = (data.wlSchedule || [])
+        .filter(p => p.program_type === 'weight_loss' && p.days_until_refill !== null && p.days_until_refill <= 14)
+        .sort((a, b) => (a.days_until_refill ?? 0) - (b.days_until_refill ?? 0));
+      setWlPaymentDue(wlDue);
 
       fetch('/api/pipelines/energy_workup')
         .then(r => r.ok ? r.json() : [])
@@ -174,6 +181,83 @@ export default function Dashboard() {
                       {draw.phone && (
                         <button
                           onClick={() => setSmsTarget({ phone: draw.phone, name: draw.patientName, patientId: draw.patientId })}
+                          style={{ fontSize: 9, fontWeight: 600, color: '#1d4ed8', background: '#eff6ff', border: 'none', cursor: 'pointer', padding: '1px 6px', whiteSpace: 'nowrap' }}
+                        >
+                          Text
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ═══ WL PAYMENT DUE ═══ */}
+          {wlPaymentDue.length > 0 && (
+            <div style={styles.labDrawsSection}>
+              <div style={styles.labDrawsHeader}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>WL Payment Due</h2>
+                    <span style={{
+                      background: wlPaymentDue.some(p => p.days_until_refill <= 0) ? '#dc2626' : '#d97706',
+                      color: '#fff', padding: '2px 8px', fontSize: 11, fontWeight: 600,
+                    }}>{wlPaymentDue.length} patient{wlPaymentDue.length !== 1 ? 's' : ''}</span>
+                  </div>
+                  <Link href="/admin/wl-tracker" style={styles.viewAllLink}>WL Tracker →</Link>
+                </div>
+              </div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '6px 20px',
+                background: '#fafafa', borderBottom: '1px solid #e5e5e5',
+                fontSize: 10, fontWeight: 700, color: '#737373', textTransform: 'uppercase', letterSpacing: '0.5px',
+              }}>
+                <span style={{ flex: '0 0 180px' }}>Patient</span>
+                <span style={{ flex: '0 0 140px' }}>Medication</span>
+                <span style={{ flex: '0 0 100px' }}>Delivery</span>
+                <span style={{ flex: '0 0 120px' }}>Last Paid</span>
+                <span style={{ flex: '0 0 100px' }}>Status</span>
+                <span style={{ flex: 1 }} />
+              </div>
+              {wlPaymentDue.map((p) => {
+                const isOverdue = p.days_until_refill <= 0;
+                const isDueSoon = p.days_until_refill > 0 && p.days_until_refill <= 7;
+                const borderColor = isOverdue ? '#dc2626' : isDueSoon ? '#d97706' : '#f59e0b';
+                return (
+                  <div key={p.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '10px 20px', borderBottom: '1px solid #f0f0f0',
+                    borderLeft: `3px solid ${borderColor}`,
+                  }}>
+                    <div style={{ flex: '0 0 180px' }}>
+                      <Link href={`/patients/${p.patient_id}`} style={{ fontSize: 13, fontWeight: 600, color: '#000', textDecoration: 'none' }}>
+                        {p.patient_name}
+                      </Link>
+                    </div>
+                    <div style={{ flex: '0 0 140px', fontSize: 12, color: '#525252' }}>
+                      {p.medication || '-'}{p.current_dose ? ` ${p.current_dose}` : ''}
+                    </div>
+                    <div style={{ flex: '0 0 100px', fontSize: 12, color: '#525252' }}>
+                      {p.delivery_method === 'take_home' ? 'Take-home' : 'In-clinic'}
+                    </div>
+                    <div style={{ flex: '0 0 120px', fontSize: 12, color: '#525252' }}>
+                      {p.last_purchase ? formatDate(p.last_purchase.date) : 'Never'}
+                      {p.last_purchase?.amount ? ` ($${Number(p.last_purchase.amount).toFixed(0)})` : ''}
+                    </div>
+                    <div style={{ flex: '0 0 100px' }}>
+                      {isOverdue ? (
+                        <span style={styles.labDrawBadgeOverdue}>Overdue</span>
+                      ) : isDueSoon ? (
+                        <span style={styles.labDrawBadgeToday}>{p.days_until_refill}d left</span>
+                      ) : (
+                        <span style={styles.labDrawBadgeSoon}>{p.days_until_refill}d left</span>
+                      )}
+                    </div>
+                    <div style={{ flex: 1, textAlign: 'right' }}>
+                      {p.patient_phone && (
+                        <button
+                          onClick={() => setSmsTarget({ phone: p.patient_phone, name: p.patient_name, patientId: p.patient_id })}
                           style={{ fontSize: 9, fontWeight: 600, color: '#1d4ed8', background: '#eff6ff', border: 'none', cursor: 'pointer', padding: '1px 6px', whiteSpace: 'nowrap' }}
                         >
                           Text

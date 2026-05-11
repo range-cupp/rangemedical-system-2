@@ -6794,10 +6794,10 @@ export default function PatientProfile() {
                     { field: 'call_opt_out', label: 'Phone Calls', icon: '📞' },
                   ].map(({ field, label, icon }) => (
                     <div key={field} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      display: 'flex', alignItems: 'center', gap: '12px',
                       padding: '10px 0', borderBottom: '1px solid #f1f5f9',
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
                         <span style={{ fontSize: '16px' }}>{icon}</span>
                         <span style={{ fontSize: '14px', fontWeight: 500, color: '#1e293b' }}>{label}</span>
                       </div>
@@ -6835,10 +6835,10 @@ export default function PatientProfile() {
                     { field: 'automations_opt_out', label: 'Automations', desc: 'Reminders, check-ins, follow-ups' },
                   ].map(({ field, label, desc }) => (
                     <div key={field} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      display: 'flex', alignItems: 'center', gap: '12px',
                       padding: '10px 0', borderBottom: '1px solid #f1f5f9',
                     }}>
-                      <div>
+                      <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '14px', fontWeight: 500, color: '#1e293b' }}>{label}</div>
                         <div style={{ fontSize: '12px', color: '#94a3b8' }}>{desc}</div>
                       </div>

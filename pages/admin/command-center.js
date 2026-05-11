@@ -1762,6 +1762,7 @@ export default function CommandCenter() {
   const handleEditProtocol = (protocol) => {
     setEditingProtocol({
       ...protocol,
+      _originalStartingWeight: protocol.starting_weight || null,
       start_date: protocol.start_date || '',
       end_date: protocol.end_date || '',
       next_expected_date: protocol.next_expected_date || '',
@@ -1784,40 +1785,45 @@ export default function CommandCenter() {
     if (!editingProtocol?.id) return;
 
     try {
+      const payload = {
+        start_date: editingProtocol.start_date,
+        end_date: editingProtocol.end_date || null,
+        next_expected_date: editingProtocol.next_expected_date || null,
+        last_refill_date: editingProtocol.last_refill_date || null,
+        supply_type: editingProtocol.supply_type || null,
+        program_name: editingProtocol.program_name || null,
+        total_sessions: editingProtocol.total_sessions ? parseInt(editingProtocol.total_sessions) : null,
+        sessions_used: parseInt(editingProtocol.sessions_used) || 0,
+        selected_dose: editingProtocol.selected_dose === 'Custom' ? editingProtocol.customDose : editingProtocol.selected_dose || null,
+        delivery_method: editingProtocol.delivery_method || null,
+        status: editingProtocol.status,
+        notes: editingProtocol.notes || null,
+        injection_day: editingProtocol.injection_day || null,
+        checkin_reminder_enabled: editingProtocol.checkin_reminder_enabled || false,
+        medication: editingProtocol.medication || null,
+        frequency: editingProtocol.frequency || null,
+        pickup_frequency: editingProtocol.pickup_frequency || null,
+        // HRT specific fields
+        hrt_type: editingProtocol.hrt_type || null,
+        dose_per_injection: editingProtocol.dose_per_injection || null,
+        injections_per_week: editingProtocol.injections_per_week || null,
+        hrt_followup_date: editingProtocol.hrt_followup_date || null,
+        hrt_reminders_enabled: editingProtocol.hrt_reminders_enabled || false,
+        hrt_reminder_schedule: editingProtocol.hrt_reminder_schedule || null,
+        secondary_medications: editingProtocol.secondary_medications || [],
+        // Peptide vial fields
+        num_vials: editingProtocol.num_vials ? parseInt(editingProtocol.num_vials) : null,
+        doses_per_vial: editingProtocol.doses_per_vial ? parseInt(editingProtocol.doses_per_vial) : null
+      };
+      const curSW = editingProtocol.starting_weight || null;
+      const origSW = editingProtocol._originalStartingWeight || null;
+      if (String(curSW) !== String(origSW)) {
+        payload.starting_weight = curSW ? parseFloat(curSW) : null;
+      }
       const res = await fetch(`/api/protocols/${editingProtocol.id}/update`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          start_date: editingProtocol.start_date,
-          end_date: editingProtocol.end_date || null,
-          next_expected_date: editingProtocol.next_expected_date || null,
-          last_refill_date: editingProtocol.last_refill_date || null,
-          supply_type: editingProtocol.supply_type || null,
-          program_name: editingProtocol.program_name || null,
-          total_sessions: editingProtocol.total_sessions ? parseInt(editingProtocol.total_sessions) : null,
-          sessions_used: parseInt(editingProtocol.sessions_used) || 0,
-          selected_dose: editingProtocol.selected_dose === 'Custom' ? editingProtocol.customDose : editingProtocol.selected_dose || null,
-          delivery_method: editingProtocol.delivery_method || null,
-          status: editingProtocol.status,
-          notes: editingProtocol.notes || null,
-          injection_day: editingProtocol.injection_day || null,
-          checkin_reminder_enabled: editingProtocol.checkin_reminder_enabled || false,
-          medication: editingProtocol.medication || null,
-          frequency: editingProtocol.frequency || null,
-          pickup_frequency: editingProtocol.pickup_frequency || null,
-          starting_weight: editingProtocol.starting_weight || null,
-          // HRT specific fields
-          hrt_type: editingProtocol.hrt_type || null,
-          dose_per_injection: editingProtocol.dose_per_injection || null,
-          injections_per_week: editingProtocol.injections_per_week || null,
-          hrt_followup_date: editingProtocol.hrt_followup_date || null,
-          hrt_reminders_enabled: editingProtocol.hrt_reminders_enabled || false,
-          hrt_reminder_schedule: editingProtocol.hrt_reminder_schedule || null,
-          secondary_medications: editingProtocol.secondary_medications || [],
-          // Peptide vial fields
-          num_vials: editingProtocol.num_vials ? parseInt(editingProtocol.num_vials) : null,
-          doses_per_vial: editingProtocol.doses_per_vial ? parseInt(editingProtocol.doses_per_vial) : null
-        })
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {

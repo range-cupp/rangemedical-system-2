@@ -48,6 +48,7 @@ export default function SchedulePage() {
 
   const today = toPacificDateStr(new Date());
   const [selectedDate, setSelectedDate] = useState(today);
+  const [serviceFilter, setServiceFilter] = useState('all');
 
   useEffect(() => {
     fetchAppointments();
@@ -130,16 +131,58 @@ export default function SchedulePage() {
     }
   };
 
+  // Service filter categories — match against service_name (case-insensitive)
+  const SERVICE_FILTERS = [
+    { key: 'all', label: 'All Services' },
+    { key: 'weight_loss', label: 'Weight Loss' },
+    { key: 'hbot', label: 'HBOT' },
+    { key: 'new_patient', label: 'New Patient' },
+    { key: 'blood_draw', label: 'Blood Draw' },
+    { key: 'iv', label: 'IV Therapy' },
+    { key: 'rlt', label: 'Red Light' },
+    { key: 'hrt', label: 'HRT' },
+    { key: 'injection', label: 'Injections' },
+    { key: 'peptide', label: 'Peptides' },
+  ];
+
+  const matchesServiceFilter = (apt) => {
+    if (serviceFilter === 'all') return true;
+    const name = (apt.service_name || apt.title || '').toLowerCase();
+    const cat = (apt.service_category || '').toLowerCase();
+    switch (serviceFilter) {
+      case 'weight_loss':
+        return cat === 'weight_loss' || name.includes('weight loss') || name.includes('semaglutide') || name.includes('tirzepatide');
+      case 'hbot':
+        return cat === 'hbot' || name.includes('hyperbaric') || name.includes('hbot');
+      case 'new_patient':
+        return name.includes('assessment') || name.includes('new patient') || name.includes('consultation') || name.includes('initial lab review');
+      case 'blood_draw':
+        return name.includes('blood draw') || name.includes('lab draw') || name.includes('follow-up blood') || name.includes('follow up blood');
+      case 'iv':
+        return cat === 'iv' || name.includes('iv ') || name.includes('iv+') || name.includes('mb +') || name.includes('nad') || name.includes('myers');
+      case 'rlt':
+        return cat === 'rlt' || name.includes('red light');
+      case 'hrt':
+        return cat === 'hrt' || name.includes('hrt') || name.includes('testosterone') || name.includes('hormone');
+      case 'injection':
+        return cat === 'injection' || (name.includes('injection') && !name.includes('weight loss'));
+      case 'peptide':
+        return cat === 'peptide' || name.includes('peptide');
+      default:
+        return true;
+    }
+  };
+
   // Filter appointments for the selected date
   const dayAppointments = appointments.filter(apt => {
     const aptDate = toPacificDateStr(new Date(apt.start_time || apt.booking_date));
-    return aptDate === selectedDate;
+    return aptDate === selectedDate && matchesServiceFilter(apt);
   }).sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
 
   const upcomingAppointments = appointments
     .filter(apt => {
       const aptDate = toPacificDateStr(new Date(apt.start_time || apt.booking_date));
-      return aptDate >= today && apt.status !== 'cancelled' && apt.status !== 'no_show';
+      return aptDate >= today && apt.status !== 'cancelled' && apt.status !== 'no_show' && matchesServiceFilter(apt);
     })
     .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
 
@@ -378,28 +421,41 @@ export default function SchedulePage() {
   return (
     <AdminLayout title="Schedule">
       {/* Tab bar */}
-      <div style={styles.tabBar}>
-        {[
-          { key: 'calendar', label: 'Calendar' },
-          { key: 'day', label: `${selectedDateDisplay} (${dayAppointments.length})` },
-          { key: 'upcoming', label: `Upcoming (${upcomingAppointments.length})` },
-        ].map(t => (
-          <button
-            key={t.key}
-            onClick={() => {
-              setTab(t.key);
-              if (t.key === 'day' && selectedDate !== today) {
-                // Keep the selected date as-is
-              }
-            }}
-            style={{
-              ...styles.tab,
-              ...(tab === t.key ? styles.tabActive : {})
-            }}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {[
+            { key: 'calendar', label: 'Calendar' },
+            { key: 'day', label: `${selectedDateDisplay} (${dayAppointments.length})` },
+            { key: 'upcoming', label: `Upcoming (${upcomingAppointments.length})` },
+          ].map(t => (
+            <button
+              key={t.key}
+              onClick={() => {
+                setTab(t.key);
+                if (t.key === 'day' && selectedDate !== today) {
+                  // Keep the selected date as-is
+                }
+              }}
+              style={{
+                ...styles.tab,
+                ...(tab === t.key ? styles.tabActive : {})
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {tab !== 'calendar' && (
+          <select
+            value={serviceFilter}
+            onChange={e => setServiceFilter(e.target.value)}
+            style={styles.filterSelect}
           >
-            {t.label}
-          </button>
-        ))}
+            {SERVICE_FILTERS.map(f => (
+              <option key={f.key} value={f.key}>{f.label}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Date navigation for day view */}
@@ -937,10 +993,16 @@ export default function SchedulePage() {
 }
 
 const styles = {
-  tabBar: {
-    display: 'flex',
-    gap: '8px',
-    marginBottom: '20px'
+  filterSelect: {
+    padding: '8px 12px',
+    fontSize: '13px',
+    border: '1px solid #ddd',
+    borderRadius: 0,
+    background: '#fff',
+    color: '#333',
+    cursor: 'pointer',
+    fontWeight: '500',
+    minWidth: '150px',
   },
   tab: {
     padding: '8px 16px',

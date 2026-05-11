@@ -181,10 +181,11 @@ export default async function handler(req, res) {
       patient_id: oldProtocol.patient_id,
       protocol_id: oldProtocol.id,
       category: 'exchange',
-      service_name: `Protocol Exchange: ${oldProtocol.medication || oldProtocol.program_name} → ${medication}`,
-      notes: `Reason: ${reason}${reasonNote ? ' — ' + reasonNote : ''}`,
-      log_date: today,
-      performed_by: 'staff'
+      entry_type: 'session',
+      entry_date: today,
+      medication: `${oldProtocol.medication || oldProtocol.program_name} → ${medication}`,
+      notes: `Protocol Exchange. Reason: ${reason}${reasonNote ? ' — ' + reasonNote : ''}`,
+      administered_by: 'staff',
     });
 
     // 9. Auto-assign journey template to new protocol

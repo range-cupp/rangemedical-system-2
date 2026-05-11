@@ -11,6 +11,7 @@ import { isWeightLossType } from '../../../lib/protocol-config';
 import { guardDoseChange } from '../../../lib/dose-change-guard';
 import { spawnTakeHomeInjections } from '../../../lib/spawn-takehome-injections';
 import { recountProtocolSessions } from '../../../lib/recount-protocol-sessions';
+import { createServiceLogEntry } from '../../../lib/service-log-engine';
 // Controlled substance staff config — used for logging, not blocking
 // Dose approval is enforced via dose-change-requests SMS flow
 
@@ -111,17 +112,17 @@ export default async function handler(req, res) {
     // 2. For in-clinic purchases (WL or peptide): do NOT create a service log — encounter notes are the sole source
     // For everything else (take-home pickups, other categories): create service log as before
     if (!isInClinicPurchase) {
-      const logData = {
+      const { log: serviceLog, error: engineErr } = await createServiceLogEntry(supabase, {
         patient_id,
         category,
         entry_type: resolvedEntryType,
         entry_date: logDate,
         medication: medication || null,
         dosage: dosage || null,
-        weight: weight ? parseFloat(weight) : null,
-        quantity: quantity ? parseInt(quantity) : null,
+        weight,
+        quantity,
         supply_type: supply_type || null,
-        duration: duration ? parseInt(duration) : null,
+        duration,
         notes: notes || null,
         protocol_id: protocol_id || null,
         administered_by: administered_by || null,
@@ -130,32 +131,10 @@ export default async function handler(req, res) {
         expiration_date: expiration_date || null,
         fulfillment_method: fulfillment_method || 'in_clinic',
         tracking_number: tracking_number || null,
-        checkout_type: 'medication_checkout',
-      };
+      }, { skipDuplicateCheck: true });
 
-      const { data: serviceLog, error: logError } = await supabase
-        .from('service_logs')
-        .insert([logData])
-        .select()
-        .single();
-
+      if (engineErr) throw new Error(engineErr);
       finalLog = serviceLog;
-      if (logError) {
-        const msg = logError.message || '';
-        if (msg.includes('checkout_type') || msg.includes('verified_by')) {
-          delete logData.checkout_type;
-          delete logData.verified_by;
-          const { data: retryLog, error: retryError } = await supabase
-            .from('service_logs')
-            .insert([logData])
-            .select()
-            .single();
-          if (retryError) throw retryError;
-          finalLog = retryLog;
-        } else {
-          throw logError;
-        }
-      }
     }
 
     // 3. Update protocol if linked
@@ -281,7 +260,7 @@ export default async function handler(req, res) {
             injDate.setDate(injDate.getDate() + dayOffset);
             const injDateStr = injDate.toISOString().split('T')[0];
 
-            const { error: hrtInjErr } = await supabase.from('service_logs').insert([{
+            const { error: hrtInjErr } = await createServiceLogEntry(supabase, {
               patient_id,
               category,
               entry_type: 'injection',
@@ -291,11 +270,11 @@ export default async function handler(req, res) {
               quantity: 1,
               notes: `Take-home injection (dispensed ${logDate}, ${hrtPickupQty}-syringe pickup, ${i + 1} of ${hrtPickupQty})`,
               protocol_id: protocol_id || null,
-              injection_method: injection_method || null,
               fulfillment_method: 'take_home',
-            }]);
+              status: 'scheduled',
+            }, { skipDuplicateCheck: true, skipBillingCheck: true, skipRecount: true });
             if (hrtInjErr) {
-              console.error(`[medication-checkout] HRT auto-schedule insert failed for ${injDateStr}:`, hrtInjErr.message);
+              console.error(`[medication-checkout] HRT auto-schedule insert failed for ${injDateStr}:`, hrtInjErr);
             } else {
               createdHrt++;
             }
@@ -334,16 +313,7 @@ export default async function handler(req, res) {
       console.error('[medication-checkout] HRT auto-schedule block error:', hrtErr.message);
     }
 
-    // 5. Sync weight to vitals if provided
-    try {
-      if (weight) {
-        await syncWeightToVitals(patient_id, weight, logDate, administered_by);
-      }
-    } catch (wtErr) {
-      console.error('[medication-checkout] Weight sync error:', wtErr.message);
-    }
-
-    // 6. Send receipt/confirmation email (if enabled)
+    // 5. Send receipt/confirmation email (if enabled)
     try {
       const isCovered = coverage_type === 'subscription' || coverage_type === 'protocol' || coverage_type === 'comp';
       if (send_receipt) await sendCheckoutReceipt({
@@ -870,35 +840,4 @@ function generateCoveredReceiptHtml({ firstName, patientName, description, cover
 </html>`;
 }
 
-// Sync weight to patient_vitals
-async function syncWeightToVitals(patient_id, weight, entry_date, recorded_by) {
-  if (!patient_id || !weight) return;
-  try {
-    const dayStart = entry_date + 'T00:00:00Z';
-    const dayEnd = entry_date + 'T23:59:59Z';
-    const { data: existing } = await supabase
-      .from('patient_vitals')
-      .select('id')
-      .eq('patient_id', patient_id)
-      .gte('recorded_at', dayStart)
-      .lte('recorded_at', dayEnd)
-      .order('recorded_at', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (existing) {
-      await supabase.from('patient_vitals')
-        .update({ weight_lbs: parseFloat(weight), recorded_by: recorded_by || 'Medication Checkout' })
-        .eq('id', existing.id);
-    } else {
-      await supabase.from('patient_vitals').insert({
-        patient_id,
-        weight_lbs: parseFloat(weight),
-        recorded_by: recorded_by || 'Medication Checkout',
-        recorded_at: new Date(entry_date + 'T12:00:00Z').toISOString(),
-      });
-    }
-  } catch (err) {
-    console.error('[medication-checkout] syncWeightToVitals error:', err.message);
-  }
-}
+// syncWeightToVitals now handled by service-log-engine

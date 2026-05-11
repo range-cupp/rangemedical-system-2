@@ -64,17 +64,7 @@ export default async function handler(req, res) {
     const { weight, side_effects, notes } = req.body;
     if (!weight) return res.status(400).json({ error: 'Weight required' });
 
-    // Get today in Pacific time
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-
-    // Upsert: check if entry exists for today
-    const { data: existing } = await supabase
-      .from('service_logs')
-      .select('id')
-      .eq('protocol_id', protocol.id)
-      .eq('entry_date', today)
-      .in('entry_type', ['injection', 'checkin'])
-      .limit(1);
 
     const noteStr = [
       'Patient self-reported check-in',
@@ -82,12 +72,48 @@ export default async function handler(req, res) {
       notes ? `Notes: ${notes}` : null
     ].filter(Boolean).join(' | ');
 
-    if (existing && existing.length > 0) {
+    // 1. Check for exact-day match (any status)
+    const { data: todayEntry } = await supabase
+      .from('service_logs')
+      .select('id')
+      .eq('protocol_id', protocol.id)
+      .eq('entry_date', today)
+      .in('entry_type', ['injection', 'checkin'])
+      .limit(1);
+
+    // 2. If no exact match, look for a nearby scheduled entry (±3 days)
+    let targetId = todayEntry?.[0]?.id || null;
+    if (!targetId) {
+      const lo = new Date(today + 'T12:00:00');
+      lo.setDate(lo.getDate() - 3);
+      const hi = new Date(today + 'T12:00:00');
+      hi.setDate(hi.getDate() + 3);
+      const { data: nearby } = await supabase
+        .from('service_logs')
+        .select('id, entry_date')
+        .eq('protocol_id', protocol.id)
+        .eq('status', 'scheduled')
+        .in('entry_type', ['injection', 'checkin'])
+        .gte('entry_date', lo.toISOString().split('T')[0])
+        .lte('entry_date', hi.toISOString().split('T')[0])
+        .order('entry_date', { ascending: true })
+        .limit(1);
+      targetId = nearby?.[0]?.id || null;
+    }
+
+    if (targetId) {
+      // Update existing entry with patient-reported data and mark completed
       await supabase
         .from('service_logs')
-        .update({ weight: weight.toString(), notes: noteStr, dosage: protocol.current_dose || protocol.selected_dose })
-        .eq('id', existing[0].id);
+        .update({
+          weight: weight.toString(),
+          notes: noteStr,
+          dosage: protocol.current_dose || protocol.selected_dose,
+          status: 'completed',
+        })
+        .eq('id', targetId);
     } else {
+      // No scheduled or existing entry — create new one
       await supabase
         .from('service_logs')
         .insert({
@@ -100,11 +126,11 @@ export default async function handler(req, res) {
           dosage: protocol.current_dose || protocol.selected_dose,
           weight: weight.toString(),
           notes: noteStr,
+          status: 'completed',
         });
-
-      // Recount sessions_used from service_logs (single source of truth)
-      await recountProtocolSessions(supabase, protocol.id);
     }
+
+    await recountProtocolSessions(supabase, protocol.id);
 
     // Send side-effect tips SMS if patient reported symptoms
     const realEffects = (side_effects || []).filter(e => e && e !== 'None');

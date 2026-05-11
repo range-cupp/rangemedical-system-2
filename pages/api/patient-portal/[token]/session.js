@@ -5,6 +5,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { todayPacific } from '../../../../lib/date-utils';
 import { recountProtocolSessions } from '../../../../lib/recount-protocol-sessions';
+import { createServiceLogEntry } from '../../../../lib/service-log-engine';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

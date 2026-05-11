@@ -39,6 +39,8 @@ export default async function handler(req, res) {
       lastLabWork,
       triedHormoneTherapy,
       goals,
+      // Shared
+      treatmentsTried,
       // Additional
       additionalInfo,
       referralSource,
@@ -68,7 +70,11 @@ export default async function handler(req, res) {
       if (injuryLocation) tags.push(`injury_location_${injuryLocation}`);
       if (injuryDuration) tags.push(`injury_duration_${injuryDuration}`);
       if (inPhysicalTherapy) tags.push(`pt_status_${inPhysicalTherapy}`);
-      if (recoveryGoal) tags.push(`goal_${recoveryGoal}`);
+      if (Array.isArray(recoveryGoal)) {
+        recoveryGoal.forEach((g) => tags.push(`goal_${g}`));
+      } else if (recoveryGoal) {
+        tags.push(`goal_${recoveryGoal}`);
+      }
     } else {
       if (symptoms?.length) symptoms.forEach((s) => tags.push(`symptom_${s}`));
       if (symptomDuration) tags.push(`symptom_duration_${symptomDuration}`);
@@ -76,6 +82,7 @@ export default async function handler(req, res) {
       if (triedHormoneTherapy) tags.push(`hrt_experience_${triedHormoneTherapy}`);
       if (goals?.length) goals.forEach((g) => tags.push(`goal_${g}`));
     }
+    if (treatmentsTried?.length) treatmentsTried.forEach((t) => tags.push(`tried_${t}`));
 
     const assessmentData = {
       first_name: firstName,
@@ -87,7 +94,8 @@ export default async function handler(req, res) {
       injury_location: injuryLocation || null,
       injury_duration: injuryDuration || null,
       in_physical_therapy: inPhysicalTherapy || null,
-      recovery_goal: recoveryGoal || null,
+      recovery_goal: Array.isArray(recoveryGoal) ? recoveryGoal.join(', ') : (recoveryGoal || null),
+      treatments_tried: treatmentsTried?.length ? treatmentsTried.join(', ') : null,
       primary_symptom: symptoms?.length ? symptoms.join(', ') : null,
       symptom_duration: symptomDuration || null,
       has_recent_labs: lastLabWork || null,

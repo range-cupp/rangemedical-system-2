@@ -162,9 +162,179 @@ export const styles = {
     textTransform: 'uppercase', borderBottom: '1.5px solid #1a1a1a',
     paddingBottom: 3, textDecoration: 'none', marginTop: 24,
   },
+  questionWrap: { paddingTop: 40 },
+  progressRow: { display: 'flex', gap: 6, marginBottom: 40 },
+  progressSegment: { flex: 1, height: 3, background: '#e0e0e0', transition: 'background 0.3s' },
+  progressSegmentActive: { background: '#1a1a1a' },
+  questionText: {
+    fontSize: 'clamp(1.25rem, 3.5vw, 1.625rem)', fontWeight: 800, color: '#1a1a1a',
+    lineHeight: 1.2, letterSpacing: '-0.02em', margin: '0 0 8px',
+  },
+  questionSub: { fontSize: 14, color: '#737373', margin: '0 0 24px', lineHeight: 1.5 },
+  optionList: { border: '1px solid #e0e0e0', marginBottom: 32 },
+  optionBtn: {
+    width: '100%', padding: '16px 20px', border: 'none',
+    borderBottom: '1px solid #e0e0e0', background: '#fff', cursor: 'pointer',
+    fontSize: 15, fontWeight: 500, color: '#1a1a1a', boxSizing: 'border-box',
+    fontFamily: "'Inter', -apple-system, sans-serif", transition: 'all 0.15s',
+    textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+  },
+  optionBtnSelected: { background: '#1a1a1a', color: '#fff' },
+  optionCheck: { fontSize: 14, fontWeight: 700 },
 };
 
 const s = styles;
+
+// ── Discovery Questions ─────────────────────────────────────────────────
+
+const INJURY_QUESTIONS = [
+  {
+    key: 'injuryLocation',
+    question: 'Where does it hurt?',
+    subtitle: 'Select the primary area',
+    type: 'single',
+    options: [
+      { value: 'shoulder', label: 'Shoulder' },
+      { value: 'knee', label: 'Knee' },
+      { value: 'back', label: 'Back' },
+      { value: 'hip', label: 'Hip' },
+      { value: 'neck', label: 'Neck' },
+      { value: 'ankle_foot', label: 'Ankle / Foot' },
+      { value: 'elbow', label: 'Elbow' },
+      { value: 'wrist_hand', label: 'Wrist / Hand' },
+      { value: 'multiple', label: 'Multiple areas' },
+    ],
+  },
+  {
+    key: 'injuryType',
+    question: 'What caused it?',
+    subtitle: 'Select the best description',
+    type: 'single',
+    options: [
+      { value: 'sports', label: 'Sports injury' },
+      { value: 'accident', label: 'Accident or fall' },
+      { value: 'post_surgery', label: 'Post-surgery recovery' },
+      { value: 'work', label: 'Work-related' },
+      { value: 'repetitive', label: 'Repetitive strain' },
+      { value: 'gradual', label: 'Gradual onset / unknown' },
+    ],
+  },
+  {
+    key: 'injuryDuration',
+    question: 'How long have you been dealing with this?',
+    type: 'single',
+    options: [
+      { value: 'less_2_weeks', label: 'Less than 2 weeks' },
+      { value: '2_4_weeks', label: '2 – 4 weeks' },
+      { value: '1_3_months', label: '1 – 3 months' },
+      { value: '3_6_months', label: '3 – 6 months' },
+      { value: '6_plus_months', label: 'More than 6 months' },
+    ],
+  },
+  {
+    key: 'treatmentsTried',
+    question: 'What have you already tried?',
+    subtitle: 'Select all that apply',
+    type: 'multi',
+    noneValue: 'nothing',
+    options: [
+      { value: 'physical_therapy', label: 'Physical therapy' },
+      { value: 'chiropractic', label: 'Chiropractic' },
+      { value: 'cortisone', label: 'Cortisone / steroid injections' },
+      { value: 'surgery', label: 'Surgery' },
+      { value: 'pain_meds', label: 'Pain medication' },
+      { value: 'rest', label: 'Rest and ice' },
+      { value: 'nothing', label: 'Nothing yet' },
+    ],
+  },
+  {
+    key: 'recoveryGoal',
+    question: "What's your main goal?",
+    subtitle: 'Select all that apply',
+    type: 'multi',
+    options: [
+      { value: 'return_sport', label: 'Get back to my sport' },
+      { value: 'daily_activities', label: 'Move without pain day-to-day' },
+      { value: 'avoid_surgery', label: 'Avoid surgery' },
+      { value: 'speed_healing', label: 'Speed up recovery from surgery' },
+      { value: 'reduce_pain', label: 'Reduce daily pain' },
+      { value: 'range_of_motion', label: 'Get full range of motion back' },
+    ],
+  },
+];
+
+const ENERGY_QUESTIONS = [
+  {
+    key: 'symptoms',
+    question: "What's been bothering you most?",
+    subtitle: 'Select all that apply',
+    type: 'multi',
+    options: [
+      { value: 'fatigue', label: 'Low energy / fatigue' },
+      { value: 'brain_fog', label: 'Brain fog' },
+      { value: 'weight_gain', label: 'Weight gain' },
+      { value: 'poor_sleep', label: 'Poor sleep' },
+      { value: 'low_libido', label: 'Low sex drive' },
+      { value: 'mood_changes', label: 'Mood changes' },
+      { value: 'muscle_loss', label: 'Muscle loss' },
+      { value: 'recovery', label: 'Slow recovery from workouts' },
+    ],
+  },
+  {
+    key: 'symptomDuration',
+    question: 'How long have you been feeling this way?',
+    type: 'single',
+    options: [
+      { value: 'few_weeks', label: 'A few weeks' },
+      { value: '1_3_months', label: '1 – 3 months' },
+      { value: '3_6_months', label: '3 – 6 months' },
+      { value: '6_12_months', label: '6 – 12 months' },
+      { value: 'over_year', label: 'Over a year' },
+    ],
+  },
+  {
+    key: 'lastLabWork',
+    question: 'Have you had blood work done recently?',
+    type: 'single',
+    options: [
+      { value: 'yes_recent', label: 'Yes, in the last 6 months' },
+      { value: 'yes_old', label: 'Yes, but over 6 months ago' },
+      { value: 'no', label: 'No' },
+    ],
+  },
+  {
+    key: 'treatmentsTried',
+    question: 'What have you already tried?',
+    subtitle: 'Select all that apply',
+    type: 'multi',
+    noneValue: 'nothing',
+    options: [
+      { value: 'supplements', label: 'Supplements' },
+      { value: 'diet', label: 'Diet changes' },
+      { value: 'exercise', label: 'Exercise changes' },
+      { value: 'hormone_therapy', label: 'Hormone therapy' },
+      { value: 'medications', label: 'Prescription medications' },
+      { value: 'sleep', label: 'Better sleep habits' },
+      { value: 'nothing', label: 'Nothing yet' },
+    ],
+  },
+  {
+    key: 'goals',
+    question: 'What matters most to you right now?',
+    subtitle: 'Select all that apply',
+    type: 'multi',
+    options: [
+      { value: 'more_energy', label: 'More energy' },
+      { value: 'better_sleep', label: 'Better sleep' },
+      { value: 'lose_weight', label: 'Lose weight' },
+      { value: 'build_muscle', label: 'Build muscle' },
+      { value: 'mental_clarity', label: 'Mental clarity' },
+      { value: 'feel_myself', label: 'Feel like myself again' },
+      { value: 'longevity', label: 'Longevity / prevention' },
+      { value: 'performance', label: 'Athletic performance' },
+    ],
+  },
+];
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
@@ -231,7 +401,12 @@ function PaymentSection({ stripeRef, elementsRef, onReady }) {
 // ── Booking Component ─────────────────────────────────────────────────────
 
 export default function AssessmentBooking({ path = 'energy', onBack }) {
+  const questions = path === 'injury' ? INJURY_QUESTIONS : ENERGY_QUESTIONS;
+
   const [confirmed, setConfirmed] = useState(false);
+  const [step, setStep] = useState('questions');
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState({});
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -287,6 +462,27 @@ export default function AssessmentBooking({ path = 'energy', onBack }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`range_assessment_${path}_answers`);
+      if (!saved) return;
+      const parsed = JSON.parse(saved);
+      setAnswers(parsed);
+      const allAnswered = questions.every(q => {
+        const a = parsed[q.key];
+        return q.type === 'multi' ? a?.length > 0 : !!a;
+      });
+      if (allAnswered) setStep('booking');
+    } catch (e) { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (Object.keys(answers).length > 0) {
+      localStorage.setItem(`range_assessment_${path}_answers`, JSON.stringify(answers));
+    }
+  }, [answers, path]);
+
   const contactComplete = firstName.trim() && lastName.trim() && email.trim() && phone.trim();
 
   const submitLead = useCallback(async () => {
@@ -301,7 +497,7 @@ export default function AssessmentBooking({ path = 'energy', onBack }) {
         body: JSON.stringify({
           firstName: firstName.trim(), lastName: lastName.trim(),
           email: email.trim(), phone: phone.trim(),
-          assessmentPath: path, ...utmParams,
+          assessmentPath: path, ...utmParams, ...answers,
         }),
       });
       const data = await res.json();
@@ -431,6 +627,7 @@ export default function AssessmentBooking({ path = 'energy', onBack }) {
 
       setBookingResult({ start: bookData.booking?.start || selectedSlot });
       setConfirmed(true);
+      try { localStorage.removeItem(`range_assessment_${path}_answers`); } catch (e) { /* ignore */ }
       window.scrollTo(0, 0);
 
       window.history.pushState({}, '', '/assessment/confirmed');
@@ -474,19 +671,138 @@ export default function AssessmentBooking({ path = 'energy', onBack }) {
     );
   }
 
-  // ── Booking Form ──
-  return (
-    <div style={{ paddingTop: 40 }}>
-      {onBack && (
+  // ── Questions Step ──
+  if (step === 'questions') {
+    const currentQ = questions[questionIndex];
+    const currentAnswer = answers[currentQ.key];
+    const canContinue = currentQ.type === 'multi'
+      ? currentAnswer?.length > 0
+      : !!currentAnswer;
+
+    const handleSelect = (value) => {
+      if (currentQ.type === 'single') {
+        setAnswers(prev => ({ ...prev, [currentQ.key]: value }));
+        setTimeout(() => {
+          if (questionIndex < questions.length - 1) {
+            setQuestionIndex(qi => qi + 1);
+          } else {
+            setStep('booking');
+          }
+          window.scrollTo(0, 0);
+        }, 300);
+      } else {
+        setAnswers(prev => {
+          const current = prev[currentQ.key] || [];
+          if (currentQ.noneValue) {
+            if (value === currentQ.noneValue) {
+              return { ...prev, [currentQ.key]: current.includes(value) ? [] : [value] };
+            }
+            const filtered = current.filter(v => v !== currentQ.noneValue);
+            return {
+              ...prev,
+              [currentQ.key]: filtered.includes(value)
+                ? filtered.filter(v => v !== value)
+                : [...filtered, value],
+            };
+          }
+          return {
+            ...prev,
+            [currentQ.key]: current.includes(value)
+              ? current.filter(v => v !== value)
+              : [...current, value],
+          };
+        });
+      }
+    };
+
+    const handleContinue = () => {
+      if (questionIndex < questions.length - 1) {
+        setQuestionIndex(qi => qi + 1);
+      } else {
+        setStep('booking');
+      }
+      window.scrollTo(0, 0);
+    };
+
+    const handleQBack = () => {
+      if (questionIndex > 0) {
+        setQuestionIndex(qi => qi - 1);
+        window.scrollTo(0, 0);
+      } else if (onBack) {
+        onBack();
+      }
+    };
+
+    return (
+      <div style={s.questionWrap}>
         <button
           style={s.backBtn}
-          onClick={onBack}
+          onClick={handleQBack}
           onMouseEnter={e => { e.currentTarget.style.color = '#1a1a1a'; }}
           onMouseLeave={e => { e.currentTarget.style.color = '#737373'; }}
         >
           <ChevronLeft size={14} /> BACK
         </button>
-      )}
+
+        <div style={s.progressRow}>
+          {questions.map((_, i) => (
+            <div
+              key={i}
+              style={{ ...s.progressSegment, ...(i <= questionIndex ? s.progressSegmentActive : {}) }}
+            />
+          ))}
+        </div>
+
+        <h2 style={s.questionText}>{currentQ.question}</h2>
+        {currentQ.subtitle && <p style={s.questionSub}>{currentQ.subtitle}</p>}
+        {!currentQ.subtitle && <div style={{ marginBottom: 24 }} />}
+
+        <div style={s.optionList}>
+          {currentQ.options.map((opt) => {
+            const isSelected = currentQ.type === 'multi'
+              ? (currentAnswer || []).includes(opt.value)
+              : currentAnswer === opt.value;
+            return (
+              <button
+                key={opt.value}
+                style={{ ...s.optionBtn, ...(isSelected ? s.optionBtnSelected : {}) }}
+                onClick={() => handleSelect(opt.value)}
+              >
+                <span>{opt.label}</span>
+                {isSelected && currentQ.type === 'multi' && (
+                  <span style={s.optionCheck}>{'✓'}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {currentQ.type === 'multi' && (
+          <button
+            style={{ ...s.btn, ...(canContinue ? {} : s.btnDisabled) }}
+            disabled={!canContinue}
+            onClick={handleContinue}
+            onMouseEnter={e => { if (canContinue) e.currentTarget.style.background = '#234a2e'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#2E5D3A'; }}
+          >
+            CONTINUE
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // ── Booking Form ──
+  return (
+    <div style={{ paddingTop: 40 }}>
+      <button
+        style={s.backBtn}
+        onClick={() => { setStep('questions'); setQuestionIndex(questions.length - 1); window.scrollTo(0, 0); }}
+        onMouseEnter={e => { e.currentTarget.style.color = '#1a1a1a'; }}
+        onMouseLeave={e => { e.currentTarget.style.color = '#737373'; }}
+      >
+        <ChevronLeft size={14} /> BACK
+      </button>
 
       <div style={s.label}>
         <span style={s.dot} /> BOOK YOUR ASSESSMENT

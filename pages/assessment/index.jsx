@@ -9,10 +9,7 @@ export async function getServerSideProps({ query }) {
   if (path === 'injury' || path === 'both') {
     return { redirect: { destination: '/assessment/injury', permanent: false } };
   }
-  if (path === 'energy') {
-    return { redirect: { destination: '/assessment/energy', permanent: false } };
-  }
-  return { props: {} };
+  return { redirect: { destination: '/assessment/energy', permanent: false } };
 }
 
 const selectorStyles = {
@@ -56,14 +53,15 @@ const selectorStyles = {
   pathArrow: {
     display: 'inline-block',
     marginTop: 20,
-    padding: '12px 24px',
-    background: '#1a1a1a',
+    padding: '14px 28px',
+    background: '#2E5D3A',
     color: '#ffffff',
-    fontSize: 11,
-    fontWeight: 800,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
+    fontSize: 15,
+    fontWeight: 500,
+    letterSpacing: 0,
+    textTransform: 'none',
     border: 'none',
+    borderRadius: 999,
     cursor: 'pointer',
     transition: 'background 0.2s',
   },

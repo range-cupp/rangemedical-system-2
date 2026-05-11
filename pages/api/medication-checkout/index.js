@@ -10,6 +10,8 @@ import { todayPacific } from '../../../lib/date-utils';
 import { isWeightLossType } from '../../../lib/protocol-config';
 import { guardDoseChange } from '../../../lib/dose-change-guard';
 import { spawnTakeHomeInjections } from '../../../lib/spawn-takehome-injections';
+import { recountProtocolSessions } from '../../../lib/recount-protocol-sessions';
+import { createServiceLogEntry } from '../../../lib/service-log-engine';
 // Controlled substance staff config — used for logging, not blocking
 // Dose approval is enforced via dose-change-requests SMS flow
 
@@ -110,17 +112,17 @@ export default async function handler(req, res) {
     // 2. For in-clinic purchases (WL or peptide): do NOT create a service log — encounter notes are the sole source
     // For everything else (take-home pickups, other categories): create service log as before
     if (!isInClinicPurchase) {
-      const logData = {
+      const { log: serviceLog, error: engineErr } = await createServiceLogEntry(supabase, {
         patient_id,
         category,
         entry_type: resolvedEntryType,
         entry_date: logDate,
         medication: medication || null,
         dosage: dosage || null,
-        weight: weight ? parseFloat(weight) : null,
-        quantity: quantity ? parseInt(quantity) : null,
+        weight,
+        quantity,
         supply_type: supply_type || null,
-        duration: duration ? parseInt(duration) : null,
+        duration,
         notes: notes || null,
         protocol_id: protocol_id || null,
         administered_by: administered_by || null,
@@ -129,32 +131,10 @@ export default async function handler(req, res) {
         expiration_date: expiration_date || null,
         fulfillment_method: fulfillment_method || 'in_clinic',
         tracking_number: tracking_number || null,
-        checkout_type: 'medication_checkout',
-      };
+      }, { skipDuplicateCheck: true });
 
-      const { data: serviceLog, error: logError } = await supabase
-        .from('service_logs')
-        .insert([logData])
-        .select()
-        .single();
-
+      if (engineErr) throw new Error(engineErr);
       finalLog = serviceLog;
-      if (logError) {
-        const msg = logError.message || '';
-        if (msg.includes('checkout_type') || msg.includes('verified_by')) {
-          delete logData.checkout_type;
-          delete logData.verified_by;
-          const { data: retryLog, error: retryError } = await supabase
-            .from('service_logs')
-            .insert([logData])
-            .select()
-            .single();
-          if (retryError) throw retryError;
-          finalLog = retryLog;
-        } else {
-          throw logError;
-        }
-      }
     }
 
     // 3. Update protocol if linked
@@ -199,7 +179,7 @@ export default async function handler(req, res) {
       if (isWLTakeHomePickup) {
         const { data: protoRow } = await supabase
           .from('protocols')
-          .select('id, frequency, injection_day, medication, selected_dose, dose')
+          .select('id, frequency, injection_day, medication, selected_dose, dose, delivery_method')
           .eq('id', protocol_id)
           .single();
         if (protoRow) {
@@ -280,7 +260,7 @@ export default async function handler(req, res) {
             injDate.setDate(injDate.getDate() + dayOffset);
             const injDateStr = injDate.toISOString().split('T')[0];
 
-            const { error: hrtInjErr } = await supabase.from('service_logs').insert([{
+            const { error: hrtInjErr } = await createServiceLogEntry(supabase, {
               patient_id,
               category,
               entry_type: 'injection',
@@ -290,11 +270,11 @@ export default async function handler(req, res) {
               quantity: 1,
               notes: `Take-home injection (dispensed ${logDate}, ${hrtPickupQty}-syringe pickup, ${i + 1} of ${hrtPickupQty})`,
               protocol_id: protocol_id || null,
-              injection_method: injection_method || null,
               fulfillment_method: 'take_home',
-            }]);
+              status: 'scheduled',
+            }, { skipDuplicateCheck: true, skipBillingCheck: true, skipRecount: true });
             if (hrtInjErr) {
-              console.error(`[medication-checkout] HRT auto-schedule insert failed for ${injDateStr}:`, hrtInjErr.message);
+              console.error(`[medication-checkout] HRT auto-schedule insert failed for ${injDateStr}:`, hrtInjErr);
             } else {
               createdHrt++;
             }
@@ -333,16 +313,7 @@ export default async function handler(req, res) {
       console.error('[medication-checkout] HRT auto-schedule block error:', hrtErr.message);
     }
 
-    // 5. Sync weight to vitals if provided
-    try {
-      if (weight) {
-        await syncWeightToVitals(patient_id, weight, logDate, administered_by);
-      }
-    } catch (wtErr) {
-      console.error('[medication-checkout] Weight sync error:', wtErr.message);
-    }
-
-    // 6. Send receipt/confirmation email (if enabled)
+    // 5. Send receipt/confirmation email (if enabled)
     try {
       const isCovered = coverage_type === 'subscription' || coverage_type === 'protocol' || coverage_type === 'comp';
       if (send_receipt) await sendCheckoutReceipt({
@@ -563,51 +534,26 @@ async function updateProtocol(protocolId, opts) {
     // ── TAKE-HOME / SINGLE INJECTION PATH (existing behavior) ──
     updates.last_visit_date = logDate;
 
-    // Increment sessions_used for session/injection-based protocols
+    // For session/injection-based protocols, calculate next expected date
+    // sessions_used will be recounted from service_logs after the update
     if ((entryType === 'injection' || entryType === 'session') && protocol.total_sessions && categoryMatchesProtocol) {
-      const increment = 1;
-      updates.sessions_used = (protocol.sessions_used || 0) + increment;
-
-      // Calculate next expected date (7 days for single injection/session)
       const nextDate = new Date(logDate + 'T12:00:00');
       nextDate.setDate(nextDate.getDate() + 7);
       updates.next_expected_date = nextDate.toISOString().split('T')[0];
-
-      // Check if protocol is now complete
-      // Peptide protocols get a 14-day grace period after end_date before auto-completing
-      if (updates.sessions_used >= protocol.total_sessions) {
-        const isPeptide = protocolCategory === 'peptide';
-        if (isPeptide) {
-          const endDate = protocol.end_date ? new Date(protocol.end_date + 'T12:00:00') : null;
-          const now = new Date(logDate + 'T12:00:00');
-          const daysPastEnd = endDate ? Math.floor((now - endDate) / (1000 * 60 * 60 * 24)) : 0;
-          if (daysPastEnd >= 14) {
-            updates.status = 'completed';
-            updates.end_date = logDate;
-          }
-        } else {
-          updates.status = 'completed';
-          updates.end_date = logDate;
-        }
-      }
     }
 
     // For pickups (HRT, peptide, WL take-home), update refill tracking
     if (entryType === 'pickup' || entryType === 'med_pickup') {
       updates.last_refill_date = logDate;
 
-      // For WL take-home pickups: increment sessions_used
-      // Only extend total_sessions if patient is at/past their limit (buying MORE sessions)
-      // e.g., 6/8 + pickup 1 → 7/8 (still has sessions remaining, don't touch total)
-      // e.g., 8/8 + pickup 4 → 12/12 (at limit, extend total to match)
+      // For WL take-home pickups: extend total_sessions if needed
+      // sessions_used is recounted from service_logs after update
       if (isWeightLossType(category) && quantity && parseInt(quantity) > 0) {
         const pickupQty = parseInt(quantity);
         const currentUsed = protocol.sessions_used || 0;
         const currentTotal = protocol.total_sessions || 0;
         const newUsed = currentUsed + pickupQty;
-        updates.sessions_used = newUsed;
 
-        // Only extend total_sessions if dispensing would exceed the current total
         if (newUsed > currentTotal) {
           updates.total_sessions = newUsed;
         }
@@ -742,6 +688,9 @@ async function updateProtocol(protocolId, opts) {
       .eq('id', protocolId);
 
     if (updateError) throw updateError;
+
+    // Recount sessions_used from service_logs (single source of truth)
+    await recountProtocolSessions(supabase, protocolId);
 
     return { updated: true, protocol_id: protocolId, updates, dose_change_blocked: doseChangeBlocked, dose_change_blocked_reason: doseChangeBlockedReason };
   } catch (err) {
@@ -891,35 +840,4 @@ function generateCoveredReceiptHtml({ firstName, patientName, description, cover
 </html>`;
 }
 
-// Sync weight to patient_vitals
-async function syncWeightToVitals(patient_id, weight, entry_date, recorded_by) {
-  if (!patient_id || !weight) return;
-  try {
-    const dayStart = entry_date + 'T00:00:00Z';
-    const dayEnd = entry_date + 'T23:59:59Z';
-    const { data: existing } = await supabase
-      .from('patient_vitals')
-      .select('id')
-      .eq('patient_id', patient_id)
-      .gte('recorded_at', dayStart)
-      .lte('recorded_at', dayEnd)
-      .order('recorded_at', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (existing) {
-      await supabase.from('patient_vitals')
-        .update({ weight_lbs: parseFloat(weight), recorded_by: recorded_by || 'Medication Checkout' })
-        .eq('id', existing.id);
-    } else {
-      await supabase.from('patient_vitals').insert({
-        patient_id,
-        weight_lbs: parseFloat(weight),
-        recorded_by: recorded_by || 'Medication Checkout',
-        recorded_at: new Date(entry_date + 'T12:00:00Z').toISOString(),
-      });
-    }
-  } catch (err) {
-    console.error('[medication-checkout] syncWeightToVitals error:', err.message);
-  }
-}
+// syncWeightToVitals now handled by service-log-engine

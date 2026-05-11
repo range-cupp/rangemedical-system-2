@@ -247,7 +247,7 @@ export default function Layout({ children, title, description, logoOnly }) {
           max-width: 1400px;
           margin: 0 auto;
           padding: 0 2.5rem;
-          height: 64px;
+          height: 80px;
           display: flex;
           align-items: center;
           justify-content: space-between;

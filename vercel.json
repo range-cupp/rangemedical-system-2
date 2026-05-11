@@ -33,6 +33,10 @@
       "schedule": "0 6 * * *"
     },
     {
+      "path": "/api/cron/auto-complete-scheduled",
+      "schedule": "55 6 * * *"
+    },
+    {
       "path": "/api/cron/complete-protocols",
       "schedule": "0 7 * * *"
     },

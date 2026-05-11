@@ -6,6 +6,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { todayPacific } from '../../../lib/date-utils';
 import { getServiceTypesForModality } from '../../../lib/recovery-offers';
+import { createServiceLogEntry } from '../../../lib/service-log-engine';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -55,27 +56,45 @@ export default async function handler(req, res) {
     const entryDate = date || todayPacific();
     const serviceTypes = getServiceTypesForModality(enrollment.modality_preference);
 
-    // ── Create service_log entries ─────────────────────────────────────────
-    const logEntries = serviceTypes.map(type => ({
-      patient_id: enrollment.patient_id,
-      protocol_id: enrollment.protocol_id,
-      category: type,
-      entry_type: 'session',
-      entry_date: entryDate,
-      medication: type === 'hbot' ? 'Hyperbaric Oxygen' : 'Red Light Therapy',
-      duration: type === 'hbot' ? 60 : 20,
-      administered_by: administered_by || null,
-      notes: notes ? `[${enrollment.recovery_offers?.name}] ${notes}` : `[${enrollment.recovery_offers?.name}]`,
-    }));
-
-    const { data: logs, error: logError } = await supabase
+    // ── Guard: check if sessions were already logged today via the service log ──
+    // Prevents double-decrement when staff logs through both the service log UI
+    // (which auto-decrements recovery) and the Recovery page
+    const { data: existingToday } = await supabase
       .from('service_logs')
-      .insert(logEntries)
-      .select();
+      .select('id')
+      .eq('patient_id', enrollment.patient_id)
+      .eq('entry_date', entryDate)
+      .eq('entry_type', 'session')
+      .in('category', serviceTypes)
+      .limit(1);
 
-    if (logError) {
-      console.error('Service log insert error:', logError);
-      return res.status(500).json({ error: logError.message });
+    if (existingToday && existingToday.length > 0) {
+      return res.status(409).json({
+        error: 'A session for this modality was already logged today',
+        duplicate: true,
+      });
+    }
+
+    // ── Create service_log entries via central engine ──────────────────────
+    const logs = [];
+    for (const type of serviceTypes) {
+      const { log, error: engineErr } = await createServiceLogEntry(supabase, {
+        patient_id: enrollment.patient_id,
+        protocol_id: enrollment.protocol_id,
+        category: type,
+        entry_type: 'session',
+        entry_date: entryDate,
+        medication: type === 'hbot' ? 'Hyperbaric Oxygen' : 'Red Light Therapy',
+        duration: type === 'hbot' ? 60 : 20,
+        administered_by: administered_by || null,
+        notes: notes ? `[${enrollment.recovery_offers?.name}] ${notes}` : `[${enrollment.recovery_offers?.name}]`,
+      }, { skipDuplicateCheck: true });
+
+      if (engineErr) {
+        console.error('Service log engine error:', engineErr);
+        return res.status(500).json({ error: engineErr });
+      }
+      logs.push(log);
     }
 
     // ── Update enrollment session count ────────────────────────────────────

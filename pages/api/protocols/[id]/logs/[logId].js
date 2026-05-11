@@ -1,9 +1,9 @@
 // /pages/api/protocols/[id]/logs/[logId].js
 // Update or delete a protocol log entry
 // Range Medical
-// UPDATED: 2026-03-17 — Consolidated to service_logs as single source of truth
 
 import { createClient } from '@supabase/supabase-js';
+import { deleteServiceLogEntry } from '../../../../../lib/service-log-engine';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -57,25 +57,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get protocol to update sessions_used
-    const { data: protocol, error: fetchError } = await supabase
-      .from('protocols')
-      .select('sessions_used, status')
-      .eq('id', protocolId)
-      .single();
+    // Try service_logs via engine (handles recount)
+    const { deleted, error: engineErr } = await deleteServiceLogEntry(supabase, logId);
 
-    if (fetchError || !protocol) {
-      return res.status(404).json({ error: 'Protocol not found' });
-    }
-
-    // Try to delete from service_logs first
-    const { error: slError } = await supabase
-      .from('service_logs')
-      .delete()
-      .eq('id', logId)
-      .eq('protocol_id', protocolId);
-
-    if (slError) {
+    if (engineErr === 'Log entry not found') {
       // Fallback to protocol_logs for system/audit entries
       const { error: plError } = await supabase
         .from('protocol_logs')
@@ -83,20 +68,9 @@ export default async function handler(req, res) {
         .eq('id', logId)
         .eq('protocol_id', protocolId);
       if (plError) throw plError;
+    } else if (engineErr) {
+      throw new Error(engineErr);
     }
-
-    // Decrement sessions_used
-    const newSessionsUsed = Math.max(0, (protocol.sessions_used || 1) - 1);
-    const updates = { sessions_used: newSessionsUsed };
-
-    if (protocol.status === 'completed' && newSessionsUsed > 0) {
-      updates.status = 'active';
-    }
-
-    await supabase
-      .from('protocols')
-      .update(updates)
-      .eq('id', protocolId);
 
     return res.status(200).json({ success: true, message: 'Log deleted' });
 

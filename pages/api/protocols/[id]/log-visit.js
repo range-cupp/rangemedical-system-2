@@ -3,6 +3,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { todayPacific } from '../../../../lib/date-utils';
+import { recountProtocolSessions } from '../../../../lib/recount-protocol-sessions';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -134,23 +135,29 @@ export default async function handler(req, res) {
       today
     );
 
-    // Update the protocol
+    // Update date fields on the protocol
     const updates = {
       last_visit_date: today,
       next_expected_date: nextExpected,
-      sessions_used: (protocol.sessions_used || 0) + 1
     };
 
-    const { data: updatedProtocol, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from('protocols')
       .update(updates)
-      .eq('id', protocolId)
-      .select()
-      .single();
+      .eq('id', protocolId);
 
     if (updateError) {
       return res.status(500).json({ error: 'Failed to update protocol', details: updateError.message });
     }
+
+    // Recount sessions_used from service_logs (single source of truth)
+    await recountProtocolSessions(supabase, protocolId);
+
+    const { data: updatedProtocol } = await supabase
+      .from('protocols')
+      .select('*')
+      .eq('id', protocolId)
+      .single();
 
     return res.status(200).json({
       success: true,

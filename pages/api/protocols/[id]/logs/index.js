@@ -1,9 +1,9 @@
 // /pages/api/protocols/[id]/logs/index.js
 // Protocol Logs API - GET all logs, POST new log
 // Range Medical
-// UPDATED: 2026-03-17 — Consolidated to service_logs as single source of truth
 
 import { createClient } from '@supabase/supabase-js';
+import { createServiceLogEntry } from '../../../../../lib/service-log-engine';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -88,46 +88,22 @@ export default async function handler(req, res) {
         : log_type === 'session' ? 'session'
         : 'injection';
 
-      const { data: log, error: logError } = await supabase
-        .from('service_logs')
-        .insert({
-          protocol_id: id,
-          patient_id: patient_id,
-          category,
-          entry_type: entryType,
-          entry_date: log_date,
-          medication: protocol?.medication || null,
-          dosage: protocol?.selected_dose || null,
-          weight: weight ? parseFloat(weight) : null,
-          notes: notes || null,
-          created_by: logged_by || null,
-        })
-        .select()
-        .single();
+      const { log, error: engineErr } = await createServiceLogEntry(supabase, {
+        protocol_id: id,
+        patient_id: patient_id,
+        category,
+        entry_type: entryType,
+        entry_date: log_date,
+        medication: protocol?.medication || null,
+        dosage: protocol?.selected_dose || null,
+        weight: weight ? parseFloat(weight) : null,
+        notes: notes || null,
+        created_by: logged_by || null,
+      });
 
-      if (logError) {
-        console.error('Error creating log:', logError);
-        return res.status(500).json({ error: 'Failed to create log', details: logError.message });
-      }
-
-      // If this is an injection/session, update the protocol's sessions_used
-      if (entryType === 'injection' || entryType === 'session') {
-        if (protocol) {
-          const newSessionsUsed = (protocol.sessions_used || 0) + 1;
-          const updates = {
-            sessions_used: newSessionsUsed,
-            updated_at: new Date().toISOString()
-          };
-
-          if (protocol.total_sessions && newSessionsUsed >= protocol.total_sessions) {
-            updates.status = 'completed';
-          }
-
-          await supabase
-            .from('protocols')
-            .update(updates)
-            .eq('id', id);
-        }
+      if (engineErr) {
+        console.error('Error creating log:', engineErr);
+        return res.status(500).json({ error: 'Failed to create log', details: engineErr });
       }
 
       return res.status(200).json(log);

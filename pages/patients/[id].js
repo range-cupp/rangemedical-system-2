@@ -16220,6 +16220,11 @@ export default function PatientProfile() {
                     <img
                       src={/\.(heic|heif)(\?|$)/i.test(pdfSlideOut.url) ? `/api/image-proxy?url=${encodeURIComponent(pdfSlideOut.url)}` : pdfSlideOut.url}
                       alt={pdfSlideOut.title}
+                      onError={(e) => {
+                        if (!e.target.src.includes('/api/image-proxy')) {
+                          e.target.src = `/api/image-proxy?url=${encodeURIComponent(pdfSlideOut.url)}`;
+                        }
+                      }}
                       style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 0, boxShadow: '0 2px 12px rgba(0,0,0,0.1)' }}
                     />
                   </div>

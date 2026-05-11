@@ -5072,7 +5072,16 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             {photoIdViewer.url.match(/\.pdf/i) ? (
               <iframe src={photoIdViewer.url} style={{ width: '100%', height: '60vh', border: '1px solid #e5e5e5' }} />
             ) : (
-              <img src={photoIdViewer.url} alt="Photo ID" style={{ width: '100%', height: 'auto', border: '1px solid #e5e5e5' }} />
+              <img
+                src={/\.(heic|heif)(\?|$)/i.test(photoIdViewer.url) ? `/api/image-proxy?url=${encodeURIComponent(photoIdViewer.url)}` : photoIdViewer.url}
+                alt="Photo ID"
+                onError={(e) => {
+                  if (!e.target.src.includes('/api/image-proxy')) {
+                    e.target.src = `/api/image-proxy?url=${encodeURIComponent(photoIdViewer.url)}`;
+                  }
+                }}
+                style={{ width: '100%', height: 'auto', border: '1px solid #e5e5e5' }}
+              />
             )}
           </div>
         </div>

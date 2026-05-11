@@ -139,7 +139,7 @@ export default async function handler(req, res) {
         supabase.from('medical_documents').select('*').eq('patient_id', id).order('uploaded_at', { ascending: false }),
         // Assessments
         patient.email
-          ? supabase.from('assessment_leads').select('id, first_name, last_name, email, phone, assessment_path, injury_type, injury_location, injury_duration, in_physical_therapy, recovery_goal, primary_symptom, symptom_duration, has_recent_labs, tried_hormone_therapy, energy_goal, additional_info, medical_history, pdf_url, created_at').eq('email', patient.email.toLowerCase().trim()).order('created_at', { ascending: false })
+          ? supabase.from('assessment_leads').select('id, first_name, last_name, email, phone, assessment_path, injury_type, injury_location, injury_duration, in_physical_therapy, recovery_goal, treatments_tried, primary_symptom, symptom_duration, has_recent_labs, tried_hormone_therapy, energy_goal, additional_info, medical_history, pdf_url, created_at').eq('email', patient.email.toLowerCase().trim()).order('created_at', { ascending: false })
           : Promise.resolve({ data: [] }),
         // Tasks
         supabase.from('tasks').select('*').eq('patient_id', id).order('created_at', { ascending: false }),

@@ -10095,12 +10095,16 @@ export default function PatientProfile() {
                       // Build summary from fields
                       const details = [];
                       if (a.assessment_path === 'injury') {
-                        if (a.injury_type) details.push(`Type: ${a.injury_type.replace(/_/g, ' ')}`);
                         if (a.injury_location) details.push(`Location: ${a.injury_location.replace(/_/g, ' ')}`);
+                        if (a.injury_type) details.push(`Cause: ${a.injury_type.replace(/_/g, ' ')}`);
                         if (a.injury_duration) details.push(`Duration: ${a.injury_duration.replace(/_/g, ' ')}`);
+                        if (a.treatments_tried) details.push(`Tried: ${a.treatments_tried.replace(/_/g, ' ')}`);
                         if (a.recovery_goal) details.push(`Goal: ${a.recovery_goal.replace(/_/g, ' ')}`);
                       } else {
                         if (a.primary_symptom) details.push(`Symptoms: ${a.primary_symptom.replace(/_/g, ' ')}`);
+                        if (a.symptom_duration) details.push(`Duration: ${a.symptom_duration.replace(/_/g, ' ')}`);
+                        if (a.has_recent_labs) details.push(`Recent labs: ${a.has_recent_labs.replace(/_/g, ' ')}`);
+                        if (a.treatments_tried) details.push(`Tried: ${a.treatments_tried.replace(/_/g, ' ')}`);
                         if (a.energy_goal) details.push(`Goals: ${a.energy_goal.replace(/_/g, ' ')}`);
                         if (a.tried_hormone_therapy) details.push(`Previous HRT: ${a.tried_hormone_therapy}`);
                       }

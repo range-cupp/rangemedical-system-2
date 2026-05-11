@@ -74,7 +74,6 @@ export default async function handler(req, res) {
         `)
         .gte('start_time', dayStart)
         .lte('start_time', dayEnd)
-        .not('status', 'eq', 'cancelled')
         .order('start_time', { ascending: true })
     ]);
 

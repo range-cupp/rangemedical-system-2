@@ -2664,7 +2664,7 @@ function CheckoutInner() {
               verified_by: d.verifiedBy,
               lot_number: d.lotNumber,
               expiration_date: d.expirationDate,
-              fulfillment_method: d.fulfillmentMethod || 'in_clinic',
+              fulfillment_method: 'take_home',
               tracking_number: d.trackingNumber,
               entry_date: d.entryDate || null,
               send_receipt: sendReceipt,
@@ -3777,24 +3777,38 @@ function CheckoutInner() {
                                     <div style={styles.dispenseFieldGroup}>
                                       <label style={styles.fieldLabel}>Fulfillment</label>
                                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                        {['injection', 'pickup'].includes(dispEntryType) && (
-                                          <>
+                                        {['injection', 'pickup'].includes(dispEntryType) && (() => {
+                                          const proto = activeProtocols.find(p => p.id === dispensingProtocolId);
+                                          const cat = dispCategoryOverride || (proto ? protocolToCategory(proto.program_type) : '');
+                                          const isWL = cat === 'weight_loss';
+                                          const setFulfill = (val) => {
+                                            setDispFulfillment(val);
+                                            if (isWL) setDispEntryType(val === 'in_clinic' ? 'injection' : 'pickup');
+                                          };
+                                          return <>
                                             <button
-                                              onClick={() => setDispFulfillment('in_clinic')}
+                                              onClick={() => setFulfill('in_clinic')}
                                               style={{
                                                 ...styles.fulfillmentBtn,
                                                 ...(dispFulfillment === 'in_clinic' ? { border: '2px solid #2E75B6', background: '#EBF3FB', color: '#2E75B6' } : {}),
                                               }}
                                             >In Clinic</button>
                                             <button
-                                              onClick={() => setDispFulfillment('overnight')}
+                                              onClick={() => setFulfill('take_home')}
+                                              style={{
+                                                ...styles.fulfillmentBtn,
+                                                ...(dispFulfillment === 'take_home' ? { border: '2px solid #16a34a', background: '#f0fdf4', color: '#16a34a' } : {}),
+                                              }}
+                                            >Take Home</button>
+                                            <button
+                                              onClick={() => setFulfill('overnight')}
                                               style={{
                                                 ...styles.fulfillmentBtn,
                                                 ...(dispFulfillment === 'overnight' ? { border: '2px solid #e67e22', background: '#FFF5EB', color: '#e67e22' } : {}),
                                               }}
                                             >Overnighted</button>
-                                          </>
-                                        )}
+                                          </>;
+                                        })()}
                                         {dispEntryType === 'session' && (
                                           <span style={{ fontSize: '13px', color: '#888', padding: '10px 0' }}>In-clinic session</span>
                                         )}

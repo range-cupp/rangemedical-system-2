@@ -179,7 +179,7 @@ export default async function handler(req, res) {
       if (isWLTakeHomePickup) {
         const { data: protoRow } = await supabase
           .from('protocols')
-          .select('id, frequency, injection_day, medication, selected_dose, dose')
+          .select('id, frequency, injection_day, medication, selected_dose, dose, delivery_method')
           .eq('id', protocol_id)
           .single();
         if (protoRow) {

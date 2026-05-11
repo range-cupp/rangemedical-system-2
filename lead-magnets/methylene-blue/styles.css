@@ -1,0 +1,519 @@
+@page {
+  size: letter;
+  margin: 0;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 8.5in;
+  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 10pt;
+  line-height: 1.6;
+  color: #1A1A1A;
+  background: #F7F4EE;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ── Page wrapper ── */
+.page {
+  width: 8.5in;
+  min-height: 11in;
+  max-height: 11in;
+  overflow: hidden;
+  padding: 0.65in 0.85in 0.7in 0.85in;
+  page-break-after: always;
+  position: relative;
+  background: #F7F4EE;
+}
+
+.page:last-child {
+  page-break-after: avoid;
+}
+
+/* ── Typography ── */
+h1, h2, h3 {
+  font-family: 'Fraunces', 'Georgia', serif;
+  color: #0B1B2B;
+}
+
+h1 {
+  font-weight: 700;
+  font-size: 22pt;
+  line-height: 1.2;
+  margin-bottom: 0.15in;
+}
+
+h2 {
+  font-weight: 600;
+  font-size: 15pt;
+  line-height: 1.25;
+  margin-bottom: 0.08in;
+  padding-bottom: 0.06in;
+  border-bottom: 1.5px solid #0B1B2B;
+}
+
+h3 {
+  font-weight: 600;
+  font-size: 11.5pt;
+  line-height: 1.3;
+  margin-bottom: 0.05in;
+  color: #0B1B2B;
+}
+
+p {
+  margin-bottom: 0.1in;
+  orphans: 3;
+  widows: 3;
+}
+
+strong {
+  font-weight: 600;
+  color: #0B1B2B;
+}
+
+/* ── Cover page ── */
+.cover {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 1.2in 1in;
+}
+
+.cover-wordmark {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 11pt;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #1B4D8C;
+  margin-bottom: 0.6in;
+}
+
+.cover h1 {
+  font-size: 26pt;
+  line-height: 1.15;
+  margin-bottom: 0.25in;
+  max-width: 5.8in;
+}
+
+.cover-subtitle {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-style: italic;
+  font-size: 12.5pt;
+  color: #6B6660;
+  line-height: 1.4;
+  margin-bottom: 0;
+}
+
+.cover-footer {
+  position: absolute;
+  bottom: 0.75in;
+  left: 1in;
+  font-size: 8.5pt;
+  color: #6B6660;
+  letter-spacing: 0.02em;
+}
+
+.cover-rule {
+  width: 2in;
+  height: 2px;
+  background: #1B4D8C;
+  margin-bottom: 0.35in;
+  border: none;
+}
+
+/* ── Section opener ── */
+.section-open {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-style: italic;
+  font-size: 11pt;
+  color: #6B6660;
+  line-height: 1.5;
+  margin-bottom: 0.15in;
+}
+
+.section-close {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-style: italic;
+  font-size: 10pt;
+  color: #6B6660;
+  line-height: 1.5;
+  margin-top: 0.12in;
+}
+
+/* ── Numbered bullets (TL;DR page) ── */
+.numbered-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.12in 0 0.15in 0;
+}
+
+.numbered-list li {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 0.1in;
+  line-height: 1.55;
+  font-size: 9.5pt;
+}
+
+.numbered-list .num {
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 13pt;
+  color: #1B4D8C;
+  min-width: 0.3in;
+  flex-shrink: 0;
+  line-height: 1;
+  position: relative;
+  top: 0.02in;
+}
+
+.numbered-list .num-text {
+  flex: 1;
+}
+
+/* ── Pull quote ── */
+.pull-quote {
+  border-left: 2px solid #1B4D8C;
+  padding: 0.06in 0 0.06in 0.2in;
+  margin: 0.12in 0 0.12in 0.15in;
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-style: italic;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #0B1B2B;
+}
+
+/* ── Citation ── */
+.citation {
+  font-size: 8pt;
+  font-style: italic;
+  color: #6B6660;
+  line-height: 1.45;
+  margin-top: 0.03in;
+  margin-bottom: 0.08in;
+}
+
+/* ── Mechanism blocks ── */
+.mechanism {
+  margin-bottom: 0.1in;
+}
+
+.mechanism h3 {
+  font-size: 10.5pt;
+  margin-bottom: 0.02in;
+}
+
+.mechanism p {
+  font-size: 9.5pt;
+  margin-bottom: 0.04in;
+}
+
+/* ── Study cards ── */
+.study {
+  margin-bottom: 0.12in;
+  padding-bottom: 0.06in;
+  border-bottom: 0.5px solid #D8D4CE;
+}
+
+.study:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0.06in;
+}
+
+.study-title {
+  font-weight: 600;
+  font-size: 9.5pt;
+  color: #0B1B2B;
+  margin-bottom: 0.02in;
+}
+
+.study-takeaway {
+  font-size: 9.5pt;
+  margin-bottom: 0.02in;
+}
+
+.study .citation {
+  margin-top: 0.01in;
+  margin-bottom: 0;
+}
+
+/* ── Sidebar note ── */
+.sidebar {
+  background: #EFECE6;
+  padding: 0.1in 0.15in;
+  border-radius: 4px;
+  margin-top: 0.08in;
+  font-size: 8.5pt;
+  line-height: 1.5;
+  color: #4A4641;
+}
+
+.sidebar strong {
+  color: #0B1B2B;
+  font-size: 8.5pt;
+}
+
+/* ── Danger callout ── */
+.danger-callout {
+  background: #F5E8E4;
+  color: #7A2E2E;
+  padding: 0.12in 0.18in;
+  border-radius: 6px;
+  margin: 0.1in 0;
+  font-size: 9pt;
+  line-height: 1.55;
+}
+
+.danger-callout strong {
+  color: #5C1E1E;
+}
+
+.danger-callout p {
+  margin-bottom: 0.04in;
+  color: #7A2E2E;
+}
+
+.danger-callout p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Drug interaction table ── */
+.drug-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.5pt;
+  margin: 0.06in 0 0.08in 0;
+}
+
+.drug-table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 7.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6B6660;
+  padding: 0.04in 0.1in;
+  border-bottom: 1px solid #C8C4BE;
+}
+
+.drug-table td {
+  padding: 0.035in 0.1in;
+  vertical-align: top;
+  line-height: 1.4;
+}
+
+.drug-table td:first-child {
+  font-weight: 600;
+  color: #0B1B2B;
+  white-space: nowrap;
+  width: 1.4in;
+}
+
+.drug-table tr:nth-child(odd) td {
+  background: #FFFFFF;
+}
+
+.drug-table tr:nth-child(even) td {
+  background: #F7F4EE;
+}
+
+/* ── Dose reference table ── */
+.dose-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+  margin: 0.08in 0;
+}
+
+.dose-table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 7.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6B6660;
+  padding: 0.05in 0.12in;
+  border-bottom: 1px solid #C8C4BE;
+}
+
+.dose-table td {
+  padding: 0.05in 0.12in;
+  line-height: 1.45;
+}
+
+.dose-table td:first-child {
+  font-weight: 600;
+  color: #0B1B2B;
+  width: 1.6in;
+}
+
+.dose-table tr:nth-child(odd) td {
+  background: #FFFFFF;
+}
+
+.dose-table tr:nth-child(even) td {
+  background: #F7F4EE;
+}
+
+/* ── Assessment checklist ── */
+.checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0.08in 0;
+}
+
+.checklist li {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 0.07in;
+  font-size: 9.5pt;
+  line-height: 1.5;
+}
+
+.checklist .check {
+  color: #1B4D8C;
+  font-weight: 700;
+  min-width: 0.25in;
+  flex-shrink: 0;
+}
+
+/* ── CTA page ── */
+.cta-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding-top: 1.5in;
+}
+
+.cta-page h1 {
+  font-size: 24pt;
+  margin-bottom: 0.12in;
+}
+
+.cta-page .cta-sub {
+  font-size: 11pt;
+  color: #6B6660;
+  max-width: 5in;
+  margin-bottom: 0.4in;
+  line-height: 1.5;
+}
+
+.cta-contact {
+  font-size: 10pt;
+  color: #0B1B2B;
+  line-height: 1.7;
+  margin-bottom: 0.3in;
+}
+
+.cta-contact strong {
+  font-size: 11pt;
+}
+
+.qr-container {
+  margin-top: 0.15in;
+}
+
+.qr-container img {
+  width: 1.4in;
+  height: 1.4in;
+}
+
+.qr-label {
+  font-size: 8pt;
+  color: #6B6660;
+  margin-top: 0.06in;
+}
+
+/* ── Disclaimer ── */
+.disclaimer {
+  padding-top: 1in;
+}
+
+.disclaimer h2 {
+  font-size: 11pt;
+  border-bottom-width: 1px;
+  margin-bottom: 0.15in;
+}
+
+.disclaimer p {
+  font-size: 8pt;
+  line-height: 1.6;
+  color: #6B6660;
+  margin-bottom: 0.1in;
+}
+
+.disclaimer-footer {
+  position: absolute;
+  bottom: 0.75in;
+  left: 0.85in;
+  right: 0.85in;
+  text-align: center;
+  font-size: 8pt;
+  color: #6B6660;
+  border-top: 0.5px solid #D8D4CE;
+  padding-top: 0.1in;
+}
+
+/* ── Sub-section within danger page ── */
+.danger-sub {
+  margin-top: 0.08in;
+  margin-bottom: 0.06in;
+}
+
+.danger-sub h3 {
+  font-size: 10pt;
+  margin-bottom: 0.03in;
+}
+
+.danger-sub p {
+  font-size: 9pt;
+  line-height: 1.5;
+  margin-bottom: 0.04in;
+}
+
+/* ── Stat highlight ── */
+.stat {
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  color: #1B4D8C;
+}
+
+/* ── Compact body for dense pages ── */
+.dense p {
+  font-size: 9pt;
+  line-height: 1.5;
+  margin-bottom: 0.06in;
+}
+
+.dense h2 {
+  margin-bottom: 0.06in;
+}
+
+.dense h3 {
+  font-size: 10pt;
+  margin-bottom: 0.02in;
+}
+
+/* ── FDA label ── */
+.fda-label {
+  font-size: 7.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6B6660;
+  margin-bottom: 0.02in;
+  font-weight: 600;
+}

@@ -147,6 +147,14 @@
     {
       "path": "/api/cron/hbot-drip",
       "schedule": "20 17 * * *"
+    },
+    {
+      "path": "/api/cron/lead-magnet-drip",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/lead-magnet-drip",
+      "schedule": "0 15 * * *"
     }
   ]
 }

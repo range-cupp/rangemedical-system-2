@@ -1114,6 +1114,11 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                       <span style={{ ...slcStyles.badge, background: badge.bg, color: badge.color }}>
                         {badge.label}
                       </span>
+                      {log.status === 'scheduled' && (
+                        <span style={{ ...slcStyles.badge, background: '#e0e7ff', color: '#4338ca', marginLeft: 4 }}>
+                          Scheduled
+                        </span>
+                      )}
                       {log.needs_billing && (
                         <span style={{ ...slcStyles.badge, background: '#fef3c7', color: '#92400e', marginLeft: 4 }}>
                           $ Due

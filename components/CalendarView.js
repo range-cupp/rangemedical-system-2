@@ -2327,9 +2327,10 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </div>
             )}
 
-            {/* Vitals reminder for provider consultation/lab review appointments */}
+            {/* Vitals reminder for provider consultation/lab review appointments (skip for remote visits) */}
             {['Damien', 'Brendyn Reed', 'Brendyn'].includes(appt.provider) &&
-             ['Initial Consultation', 'Follow-Up Consultation', 'Initial Lab Review', 'Follow-Up Lab Review', 'Initial Conversation'].includes(appt.service_name) && (
+             ['Initial Consultation', 'Follow-Up Consultation', 'Initial Lab Review', 'Follow-Up Lab Review', 'Initial Conversation'].includes(appt.service_name) &&
+             appt.modality !== 'telemedicine' && appt.modality !== 'phone' && (
               <div style={{
                 margin: '12px 0',
                 padding: '12px 14px',

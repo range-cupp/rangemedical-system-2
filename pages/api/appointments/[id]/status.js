@@ -182,20 +182,31 @@ async function advanceFreeSessionOnCompletion(appointment) {
 async function advanceLabsPipelineOnCompletion(appointment) {
   if (!appointment.patient_id) return;
   const { findActiveCard, moveCard } = await import('../../../../lib/pipelines-server');
-  const { runStageEntry } = await import('../../../../lib/pipeline-automations');
+  const { runStageEntry, ensureLabsCardAtAwaitingResults } = await import('../../../../lib/pipeline-automations');
 
   // Check both labs pipelines
   let card = await findActiveCard({ patient_id: appointment.patient_id, pipeline: 'energy_workup' });
   if (!card) {
     card = await findActiveCard({ patient_id: appointment.patient_id, pipeline: 'follow_up_labs' });
   }
-  if (!card) return;
 
   const sn = (appointment.service_name || '').toLowerCase();
+  const isBloodDraw = sn.includes('blood draw') || sn.includes('phlebotomy');
+
+  // No card — create one at awaiting_results for completed blood draws
+  if (!card) {
+    if (isBloodDraw) {
+      await ensureLabsCardAtAwaitingResults({
+        patientId: appointment.patient_id,
+        reason: `appointment_completed:${appointment.id}`,
+      });
+    }
+    return;
+  }
 
   // Blood draw completed → labs_scheduled → awaiting_results
   if (card.stage === 'labs_scheduled') {
-    if (sn.includes('blood draw') || sn.includes('phlebotomy')) {
+    if (isBloodDraw) {
       await moveCard({
         card_id: card.id,
         to_stage: 'awaiting_results',

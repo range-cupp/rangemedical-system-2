@@ -642,6 +642,16 @@ async function actionMarkLabDrawn(req, res, protocol, employee) {
   });
   if (error) return res.status(500).json({ error: error.message });
 
+  try {
+    const { ensureLabsCardAtAwaitingResults } = await import('../../../lib/pipeline-automations');
+    await ensureLabsCardAtAwaitingResults({
+      patientId: patient.id,
+      reason: `hrt_tracker_mark_lab_drawn:${protocol.id}`,
+    });
+  } catch (pipeErr) {
+    console.error('HRT tracker→pipeline awaiting_results error:', pipeErr);
+  }
+
   await logAction({
     employee, action_type: 'hrt_tracker_mark_lab_drawn',
     description: `Logged blood draw for ${patient.name} on ${dateISO} (${draw_label || 'manual'})`,

@@ -468,11 +468,6 @@ export default function AssessmentBooking({ path = 'energy', onBack }) {
       if (!saved) return;
       const parsed = JSON.parse(saved);
       setAnswers(parsed);
-      const allAnswered = questions.every(q => {
-        const a = parsed[q.key];
-        return q.type === 'multi' ? a?.length > 0 : !!a;
-      });
-      if (allAnswered) setStep('booking');
     } catch (e) { /* ignore */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

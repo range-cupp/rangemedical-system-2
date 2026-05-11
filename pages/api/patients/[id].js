@@ -211,7 +211,7 @@ export default async function handler(req, res) {
       if (notesResult.error) {
         const { data: notesFallback } = await supabase
           .from('patient_notes')
-          .select('id, body, note_date, source, created_at')
+          .select('id, body, raw_input, note_date, source, created_by, created_at, pinned, protocol_id, protocol_name, appointment_id, encounter_service, signed_by, signed_at, status, parent_note_id, note_category, edited_after_signing')
           .eq('patient_id', id)
           .order('note_date', { ascending: false });
         patientNotes = notesFallback || [];

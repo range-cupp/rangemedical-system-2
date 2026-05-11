@@ -549,7 +549,7 @@ export default function PatientProfile() {
   };
   const canSignNote = (note) => {
     if (!canAuthorNotes) return false;
-    if (!note.created_by || note.status === 'signed') return false;
+    if (!note.created_by || note.status === 'signed' || note.signed_by || note.signed_at) return false;
     return _isNoteAuthor(note.created_by, currentUserEmail);
   };
   const canEditNote = (note) => {
@@ -10468,13 +10468,13 @@ export default function PatientProfile() {
                                     {encounterServiceLabels[note.encounter_service] || note.encounter_service.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Note
                                   </span>
                                 )}
-                                {note.status && (
+                                {(note.status || note.signed_by) && (
                                   <span style={{
                                     marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 0, fontWeight: 500,
-                                    background: note.status === 'signed' ? '#d1fae5' : '#f3f4f6',
-                                    color: note.status === 'signed' ? '#065f46' : '#6b7280',
+                                    background: (note.status === 'signed' || note.signed_by) ? '#d1fae5' : '#f3f4f6',
+                                    color: (note.status === 'signed' || note.signed_by) ? '#065f46' : '#6b7280',
                                   }}>
-                                    {note.status === 'signed' ? '✓ Signed' : 'Draft'}
+                                    {(note.status === 'signed' || note.signed_by) ? '✓ Signed' : 'Draft'}
                                   </span>
                                 )}
                                 {note.edited_after_signing && (
@@ -10511,11 +10511,11 @@ export default function PatientProfile() {
                                   style={{ background: '#f3f4f6', border: '1px solid #d1d5db', color: '#374151', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
                                   title="Create a patient-facing treatment plan from this note"
                                 >📋 Treatment Plan</button>
-                                {(note.status !== 'signed' ? canDeleteNote(note) : isAdminUser) && (
+                                {((note.status !== 'signed' && !note.signed_by) ? canDeleteNote(note) : isAdminUser) && (
                                   <button
                                     onClick={() => handleDeleteNote(note.id)}
-                                    style={{ background: note.status === 'signed' ? '#fef2f2' : '#f3f4f6', border: `1px solid ${note.status === 'signed' ? '#fca5a5' : '#d1d5db'}`, color: note.status === 'signed' ? '#dc2626' : '#6b7280', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
-                                    title={note.status === 'signed' ? 'Delete signed note (admin)' : 'Delete note'}
+                                    style={{ background: (note.status === 'signed' || note.signed_by) ? '#fef2f2' : '#f3f4f6', border: `1px solid ${(note.status === 'signed' || note.signed_by) ? '#fca5a5' : '#d1d5db'}`, color: (note.status === 'signed' || note.signed_by) ? '#dc2626' : '#6b7280', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
+                                    title={(note.status === 'signed' || note.signed_by) ? 'Delete signed note (admin)' : 'Delete note'}
                                   >Delete</button>
                                 )}
                               </div>
@@ -10857,13 +10857,13 @@ export default function PatientProfile() {
                           <div className="note-date">
                             {formatDate(note.note_date || note.created_at)}
                             {note.created_by && <span style={{ fontWeight: 400, marginLeft: 8 }}>by {getStaffDisplayName(note.created_by)}</span>}
-                            {note.status && (
+                            {(note.status || note.signed_by) && (
                               <span style={{
                                 marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 0, fontWeight: 500,
-                                background: note.status === 'signed' ? '#d1fae5' : '#f3f4f6',
-                                color: note.status === 'signed' ? '#065f46' : '#6b7280',
+                                background: (note.status === 'signed' || note.signed_by) ? '#d1fae5' : '#f3f4f6',
+                                color: (note.status === 'signed' || note.signed_by) ? '#065f46' : '#6b7280',
                               }}>
-                                {note.status === 'signed' ? '✓ Signed' : 'Draft'}
+                                {(note.status === 'signed' || note.signed_by) ? '✓ Signed' : 'Draft'}
                               </span>
                             )}
                             {note.edited_after_signing && (
@@ -10921,11 +10921,11 @@ export default function PatientProfile() {
                               }}
                               title={note.pinned ? 'Unpin note' : 'Pin note'}
                             >{note.pinned ? 'Unpin' : 'Pin'}</button>
-                            {(note.status !== 'signed' ? canDeleteNote(note) : isAdminUser) && (
+                            {((note.status !== 'signed' && !note.signed_by) ? canDeleteNote(note) : isAdminUser) && (
                               <button
                                 onClick={() => handleDeleteNote(note.id)}
-                                style={{ background: note.status === 'signed' ? '#fef2f2' : '#f3f4f6', border: `1px solid ${note.status === 'signed' ? '#fca5a5' : '#d1d5db'}`, color: note.status === 'signed' ? '#dc2626' : '#6b7280', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
-                                title={note.status === 'signed' ? 'Delete signed note (admin)' : 'Delete note'}
+                                style={{ background: (note.status === 'signed' || note.signed_by) ? '#fef2f2' : '#f3f4f6', border: `1px solid ${(note.status === 'signed' || note.signed_by) ? '#fca5a5' : '#d1d5db'}`, color: (note.status === 'signed' || note.signed_by) ? '#dc2626' : '#6b7280', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
+                                title={(note.status === 'signed' || note.signed_by) ? 'Delete signed note (admin)' : 'Delete note'}
                               >Delete</button>
                             )}
                           </div>

@@ -10,6 +10,7 @@ import { todayPacific } from '../../../lib/date-utils';
 import { isWeightLossType } from '../../../lib/protocol-config';
 import { guardDoseChange } from '../../../lib/dose-change-guard';
 import { spawnTakeHomeInjections } from '../../../lib/spawn-takehome-injections';
+import { recountProtocolSessions } from '../../../lib/recount-protocol-sessions';
 // Controlled substance staff config — used for logging, not blocking
 // Dose approval is enforced via dose-change-requests SMS flow
 
@@ -563,51 +564,26 @@ async function updateProtocol(protocolId, opts) {
     // ── TAKE-HOME / SINGLE INJECTION PATH (existing behavior) ──
     updates.last_visit_date = logDate;
 
-    // Increment sessions_used for session/injection-based protocols
+    // For session/injection-based protocols, calculate next expected date
+    // sessions_used will be recounted from service_logs after the update
     if ((entryType === 'injection' || entryType === 'session') && protocol.total_sessions && categoryMatchesProtocol) {
-      const increment = 1;
-      updates.sessions_used = (protocol.sessions_used || 0) + increment;
-
-      // Calculate next expected date (7 days for single injection/session)
       const nextDate = new Date(logDate + 'T12:00:00');
       nextDate.setDate(nextDate.getDate() + 7);
       updates.next_expected_date = nextDate.toISOString().split('T')[0];
-
-      // Check if protocol is now complete
-      // Peptide protocols get a 14-day grace period after end_date before auto-completing
-      if (updates.sessions_used >= protocol.total_sessions) {
-        const isPeptide = protocolCategory === 'peptide';
-        if (isPeptide) {
-          const endDate = protocol.end_date ? new Date(protocol.end_date + 'T12:00:00') : null;
-          const now = new Date(logDate + 'T12:00:00');
-          const daysPastEnd = endDate ? Math.floor((now - endDate) / (1000 * 60 * 60 * 24)) : 0;
-          if (daysPastEnd >= 14) {
-            updates.status = 'completed';
-            updates.end_date = logDate;
-          }
-        } else {
-          updates.status = 'completed';
-          updates.end_date = logDate;
-        }
-      }
     }
 
     // For pickups (HRT, peptide, WL take-home), update refill tracking
     if (entryType === 'pickup' || entryType === 'med_pickup') {
       updates.last_refill_date = logDate;
 
-      // For WL take-home pickups: increment sessions_used
-      // Only extend total_sessions if patient is at/past their limit (buying MORE sessions)
-      // e.g., 6/8 + pickup 1 → 7/8 (still has sessions remaining, don't touch total)
-      // e.g., 8/8 + pickup 4 → 12/12 (at limit, extend total to match)
+      // For WL take-home pickups: extend total_sessions if needed
+      // sessions_used is recounted from service_logs after update
       if (isWeightLossType(category) && quantity && parseInt(quantity) > 0) {
         const pickupQty = parseInt(quantity);
         const currentUsed = protocol.sessions_used || 0;
         const currentTotal = protocol.total_sessions || 0;
         const newUsed = currentUsed + pickupQty;
-        updates.sessions_used = newUsed;
 
-        // Only extend total_sessions if dispensing would exceed the current total
         if (newUsed > currentTotal) {
           updates.total_sessions = newUsed;
         }
@@ -742,6 +718,9 @@ async function updateProtocol(protocolId, opts) {
       .eq('id', protocolId);
 
     if (updateError) throw updateError;
+
+    // Recount sessions_used from service_logs (single source of truth)
+    await recountProtocolSessions(supabase, protocolId);
 
     return { updated: true, protocol_id: protocolId, updates, dose_change_blocked: doseChangeBlocked, dose_change_blocked_reason: doseChangeBlockedReason };
   } catch (err) {

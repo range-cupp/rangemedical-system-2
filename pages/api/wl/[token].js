@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
+import { recountProtocolSessions } from '../../../lib/recount-protocol-sessions';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -101,13 +102,8 @@ export default async function handler(req, res) {
           notes: noteStr,
         });
 
-      // Update protocol sessions_used if total_sessions > 0
-      if (protocol.total_sessions > 0) {
-        await supabase
-          .from('protocols')
-          .update({ sessions_used: (protocol.sessions_used || 0) + 1 })
-          .eq('id', protocol.id);
-      }
+      // Recount sessions_used from service_logs (single source of truth)
+      await recountProtocolSessions(supabase, protocol.id);
     }
 
     // Send side-effect tips SMS if patient reported symptoms

@@ -15,27 +15,12 @@ import { createProtocol } from '../../../lib/create-protocol';
 import { todayPacific } from '../../../lib/date-utils';
 import { guardDoseChange } from '../../../lib/dose-change-guard';
 import { spawnTakeHomeInjections } from '../../../lib/spawn-takehome-injections';
+import { recountProtocolSessions } from '../../../lib/recount-protocol-sessions';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-// Map protocol program_type → service_log categories that should count toward sessions_used.
-// Prevents add-on items (e.g. B12 vitamin injections bundled with weight loss) from inflating session counts.
-function getProtocolMatchingCategories(programType) {
-  const map = {
-    weight_loss: ['weight_loss'],
-    hrt: ['testosterone', 'hrt'],
-    peptide: ['peptide'],
-    hbot: ['hbot'],
-    rlt: ['red_light'],
-    iv: ['iv_therapy', 'specialty_iv'],
-    nad_injection: ['nad_injection'],
-    injection: ['injection_pack', 'injection_standard', 'injection_premium'],
-  };
-  return map[programType] || [programType];
-}
 
 // Sync weight to patient_vitals when logged via service_log
 async function syncWeightToVitals(patient_id, weight, entry_date, recorded_by) {
@@ -209,35 +194,6 @@ async function handleGet(req, res) {
     console.error('Error in handleGet:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
-}
-
-// Fallback to injection_logs table if service_logs doesn't exist
-async function handleGetFallback(req, res) {
-  const { category, patient_id, limit = 100 } = req.query;
-
-  let query = supabase
-    .from('injection_logs')
-    .select('*')
-    .order('entry_date', { ascending: false, nullsFirst: false })
-    .order('created_at', { ascending: false })
-    .limit(parseInt(limit));
-
-  if (category) {
-    query = query.eq('category', category);
-  }
-
-  if (patient_id) {
-    query = query.eq('patient_id', patient_id);
-  }
-
-  const { data: logs, error } = await query;
-
-  if (error) {
-    return res.status(500).json({ success: false, error: error.message });
-  }
-
-  const formattedLogs = await enrichLogsWithPatientNames(logs || []);
-  return res.status(200).json({ success: true, logs: formattedLogs });
 }
 
 // Helper: Add patient names to logs
@@ -580,11 +536,25 @@ async function handlePost(req, res) {
       ? { no_package: true, reason: 'Supplements do not link to protocols' }
       : await checkAndDecrementPackage(patient_id, category, resolvedEntryType, protocol_id);
 
+    // Flag for billing when no prepaid package covers this service
+    if (packageUpdate.no_package && category !== 'supplement') {
+      const billingReason = packageUpdate.reason || 'No active package';
+      try {
+        await supabase
+          .from('service_logs')
+          .update({ needs_billing: true, billing_reason: billingReason })
+          .eq('id', log.id);
+      } catch (billingErr) {
+        // Column may not exist yet — non-fatal
+        console.warn('[service-log] needs_billing update skipped (column may not exist):', billingErr.message);
+      }
+    }
+
     // 3. Update or create protocol based on entry type
     // Use resolvedEntryType (not raw entry_type) to ensure protocol updates always run
     let protocolUpdate = { updated: false };
 
-    console.log('[service-log] POST:', { patient_id, category, entry_type, resolvedEntryType, protocol_id, logDate, wlMultiQty });
+    console.log('[service-log] POST:', { patient_id, category, entry_type, resolvedEntryType, protocol_id, logDate });
     console.log('[service-log] packageUpdate:', JSON.stringify(packageUpdate));
 
     // Even when is_secondary_med isn't passed by the caller, detect it from
@@ -623,7 +593,7 @@ async function handlePost(req, res) {
         patient_id, category, logDate, medication, dosage,
         protocol_id || (packageUpdate.decremented ? packageUpdate.protocol_id : null),
         packageUpdate.decremented || false,
-        wlMultiQty > 1 ? wlMultiQty : 1
+        1
       );
     }
 
@@ -634,10 +604,7 @@ async function handlePost(req, res) {
     // Only apply if this entry is the chronologically latest — don't let backdated entries overwrite.
     const targetProtocolId = protocol_id || protocolUpdate?.protocol_id || (packageUpdate.decremented ? packageUpdate.protocol_id : null);
     if (targetProtocolId && (resolvedEntryType === 'injection' || resolvedEntryType === 'session')) {
-      // For multi-injection WL entries, find the last entry date (furthest out)
-      const lastEntryDate = wlMultiQty > 1 && additionalLogs.length > 0
-        ? additionalLogs[additionalLogs.length - 1].entry_date
-        : logDate;
+      const lastEntryDate = logDate;
 
       const { data: latestForSafety } = await supabase
         .from('service_logs')
@@ -679,21 +646,10 @@ async function handlePost(req, res) {
       await supabase.from('protocols').update(protoUpdate).eq('id', targetProtocolId);
     }
 
-    // Final safety: count-based sessions_used sync
-    // Always recalculate from actual service_log count to prevent drift from multiple increment paths
+    // Final safety: count-based sessions_used sync via shared recount
     if (targetProtocolId && (resolvedEntryType === 'injection' || resolvedEntryType === 'session')) {
-      const { count: actualCount } = await supabase
-        .from('service_logs')
-        .select('*', { count: 'exact', head: true })
-        .eq('protocol_id', targetProtocolId)
-        .in('entry_type', ['injection', 'session']);
-
-      await supabase
-        .from('protocols')
-        .update({ sessions_used: actualCount || 0 })
-        .eq('id', targetProtocolId);
-
-      console.log(`[service-log] Count-based sync: sessions_used=${actualCount} for protocol ${targetProtocolId}`);
+      const recount = await recountProtocolSessions(supabase, targetProtocolId);
+      console.log(`[service-log] Count-based sync: sessions_used=${recount?.sessions_used} for protocol ${targetProtocolId}`);
     }
 
     // HRT pickup: sync sessions_used and link auto-created injection entries to the protocol
@@ -770,6 +726,10 @@ async function handlePut(req, res) {
     fulfillment_method,
     tracking_number,
     slot_fulfillment,
+    administered_by,
+    verified_by,
+    lot_number,
+    expiration_date,
   } = req.body;
 
   try {
@@ -794,6 +754,12 @@ async function handlePut(req, res) {
       updateData.fulfillment_method = fulfillment_method || null;
       updateData.tracking_number = tracking_number || null;
     }
+
+    // Add dispensing fields if provided
+    if (administered_by !== undefined) updateData.administered_by = administered_by || null;
+    if (verified_by !== undefined) updateData.verified_by = verified_by || null;
+    if (lot_number !== undefined) updateData.lot_number = lot_number || null;
+    if (expiration_date !== undefined) updateData.expiration_date = expiration_date || null;
 
     // Per-slot fulfillment plan (WL block dispense)
     if (slot_fulfillment !== undefined) {
@@ -837,9 +803,9 @@ async function handlePut(req, res) {
       await reconcileSpawnedRowsForPickup(log);
     }
 
-    // Recalculate protocol state after edit (date/weight changes affect tracking)
+    // Recalculate protocol state after edit via shared recount
     if (log?.protocol_id) {
-      await recalcProtocolAfterEdit(log.protocol_id);
+      await recountProtocolSessions(supabase, log.protocol_id);
     }
 
     return res.status(200).json({ success: true, log });
@@ -893,68 +859,15 @@ async function handleDelete(req, res) {
       }
     }
 
-    // Recalculate protocol state after deletion
+    // Recalculate protocol state after deletion via shared recount
     if (deletedEntry?.protocol_id) {
-      await recalcProtocolAfterDelete(deletedEntry.protocol_id, deletedEntry.patient_id, deletedEntry.category);
+      await recountProtocolSessions(supabase, deletedEntry.protocol_id);
     }
 
     return res.status(200).json({ success: true });
   } catch (err) {
     console.error('Error deleting log:', err);
     return res.status(500).json({ success: false, error: err.message });
-  }
-}
-
-// Recalculate protocol state after an injection/session is deleted
-async function recalcProtocolAfterDelete(protocolId, patientId, category) {
-  try {
-    // Count remaining injection/session entries from service_logs (single source of truth)
-    const { count: sessionsUsed } = await supabase
-      .from('service_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq('protocol_id', protocolId)
-      .in('entry_type', ['injection', 'session']);
-
-    // Find the most recent remaining injection date
-    const { data: latestSL } = await supabase
-      .from('service_logs')
-      .select('entry_date')
-      .eq('protocol_id', protocolId)
-      .in('entry_type', ['injection', 'session'])
-      .order('entry_date', { ascending: false })
-      .limit(1);
-
-    const lastDate = latestSL?.[0]?.entry_date || null;
-
-    const updateData = {
-      sessions_used: sessionsUsed,
-      updated_at: new Date().toISOString(),
-    };
-
-    if (lastDate) {
-      updateData.last_visit_date = lastDate;
-      // Recalculate next_expected_date from the most recent injection + 7 days
-      const nextDate = new Date(lastDate + 'T12:00:00');
-      nextDate.setDate(nextDate.getDate() + 7);
-      updateData.next_expected_date = nextDate.toISOString().split('T')[0];
-    } else {
-      // All injections cleared — reset dates
-      updateData.last_visit_date = null;
-      updateData.next_expected_date = null;
-    }
-
-    const { error } = await supabase
-      .from('protocols')
-      .update(updateData)
-      .eq('id', protocolId);
-
-    if (error) {
-      console.error('recalcProtocolAfterDelete update error:', error);
-    } else {
-      console.log(`✓ Protocol ${protocolId} recalculated after delete: sessions_used=${sessionsUsed}, last_visit=${lastDate}`);
-    }
-  } catch (err) {
-    console.error('recalcProtocolAfterDelete error:', err);
   }
 }
 
@@ -992,49 +905,6 @@ async function reconcileSpawnedRowsForPickup(pickup) {
     }
   } catch (err) {
     console.error('reconcileSpawnedRowsForPickup error:', err);
-  }
-}
-
-async function recalcProtocolAfterEdit(protocolId) {
-  try {
-    // Count injection/session entries (same pattern as recalcProtocolAfterDelete)
-    const { count: sessionsUsed } = await supabase
-      .from('service_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq('protocol_id', protocolId)
-      .in('entry_type', ['injection', 'session']);
-
-    // Find the most recent injection/session date
-    const { data: latestSL } = await supabase
-      .from('service_logs')
-      .select('entry_date')
-      .eq('protocol_id', protocolId)
-      .in('entry_type', ['injection', 'session'])
-      .order('entry_date', { ascending: false })
-      .limit(1);
-
-    const lastDate = latestSL?.[0]?.entry_date || null;
-
-    const updateData = {
-      sessions_used: sessionsUsed || 0,
-      updated_at: new Date().toISOString(),
-    };
-
-    if (lastDate) {
-      updateData.last_visit_date = lastDate;
-      const nextDate = new Date(lastDate + 'T12:00:00');
-      nextDate.setDate(nextDate.getDate() + 7);
-      updateData.next_expected_date = nextDate.toISOString().split('T')[0];
-    }
-
-    await supabase
-      .from('protocols')
-      .update(updateData)
-      .eq('id', protocolId);
-
-    console.log(`✓ Protocol ${protocolId} recalculated after edit: sessions_used=${sessionsUsed}, last_visit=${lastDate}`);
-  } catch (err) {
-    console.error('recalcProtocolAfterEdit error:', err);
   }
 }
 

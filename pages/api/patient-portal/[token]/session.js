@@ -4,6 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { todayPacific } from '../../../../lib/date-utils';
+import { recountProtocolSessions } from '../../../../lib/recount-protocol-sessions';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -54,7 +55,7 @@ export default async function handler(req, res) {
       if (existingLog) {
         // Toggle completion
         const newCompleted = !existingLog.completed;
-        
+
         await supabase
           .from('injection_logs')
           .update({
@@ -63,7 +64,7 @@ export default async function handler(req, res) {
           })
           .eq('id', existingLog.id);
 
-        // Update protocol count
+        // Update protocol count from injection_logs (peptide day tracking)
         const { data: allCompleted } = await supabase
           .from('injection_logs')
           .select('id')
@@ -71,11 +72,13 @@ export default async function handler(req, res) {
           .eq('completed', true);
 
         const completedCount = allCompleted?.length || 0;
-
         await supabase
           .from('protocols')
-          .update({ injections_completed: completedCount, sessions_used: completedCount })
+          .update({ injections_completed: completedCount })
           .eq('id', protocol_id);
+
+        // Recount sessions_used from service_logs (single source of truth)
+        await recountProtocolSessions(supabase, protocol_id);
 
         return res.status(200).json({ success: true, completed: newCompleted });
       } else {
@@ -89,7 +92,7 @@ export default async function handler(req, res) {
             completed_at: todayPacific()
           });
 
-        // Update protocol count
+        // Update protocol count from injection_logs (peptide day tracking)
         const { data: allCompleted } = await supabase
           .from('injection_logs')
           .select('id')
@@ -97,11 +100,13 @@ export default async function handler(req, res) {
           .eq('completed', true);
 
         const completedCount = allCompleted?.length || 0;
-
         await supabase
           .from('protocols')
-          .update({ injections_completed: completedCount, sessions_used: completedCount })
+          .update({ injections_completed: completedCount })
           .eq('id', protocol_id);
+
+        // Recount sessions_used from service_logs (single source of truth)
+        await recountProtocolSessions(supabase, protocol_id);
 
         return res.status(200).json({ success: true, completed: true });
       }
@@ -122,8 +127,11 @@ export default async function handler(req, res) {
 
     await supabase
       .from('protocols')
-      .update({ injections_completed: nextSessionNum, sessions_used: nextSessionNum })
+      .update({ injections_completed: nextSessionNum })
       .eq('id', protocol_id);
+
+    // Recount sessions_used from service_logs (single source of truth)
+    await recountProtocolSessions(supabase, protocol_id);
 
     return res.status(200).json({ success: true, session_number: nextSessionNum });
 

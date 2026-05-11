@@ -55,6 +55,25 @@ export default async function handler(req, res) {
     const entryDate = date || todayPacific();
     const serviceTypes = getServiceTypesForModality(enrollment.modality_preference);
 
+    // ── Guard: check if sessions were already logged today via the service log ──
+    // Prevents double-decrement when staff logs through both the service log UI
+    // (which auto-decrements recovery) and the Recovery page
+    const { data: existingToday } = await supabase
+      .from('service_logs')
+      .select('id')
+      .eq('patient_id', enrollment.patient_id)
+      .eq('entry_date', entryDate)
+      .eq('entry_type', 'session')
+      .in('category', serviceTypes)
+      .limit(1);
+
+    if (existingToday && existingToday.length > 0) {
+      return res.status(409).json({
+        error: 'A session for this modality was already logged today',
+        duplicate: true,
+      });
+    }
+
     // ── Create service_log entries ─────────────────────────────────────────
     const logEntries = serviceTypes.map(type => ({
       patient_id: enrollment.patient_id,

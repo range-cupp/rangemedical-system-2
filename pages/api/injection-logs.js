@@ -4,6 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { todayPacific } from '../../lib/date-utils';
+import { recountProtocolSessions } from '../../lib/recount-protocol-sessions';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -154,8 +155,9 @@ async function handlePost(req, res) {
       // For pickups, update the protocol's last_refill_date
       protocolUpdate = await syncPickupWithProtocol(patient_id, category, logDate, supply_type);
     } else if (protocol_id && (entry_type === 'injection' || entry_type === 'session')) {
-      // For sessions/injections, increment sessions_used on the protocol
-      protocolUpdate = await incrementSessionCount(protocol_id, logDate);
+      // Recount from service_logs (single source of truth) instead of blind increment
+      const recount = await recountProtocolSessions(supabase, protocol_id);
+      protocolUpdate = { updated: true, protocol_id, sessions_used: recount?.sessions_used };
     }
 
     return res.status(200).json({
@@ -302,51 +304,3 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
   }
 }
 
-// Helper: Increment session count on protocol
-async function incrementSessionCount(protocol_id, logDate) {
-  try {
-    // Get current protocol
-    const { data: protocol, error: findError } = await supabase
-      .from('protocols')
-      .select('id, sessions_used, total_sessions')
-      .eq('id', protocol_id)
-      .single();
-
-    if (findError) {
-      console.error('Error finding protocol:', findError);
-      return { updated: false, reason: 'Error finding protocol' };
-    }
-
-    if (!protocol) {
-      return { updated: false, reason: 'Protocol not found' };
-    }
-
-    // Increment sessions_used
-    const currentSessions = protocol.sessions_used || 0;
-    const newSessionCount = currentSessions + 1;
-
-    const { error: updateError } = await supabase
-      .from('protocols')
-      .update({
-        sessions_used: newSessionCount,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', protocol_id);
-
-    if (updateError) {
-      console.error('Error updating protocol sessions_used:', updateError);
-      return { updated: false, reason: 'Error updating protocol' };
-    }
-
-    return {
-      updated: true,
-      protocol_id: protocol_id,
-      previous_sessions: currentSessions,
-      new_sessions: newSessionCount,
-      total_sessions: protocol.total_sessions
-    };
-  } catch (err) {
-    console.error('Error incrementing session count:', err);
-    return { updated: false, reason: err.message };
-  }
-}

@@ -1114,6 +1114,11 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                       <span style={{ ...slcStyles.badge, background: badge.bg, color: badge.color }}>
                         {badge.label}
                       </span>
+                      {log.needs_billing && (
+                        <span style={{ ...slcStyles.badge, background: '#fef3c7', color: '#92400e', marginLeft: 4 }}>
+                          $ Due
+                        </span>
+                      )}
                     </td>
                     <td style={slcStyles.td}>
                       {log.medication && <span>{log.medication}</span>}
@@ -1378,6 +1383,27 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                             <option key={emp.id} value={emp.name}>{emp.name}</option>
                           ))}
                         </select>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                      <div style={{ ...slcStyles.formGroup, flex: 1 }}>
+                        <label style={slcStyles.label}>Lot Number</label>
+                        <input
+                          type="text"
+                          value={dispensingData.lot_number}
+                          onChange={(e) => setDispensingData({ ...dispensingData, lot_number: e.target.value })}
+                          style={slcStyles.input}
+                          placeholder="Enter lot #"
+                        />
+                      </div>
+                      <div style={{ ...slcStyles.formGroup, flex: 1 }}>
+                        <label style={slcStyles.label}>Expiration Date</label>
+                        <input
+                          type="date"
+                          value={dispensingData.expiration_date}
+                          onChange={(e) => setDispensingData({ ...dispensingData, expiration_date: e.target.value })}
+                          style={slcStyles.input}
+                        />
                       </div>
                     </div>
                   </div>

@@ -882,13 +882,13 @@ p {
    ======================================== */
 
 .hero {
-  padding: 160px 2rem;
+  padding: 80px 2rem 160px;
   max-width: 1200px;
   margin: 0 auto;
 }
 
 @media (max-width: 768px) {
-  .hero { padding: 96px 2rem; }
+  .hero { padding: 56px 2rem 96px; }
 }
 
 .hero-badge {

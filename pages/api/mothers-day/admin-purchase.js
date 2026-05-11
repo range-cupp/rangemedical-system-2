@@ -190,6 +190,8 @@ function giftCardEmailHtml({ purchaserName, recipientName, code, expiresAt }) {
 }
 
 export default async function handler(req, res) {
+  return res.status(410).json({ error: 'The Mother\'s Day Wellness Credit promotion has ended.' });
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

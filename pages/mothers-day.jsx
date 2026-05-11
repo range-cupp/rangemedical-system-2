@@ -72,6 +72,33 @@ function PaymentForm({ onSuccess, totalPaid, totalCredit }) {
 }
 
 export default function MothersDay() {
+  return (
+    <>
+      <Head>
+        <title>Mother's Day Wellness Credit — Range Medical</title>
+      </Head>
+      <div style={{ minHeight: '100vh', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 16px' }}>
+        <div style={{ maxWidth: 520, width: '100%', background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+          <div style={{ background: '#000', padding: 24, textAlign: 'center' }}>
+            <h1 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 700, letterSpacing: 3 }}>RANGE MEDICAL</h1>
+          </div>
+          <div style={{ padding: '48px 28px', textAlign: 'center' }}>
+            <h2 style={{ margin: '0 0 16px', fontSize: 24, color: '#111', fontWeight: 800 }}>This Offer Has Ended</h2>
+            <p style={{ margin: '0 0 24px', fontSize: 15, color: '#666', lineHeight: 1.7 }}>
+              Our Mother's Day Wellness Credit promotion has ended. Thank you to everyone who participated!
+            </p>
+            <p style={{ margin: '0 0 32px', fontSize: 15, color: '#666', lineHeight: 1.7 }}>
+              Interested in our services? We'd love to help you feel your best.
+            </p>
+            <a href="/" style={{ display: 'inline-block', background: '#000', color: '#fff', padding: '14px 40px', fontSize: 14, fontWeight: 700, textDecoration: 'none', letterSpacing: 1 }}>VISIT RANGE MEDICAL</a>
+            <p style={{ margin: '24px 0 0', fontSize: 13, color: '#999' }}>Questions? Call or text (949) 997-3988</p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  /* --- SALE ENDED — original form code below is inactive --- */
   const [formData, setFormData] = useState({
     purchaserName: '',
     purchaserEmail: '',

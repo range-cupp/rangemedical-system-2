@@ -3,6 +3,14 @@
 // Used by the slideout viewer to display HEIC photo IDs
 
 import sharp from 'sharp';
+import heicConvert from 'heic-convert';
+
+function isHeic(buf) {
+  if (buf.length < 12) return false;
+  if (buf.slice(4, 8).toString('ascii') !== 'ftyp') return false;
+  const brand = buf.slice(8, 12).toString('ascii').toLowerCase();
+  return ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'hevm', 'hevs', 'mif1', 'msf1'].includes(brand);
+}
 
 export default async function handler(req, res) {
   const { url } = req.query;
@@ -18,7 +26,13 @@ export default async function handler(req, res) {
     const response = await fetch(url);
     if (!response.ok) return res.status(response.status).json({ error: 'Failed to fetch image' });
 
-    const buffer = Buffer.from(await response.arrayBuffer());
+    let buffer = Buffer.from(await response.arrayBuffer());
+
+    if (isHeic(buffer)) {
+      const out = await heicConvert({ buffer, format: 'JPEG', quality: 0.9 });
+      buffer = Buffer.from(out);
+    }
+
     const jpegBuffer = await sharp(buffer).jpeg({ quality: 90 }).toBuffer();
 
     res.setHeader('Content-Type', 'image/jpeg');

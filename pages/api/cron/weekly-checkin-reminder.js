@@ -170,6 +170,7 @@ export default async function handler(req, res) {
         id, patient_id, program_name, program_type, delivery_method,
         injection_day, frequency, checkin_cadence_days,
         checkin_reminder_enabled, reminder_opt_out,
+        total_sessions, sessions_used,
         patients!inner ( id, name, first_name, phone, ghl_contact_id )
       `)
       .eq('status', 'active')
@@ -186,6 +187,13 @@ export default async function handler(req, res) {
 
     for (const protocol of protocolList) {
       const patient = protocol.patients;
+
+      // Skip if all purchased injections have been used
+      if (protocol.total_sessions && protocol.sessions_used >= protocol.total_sessions) {
+        results.skipped.push({ patient: patient.name, reason: 'No remaining allocated injections' });
+        continue;
+      }
+
       const firstName = patient.first_name || (patient.name ? patient.name.split(' ')[0] : 'there');
       const ghlContactId = patient.ghl_contact_id;
       const checkinUrl = `https://app.range-medical.com/patient-checkin.html?contact_id=${ghlContactId || patient.id}`;

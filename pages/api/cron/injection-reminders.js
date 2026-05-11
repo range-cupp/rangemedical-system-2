@@ -150,6 +150,12 @@ export default async function handler(req, res) {
         continue;
       }
 
+      // Skip if all purchased injections have been used
+      if (protocol.total_sessions && protocol.sessions_used >= protocol.total_sessions) {
+        results.skipped.push({ patient: protocol.patient_name, reason: 'No remaining allocated injections' });
+        continue;
+      }
+
       // Check if today is an injection day for this protocol
       // Real column is 'frequency' (not 'dose_frequency')
       const freq = protocol.frequency;

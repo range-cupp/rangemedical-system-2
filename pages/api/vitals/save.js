@@ -250,13 +250,6 @@ export default async function handler(req, res) {
           // injection row will land when the provider signs the encounter
           // note (or saves with a body), which calls syncWLNoteToServiceLog.
 
-          // Auto-set starting_weight if missing
-          if (!wlProtocol.starting_weight) {
-            await supabase
-              .from('protocols')
-              .update({ starting_weight: w, updated_at: new Date().toISOString() })
-              .eq('id', wlProtocol.id);
-          }
         }
       } catch (syncErr) {
         // Don't fail vitals save if sync fails

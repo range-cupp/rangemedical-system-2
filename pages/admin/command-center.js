@@ -653,7 +653,7 @@ export default function CommandCenter() {
             const updatedCheckins = prev.weightCheckins.map(c =>
               c.id === id ? { ...c, weight: parseFloat(weight) } : c
             ).filter(c => c.weight).sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
-            const startW = prev.protocol.starting_weight || updatedCheckins[0]?.weight;
+            const startW = prev.protocol.starting_weight || null;
             const currentW = updatedCheckins[updatedCheckins.length - 1]?.weight;
             const rawChange = startW && currentW ? currentW - startW : null;
             const change = rawChange !== null ? parseFloat(rawChange.toFixed(1)) : null;
@@ -677,7 +677,7 @@ export default function CommandCenter() {
         setProtocolDetailPanel(prev => {
           const updatedCheckins = prev.weightCheckins.filter(c => c.id !== item.id);
           const withWeight = updatedCheckins.filter(c => c.weight).sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
-          const startW = prev.protocol?.starting_weight || withWeight[0]?.weight;
+          const startW = prev.protocol?.starting_weight || null;
           const currentW = withWeight[withWeight.length - 1]?.weight;
           const rawChange = startW && currentW ? currentW - startW : null;
           const change = rawChange !== null ? parseFloat(rawChange.toFixed(1)) : null;

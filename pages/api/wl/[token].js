@@ -40,7 +40,7 @@ export default async function handler(req, res) {
 
   // Calculate stats
   const weightLogs = (logs || []).filter(l => l.weight);
-  const startWeight = protocol.starting_weight ? parseFloat(protocol.starting_weight) : (weightLogs.length > 0 ? parseFloat(weightLogs[0].weight) : null);
+  const startWeight = protocol.starting_weight ? parseFloat(protocol.starting_weight) : null;
   const currentWeight = weightLogs.length > 0 ? parseFloat(weightLogs[weightLogs.length - 1].weight) : null;
   const lowestWeight = weightLogs.length > 0 ? Math.min(...weightLogs.map(l => parseFloat(l.weight))) : null;
 

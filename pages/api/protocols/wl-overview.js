@@ -73,11 +73,10 @@ export default async function handler(req, res) {
       .in('protocol_id', protocolIds)
       .order('entry_date', { ascending: false });
 
-    // Create maps for last activity, current weight, and earliest weight (for starting_weight fallback)
+    // Create maps for last activity and current weight
     const lastCheckinMap = {};
     const lastInjectionMap = {};
     const currentWeightMap = {};
-    const earliestWeightMap = {}; // fallback starting_weight from first logged weight
 
     if (logs) {
       logs.forEach(log => {
@@ -94,11 +93,6 @@ export default async function handler(req, res) {
         // Track current weight (most recent weight from any log)
         if (log.weight && !currentWeightMap[log.protocol_id]) {
           currentWeightMap[log.protocol_id] = log.weight;
-        }
-
-        // Track earliest weight (logs are desc, so keep overwriting — last one wins = earliest)
-        if (log.weight) {
-          earliestWeightMap[log.protocol_id] = log.weight;
         }
       });
     }
@@ -175,7 +169,7 @@ export default async function handler(req, res) {
         total_injections: totalInjections,
         injections_used: injectionsUsed,
         injections_remaining: injectionsRemaining,
-        starting_weight: p.starting_weight || earliestWeightMap[p.id] || null,
+        starting_weight: p.starting_weight || null,
         current_weight: currentWeightMap[p.id] || null,
         next_expected_date: p.next_expected_date || null,
         last_visit_date: p.last_visit_date || null,

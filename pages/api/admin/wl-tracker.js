@@ -762,7 +762,7 @@ async function handleGet(req, res) {
       const weightHistory = weightHistoryByPatient[patient.id] || [];
       const startWeight = protocol.starting_weight != null
         ? Number(protocol.starting_weight)
-        : (weightHistory[0]?.weight || null);
+        : null;
       const currentWeight = weightHistory.length > 0
         ? weightHistory[weightHistory.length - 1].weight
         : null;

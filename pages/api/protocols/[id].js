@@ -129,7 +129,7 @@ async function getProtocol(id, res) {
   let weightProgress = null;
   if (isWeightLossType(data.program_type) && weightCheckins.length > 0) {
     const checkinsWithWeight = [...weightCheckins].filter(c => c.weight).sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
-    const startingWeight = data.starting_weight || checkinsWithWeight[0]?.weight;
+    const startingWeight = data.starting_weight ? parseFloat(data.starting_weight) : null;
     const currentWeight = checkinsWithWeight[checkinsWithWeight.length - 1]?.weight;
 
     if (startingWeight && currentWeight) {

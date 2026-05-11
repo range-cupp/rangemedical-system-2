@@ -1171,8 +1171,12 @@ p {
 
 .process-step {
   text-align: left;
-  padding: 2rem 2rem 2rem 0;
+  padding: 2rem;
   border-right: 1px solid #e0e0e0;
+}
+
+.process-step:first-child {
+  padding-left: 0;
 }
 
 .process-step:last-child {

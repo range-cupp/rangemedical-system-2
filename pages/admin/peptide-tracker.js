@@ -546,9 +546,14 @@ export default function PeptideTracker() {
                         <h4 style={sectionHead}>Recent Notes ({Math.min(drawerData.notes.length, 5)})</h4>
                         {drawerData.notes.slice(0, 5).map((note, i) => (
                           <div key={note.id || i} style={{ padding: '8px 0', borderBottom: i < Math.min(drawerData.notes.length, 5) - 1 ? '1px solid #e5e7eb' : 'none' }}>
-                            <div style={{ fontSize: '13px', color: '#111', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
-                              {(note.body || '').replace(/<[^>]+>/g, '').slice(0, 200)}
-                              {(note.body || '').length > 200 ? '...' : ''}
+                            <div style={{ fontSize: '13px', color: '#111', lineHeight: '1.5' }}>
+                              {(() => {
+                                const raw = (note.body || '').replace(/<[^>]+>/g, '');
+                                const lines = raw.split('\n').filter(l => l.trim() !== '' && l.trim() !== '---');
+                                const cleaned = lines.map(l => l.replace(/^#{1,3}\s*/, '').replace(/\*\*(.*?)\*\*/g, '$1')).join(' — ');
+                                const truncated = cleaned.slice(0, 200);
+                                return truncated + (cleaned.length > 200 ? '...' : '');
+                              })()}
                             </div>
                             <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
                               {note.created_by || 'Staff'}

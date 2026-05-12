@@ -848,7 +848,7 @@ p {
 }
 
 .trust-bar {
-  background: var(--color-accent);
+  background: #1a1a1a;
   color: #ffffff;
   padding: 0.625rem 2rem;
 }

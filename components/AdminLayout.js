@@ -39,7 +39,8 @@ const NAV_ITEMS = [
   { href: '/admin/team', label: 'Team', icon: 'user-check', group: 'business' },
   { href: '/admin/employee-activity', label: 'Employee Activity', icon: 'activity', permission: 'can_manage_employees', group: 'business' },
   { href: '/admin/data-health', label: 'Data Health', icon: 'activity', adminOnly: true, group: 'business' },
-  { href: '/admin/settings', label: 'Settings', icon: 'settings' }
+  { href: '/admin/settings', label: 'Settings', icon: 'settings' },
+  { href: '/memberships', label: 'Memberships', icon: 'credit-card' }
 ];
 
 // Simple SVG icons to avoid external dependency

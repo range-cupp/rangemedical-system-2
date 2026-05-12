@@ -2656,7 +2656,7 @@ function CheckoutInner() {
               dosage: d.dosage,
               quantity: hrt.takeHomeCount,
               supply_type: d.supplyType,
-              notes: `${hrt.takeHomeCount}-syringe take-home (split dispense: ${hrt.inClinicCount} in-clinic + ${hrt.takeHomeCount} take-home)`,
+              notes: `${hrt.takeHomeCount} ${d.supplyType && d.supplyType.startsWith('vial') ? 'vial' : 'syringe'} take-home (split dispense: ${hrt.inClinicCount} in-clinic + ${hrt.takeHomeCount} take-home)`,
               protocol_id: d.protocolId,
               coverage_type: d.coverageType,
               coverage_source: d.coverageSource,

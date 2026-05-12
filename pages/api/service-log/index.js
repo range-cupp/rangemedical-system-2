@@ -445,7 +445,7 @@ async function handlePost(req, res) {
           medication: medication || null,
           dosage: injectionDose || null,
           quantity: 1,
-          notes: `Take-home injection (dispensed ${logDate}, ${hrtPickupQty}-syringe pickup, ${i + 1} of ${hrtPickupQty})`,
+          notes: `Take-home injection (dispensed ${logDate}, ${hrtPickupQty} ${supply_type && supply_type.startsWith('vial') ? 'vial' : 'syringe'} pickup, ${i + 1} of ${hrtPickupQty})`,
           protocol_id: protocol_id || null,
           injection_method: injection_method || null,
           fulfillment_method: 'take_home',

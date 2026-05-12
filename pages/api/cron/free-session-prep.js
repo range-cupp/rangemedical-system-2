@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
     const { data: trials, error } = await supabase
       .from('trial_passes')
-      .select('id, patient_id, first_name, phone, trial_type, scheduled_start_time')
+      .select('id, patient_id, first_name, phone, trial_type, scheduled_start_time, calcom_booking_uid')
       .eq('trial_type', 'hbot')
       .eq('status', 'scheduled')
       .gte('scheduled_start_time', windowStart)
@@ -64,6 +64,19 @@ export default async function handler(req, res) {
     const results = [];
 
     for (const trial of trials) {
+      // Safety net: verify linked appointment isn't cancelled
+      if (trial.calcom_booking_uid) {
+        const { data: appt } = await supabase
+          .from('appointments')
+          .select('status')
+          .eq('id', trial.calcom_booking_uid)
+          .single();
+        if (appt && appt.status === 'cancelled') {
+          results.push({ trialId: trial.id, skipped: 'appointment_cancelled' });
+          continue;
+        }
+      }
+
       const { data: prior } = await supabase
         .from('comms_log')
         .select('id')

@@ -56,8 +56,12 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: updateError.message });
     }
 
-    // (calcom_bookings updates removed at end of Cal.com cutover — the
-    // crons and other readers now query the appointments table directly.)
+    // If this appointment is linked to a trial_passes row, cancel it too
+    // so free-session crons (prep, backfill-forms) stop sending messages.
+    await supabase
+      .from('trial_passes')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .eq('calcom_booking_uid', id);
 
     // Log event
     await supabase.from('appointment_events').insert({

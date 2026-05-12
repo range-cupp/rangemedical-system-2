@@ -49,7 +49,7 @@ export default function Services() {
               "telephone": "(949) 997-3988",
               "address": { "@type": "PostalAddress", "streetAddress": "1901 Westcliff Dr. Suite 10", "addressLocality": "Newport Beach", "addressRegion": "CA", "postalCode": "92660", "addressCountry": "US" },
               "geo": { "@type": "GeoCoordinates", "latitude": 33.6189, "longitude": -117.9298 },
-              "priceRange": "$\u2013$$$$"
+              "priceRange": "$–$$$$"
             })
           }}
         />
@@ -72,13 +72,112 @@ export default function Services() {
         {/* ── JUMP NAV ── */}
         <div className="svc-jump-bar">
           <div className="svc-jump-inner">
+            <a href="#labs" className="svc-jump-link">LABS</a>
+            <a href="#treatments" className="svc-jump-link">TREATMENTS</a>
             <a href="#iv-therapy" className="svc-jump-link">IV THERAPY</a>
             <a href="#injections" className="svc-jump-link">INJECTIONS</a>
             <a href="#recovery" className="svc-jump-link">RECOVERY</a>
-            <a href="#optimization" className="svc-jump-link">OPTIMIZATION</a>
-            <a href="#labs" className="svc-jump-link">LABS</a>
           </div>
         </div>
+
+        {/* ════════════════════════════════════════════════════════════════════════
+            LABS & TESTING
+        ════════════════════════════════════════════════════════════════════════ */}
+        <section id="labs" className={`v2-section v2-reveal ${visible['labs'] ? 'v2-visible' : ''}`}>
+          <div className="v2-container">
+            <div className="v2-label"><span className="v2-dot" /> LABS & TESTING</div>
+
+            <div className="svc-price-grid svc-price-grid-2">
+              <div className="svc-price-card">
+                <h3>Essential Blood Panel</h3>
+                <div className="svc-card-price">$350</div>
+                <div className="svc-card-detail">Includes provider visit to review results</div>
+                <ul className="svc-card-list">
+                  <li>CMP, Lipid Panel, CBC</li>
+                  <li>Hormones (gender-specific) + Thyroid panel</li>
+                  <li>Fasting Insulin, HgbA1c, Vitamin D</li>
+                  <li>Best for first-time labs or general health check</li>
+                </ul>
+              </div>
+              <div className="svc-price-card svc-price-card-featured">
+                <div className="svc-card-badge">MOST COMPLETE</div>
+                <h3>Elite Blood Panel</h3>
+                <div className="svc-card-price">$750</div>
+                <div className="svc-card-detail">Includes provider visit to review results</div>
+                <ul className="svc-card-list">
+                  <li>Everything in Essential PLUS:</li>
+                  <li>Heart: ApoA-1, ApoB, Lp(a), Homocysteine</li>
+                  <li>Inflammation: CRP-HS, Sed Rate</li>
+                  <li>Hormones: DHEA-S, FSH, LH, IGF-1, Cortisol</li>
+                  <li>Best for full health picture</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════════════
+            TREATMENT PROGRAMS
+        ════════════════════════════════════════════════════════════════════════ */}
+        <section id="treatments" className={`v2-section v2-bg-light v2-reveal ${visible['treatments'] ? 'v2-visible' : ''}`}>
+          <div className="v2-container">
+            <div className="v2-label"><span className="v2-dot" /> TREATMENT PROGRAMS</div>
+
+            {/* HRT */}
+            <h2 className="svc-section-title">Hormone optimization</h2>
+            <p className="svc-section-sub">All-inclusive HRT membership. Requires baseline labs.</p>
+
+            <div className="svc-price-grid svc-price-grid-1">
+              <div className="svc-price-card svc-price-card-wide">
+                <h3>HRT Membership</h3>
+                <div className="svc-card-price">$250/month</div>
+                <ul className="svc-card-list">
+                  <li>All hormone medications included</li>
+                  <li>Ongoing lab monitoring included</li>
+                  <li>Provider check-ins &amp; dose adjustments</li>
+                  <li>One Range IV per month ($225 value)</li>
+                </ul>
+                <div className="svc-card-note">Requires baseline lab panel (Essential $350 / Elite $750)</div>
+              </div>
+            </div>
+
+            {/* Weight Loss */}
+            <h2 className="svc-section-title svc-mt">Medical weight loss</h2>
+            <p className="svc-section-sub">Provider-managed GLP-1 medication program. Requires baseline labs.</p>
+
+            <div className="svc-price-grid svc-price-grid-1">
+              <div className="svc-price-card svc-price-card-wide">
+                <h3>Weight Loss Program</h3>
+                <div className="svc-card-price">From $399/month</div>
+                <ul className="svc-card-list">
+                  <li>Medication included (Tirzepatide, Semaglutide, or Retatrutide)</li>
+                  <li>Monthly provider check-ins &amp; dose adjustments</li>
+                  <li>Direct messaging with your provider</li>
+                  <li>Nutrition guidance included</li>
+                </ul>
+                <div className="svc-card-note">Requires baseline lab panel (Essential $350 / Elite $750)</div>
+              </div>
+            </div>
+
+            {/* Peptide Therapy */}
+            <h2 className="svc-section-title svc-mt">Peptide therapy</h2>
+            <p className="svc-section-sub">Targeted protocols for recovery, growth hormone support, immune function, and more.</p>
+
+            <div className="svc-price-grid svc-price-grid-1">
+              <div className="svc-price-card svc-price-card-wide">
+                <h3>Peptide Protocols</h3>
+                <div className="svc-card-price">$150&ndash;400/month</div>
+                <div className="svc-card-detail">Varies by peptide and protocol &mdash; discussed at your assessment</div>
+                <ul className="svc-card-list">
+                  <li>BPC-157 + TB-4 for recovery &amp; healing</li>
+                  <li>Growth hormone secretagogues (CJC/Ipamorelin, Tesamorelin)</li>
+                  <li>Immune, sleep, cognitive, and longevity peptides</li>
+                  <li>Pre-filled syringes, prescription required</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* ════════════════════════════════════════════════════════════════════════
             IV THERAPY
@@ -94,7 +193,7 @@ export default function Services() {
             <div className="svc-price-grid svc-price-grid-4">
               {[
                 { name: 'Immune Defense', icon: '\u{1F6E1}\u{FE0F}', items: ['Vitamin C', 'Zinc', 'Glutathione', 'B-Complex', 'Magnesium'], cents: 22500 },
-                { name: 'Energy & Vitality', icon: '\u26A1', items: ['B12', 'B-Complex', 'L-Carnitine', 'Magnesium', 'Vitamin C'], cents: 22500 },
+                { name: 'Energy & Vitality', icon: '⚡', items: ['B12', 'B-Complex', 'L-Carnitine', 'Magnesium', 'Vitamin C'], cents: 22500 },
                 { name: 'Recovery & Performance', icon: '\u{1F4AA}', items: ['Amino Acids', 'Magnesium', 'B-Complex', 'Vitamin C', 'Glutathione'], cents: 22500 },
                 { name: 'Detox & Cellular Repair', icon: '\u{1F9EC}', items: ['Glutathione', 'Vitamin C', 'NAC', 'Zinc', 'Magnesium'], cents: 22500 },
               ].map((iv, i) => (
@@ -105,7 +204,8 @@ export default function Services() {
                   <div className="svc-card-detail">60 min infusion</div>
                   <ul className="svc-card-list">
                     {iv.items.map((item, j) => <li key={j}>{item}</li>)}
-                  </ul>                </div>
+                  </ul>
+                </div>
               ))}
             </div>
 
@@ -124,7 +224,8 @@ export default function Services() {
                   {nad.popular && <div className="svc-card-badge">MOST POPULAR</div>}
                   <h3>NAD+ {nad.dose}</h3>
                   <div className="svc-card-price">{nad.price}</div>
-                  <div className="svc-card-detail">{nad.time} infusion</div>                </div>
+                  <div className="svc-card-detail">{nad.time} infusion</div>
+                </div>
               ))}
             </div>
 
@@ -141,7 +242,8 @@ export default function Services() {
                 <div key={i} className="svc-price-card">
                   <h3>Glutathione {g.dose}</h3>
                   <div className="svc-card-price">{g.price}</div>
-                  <div className="svc-card-detail">60 min IV push</div>                </div>
+                  <div className="svc-card-detail">60 min IV push</div>
+                </div>
               ))}
             </div>
 
@@ -158,7 +260,8 @@ export default function Services() {
                 <div key={i} className="svc-price-card">
                   <h3>Vitamin C {vc.dose}</h3>
                   <div className="svc-card-price">{vc.price}</div>
-                  <div className="svc-card-detail">{vc.time} infusion</div>                </div>
+                  <div className="svc-card-detail">{vc.time} infusion</div>
+                </div>
               ))}
             </div>
 
@@ -174,7 +277,8 @@ export default function Services() {
                 <div key={i} className="svc-price-card">
                   <h3>{mb.name}</h3>
                   <div className="svc-card-price">{mb.price}</div>
-                  <div className="svc-card-detail">{mb.time} infusion</div>                </div>
+                  <div className="svc-card-detail">{mb.time} infusion</div>
+                </div>
               ))}
             </div>
           </div>
@@ -195,7 +299,8 @@ export default function Services() {
               {['B12 (Methylcobalamin)', 'B-Complex', 'Vitamin D3', 'Biotin', 'Amino Blend', 'NAC', 'BCAA'].map((inj, i) => (
                 <div key={i} className="svc-price-card svc-price-card-compact">
                   <h3>{inj}</h3>
-                  <div className="svc-card-price">$35</div>                </div>
+                  <div className="svc-card-price">$35</div>
+                </div>
               ))}
             </div>
 
@@ -211,7 +316,8 @@ export default function Services() {
                 <div key={i} className="svc-price-card">
                   <h3>{inj.name}</h3>
                   <div className="svc-card-price">$50</div>
-                  <div className="svc-card-detail">{inj.desc}</div>                </div>
+                  <div className="svc-card-detail">{inj.desc}</div>
+                </div>
               ))}
             </div>
 
@@ -227,7 +333,8 @@ export default function Services() {
               ].map((nad, i) => (
                 <div key={i} className="svc-price-card svc-price-card-compact">
                   <h3>NAD+ {nad.dose}</h3>
-                  <div className="svc-card-price">{nad.price}</div>                </div>
+                  <div className="svc-card-price">{nad.price}</div>
+                </div>
               ))}
             </div>
 
@@ -245,7 +352,8 @@ export default function Services() {
                   <li>Any standard injection ($35 each)</li>
                   <li>Take home for self-administration</li>
                   <li>MWF protocol recommended</li>
-                </ul>              </div>
+                </ul>
+              </div>
               <div className="svc-price-card svc-price-card-featured">
                 <div className="svc-card-badge">SPECIALTY</div>
                 <h3>NAD+ / Premium Package</h3>
@@ -255,7 +363,8 @@ export default function Services() {
                   <li>NAD+ (100mg) or any premium injection</li>
                   <li>Take home for self-administration</li>
                   <li>MWF protocol recommended</li>
-                </ul>              </div>
+                </ul>
+              </div>
             </div>
           </div>
         </section>
@@ -282,7 +391,8 @@ export default function Services() {
                   <li>Structured 6-week schedule &mdash; 3x/week</li>
                   <li>Weekly check-ins to track progress</li>
                   <li>Money-back guarantee</li>
-                </ul>              </div>
+                </ul>
+              </div>
             </div>
 
             {/* HBOT */}
@@ -292,15 +402,18 @@ export default function Services() {
             <div className="svc-price-grid svc-price-grid-3">
               <div className="svc-price-card">
                 <h3>Single Session</h3>
-                <div className="svc-card-price">$185</div>              </div>
+                <div className="svc-card-price">$185</div>
+              </div>
               <div className="svc-price-card">
                 <h3>5-Session Pack</h3>
                 <div className="svc-card-price">$850</div>
-                <div className="svc-card-detail">$170/session &mdash; save 8%</div>              </div>
+                <div className="svc-card-detail">$170/session &mdash; save 8%</div>
+              </div>
               <div className="svc-price-card">
                 <h3>10-Session Pack</h3>
                 <div className="svc-card-price">$1,600</div>
-                <div className="svc-card-detail">$160/session &mdash; save 14%</div>              </div>
+                <div className="svc-card-detail">$160/session &mdash; save 14%</div>
+              </div>
             </div>
 
             <h3 className="svc-subsection-title svc-mt-sm">HBOT MEMBERSHIPS</h3>
@@ -308,15 +421,16 @@ export default function Services() {
 
             <div className="svc-price-grid svc-price-grid-3">
               {[
-                { freq: '1x/Week', price: '$549/mo', cents: 54900, detail: '4 sessions &mdash; $137/session' },
-                { freq: '2x/Week', price: '$999/mo', cents: 99900, detail: '8 sessions &mdash; $125/session', popular: true },
-                { freq: '3x/Week', price: '$1,399/mo', cents: 139900, detail: '12 sessions &mdash; $117/session' },
+                { freq: '1x/Week', price: '$549 every 4 weeks', cents: 54900, detail: '4 sessions &mdash; $137/session' },
+                { freq: '2x/Week', price: '$999 every 4 weeks', cents: 99900, detail: '8 sessions &mdash; $125/session', popular: true },
+                { freq: '3x/Week', price: '$1,399 every 4 weeks', cents: 139900, detail: '12 sessions &mdash; $117/session' },
               ].map((m, i) => (
                 <div key={i} className={`svc-price-card ${m.popular ? 'svc-price-card-featured' : ''}`}>
                   {m.popular && <div className="svc-card-badge">BEST VALUE</div>}
                   <h3>HBOT {m.freq}</h3>
                   <div className="svc-card-price">{m.price}</div>
-                  <div className="svc-card-detail" dangerouslySetInnerHTML={{ __html: m.detail }} />                </div>
+                  <div className="svc-card-detail" dangerouslySetInnerHTML={{ __html: m.detail }} />
+                </div>
               ))}
             </div>
 
@@ -327,20 +441,24 @@ export default function Services() {
             <div className="svc-price-grid svc-price-grid-4">
               <div className="svc-price-card">
                 <h3>Single Session</h3>
-                <div className="svc-card-price">$85</div>              </div>
+                <div className="svc-card-price">$85</div>
+              </div>
               <div className="svc-price-card">
                 <h3>5-Session Pack</h3>
                 <div className="svc-card-price">$375</div>
-                <div className="svc-card-detail">$75/session</div>              </div>
+                <div className="svc-card-detail">$75/session</div>
+              </div>
               <div className="svc-price-card">
                 <h3>10-Session Pack</h3>
                 <div className="svc-card-price">$600</div>
-                <div className="svc-card-detail">$60/session</div>              </div>
+                <div className="svc-card-detail">$60/session</div>
+              </div>
               <div className="svc-price-card svc-price-card-featured">
                 <div className="svc-card-badge">MEMBERSHIP</div>
                 <h3>RLT Reset</h3>
-                <div className="svc-card-price">$399/mo</div>
-                <div className="svc-card-detail">Up to 12 sessions/month</div>              </div>
+                <div className="svc-card-price">$399 every 4 weeks</div>
+                <div className="svc-card-detail">Up to 12 sessions per 4-week cycle</div>
+              </div>
             </div>
 
             {/* Combo Memberships */}
@@ -349,15 +467,16 @@ export default function Services() {
 
             <div className="svc-price-grid svc-price-grid-3">
               {[
-                { freq: '1x/Week', price: '$899/mo', cents: 89900, detail: '4 HBOT + 4 RLT' },
-                { freq: '2x/Week', price: '$1,499/mo', cents: 149900, detail: '8 HBOT + 8 RLT', popular: true },
-                { freq: '3x/Week', price: '$1,999/mo', cents: 199900, detail: '12 HBOT + 12 RLT' },
+                { freq: '1x/Week', price: '$899 every 4 weeks', cents: 89900, detail: '4 HBOT + 4 RLT' },
+                { freq: '2x/Week', price: '$1,499 every 4 weeks', cents: 149900, detail: '8 HBOT + 8 RLT', popular: true },
+                { freq: '3x/Week', price: '$1,999 every 4 weeks', cents: 199900, detail: '12 HBOT + 12 RLT' },
               ].map((m, i) => (
                 <div key={i} className={`svc-price-card ${m.popular ? 'svc-price-card-featured' : ''}`}>
                   {m.popular && <div className="svc-card-badge">MOST POPULAR</div>}
                   <h3>Combo {m.freq}</h3>
                   <div className="svc-card-price">{m.price}</div>
-                  <div className="svc-card-detail">{m.detail}</div>                </div>
+                  <div className="svc-card-detail">{m.detail}</div>
+                </div>
               ))}
             </div>
 
@@ -368,12 +487,14 @@ export default function Services() {
             <div className="svc-price-grid svc-price-grid-2">
               <div className="svc-price-card">
                 <h3>Single Injection</h3>
-                <div className="svc-card-price">$750</div>              </div>
+                <div className="svc-card-price">$750</div>
+              </div>
               <div className="svc-price-card svc-price-card-featured">
                 <div className="svc-card-badge">SAVE $450</div>
                 <h3>3-Injection Pack</h3>
                 <div className="svc-card-price">$1,800</div>
-                <div className="svc-card-detail">$600/injection</div>              </div>
+                <div className="svc-card-detail">$600/injection</div>
+              </div>
             </div>
 
             {/* Exosome */}
@@ -384,101 +505,8 @@ export default function Services() {
               <div className="svc-price-card svc-price-card-wide">
                 <h3>Exosome Therapy</h3>
                 <div className="svc-card-price">Consultation-based</div>
-                <div className="svc-card-detail">Pricing discussed at your assessment</div>              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ════════════════════════════════════════════════════════════════════════
-            OPTIMIZATION & WELLNESS
-        ════════════════════════════════════════════════════════════════════════ */}
-        <section id="optimization" className={`v2-section v2-bg-light v2-reveal ${visible['optimization'] ? 'v2-visible' : ''}`}>
-          <div className="v2-container">
-            <div className="v2-label"><span className="v2-dot" /> OPTIMIZATION & WELLNESS</div>
-
-            {/* HRT */}
-            <h2 className="svc-section-title">Hormone optimization</h2>
-            <p className="svc-section-sub">All-inclusive HRT membership. Requires baseline labs.</p>
-
-            <div className="svc-price-grid svc-price-grid-1">
-              <div className="svc-price-card svc-price-card-wide">
-                <h3>HRT Membership</h3>
-                <div className="svc-card-price">$250/month</div>
-                <ul className="svc-card-list">
-                  <li>All hormone medications included</li>
-                  <li>Ongoing lab monitoring included</li>
-                  <li>Provider check-ins &amp; dose adjustments</li>
-                  <li>One Range IV per month ($225 value)</li>
-                </ul>
-                <div className="svc-card-note">Requires baseline lab panel (Essential $350 / Elite $750)</div>              </div>
-            </div>
-
-            {/* Weight Loss */}
-            <h2 className="svc-section-title svc-mt">Medical weight loss</h2>
-            <p className="svc-section-sub">Provider-managed GLP-1 medication program. Requires baseline labs.</p>
-
-            <div className="svc-price-grid svc-price-grid-1">
-              <div className="svc-price-card svc-price-card-wide">
-                <h3>Weight Loss Program</h3>
-                <div className="svc-card-price">From $399/month</div>
-                <ul className="svc-card-list">
-                  <li>Medication included (Tirzepatide, Semaglutide, or Retatrutide)</li>
-                  <li>Monthly provider check-ins &amp; dose adjustments</li>
-                  <li>Direct messaging with your provider</li>
-                  <li>Nutrition guidance included</li>
-                </ul>
-                <div className="svc-card-note">Requires baseline lab panel (Essential $350 / Elite $750)</div>              </div>
-            </div>
-
-            {/* Peptide Therapy */}
-            <h2 className="svc-section-title svc-mt">Peptide therapy</h2>
-            <p className="svc-section-sub">Targeted protocols for recovery, growth hormone support, immune function, and more.</p>
-
-            <div className="svc-price-grid svc-price-grid-1">
-              <div className="svc-price-card svc-price-card-wide">
-                <h3>Peptide Protocols</h3>
-                <div className="svc-card-price">$150&ndash;400/month</div>
-                <div className="svc-card-detail">Varies by peptide and protocol &mdash; discussed at your assessment</div>
-                <ul className="svc-card-list">
-                  <li>BPC-157 + TB-4 for recovery &amp; healing</li>
-                  <li>Growth hormone secretagogues (CJC/Ipamorelin, Tesamorelin)</li>
-                  <li>Immune, sleep, cognitive, and longevity peptides</li>
-                  <li>Pre-filled syringes, prescription required</li>
-                </ul>              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ════════════════════════════════════════════════════════════════════════
-            LABS & TESTING
-        ════════════════════════════════════════════════════════════════════════ */}
-        <section id="labs" className={`v2-section v2-reveal ${visible['labs'] ? 'v2-visible' : ''}`}>
-          <div className="v2-container">
-            <div className="v2-label"><span className="v2-dot" /> LABS & TESTING</div>
-
-            <div className="svc-price-grid svc-price-grid-2">
-              <div className="svc-price-card">
-                <h3>Essential Blood Panel</h3>
-                <div className="svc-card-price">$350</div>
-                <div className="svc-card-detail">Includes provider visit to review results</div>
-                <ul className="svc-card-list">
-                  <li>CMP, Lipid Panel, CBC</li>
-                  <li>Hormones (gender-specific) + Thyroid panel</li>
-                  <li>Fasting Insulin, HgbA1c, Vitamin D</li>
-                  <li>Best for first-time labs or general health check</li>
-                </ul>              </div>
-              <div className="svc-price-card svc-price-card-featured">
-                <div className="svc-card-badge">MOST COMPLETE</div>
-                <h3>Elite Blood Panel</h3>
-                <div className="svc-card-price">$750</div>
-                <div className="svc-card-detail">Includes provider visit to review results</div>
-                <ul className="svc-card-list">
-                  <li>Everything in Essential PLUS:</li>
-                  <li>Heart: ApoA-1, ApoB, Lp(a), Homocysteine</li>
-                  <li>Inflammation: CRP-HS, Sed Rate</li>
-                  <li>Hormones: DHEA-S, FSH, LH, IGF-1, Cortisol</li>
-                  <li>Best for full health picture</li>
-                </ul>              </div>
+                <div className="svc-card-detail">Pricing discussed at your assessment</div>
+              </div>
             </div>
           </div>
         </section>
@@ -558,7 +586,6 @@ export default function Services() {
         .svc-card-list { list-style: none; padding: 0; margin: 0 0 1.25rem; flex: 1; }
         .svc-card-list li { font-size: 0.8125rem; color: #525252; line-height: 1.6; padding: 0.1875rem 0 0.1875rem 1.125rem; position: relative; }
         .svc-card-list li::before { content: '–'; position: absolute; left: 0; color: #808080; font-weight: 600; }
-
 
         /* ── CTA ── */
         .v2-cta-section { background: #1a1a1a; text-align: center; }

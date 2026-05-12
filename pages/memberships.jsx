@@ -1,46 +1,33 @@
 import Layout from '../components/Layout';
 import Head from 'next/head';
 import { useState, useMemo } from 'react';
-import { Check, ChevronDown, ChevronUp, Phone, Calendar, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Phone, Calendar } from 'lucide-react';
 import fs from 'fs';
 import path from 'path';
 
 const HBOT_SESSION_RETAIL = 185;
 const RLT_SESSION_RETAIL = 85;
 
-const MEMBERSHIP_TIERS = [
-  { name: 'Baseline', monthly: 299, credits: 350, discount: 15, hbot: 1, rlt: 1 },
-  { name: 'Protocol', monthly: 599, credits: 750, discount: 20, hbot: 2, rlt: 2 },
-  { name: 'Performance', monthly: 1299, credits: 1700, discount: 25, hbot: 4, rlt: 4 },
-].map(t => {
-  const sessionValue = t.hbot * HBOT_SESSION_RETAIL + t.rlt * RLT_SESSION_RETAIL;
-  const totalValue = t.credits + sessionValue;
-  return { ...t, sessionValue, totalValue, bonus: totalValue - t.monthly };
-});
+const MEMBERSHIP_PRICE = 299;
+const INCLUDED_VALUE = HBOT_SESSION_RETAIL + RLT_SESSION_RETAIL; // $270
 
-// 3-month titration schedules based on human clinical trials
-// Tirzepatide: SURMOUNT-1/SURMOUNT-2 trials — 4-week dose escalation
-// Retatrutide: Phase 2 trial (Eli Lilly) — 4-week dose escalation
-const TITRATION_SCHEDULES = {
-  tirzepatide: {
-    label: 'Tirzepatide',
-    trial: 'SURMOUNT-1 / SURMOUNT-2 clinical trials',
-    months: [
-      { month: 1, dose: '2.5mg', id: 'wl-tirz-d1' },
-      { month: 2, dose: '5mg', id: 'wl-tirz-d2' },
-      { month: 3, dose: '7.5mg', id: 'wl-tirz-d3' },
-    ],
-  },
-  retatrutide: {
-    label: 'Retatrutide',
-    trial: 'Phase 2 clinical trial (Eli Lilly, 2023)',
-    months: [
-      { month: 1, dose: '2mg', id: 'wl-reta-d1' },
-      { month: 2, dose: '4mg', id: 'wl-reta-d2' },
-      { month: 3, dose: '6mg', id: 'wl-reta-d3' },
-    ],
-  },
-};
+const PROGRAM_PREFIXES = ['hrt-', 'wl-', 'pep-'];
+const LAB_ESSENTIAL_IDS = new Set(['lab-mens-essential', 'lab-womens-essential']);
+const LAB_ELITE_IDS = new Set(['lab-mens-elite', 'lab-womens-elite']);
+
+function getMemberPrice(id, retailPrice) {
+  if (LAB_ESSENTIAL_IDS.has(id)) return 0;
+  if (LAB_ELITE_IDS.has(id)) return 400;
+  if (PROGRAM_PREFIXES.some(p => id.startsWith(p))) return Math.round(retailPrice * 0.9);
+  return Math.round(retailPrice * 0.8);
+}
+
+function getDiscountLabel(id) {
+  if (LAB_ESSENTIAL_IDS.has(id)) return 'Included';
+  if (LAB_ELITE_IDS.has(id)) return '$400 with membership';
+  if (PROGRAM_PREFIXES.some(p => id.startsWith(p))) return '10% off';
+  return '20% off';
+}
 
 // Display name overrides (UI only — services.json stays unchanged)
 const DISPLAY_NAMES = {
@@ -86,18 +73,6 @@ const DISPLAY_NAMES = {
   'combo-3x': '3x/Week — HBOT + RLT each session',
 };
 
-// Membership prices for body therapy frequencies (shown alongside retail)
-const MEMBERSHIP_PRICES = {
-  'hbot-1x': { price: 549, label: 'HBOT Membership' },
-  'hbot-2x': { price: 999, label: 'HBOT Membership' },
-  'hbot-3x': { price: 1399, label: 'HBOT Membership' },
-  'rlt-1x': { price: 399, label: 'RLT Membership' },
-  'rlt-2x': { price: 399, label: 'RLT Membership' },
-  'rlt-3x': { price: 399, label: 'RLT Membership' },
-  'combo-1x': { price: 899, label: 'Combo Membership' },
-  'combo-2x': { price: 1499, label: 'Combo Membership' },
-  'combo-3x': { price: 1999, label: 'Combo Membership' },
-};
 
 // Categories with nested collapsible sub-groups
 // items = flat selectable list, groups = collapsible sub-sections
@@ -245,35 +220,9 @@ function getDisplayName(svc) {
   return DISPLAY_NAMES[svc.id] || svc.name;
 }
 
-function CoverageIndicator({ credits, total }) {
-  if (total === 0) return null;
-  if (credits >= total) {
-    return (
-      <div style={styles.coverageFull}>
-        <Check size={14} strokeWidth={3} />
-        <span>Fully covered</span>
-      </div>
-    );
-  }
-  if (credits >= total * 0.5) {
-    return (
-      <div style={styles.coveragePartial}>
-        <span style={styles.coverageDot}>~</span>
-        <span>Covers {Math.round((credits / total) * 100)}%</span>
-      </div>
-    );
-  }
-  return (
-    <div style={styles.coverageNone}>
-      <span style={styles.coverageDot}>&mdash;</span>
-      <span>Covers {Math.round((credits / total) * 100)}%</span>
-    </div>
-  );
-}
-
-// Renders a single selectable service row
 function ServiceRow({ svc, selected, onToggle }) {
-  const membershipDeal = MEMBERSHIP_PRICES[svc.id];
+  const memberPrice = getMemberPrice(svc.id, svc.price);
+  const discountLabel = getDiscountLabel(svc.id);
   return (
     <label style={styles.serviceRow}>
       <div style={styles.checkboxWrap}>
@@ -292,17 +241,13 @@ function ServiceRow({ svc, selected, onToggle }) {
       </div>
       <div style={styles.serviceNameCol}>
         <span style={styles.serviceName}>{getDisplayName(svc)}</span>
-        {membershipDeal && (
-          <span style={styles.membershipNote}>
-            {membershipDeal.label}: {formatPrice(membershipDeal.price)}/mo
-          </span>
-        )}
+        <span style={styles.memberNote}>
+          Member: {memberPrice === 0 ? 'Included' : `${formatPrice(memberPrice)} (${discountLabel})`}
+        </span>
       </div>
       <div style={styles.servicePriceCol}>
         <span style={styles.servicePrice}>{formatPrice(svc.price)}</span>
-        {membershipDeal && (
-          <span style={styles.servicePriceLabel}>retail/mo</span>
-        )}
+        <span style={styles.servicePriceLabel}>retail</span>
       </div>
     </label>
   );
@@ -343,9 +288,6 @@ export default function Memberships({ services }) {
   const [selected, setSelected] = useState({});
   const [expandedCats, setExpandedCats] = useState({ Labs: true, 'Weight Loss': true });
   const [expandedSubs, setExpandedSubs] = useState({});
-  const [labsPaid, setLabsPaid] = useState(false);
-  const [labsPaidType, setLabsPaidType] = useState('essential');
-  const [showCal, setShowCal] = useState(false);
 
   const serviceMap = useMemo(() => {
     const map = {};
@@ -353,27 +295,22 @@ export default function Memberships({ services }) {
     return map;
   }, [services]);
 
-  const selectedTotal = useMemo(() => {
-    return Object.entries(selected).reduce((sum, [id, checked]) => {
-      if (!checked) return sum;
-      const svc = serviceMap[id];
-      return sum + (svc ? svc.price : 0);
-    }, 0);
+  const selectedServices = useMemo(() => {
+    return Object.entries(selected)
+      .filter(([, checked]) => checked)
+      .map(([id]) => serviceMap[id])
+      .filter(Boolean);
   }, [selected, serviceMap]);
 
-  const labCreditAmount = labsPaid ? (labsPaidType === 'elite' ? 750 : 350) : 0;
+  const retailTotal = useMemo(() => {
+    return selectedServices.reduce((sum, svc) => sum + svc.price, 0);
+  }, [selectedServices]);
 
-  // Detect if a weight loss program is selected → show titration breakdown
-  const activeTitration = useMemo(() => {
-    const tirzIds = ['wl-tirz-d1', 'wl-tirz-d2', 'wl-tirz-d3', 'wl-tirz-d4', 'wl-tirz-d5'];
-    const retaIds = ['wl-reta-d1', 'wl-reta-d2', 'wl-reta-d3', 'wl-reta-d4', 'wl-reta-d5', 'wl-reta-d6'];
-    const hasTirz = tirzIds.some(id => selected[id]);
-    const hasReta = retaIds.some(id => selected[id]);
-    const results = [];
-    if (hasTirz) results.push(TITRATION_SCHEDULES.tirzepatide);
-    if (hasReta) results.push(TITRATION_SCHEDULES.retatrutide);
-    return results;
-  }, [selected]);
+  const memberTotal = useMemo(() => {
+    return selectedServices.reduce((sum, svc) => sum + getMemberPrice(svc.id, svc.price), 0);
+  }, [selectedServices]);
+
+  const totalSavings = retailTotal - memberTotal;
 
   const toggleService = (id) => {
     setSelected(prev => ({ ...prev, [id]: !prev[id] }));
@@ -387,7 +324,6 @@ export default function Memberships({ services }) {
     setExpandedSubs(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // Count selected items in a category
   const countSelected = (cat) => {
     let count = 0;
     if (cat.items) {
@@ -401,7 +337,6 @@ export default function Memberships({ services }) {
     return count;
   };
 
-  // Check if category has any valid items
   const catHasItems = (cat) => {
     if (cat.items) {
       return cat.items.some(id => serviceMap[id] && serviceMap[id].price !== null);
@@ -411,21 +346,6 @@ export default function Memberships({ services }) {
     }
     return false;
   };
-
-  const bestFitIndex = useMemo(() => {
-    if (selectedTotal === 0) return -1;
-    let best = -1;
-    let bestDiff = Infinity;
-    MEMBERSHIP_TIERS.forEach((tier, i) => {
-      const diff = tier.credits - selectedTotal;
-      if (diff >= 0 && diff < bestDiff) {
-        best = i;
-        bestDiff = diff;
-      }
-    });
-    if (best === -1) best = MEMBERSHIP_TIERS.length - 1;
-    return best;
-  }, [selectedTotal]);
 
   return (
     <Layout
@@ -439,11 +359,11 @@ export default function Memberships({ services }) {
       {/* Hero */}
       <section style={styles.hero}>
         <div style={styles.container}>
-          <div style={styles.kicker}>MEMBERSHIP CALCULATOR</div>
-          <h1 style={styles.h1}>See What a Membership Saves You</h1>
+          <div style={styles.kicker}>RANGE MEMBERSHIP</div>
+          <h1 style={styles.h1}>One Membership. Everything You Need.</h1>
           <p style={styles.heroSub}>
-            Select the services you're interested in. We'll show you which membership tier
-            gives you the most value for how you plan to use Range Medical.
+            Labs on a schedule, body therapy sessions every month, and discounts on
+            everything else. Select services below to see your savings.
           </p>
         </div>
       </section>
@@ -455,8 +375,8 @@ export default function Memberships({ services }) {
             {/* LEFT: Service Selection */}
             <div style={styles.selectionCol} className="selection-col">
               <div style={styles.stickySubtotal}>
-                <span style={styles.subtotalLabel}>Your monthly total</span>
-                <span style={styles.subtotalValue}>{formatPrice(selectedTotal)}</span>
+                <span style={styles.subtotalLabel}>Retail total</span>
+                <span style={styles.subtotalValue}>{formatPrice(retailTotal)}</span>
               </div>
 
               {CALCULATOR_CATEGORIES.filter(cat => catHasItems(cat)).map(cat => {
@@ -478,7 +398,6 @@ export default function Memberships({ services }) {
                     </button>
                     {isExpanded && (
                       <div style={styles.catItems}>
-                        {/* Direct items */}
                         {cat.items && cat.items.map(id => {
                           const svc = serviceMap[id];
                           if (!svc || svc.price === null) return null;
@@ -491,7 +410,6 @@ export default function Memberships({ services }) {
                             />
                           );
                         })}
-                        {/* Sub-groups */}
                         {cat.groups && cat.groups.map(group => {
                           const subKey = `${cat.label}::${group.label}`;
                           return (
@@ -512,258 +430,116 @@ export default function Memberships({ services }) {
                   </div>
                 );
               })}
-
-              {/* Labs Already Paid Toggle */}
-              <div style={styles.labsToggleSection}>
-                <label style={styles.labsToggleRow}>
-                  <div style={styles.checkboxWrap}>
-                    <div style={{
-                      ...styles.checkbox,
-                      ...(labsPaid ? styles.checkboxChecked : {}),
-                    }}>
-                      {labsPaid && <Check size={12} strokeWidth={3} color="#fff" />}
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={labsPaid}
-                      onChange={() => setLabsPaid(!labsPaid)}
-                      style={{ display: 'none' }}
-                    />
-                  </div>
-                  <span style={styles.labsToggleText}>I already completed my labs today</span>
-                </label>
-                {labsPaid && (
-                  <div style={styles.labsTypeSelect}>
-                    <button
-                      style={{
-                        ...styles.labsTypeBtn,
-                        ...(labsPaidType === 'essential' ? styles.labsTypeBtnActive : {}),
-                      }}
-                      onClick={() => setLabsPaidType('essential')}
-                    >
-                      Essential &mdash; $350
-                    </button>
-                    <button
-                      style={{
-                        ...styles.labsTypeBtn,
-                        ...(labsPaidType === 'elite' ? styles.labsTypeBtnActive : {}),
-                      }}
-                      onClick={() => setLabsPaidType('elite')}
-                    >
-                      Elite &mdash; $750
-                    </button>
-                  </div>
-                )}
-              </div>
             </div>
 
-            {/* RIGHT: Membership Comparison */}
+            {/* RIGHT: Membership Card + Savings */}
             <div style={styles.tiersCol}>
-              <div style={styles.tiersHeader}>
-                <div style={styles.kicker}>COMPARE TIERS</div>
-                <h2 style={styles.h2}>Your Membership Fit</h2>
-                {selectedTotal === 0 && (
-                  <p style={styles.tiersEmpty}>Select services on the left to see which tier is right for you.</p>
-                )}
+              <div style={styles.membershipCard}>
+                <div style={styles.mcPrice}>
+                  <span style={styles.mcAmount}>{formatPrice(MEMBERSHIP_PRICE)}</span>
+                  <span style={styles.mcPeriod}>/mo</span>
+                </div>
+                <div style={styles.mcCommit}>3-month minimum, then month-to-month</div>
+
+                <div style={styles.mcDivider} />
+
+                <div style={styles.mcSection}>
+                  <div style={styles.mcSectionLabel}>Labs</div>
+                  <div style={styles.mcItem}>
+                    <Check size={14} strokeWidth={3} color="#16a34a" />
+                    <span>Free Essential panel at signup ({formatPrice(350)} value)</span>
+                  </div>
+                  <div style={styles.mcItem}>
+                    <Check size={14} strokeWidth={3} color="#16a34a" />
+                    <span>Upgrade to Elite for {formatPrice(400)} (normally {formatPrice(750)})</span>
+                  </div>
+                  <div style={styles.mcItem}>
+                    <Check size={14} strokeWidth={3} color="#16a34a" />
+                    <span>Follow-up Essential panel every 12 weeks</span>
+                  </div>
+                </div>
+
+                <div style={styles.mcSection}>
+                  <div style={styles.mcSectionLabel}>Monthly Sessions</div>
+                  <div style={styles.mcItem}>
+                    <Check size={14} strokeWidth={3} color="#16a34a" />
+                    <span>1 Hyperbaric session ({formatPrice(HBOT_SESSION_RETAIL)} value)</span>
+                  </div>
+                  <div style={styles.mcItem}>
+                    <Check size={14} strokeWidth={3} color="#16a34a" />
+                    <span>1 Red Light session ({formatPrice(RLT_SESSION_RETAIL)} value)</span>
+                  </div>
+                </div>
+
+                <div style={styles.mcSection}>
+                  <div style={styles.mcSectionLabel}>Member Discounts</div>
+                  <div style={styles.mcItem}>
+                    <Check size={14} strokeWidth={3} color="#16a34a" />
+                    <span>10% off HRT, weight loss &amp; peptide programs</span>
+                  </div>
+                  <div style={styles.mcItem}>
+                    <Check size={14} strokeWidth={3} color="#16a34a" />
+                    <span>20% off IVs, injections &amp; extra body therapy sessions</span>
+                  </div>
+                </div>
+
+                <div style={styles.mcDivider} />
+
+                <div style={styles.mcValueLine}>
+                  {formatPrice(INCLUDED_VALUE + 350)} in value your first month &mdash; you pay {formatPrice(MEMBERSHIP_PRICE)}
+                </div>
               </div>
 
-              <div style={styles.tiersGrid} className="tiers-grid">
-                {MEMBERSHIP_TIERS.map((tier, i) => {
-                  const isBest = i === bestFitIndex && selectedTotal > 0;
-                  const month1Net = labCreditAmount > 0
-                    ? Math.max(0, tier.monthly - labCreditAmount)
-                    : null;
-                  const remaining = tier.credits - selectedTotal;
+              {/* Savings breakdown when services are selected */}
+              {selectedServices.length > 0 && (
+                <div style={styles.savingsCard}>
+                  <div style={styles.savingsHeader}>YOUR MEMBER SAVINGS</div>
 
-                  return (
-                    <div
-                      key={tier.name}
-                      style={{
-                        ...styles.tierCard,
-                        ...(isBest ? styles.tierCardBest : {}),
-                      }}
-                    >
-                      {isBest && <div style={styles.bestBadge}>BEST FIT</div>}
-                      <div style={styles.tierName}>{tier.name}</div>
-                      <div style={styles.tierPrice}>
-                        {formatPrice(tier.monthly)}<span style={styles.tierPeriod}>/mo</span>
-                      </div>
-                      <div style={styles.tierTotalValue}>
-                        {formatPrice(tier.totalValue)} in total monthly value
-                      </div>
-                      <div style={styles.tierBonus}>
-                        +{formatPrice(tier.bonus)} bonus value per month
-                      </div>
+                  <div style={styles.savingsTableHeader}>
+                    <span style={styles.savingsThName}>Service</span>
+                    <span style={styles.savingsTh}>Retail</span>
+                    <span style={styles.savingsTh}>Member</span>
+                  </div>
 
-                      <div style={styles.tierDivider} />
-
-                      <div style={styles.tierIncludes}>
-                        <div style={styles.tierIncludesLabel}>Included every month</div>
-                        <div style={styles.tierIncludesItem}>
-                          <Check size={13} strokeWidth={3} color="#16a34a" />
-                          <span>{formatPrice(tier.credits)} in credits for any service</span>
-                        </div>
-                        <div style={styles.tierIncludesItem}>
-                          <Check size={13} strokeWidth={3} color="#16a34a" />
-                          <span>{tier.hbot} HBOT session{tier.hbot > 1 ? 's' : ''} ({formatPrice(tier.hbot * HBOT_SESSION_RETAIL)} value)</span>
-                        </div>
-                        <div style={styles.tierIncludesItem}>
-                          <Check size={13} strokeWidth={3} color="#16a34a" />
-                          <span>{tier.rlt} Red Light session{tier.rlt > 1 ? 's' : ''} ({formatPrice(tier.rlt * RLT_SESSION_RETAIL)} value)</span>
-                        </div>
-                        <div style={styles.tierIncludesItem}>
-                          <Check size={13} strokeWidth={3} color="#16a34a" />
-                          <span>{tier.discount}% off additional sessions</span>
-                        </div>
-                      </div>
-
-                      <div style={styles.tierDivider} />
-
-                      {selectedTotal > 0 && (
-                        <CoverageIndicator credits={tier.credits} total={selectedTotal} />
-                      )}
-
-                      {selectedTotal > 0 && remaining > 0 && (
-                        <div style={styles.remaining}>
-                          <span style={styles.remainingValue}>{formatPrice(remaining)}</span>
-                          <span style={styles.remainingLabel}>left over for other services</span>
-                        </div>
-                      )}
-
-                      {month1Net !== null && (
-                        <div style={styles.month1}>
-                          <span style={styles.month1Label}>Month 1 with lab credit:</span>
-                          <span style={styles.month1Value}>
-                            {month1Net === 0 ? 'Covered' : formatPrice(month1Net)}
-                          </span>
-                        </div>
-                      )}
-
-                      <div style={styles.tierSavings}>
-                        {selectedTotal > 0 && selectedTotal <= tier.credits && (
-                          <div style={styles.savingsLine}>
-                            You save {formatPrice(tier.totalValue - tier.monthly)} vs. retail every month
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* 3-Month Titration Breakdown */}
-              {activeTitration.length > 0 && (
-                <div style={styles.titrationSection}>
-                  <div style={styles.kicker}>3-MONTH COMMITMENT</div>
-                  <h2 style={styles.h2}>Weight Loss Titration Savings</h2>
-                  <p style={styles.titrationSub}>
-                    Memberships require a 3-month minimum. Here's what normal dose titration looks like
-                    over that period — and what you save compared to retail pricing.
-                  </p>
-
-                  {activeTitration.map(schedule => {
-                    const monthlyPrices = schedule.months.map(m => serviceMap[m.id]?.price || 0);
-                    const retailTotal = monthlyPrices.reduce((a, b) => a + b, 0);
-
+                  {selectedServices.map(svc => {
+                    const mp = getMemberPrice(svc.id, svc.price);
                     return (
-                      <div key={schedule.label} style={styles.titrationCard}>
-                        <div style={styles.titrationCardHeader}>
-                          <span style={styles.titrationDrug}>{schedule.label}</span>
-                          <span style={styles.titrationTrial}>Based on {schedule.trial}</span>
-                        </div>
-
-                        {/* Month-by-month table */}
-                        <div style={styles.titrationTable}>
-                          <div style={styles.titrationRow}>
-                            <span style={styles.titrationTh}></span>
-                            <span style={styles.titrationTh}>Dose</span>
-                            <span style={styles.titrationTh}>Retail</span>
-                          </div>
-                          {schedule.months.map(m => (
-                            <div key={m.month} style={styles.titrationRow}>
-                              <span style={styles.titrationTd}>Month {m.month}</span>
-                              <span style={styles.titrationTd}>{m.dose}</span>
-                              <span style={styles.titrationTdPrice}>{formatPrice(serviceMap[m.id]?.price || 0)}</span>
-                            </div>
-                          ))}
-                          <div style={styles.titrationRowTotal}>
-                            <span style={styles.titrationTdBold}>3-Month Retail Total</span>
-                            <span style={styles.titrationTd}></span>
-                            <span style={styles.titrationTdBold}>{formatPrice(retailTotal)}</span>
-                          </div>
-                        </div>
-
-                        {/* Membership comparison */}
-                        <div style={styles.titrationTiers}>
-                          {MEMBERSHIP_TIERS.map(tier => {
-                            const membershipCost = tier.monthly * 3;
-                            const totalCredits = tier.credits * 3;
-                            const savings = retailTotal - membershipCost;
-                            const coversAll = totalCredits >= retailTotal;
-
-                            return (
-                              <div key={tier.name} style={styles.titrationTier}>
-                                <div style={styles.titrationTierHeader}>
-                                  <span style={styles.titrationTierName}>{tier.name}</span>
-                                  <span style={styles.titrationTierCost}>
-                                    <span style={styles.titrationTierCostLabel}>You pay</span>
-                                    <span style={styles.titrationTierCostAmount}>{formatPrice(tier.monthly)}/mo × 3 = {formatPrice(membershipCost)}</span>
-                                  </span>
-                                </div>
-                                <div style={styles.titrationTierDetails}>
-                                  <span style={styles.titrationTierCredits}>{formatPrice(tier.credits)}/mo × 3 = {formatPrice(totalCredits)} in credits</span>
-                                  {coversAll && savings > 0 && (
-                                    <span style={styles.titrationTierSavings}>You save {formatPrice(savings)} vs. retail</span>
-                                  )}
-                                  {!coversAll && (
-                                    <span style={styles.titrationTierShort}>Credits cover {Math.round((totalCredits / retailTotal) * 100)}% of retail</span>
-                                  )}
-                                  {coversAll && totalCredits > retailTotal && (
-                                    <span style={styles.titrationTierLeftover}>{formatPrice(totalCredits - retailTotal)} left over for other services</span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
+                      <div key={svc.id} style={styles.savingsRow}>
+                        <span style={styles.savingsName}>{getDisplayName(svc)}</span>
+                        <span style={styles.savingsRetail}>{formatPrice(svc.price)}</span>
+                        <span style={styles.savingsMember}>{mp === 0 ? 'Included' : formatPrice(mp)}</span>
                       </div>
                     );
                   })}
+
+                  <div style={styles.savingsTotalRow}>
+                    <span style={styles.savingsTotalLabel}>Total</span>
+                    <span style={styles.savingsTotalVal}>{formatPrice(retailTotal)}</span>
+                    <span style={styles.savingsTotalMember}>{formatPrice(memberTotal)}</span>
+                  </div>
+
+                  {totalSavings > 0 && (
+                    <div style={styles.savingsHighlight}>
+                      You save {formatPrice(totalSavings)} on these services as a member
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* CTA */}
               <div style={styles.ctaSection}>
-                <p style={styles.ctaText}>Ready to get started? Let's talk through your protocol.</p>
+                <p style={styles.ctaText}>Ready to get started? Let&rsquo;s talk through your protocol.</p>
                 <div style={styles.ctaBtns}>
-                  <button
-                    onClick={() => setShowCal(true)}
-                    style={styles.ctaPrimary}
-                  >
+                  <a href="/book-assessment" style={styles.ctaPrimary}>
                     <Calendar size={16} />
-                    Book a Follow-Up Call
-                  </button>
+                    Book Assessment
+                  </a>
                   <a href="tel:9499973988" style={styles.ctaOutline}>
                     <Phone size={16} />
                     Ask Us Now
                   </a>
                 </div>
               </div>
-
-              {/* Embedded Cal.com Modal */}
-              {showCal && (
-                <div style={styles.calOverlay} onClick={() => setShowCal(false)}>
-                  <div style={styles.calModal} onClick={e => e.stopPropagation()}>
-                    <button style={styles.calClose} onClick={() => setShowCal(false)}>
-                      <X size={20} />
-                    </button>
-                    <iframe
-                      src="https://range-medical.cal.com/range-team?embed=true&layout=month_view&theme=light"
-                      style={{ width: '100%', height: '100%', border: 'none' }}
-                    />
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -777,15 +553,6 @@ export default function Memberships({ services }) {
           .memberships-page .selection-col {
             max-width: 100% !important;
             flex: 1 !important;
-          }
-          .memberships-page .tiers-grid {
-            grid-template-columns: 1fr !important;
-            max-width: 400px;
-          }
-        }
-        @media (max-width: 480px) {
-          .memberships-page .tiers-grid {
-            max-width: 100%;
           }
         }
       `}</style>
@@ -994,12 +761,6 @@ const styles = {
     color: '#171717',
     lineHeight: 1.3,
   },
-  membershipNote: {
-    fontSize: '0.72rem',
-    fontWeight: 600,
-    color: '#16a34a',
-    lineHeight: 1.3,
-  },
   servicePriceCol: {
     display: 'flex',
     flexDirection: 'column',
@@ -1020,230 +781,173 @@ const styles = {
     textTransform: 'uppercase',
     letterSpacing: '0.04em',
   },
-  labsToggleSection: {
-    border: '1px solid #e5e5e5',
+  memberNote: {
+    fontSize: '0.72rem',
+    fontWeight: 600,
+    color: '#16a34a',
+    lineHeight: 1.3,
+  },
+  membershipCard: {
+    border: '2px solid #171717',
     borderRadius: '12px',
-    padding: '1rem 1.25rem',
-    marginTop: '1rem',
-    background: '#fafafa',
-  },
-  labsToggleRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-    cursor: 'pointer',
-  },
-  labsToggleText: {
-    fontSize: '0.875rem',
-    fontWeight: 600,
-    color: '#171717',
-  },
-  labsTypeSelect: {
-    display: 'flex',
-    gap: '0.5rem',
-    marginTop: '0.875rem',
-    paddingLeft: '2.75rem',
-  },
-  labsTypeBtn: {
-    padding: '0.5rem 1rem',
-    fontSize: '0.8rem',
-    fontWeight: 600,
-    borderWidth: '2px',
-    borderStyle: 'solid',
-    borderColor: '#e5e5e5',
-    borderRadius: '8px',
+    padding: '2rem',
     background: '#fff',
-    color: '#525252',
-    cursor: 'pointer',
-    transition: 'all 0.15s',
-    fontFamily: 'inherit',
+    boxShadow: '0 8px 30px rgba(0,0,0,0.06)',
   },
-  labsTypeBtnActive: {
-    borderColor: '#171717',
-    color: '#171717',
-    background: '#fff',
+  mcPrice: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '0.125rem',
   },
-  tiersHeader: {
-    marginBottom: '1.5rem',
-  },
-  h2: {
-    fontSize: '1.5rem',
+  mcAmount: {
+    fontSize: '2.5rem',
     fontWeight: 800,
     color: '#171717',
-    margin: 0,
+    lineHeight: 1,
   },
-  tiersEmpty: {
-    fontSize: '0.9rem',
-    color: '#737373',
-    marginTop: '0.5rem',
-  },
-  tiersGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '1rem',
-  },
-  tierCard: {
-    borderWidth: '1px',
-    borderStyle: 'solid',
-    borderColor: '#e5e5e5',
-    borderRadius: '12px',
-    padding: '1.5rem',
-    background: '#fff',
-    position: 'relative',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
-  },
-  tierCardBest: {
-    borderColor: '#171717',
-    boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
-  },
-  bestBadge: {
-    position: 'absolute',
-    top: '-10px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    background: '#171717',
-    color: '#fff',
-    fontSize: '0.65rem',
-    fontWeight: 700,
-    letterSpacing: '0.1em',
-    padding: '4px 12px',
-    borderRadius: '20px',
-    whiteSpace: 'nowrap',
-  },
-  tierName: {
-    fontSize: '0.75rem',
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '0.1em',
-    color: '#737373',
-    marginBottom: '0.5rem',
-  },
-  tierPrice: {
-    fontSize: '2rem',
-    fontWeight: 800,
-    color: '#171717',
-    lineHeight: 1.1,
-  },
-  tierPeriod: {
-    fontSize: '0.9rem',
+  mcPeriod: {
+    fontSize: '1rem',
     fontWeight: 500,
     color: '#737373',
   },
-  tierTotalValue: {
+  mcCommit: {
     fontSize: '0.85rem',
-    color: '#525252',
-    marginTop: '0.5rem',
+    color: '#737373',
+    marginTop: '0.375rem',
   },
-  tierBonus: {
-    fontSize: '0.8rem',
-    fontWeight: 600,
-    color: '#16a34a',
-    marginTop: '0.25rem',
+  mcDivider: {
+    height: '1px',
+    background: '#f0f0f0',
+    margin: '1.25rem 0',
   },
-  tierIncludes: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.5rem',
+  mcSection: {
+    marginBottom: '1.25rem',
   },
-  tierIncludesLabel: {
+  mcSectionLabel: {
     fontSize: '0.7rem',
     fontWeight: 700,
     textTransform: 'uppercase',
     letterSpacing: '0.08em',
     color: '#a3a3a3',
-    marginBottom: '0.125rem',
+    marginBottom: '0.625rem',
   },
-  tierIncludesItem: {
+  mcItem: {
     display: 'flex',
     alignItems: 'flex-start',
-    gap: '0.375rem',
-    fontSize: '0.8rem',
+    gap: '0.5rem',
+    fontSize: '0.85rem',
     color: '#404040',
-    lineHeight: 1.35,
+    lineHeight: 1.4,
+    marginBottom: '0.5rem',
   },
-  tierDivider: {
-    height: '1px',
-    background: '#f0f0f0',
-    margin: '1rem 0',
-  },
-  coverageFull: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.375rem',
+  mcValueLine: {
     fontSize: '0.8rem',
     fontWeight: 600,
     color: '#16a34a',
+    textAlign: 'center',
   },
-  coveragePartial: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.375rem',
-    fontSize: '0.8rem',
-    fontWeight: 600,
-    color: '#ca8a04',
+  savingsCard: {
+    marginTop: '1.25rem',
+    border: '1px solid #e5e5e5',
+    borderRadius: '12px',
+    padding: '1.5rem',
+    background: '#fff',
   },
-  coverageNone: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.375rem',
-    fontSize: '0.8rem',
-    fontWeight: 600,
-    color: '#a3a3a3',
-  },
-  coverageDot: {
-    fontSize: '1rem',
-    lineHeight: 1,
-  },
-  remaining: {
-    marginTop: '0.625rem',
-    padding: '0.5rem 0.75rem',
-    background: '#f0fdf4',
-    borderRadius: '8px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.125rem',
-  },
-  remainingValue: {
-    fontSize: '1.1rem',
+  savingsHeader: {
+    fontSize: '0.7rem',
     fontWeight: 700,
-    color: '#16a34a',
-  },
-  remainingLabel: {
-    fontSize: '0.7rem',
-    fontWeight: 500,
-    color: '#525252',
-  },
-  month1: {
-    marginTop: '0.625rem',
-    padding: '0.5rem 0.75rem',
-    background: '#fafafa',
-    borderRadius: '8px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.125rem',
-  },
-  month1Label: {
-    fontSize: '0.7rem',
-    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.1em',
     color: '#737373',
+    marginBottom: '1rem',
+  },
+  savingsTableHeader: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 80px 80px',
+    gap: '0.5rem',
+    paddingBottom: '0.5rem',
+    borderBottom: '1px solid #e5e5e5',
+    marginBottom: '0.25rem',
+  },
+  savingsThName: {
+    fontSize: '0.65rem',
+    fontWeight: 700,
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
+    color: '#a3a3a3',
   },
-  month1Value: {
-    fontSize: '1.1rem',
+  savingsTh: {
+    fontSize: '0.65rem',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    color: '#a3a3a3',
+    textAlign: 'right',
+  },
+  savingsRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 80px 80px',
+    gap: '0.5rem',
+    padding: '0.5rem 0',
+    borderBottom: '1px solid #f5f5f5',
+  },
+  savingsName: {
+    fontSize: '0.8rem',
+    color: '#404040',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  savingsRetail: {
+    fontSize: '0.8rem',
+    color: '#a3a3a3',
+    textAlign: 'right',
+    textDecoration: 'line-through',
+  },
+  savingsMember: {
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    color: '#171717',
+    textAlign: 'right',
+  },
+  savingsTotalRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 80px 80px',
+    gap: '0.5rem',
+    padding: '0.75rem 0 0.5rem',
+    borderTop: '2px solid #171717',
+    marginTop: '0.25rem',
+  },
+  savingsTotalLabel: {
+    fontSize: '0.8rem',
     fontWeight: 700,
     color: '#171717',
   },
-  tierSavings: {
-    marginTop: '0.5rem',
+  savingsTotalVal: {
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    color: '#a3a3a3',
+    textAlign: 'right',
+    textDecoration: 'line-through',
   },
-  savingsLine: {
-    fontSize: '0.75rem',
-    color: '#525252',
-    lineHeight: 1.4,
+  savingsTotalMember: {
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    color: '#171717',
+    textAlign: 'right',
+  },
+  savingsHighlight: {
+    marginTop: '0.75rem',
+    padding: '0.75rem',
+    background: '#f0fdf4',
+    borderRadius: '8px',
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    color: '#16a34a',
+    textAlign: 'center',
   },
   ctaSection: {
-    marginTop: '2.5rem',
+    marginTop: '1.5rem',
     textAlign: 'center',
     padding: '2rem',
     background: '#fafafa',
@@ -1293,184 +997,5 @@ const styles = {
     borderRadius: '8px',
     border: '2px solid #171717',
     transition: 'all 0.2s',
-  },
-  calOverlay: {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(0,0,0,0.5)',
-    zIndex: 9999,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '1.5rem',
-  },
-  calModal: {
-    position: 'relative',
-    background: '#fff',
-    borderRadius: '12px',
-    width: '100%',
-    maxWidth: '680px',
-    height: '80vh',
-    maxHeight: '700px',
-    overflow: 'hidden',
-  },
-  calClose: {
-    position: 'absolute',
-    top: '12px',
-    right: '12px',
-    zIndex: 10,
-    background: '#fff',
-    border: '1px solid #e5e5e5',
-    borderRadius: '8px',
-    width: '36px',
-    height: '36px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    color: '#525252',
-  },
-  // Titration section
-  titrationSection: {
-    marginTop: '2.5rem',
-    paddingTop: '2rem',
-    borderTop: '1px solid #e5e5e5',
-  },
-  titrationSub: {
-    fontSize: '0.9rem',
-    color: '#525252',
-    marginTop: '0.5rem',
-    marginBottom: '1.5rem',
-    lineHeight: 1.5,
-  },
-  titrationCard: {
-    border: '1px solid #e5e5e5',
-    borderRadius: '12px',
-    overflow: 'hidden',
-    marginBottom: '1.25rem',
-  },
-  titrationCardHeader: {
-    padding: '1rem 1.25rem',
-    background: '#fafafa',
-    borderBottom: '1px solid #e5e5e5',
-  },
-  titrationDrug: {
-    fontSize: '1rem',
-    fontWeight: 700,
-    color: '#171717',
-    display: 'block',
-  },
-  titrationTrial: {
-    fontSize: '0.75rem',
-    color: '#737373',
-    marginTop: '0.125rem',
-    display: 'block',
-    fontStyle: 'italic',
-  },
-  titrationTable: {
-    padding: '0',
-  },
-  titrationRow: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr 1fr',
-    padding: '0.625rem 1.25rem',
-    borderBottom: '1px solid #f0f0f0',
-  },
-  titrationRowTotal: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr 1fr',
-    padding: '0.75rem 1.25rem',
-    background: '#fafafa',
-    borderBottom: '1px solid #e5e5e5',
-  },
-  titrationTh: {
-    fontSize: '0.7rem',
-    fontWeight: 700,
-    color: '#737373',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-  },
-  titrationTd: {
-    fontSize: '0.875rem',
-    color: '#525252',
-  },
-  titrationTdPrice: {
-    fontSize: '0.875rem',
-    fontWeight: 600,
-    color: '#171717',
-  },
-  titrationTdBold: {
-    fontSize: '0.875rem',
-    fontWeight: 700,
-    color: '#171717',
-  },
-  titrationTiers: {
-    padding: '1rem 1.25rem',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.75rem',
-  },
-  titrationTier: {
-    padding: '0.875rem 1rem',
-    borderRadius: '8px',
-    background: '#fafafa',
-    border: '1px solid #f0f0f0',
-  },
-  titrationTierHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '0.375rem',
-  },
-  titrationTierName: {
-    fontSize: '0.8rem',
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    color: '#171717',
-  },
-  titrationTierCost: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    fontSize: '0.95rem',
-    fontWeight: 700,
-    color: '#171717',
-  },
-  titrationTierCostLabel: {
-    fontSize: '0.65rem',
-    fontWeight: 500,
-    color: '#a3a3a3',
-    textTransform: 'uppercase',
-    letterSpacing: '0.06em',
-  },
-  titrationTierCostAmount: {
-    fontSize: '0.85rem',
-    fontWeight: 700,
-    color: '#171717',
-  },
-  titrationTierDetails: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.2rem',
-  },
-  titrationTierCredits: {
-    fontSize: '0.8rem',
-    color: '#737373',
-  },
-  titrationTierSavings: {
-    fontSize: '0.8rem',
-    fontWeight: 700,
-    color: '#16a34a',
-  },
-  titrationTierShort: {
-    fontSize: '0.8rem',
-    fontWeight: 600,
-    color: '#ca8a04',
-  },
-  titrationTierLeftover: {
-    fontSize: '0.8rem',
-    fontWeight: 600,
-    color: '#16a34a',
   },
 };

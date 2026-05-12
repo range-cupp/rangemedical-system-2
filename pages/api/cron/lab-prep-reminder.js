@@ -7,7 +7,6 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
-import { logComm } from '../../../lib/comms-log';
 import { isInQuietHours } from '../../../lib/quiet-hours';
 import { pacificDayUTCBounds } from '../../../lib/date-utils';
 import { createLabPrepToken, buildLabPrepUrl } from '../../../lib/lab-prep-token';
@@ -125,22 +124,17 @@ async function sendLabPrepSMS({ booking, patient, messageType, results }) {
     if (isBlooioProvider() && !(await hasBlooioOptIn(normalizedPhone))) {
       const optinPrompt = `Hi ${firstName}! Range Medical here — we have lab prep instructions for your upcoming blood draw. Reply YES and we'll send the link right over!`;
 
-      const promptResult = await sendSMS({ to: normalizedPhone, message: optinPrompt });
-
-      await logComm({
-        channel: 'sms',
-        messageType: `${messageType}_optin_prompt`,
+      const promptResult = await sendSMS({
+        to: normalizedPhone,
         message: optinPrompt,
-        source: 'cron/lab-prep-reminder(blooio-optin)',
-        patientId: booking.patient_id || null,
+        patientEmail: patient?.email || null,
         patientName: displayName,
-        recipient: normalizedPhone,
-        status: promptResult.success ? 'sent' : 'error',
-        errorMessage: promptResult.error || null,
-        twilioMessageSid: promptResult.messageSid || null,
-        provider: promptResult.provider || 'blooio',
-        direction: 'outbound',
-      }).catch(err => console.error('[lab-prep-reminder] Log error:', err));
+        log: {
+          messageType: `${messageType}_optin_prompt`,
+          source: 'cron/lab-prep-reminder(blooio-optin)',
+          patientId: booking.patient_id || null,
+        },
+      });
 
       if (promptResult.success) {
         await queuePendingLinkMessage({
@@ -159,7 +153,17 @@ async function sendLabPrepSMS({ booking, patient, messageType, results }) {
       return;
     }
 
-    const smsResult = await sendSMS({ to: normalizedPhone, message });
+    const smsResult = await sendSMS({
+      to: normalizedPhone,
+      message,
+      patientEmail: patient?.email || null,
+      patientName: displayName,
+      log: {
+        messageType,
+        source: 'cron/lab-prep-reminder',
+        patientId: booking.patient_id || null,
+      },
+    });
 
     if (smsResult.success) {
       results.sent.push({ name: displayName, phone: normalizedPhone, type: messageType });
@@ -168,21 +172,6 @@ async function sendLabPrepSMS({ booking, patient, messageType, results }) {
       results.errors.push({ name: displayName, type: messageType, error: smsResult.error });
       console.error(`[lab-prep-reminder] Failed ${messageType} for ${displayName}:`, smsResult.error);
     }
-
-    await logComm({
-      channel: 'sms',
-      messageType,
-      message,
-      source: 'cron/lab-prep-reminder',
-      patientId: booking.patient_id || null,
-      patientName: displayName,
-      recipient: normalizedPhone,
-      status: smsResult.success ? 'sent' : 'error',
-      errorMessage: smsResult.error || null,
-      twilioMessageSid: smsResult.messageSid || null,
-      provider: smsResult.provider || null,
-      direction: 'outbound',
-    }).catch(err => console.error('[lab-prep-reminder] Log error:', err));
 
   } catch (smsError) {
     results.errors.push({ name: displayName, type: messageType, error: smsError.message });
@@ -243,7 +232,7 @@ export default async function handler(req, res) {
     if (patientIds.length > 0) {
       const { data: patients } = await supabase
         .from('patients')
-        .select('id, name, first_name, last_name, phone')
+        .select('id, name, first_name, last_name, phone, email')
         .in('id', patientIds);
 
       if (patients) {

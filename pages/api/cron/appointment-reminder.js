@@ -6,7 +6,6 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
-import { logComm } from '../../../lib/comms-log';
 import { isInQuietHours } from '../../../lib/quiet-hours';
 import { sendBlooioMessage } from '../../../lib/blooio';
 import { REQUIRED_FORMS } from '../../../lib/appointment-services';
@@ -151,7 +150,7 @@ export default async function handler(req, res) {
     if (patientIds.length > 0) {
       const { data: patients } = await supabase
         .from('patients')
-        .select('id, name, first_name, last_name, phone')
+        .select('id, name, first_name, last_name, phone, email')
         .in('id', [...new Set(patientIds)]);
 
       if (patients) {
@@ -208,9 +207,19 @@ export default async function handler(req, res) {
       const serviceName = booking.service_name || formatServiceName(booking.service_slug);
       const message = getReminderMessage(firstName, appointmentTime);
 
-      // Send SMS
+      // Send SMS (email copy auto-sent via sms-email-copy while SMS is down)
       try {
-        const smsResult = await sendSMS({ to: normalizedPhone, message });
+        const smsResult = await sendSMS({
+          to: normalizedPhone,
+          message,
+          patientEmail: patient?.email || null,
+          patientName: displayName,
+          log: {
+            messageType: 'appointment_reminder',
+            source: 'cron/appointment-reminder',
+            patientId: booking.patient_id || null,
+          },
+        });
 
         if (smsResult.success) {
           results.sent.push({ name: displayName, service: serviceName, time: appointmentTime });
@@ -219,22 +228,6 @@ export default async function handler(req, res) {
           results.errors.push({ name: displayName, error: smsResult.error });
           console.error(`[appointment-reminder] Failed for ${displayName}:`, smsResult.error);
         }
-
-        // Log to comms_log
-        await logComm({
-          channel: 'sms',
-          messageType: 'appointment_reminder',
-          message,
-          source: 'cron/appointment-reminder',
-          patientId: booking.patient_id || null,
-          patientName: displayName,
-          recipient: normalizedPhone,
-          status: smsResult.success ? 'sent' : 'error',
-          errorMessage: smsResult.error || null,
-          twilioMessageSid: smsResult.messageSid || null,
-          provider: smsResult.provider || null,
-          direction: 'outbound',
-        }).catch(err => console.error('[appointment-reminder] Log error:', err));
 
       } catch (smsError) {
         results.errors.push({ name: displayName, error: smsError.message });

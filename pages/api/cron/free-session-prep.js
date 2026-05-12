@@ -5,7 +5,6 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
-import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -44,7 +43,7 @@ export default async function handler(req, res) {
 
     const { data: trials, error } = await supabase
       .from('trial_passes')
-      .select('id, patient_id, first_name, phone, trial_type, scheduled_start_time, calcom_booking_uid')
+      .select('id, patient_id, first_name, phone, email, trial_type, scheduled_start_time, calcom_booking_uid')
       .eq('trial_type', 'hbot')
       .eq('status', 'scheduled')
       .gte('scheduled_start_time', windowStart)
@@ -112,20 +111,16 @@ export default async function handler(req, res) {
       ].join('\n');
 
       try {
-        const smsResult = await sendSMS({ to: normalizedTo, message });
-        await logComm({
-          channel: 'sms',
-          messageType: 'free_session_hbot_prep',
+        const smsResult = await sendSMS({
+          to: normalizedTo,
           message,
-          source: 'free-session-prep-cron',
-          patientId: trial.patient_id,
+          patientEmail: trial.email || null,
           patientName: firstName,
-          recipient: normalizedTo,
-          status: smsResult.success ? 'sent' : 'error',
-          errorMessage: smsResult.error || null,
-          twilioMessageSid: smsResult.messageSid || null,
-          provider: smsResult.provider || null,
-          direction: 'outbound',
+          log: {
+            messageType: 'free_session_hbot_prep',
+            source: 'free-session-prep-cron',
+            patientId: trial.patient_id,
+          },
         });
         if (smsResult.success) sent += 1;
         results.push({ trialId: trial.id, sent: smsResult.success });

@@ -1540,7 +1540,7 @@ function CheckoutInner() {
         ? item.peptideConfig.internalName
         : item.peptide_identifier ? `${item.name} — ${item.peptide_identifier}` : item.name;
 
-      let recordAmount = itemFinal;
+      let recordAmount = itemFinal + itemShipping;
       if (amount_override !== undefined) {
         const totalCharge = getChargeAmount();
         recordAmount = cartItems.length === 1 ? amount_override : Math.round(amount_override * (itemFinal / totalCharge));

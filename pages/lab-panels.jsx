@@ -861,7 +861,7 @@ export default function LabPanels() {
           .lp-btn {
             display: block;
             text-align: center;
-            background: #1a1a1a;
+            background: #2E6B35;
             color: #ffffff;
             padding: 0.875rem 2rem;
             font-size: 11px;
@@ -875,27 +875,28 @@ export default function LabPanels() {
           }
 
           .lp-btn:hover {
-            background: #333333;
+            background: #3a7d44;
           }
 
           .lp-btn-outline {
             display: block;
             text-align: center;
             background: #ffffff;
-            color: #1a1a1a;
+            color: #2E6B35;
             padding: 0.875rem 2rem;
             font-size: 11px;
             font-weight: 700;
             letter-spacing: 0.12em;
             text-transform: uppercase;
             text-decoration: none;
-            border: 1px solid #e0e0e0;
+            border: 1px solid #2E6B35;
             cursor: pointer;
             transition: all 0.2s;
           }
 
           .lp-btn-outline:hover {
-            border-color: #1a1a1a;
+            background: #2E6B35;
+            color: #ffffff;
           }
 
           :global(.lp-btn-sm),
@@ -913,13 +914,13 @@ export default function LabPanels() {
           }
 
           :global(.lp-btn-sm) {
-            background: #1a1a1a;
+            background: #2E6B35;
             color: #ffffff;
-            border: 1px solid #1a1a1a;
+            border: 1px solid #2E6B35;
           }
 
           :global(.lp-btn-sm:hover) {
-            background: #333333;
+            background: #3a7d44;
           }
 
           :global(.lp-btn-sm-white) {
@@ -1661,8 +1662,8 @@ export default function LabPanels() {
 
           :global(.lp-btn-white) {
             display: inline-block;
-            background: #ffffff;
-            color: #1a1a1a;
+            background: #2E6B35;
+            color: #ffffff;
             padding: 0.875rem 2rem;
             font-size: 11px;
             font-weight: 700;
@@ -1675,7 +1676,7 @@ export default function LabPanels() {
           }
 
           :global(.lp-btn-white:hover) {
-            background: #f0f0f0;
+            background: #3a7d44;
           }
 
           :global(.lp-btn-white-outline) {
@@ -1763,7 +1764,7 @@ export default function LabPanels() {
           }
 
           .lp-decide-tag-elite {
-            color: #2E6B35;
+            color: #1a1a1a;
           }
 
           .lp-decide-reason {
@@ -1804,14 +1805,14 @@ export default function LabPanels() {
           }
 
           .lp-marker-card:hover {
-            border-color: #2E6B35;
+            border-color: #1a1a1a;
           }
 
           .lp-marker-card-label {
             font-size: 9px;
             font-weight: 700;
             letter-spacing: 0.12em;
-            color: #2E6B35;
+            color: #1a1a1a;
             margin-bottom: 1rem;
           }
 

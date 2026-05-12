@@ -2,7 +2,6 @@ import Layout from '../components/Layout';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import CheckoutModal from '../components/CheckoutModal';
 
 export default function LabPanels() {
   const [openFaq, setOpenFaq] = useState(null);
@@ -64,19 +63,6 @@ export default function LabPanels() {
     setExpandedMarker(expandedMarker === markerId ? null : markerId);
   };
 
-  // Checkout modal state
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [checkoutProduct, setCheckoutProduct] = useState(null);
-
-  const openCheckout = (panel) => {
-    const gender = activeTab === 'men' ? 'Male' : 'Female';
-    const configs = {
-      essential: { name: `Essential Panel — ${gender}`, amountCents: 35000, amountLabel: '$350', serviceCategory: 'lab_panel', serviceName: `Lab Panel — Essential (${gender})` },
-      elite: { name: `Elite Panel — ${gender}`, amountCents: 75000, amountLabel: '$750', serviceCategory: 'lab_panel', serviceName: `Lab Panel — Elite (${gender})` },
-    };
-    setCheckoutProduct(configs[panel]);
-    setCheckoutOpen(true);
-  };
 
   // Biomarker descriptions - what we're looking for and why
   const biomarkerInfo = {
@@ -570,18 +556,13 @@ export default function LabPanels() {
                   })}
                 </div>
 
-                {/* Footer with CTAs */}
+                {/* Footer with CTA */}
                 <div className="lp-chart-footer">
                   <div className="lp-chart-marker-col"></div>
-                  <div className="lp-chart-panel-col">
-                    <button onClick={() => openCheckout('essential')} className="lp-btn-sm">
-                      BOOK ESSENTIAL
-                    </button>
-                  </div>
-                  <div className="lp-chart-panel-col lp-chart-panel-featured">
-                    <button onClick={() => openCheckout('elite')} className="lp-btn-sm-white">
-                      BOOK ELITE
-                    </button>
+                  <div className="lp-chart-panel-col" style={{ gridColumn: 'span 2' }}>
+                    <Link href="/assessment/energy" className="lp-btn-sm">
+                      START WITH ASSESSMENT
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -610,9 +591,9 @@ export default function LabPanels() {
                   <li><span className="lp-list-dash">&ndash;</span> You want to track hormones and metabolic health</li>
                   <li><span className="lp-list-dash">&ndash;</span> You&apos;re monitoring HRT</li>
                 </ul>
-                <button onClick={() => openCheckout('essential')} className="lp-btn-outline">
-                  BOOK ESSENTIAL &mdash; $350
-                </button>
+                <Link href="/assessment/energy" className="lp-btn-outline">
+                  START WITH ASSESSMENT
+                </Link>
               </div>
               <div className="lp-compare-card lp-compare-featured">
                 <div className="lp-compare-badge">MOST COMPLETE</div>
@@ -629,9 +610,9 @@ export default function LabPanels() {
                   <li><span className="lp-list-dash">&ndash;</span> You want advanced cardiovascular markers</li>
                   <li><span className="lp-list-dash">&ndash;</span> You&apos;re serious about prevention</li>
                 </ul>
-                <button onClick={() => openCheckout('elite')} className="lp-btn">
-                  BOOK ELITE &mdash; $750
-                </button>
+                <Link href="/assessment/energy" className="lp-btn">
+                  START WITH ASSESSMENT
+                </Link>
               </div>
             </div>
             <p className="lp-compare-note">
@@ -728,10 +709,10 @@ export default function LabPanels() {
             </div>
 
             <div className="lp-markers-cta">
-              <button onClick={() => openCheckout('elite')} className="lp-btn">
-                BOOK ELITE &mdash; $750
-              </button>
-              <p>78 total biomarkers — Essential plus 23 advanced markers</p>
+              <Link href="/assessment/energy" className="lp-btn">
+                START WITH ASSESSMENT
+              </Link>
+              <p>Your provider will recommend the right panel at your assessment</p>
             </div>
           </div>
         </section>
@@ -798,15 +779,12 @@ export default function LabPanels() {
             <div className="v2-label" style={{ justifyContent: 'center' }}><span className="v2-dot" style={{ background: '#808080' }} /> GET STARTED</div>
             <h2>Ready to see what&apos;s <em>really</em> going on?</h2>
             <p className="lp-cta-text">
-              Book your panel below and we&apos;ll get you scheduled for your blood draw. Results in 3&ndash;5 business days.
+              Start with an Assessment and your provider will recommend the right panel for your goals. Results in 3&ndash;5 business days.
             </p>
             <div className="lp-cta-buttons">
-              <button onClick={() => openCheckout('essential')} className="lp-btn-white">
-                ESSENTIAL &mdash; $350
-              </button>
-              <button onClick={() => openCheckout('elite')} className="lp-btn-white-outline">
-                ELITE &mdash; $750
-              </button>
+              <Link href="/assessment/energy" className="lp-btn-white">
+                BOOK ASSESSMENT
+              </Link>
             </div>
             <p className="lp-cta-phone">
               Or call <a href="tel:9499973988">(949) 997-3988</a> to schedule labs directly
@@ -2036,18 +2014,6 @@ export default function LabPanels() {
         `}</style>
       </Layout>
 
-      {checkoutProduct && (
-        <CheckoutModal
-          isOpen={checkoutOpen}
-          onClose={() => setCheckoutOpen(false)}
-          productName={checkoutProduct.name}
-          amountCents={checkoutProduct.amountCents}
-          amountLabel={checkoutProduct.amountLabel}
-          description={checkoutProduct.serviceName}
-          serviceCategory={checkoutProduct.serviceCategory}
-          serviceName={checkoutProduct.serviceName}
-        />
-      )}
     </>
   );
 }

@@ -288,7 +288,8 @@ export default async function handler(req, res) {
                 .from('service_logs')
                 .select('*', { count: 'exact', head: true })
                 .eq('protocol_id', protocol_id)
-                .in('entry_type', ['injection', 'session']);
+                .in('entry_type', ['injection', 'session'])
+                .neq('status', 'scheduled');
 
               const lastInjOffset = dayOffset;
               const nextGapDays = freq >= 7 ? 1 : freq === 3 ? 2 : (hrtPickupQty % 2 === 1 ? 4 : 3);

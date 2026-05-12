@@ -7492,7 +7492,7 @@ export default function PatientProfile() {
                       // Session count: only count injection/session entries. Pickups,
                       // weight_checks, self_administered, and missed don't count toward
                       // the clinical injection total.
-                      const wlActualCount = wlLogs.filter(l => ['injection', 'session'].includes(l.entry_type)).length;
+                      const wlActualCount = wlLogs.filter(l => ['injection', 'session'].includes(l.entry_type) && l.status !== 'scheduled').length;
                       const sessionsCompleted = isWeightLoss
                         ? (wlActualCount || protocol.sessions_used || 0)
                         : (protocol.sessions_used || protocol.sessions_completed || protoServiceLogs.filter(l => ['injection', 'session'].includes(l.entry_type)).length);

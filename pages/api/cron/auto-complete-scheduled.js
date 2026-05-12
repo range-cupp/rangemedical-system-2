@@ -6,6 +6,7 @@
 // Run daily via Vercel Cron.
 
 import { createClient } from '@supabase/supabase-js';
+import { recountProtocolSessions } from '../../../lib/recount-protocol-sessions';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -45,8 +46,15 @@ export default async function handler(req, res) {
 
     if (updateErr) throw updateErr;
 
-    console.log(`[auto-complete-scheduled] Marked ${ids.length} entries as completed`);
-    return res.status(200).json({ success: true, completed: ids.length });
+    // Recount sessions_used for each affected protocol so the count
+    // reflects newly-completed take-home injections.
+    const protocolIds = [...new Set(scheduled.map(s => s.protocol_id).filter(Boolean))];
+    for (const pid of protocolIds) {
+      await recountProtocolSessions(supabase, pid);
+    }
+
+    console.log(`[auto-complete-scheduled] Marked ${ids.length} entries as completed, recounted ${protocolIds.length} protocols`);
+    return res.status(200).json({ success: true, completed: ids.length, protocols_recounted: protocolIds.length });
   } catch (error) {
     console.error('[auto-complete-scheduled] Error:', error);
     return res.status(500).json({ error: error.message });

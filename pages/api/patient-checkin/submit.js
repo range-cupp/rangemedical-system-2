@@ -118,6 +118,7 @@ export default async function handler(req, res) {
           weight: parsedWeight,
           dosage: protocol.selected_dose || null,
           notes: logNotes,
+          status: 'completed',
           updated_at: new Date().toISOString()
         })
         .eq('id', existingLog.id);
@@ -199,11 +200,13 @@ export default async function handler(req, res) {
 
     // Recalculate sessions_used from actual service_logs linked to this protocol
     // This is the single source of truth — avoids counter drift from manual edits or merges
+    // Exclude status='scheduled' so spawned take-home rows don't inflate the count
     const { data: linkedLogs } = await supabase
       .from('service_logs')
       .select('id')
       .eq('protocol_id', protocol.id)
-      .eq('entry_type', 'injection');
+      .eq('entry_type', 'injection')
+      .neq('status', 'scheduled');
 
     const newSessionsUsed = linkedLogs ? linkedLogs.length : (protocol.sessions_used || 0) + 1;
     const sessionsRemaining = totalSessions - newSessionsUsed;

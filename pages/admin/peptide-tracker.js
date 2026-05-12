@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../components/AdminLayout';
 import { sharedStyles } from '../../components/AdminLayout';
+import { useAuth } from '../../components/AuthProvider';
 
 function formatPhone(raw) {
   if (!raw) return '';
@@ -17,6 +18,7 @@ function formatPhone(raw) {
 
 export default function PeptideTracker() {
   const router = useRouter();
+  const { session } = useAuth();
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState([]);
   const [lapsed, setLapsed] = useState([]);
@@ -29,6 +31,9 @@ export default function PeptideTracker() {
   const [drawerData, setDrawerData] = useState(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
   const [drawerProtocol, setDrawerProtocol] = useState(null);
+  const [noteText, setNoteText] = useState('');
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteStatus, setNoteStatus] = useState(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -61,6 +66,40 @@ export default function PeptideTracker() {
     setDrawerData(null);
     setDrawerLoading(false);
     setDrawerProtocol(null);
+    setNoteText('');
+    setNoteSaving(false);
+    setNoteStatus(null);
+  }
+
+  async function saveNote() {
+    const pt = drawerData?.patient;
+    if (!pt?.id || !noteText.trim()) return;
+    setNoteSaving(true);
+    setNoteStatus(null);
+    try {
+      const staffName = session?.user?.user_metadata?.full_name || session?.user?.email || 'Staff';
+      const res = await fetch('/api/notes/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: pt.id,
+          body: noteText.trim(),
+          created_by: staffName,
+          note_category: 'internal',
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      setNoteText('');
+      setNoteStatus({ ok: true, msg: 'Note saved' });
+      // Refresh drawer to show the new note
+      fetch(`/api/patients/${pt.id}`)
+        .then(r => r.json())
+        .then(data => setDrawerData(data))
+        .catch(() => {});
+    } catch (err) {
+      setNoteStatus({ ok: false, msg: 'Failed to save note' });
+    }
+    setNoteSaving(false);
   }
 
   function getUrgencyStyle(daysRemaining) {
@@ -449,6 +488,60 @@ export default function PeptideTracker() {
                         )}
                       </div>
                     </div>
+
+                    {/* Add Follow-Up Note */}
+                    <div style={drawerCard}>
+                      <h4 style={sectionHead}>Follow-Up Note</h4>
+                      <textarea
+                        value={noteText}
+                        onChange={e => { setNoteText(e.target.value); setNoteStatus(null); }}
+                        placeholder={`Add a follow-up note for ${pt.first_name}...`}
+                        rows={3}
+                        style={{
+                          width: '100%', boxSizing: 'border-box', padding: '10px 12px',
+                          border: '1px solid #d1d5db', borderRadius: 0, fontSize: '14px',
+                          fontFamily: 'inherit', resize: 'vertical', background: '#fff',
+                          lineHeight: '1.5',
+                        }}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', gap: '8px' }}>
+                        <span style={{ fontSize: '12px', color: noteStatus ? (noteStatus.ok ? '#16a34a' : '#dc2626') : '#aaa' }}>
+                          {noteStatus ? noteStatus.msg : 'Saves to Staff Notes'}
+                        </span>
+                        <button
+                          onClick={saveNote}
+                          disabled={!noteText.trim() || noteSaving}
+                          style={{
+                            padding: '8px 16px', fontSize: '13px', fontWeight: '600',
+                            background: !noteText.trim() || noteSaving ? '#9ca3af' : '#000',
+                            color: '#fff', border: 'none', borderRadius: 0,
+                            cursor: !noteText.trim() || noteSaving ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          {noteSaving ? 'Saving...' : 'Save Note'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Recent Staff Notes */}
+                    {drawerData.notes && drawerData.notes.length > 0 && (
+                      <div style={drawerCard}>
+                        <h4 style={sectionHead}>Recent Notes ({Math.min(drawerData.notes.length, 5)})</h4>
+                        {drawerData.notes.slice(0, 5).map((note, i) => (
+                          <div key={note.id || i} style={{ padding: '8px 0', borderBottom: i < Math.min(drawerData.notes.length, 5) - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                            <div style={{ fontSize: '13px', color: '#111', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+                              {(note.body || '').replace(/<[^>]+>/g, '').slice(0, 200)}
+                              {(note.body || '').length > 200 ? '...' : ''}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
+                              {note.created_by || 'Staff'}
+                              {' · '}
+                              {note.note_date ? new Date(note.note_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Current Protocol Context */}
                     {drawerProtocol && (

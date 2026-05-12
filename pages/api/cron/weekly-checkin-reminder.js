@@ -11,6 +11,7 @@ import { logComm } from '../../../lib/comms-log';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../../lib/blooio-optin';
 import { parseFrequencyDays } from '../../../lib/protocol-config';
+import { computeDispenseStatus } from '../../../lib/wl-dispense';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -185,6 +186,21 @@ export default async function handler(req, res) {
     const protocolList = protocols || [];
     console.log(`[wl-checkin] ${protocolList.length} eligible protocols, today is ${todayDayName}`);
 
+    // Pull WL purchases per patient so we can skip patients with no injections
+    const patientIds = protocolList.map(p => p.patient_id);
+    const lastPurchaseByPatient = {};
+    if (patientIds.length > 0) {
+      const { data: purchasesRaw } = await supabase
+        .from('purchases')
+        .select('patient_id, purchase_date, amount_paid, quantity, item_name')
+        .in('patient_id', patientIds)
+        .eq('category', 'weight_loss')
+        .order('purchase_date', { ascending: false });
+      for (const p of (purchasesRaw || [])) {
+        if (!lastPurchaseByPatient[p.patient_id]) lastPurchaseByPatient[p.patient_id] = p;
+      }
+    }
+
     for (const protocol of protocolList) {
       const patient = protocol.patients;
 
@@ -202,6 +218,14 @@ export default async function handler(req, res) {
         ? protocol.checkin_cadence_days
         : parseFrequencyDays(protocol.frequency);
       const cadenceWord = cadenceDays === 7 ? 'weekly' : cadenceDays === 14 ? 'biweekly' : `${cadenceDays}-day`;
+
+      // Skip if patient has no injections on hand (never purchased, or block exhausted)
+      const lastPurchase = lastPurchaseByPatient[patient.id];
+      const dispense = computeDispenseStatus(cadenceDays, lastPurchase, todayDateStr);
+      if (dispense.state === 'never' || dispense.state === 'send_now') {
+        results.skipped.push({ patient: patient.name, reason: dispense.state === 'never' ? 'No injections purchased' : 'Injection block exhausted — awaiting next block' });
+        continue;
+      }
 
       // Find the most recent ORIGINAL send (nudge_level = 0). Cadence is anchored
       // off this — nudges don't reset the cadence clock.

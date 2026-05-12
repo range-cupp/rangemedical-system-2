@@ -91,6 +91,39 @@ export default async function handler(req, res) {
 
   const dryRun = req.query.dry === 'true';
   const limit = parseInt(req.query.limit) || 0;
+  const testEmail = req.query.testEmail;
+
+  // Test mode: send a single preview email to the specified address
+  if (testEmail) {
+    try {
+      const html = buildEmailHtml('Chris', testEmail);
+      const subject = 'Your Next Peptide Protocol — Save Up to $100';
+
+      const resp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: 'Range Medical <noreply@range-medical.com>',
+          to: testEmail,
+          subject,
+          html,
+        })
+      });
+
+      const result = await resp.json();
+      return res.status(resp.ok ? 200 : 500).json({
+        test: true,
+        sentTo: testEmail,
+        ok: resp.ok,
+        result,
+      });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
 
   try {
     // 1. Get all peptide purchases from March and April 2026

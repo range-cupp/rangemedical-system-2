@@ -643,12 +643,12 @@ export default function HBOTTrial() {
             firstName={contact.firstName}
             scheduleLabel="Step 2"
             scheduleTitle="Choose Your Time"
-            scheduleSubtitle="Pick a time that works best for you. This will reserve your free hyperbaric oxygen session at Range Medical in Newport Beach. We'll text you a quick confirmation once you're booked."
+            scheduleSubtitle="Pick a time that works best for you. On the next step you'll add a card for a $25 no-show hold (only charged if you don't show up). The session itself is completely free."
             scheduleFootnote={[
               'New patients only. One free session per person.',
               "We'll review your information before your visit to make sure HBOT is a safe fit for you.",
             ]}
-            requiresCard={false}
+            requiresCard={true}
           />
         )}
       </div>

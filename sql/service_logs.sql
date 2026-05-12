@@ -24,11 +24,37 @@ CREATE TABLE IF NOT EXISTS service_logs (
   supply_type TEXT, -- vial_10ml, prefilled_2week, prefilled_4week, etc.
   duration INTEGER, -- For sessions (minutes)
 
+  -- Clinical
+  administered_by TEXT,
+  verified_by TEXT,
+  lot_number TEXT,
+  expiration_date DATE,
+
+  -- Signatures
+  signature_url TEXT,
+  signed_at TIMESTAMPTZ,
+  sign_out_pdf_url TEXT,
+
+  -- Fulfillment
+  fulfillment_method TEXT, -- in_clinic, shipped, pickup
+  tracking_number TEXT,
+  checkout_type TEXT,
+  status TEXT, -- completed, scheduled
+
+  -- Billing
+  needs_billing BOOLEAN,
+  billing_reason TEXT,
+  slot_fulfillment JSONB,
+
+  -- EMR
+  emr_entered BOOLEAN,
+
   -- Metadata
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  created_by UUID -- Staff member who logged it
+  created_by TEXT, -- Source that created the entry (pos, checkout_page, admin, etc.)
+  note_id UUID
 );
 
 -- Indexes for common queries

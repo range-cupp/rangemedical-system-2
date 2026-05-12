@@ -5,6 +5,7 @@
 // Full audit trail: who requested, when SMS sent, link opened, approved, IP.
 
 import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import {
   DOSE_APPROVAL_STAFF,
@@ -122,11 +123,6 @@ export default async function handler(req, res) {
       .eq('email', providerEmail)
       .single();
 
-    if (!provider?.phone) {
-      console.error('No phone number for provider:', providerEmail);
-      return res.status(500).json({ error: `Phone number for ${providerName} not found. Cannot send approval SMS.` });
-    }
-
     // Build the approval link
     const approvalLink = `${BASE_URL}/verify/dose/${approvalToken}`;
 
@@ -154,45 +150,107 @@ export default async function handler(req, res) {
       approvalLink,
     ].filter(Boolean).join('\n');
 
-    // Send the SMS
-    const phone = normalizePhone(provider.phone);
-    const smsResult = await sendSMS({
-      to: phone,
-      message: smsMessage,
-      log: {
-        messageType: 'dose_change_request',
-        source: 'dose-change-requests',
-        patientId: patient_id,
-        protocolId: protocol_id,
-      },
-    });
+    // Send the SMS (skip if no phone number on file)
+    let smsResult = { success: false, error: 'No phone number' };
+    if (provider?.phone) {
+      const phone = normalizePhone(provider.phone);
+      smsResult = await sendSMS({
+        to: phone,
+        message: smsMessage,
+        skipEmailCopy: true,
+        log: {
+          messageType: 'dose_change_request',
+          source: 'dose-change-requests',
+          patientId: patient_id,
+          protocolId: protocol_id,
+        },
+      });
+    }
 
-    // Update the request with SMS status
+    // Send email to the approving provider
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const medLabel = is_secondary_med
+      ? `${secondary_medication_name} (HRT secondary)`
+      : medication || 'medication';
+    let emailSent = false;
+    try {
+      const { error: emailErr } = await resend.emails.send({
+        from: 'Range Medical <notifications@range-medical.com>',
+        to: providerEmail,
+        subject: `Dose ${changeType === 'increase' ? 'Increase' : 'Decrease'} Request — ${patient_name}`,
+        html: `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background:#f5f5f5;">
+<table width="100%" cellspacing="0" cellpadding="0" style="background:#f5f5f5;">
+<tr><td align="center" style="padding:40px 20px;">
+<table width="600" cellspacing="0" cellpadding="0" style="background:#fff;max-width:600px;">
+<tr><td style="background:#000;padding:24px 30px;text-align:center;">
+  <h1 style="margin:0;color:#fff;font-size:24px;font-weight:700;letter-spacing:0.1em;">RANGE MEDICAL</h1>
+</td></tr>
+<tr><td style="padding:36px 30px 24px;">
+  <h2 style="margin:0 0 20px;color:#000;font-size:20px;">Dose ${changeType === 'increase' ? 'Increase' : 'Decrease'} Request</h2>
+  <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+    <tr><td style="padding:10px 12px;background:#f9f9f9;border:1px solid #eee;font-weight:600;width:40%;">Patient</td>
+        <td style="padding:10px 12px;background:#f9f9f9;border:1px solid #eee;">${patient_name}</td></tr>
+    <tr><td style="padding:10px 12px;border:1px solid #eee;font-weight:600;">Medication</td>
+        <td style="padding:10px 12px;border:1px solid #eee;">${medLabel}</td></tr>
+    <tr><td style="padding:10px 12px;background:#f9f9f9;border:1px solid #eee;font-weight:600;">Current Dose</td>
+        <td style="padding:10px 12px;background:#f9f9f9;border:1px solid #eee;">${current_dose}${currentIpw ? ` (${currentIpw}x/wk)` : ''}</td></tr>
+    <tr><td style="padding:10px 12px;border:1px solid #eee;font-weight:600;">Proposed Dose</td>
+        <td style="padding:10px 12px;border:1px solid #eee;font-weight:600;color:#1a7f37;">${proposed_dose}${proposedIpw && proposedIpw !== currentIpw ? ` (${proposedIpw}x/wk)` : ''}</td></tr>
+    ${reason ? `<tr><td style="padding:10px 12px;background:#f9f9f9;border:1px solid #eee;font-weight:600;">Reason</td>
+        <td style="padding:10px 12px;background:#f9f9f9;border:1px solid #eee;">${reason}</td></tr>` : ''}
+    <tr><td style="padding:10px 12px;border:1px solid #eee;font-weight:600;">Requested By</td>
+        <td style="padding:10px 12px;border:1px solid #eee;">${requested_by_name}</td></tr>
+  </table>
+  <div style="text-align:center;margin:28px 0 8px;">
+    <a href="${approvalLink}" style="display:inline-block;background:#000;color:#fff;padding:14px 36px;text-decoration:none;border-radius:6px;font-size:16px;font-weight:600;">Review &amp; Approve</a>
+  </div>
+</td></tr>
+<tr><td style="background:#fafafa;padding:20px 30px;border-top:1px solid #eee;">
+  <p style="margin:0;color:#888;font-size:13px;text-align:center;">Range Medical &bull; (949) 997-3988</p>
+</td></tr>
+</table>
+</td></tr></table>
+</body></html>`,
+      });
+      if (emailErr) {
+        console.error('Dose change email error:', emailErr);
+      } else {
+        emailSent = true;
+      }
+    } catch (emailCatchErr) {
+      console.error('Dose change email exception:', emailCatchErr.message);
+    }
+
+    // Update the request with notification status
     await supabase
       .from('dose_change_requests')
       .update({
         sms_sent_at: new Date().toISOString(),
-        sms_delivered: smsResult.success,
+        sms_delivered: smsResult.success || emailSent,
         updated_at: new Date().toISOString(),
       })
       .eq('id', request.id);
 
-    if (!smsResult.success) {
-      console.error('SMS send failed:', smsResult.error);
+    if (!smsResult.success && !emailSent) {
+      console.error('Both SMS and email failed for dose change request');
       return res.status(500).json({
-        error: `SMS to ${providerName} failed: ${smsResult.error}. Please try again or contact them directly.`,
+        error: `Could not reach ${providerName} via SMS or email. Please contact them directly.`,
         request_id: request.id,
       });
     }
 
-    console.log(`Dose change request created: ${patient_name} ${current_dose} -> ${proposed_dose}, SMS sent to ${providerName}`);
+    const channels = [smsResult.success && 'SMS', emailSent && 'email'].filter(Boolean).join(' + ');
+    console.log(`Dose change request created: ${patient_name} ${current_dose} -> ${proposed_dose}, sent to ${providerName} via ${channels}`);
 
     return res.status(200).json({
       success: true,
       request_id: request.id,
       status: 'pending',
       provider_name: providerName,
-      sms_sent: true,
+      sms_sent: smsResult.success,
+      email_sent: emailSent,
     });
 
   } catch (err) {

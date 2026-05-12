@@ -5,11 +5,18 @@ import { Check, ChevronDown, ChevronUp, Phone, Calendar, X } from 'lucide-react'
 import fs from 'fs';
 import path from 'path';
 
+const HBOT_SESSION_RETAIL = 185;
+const RLT_SESSION_RETAIL = 85;
+
 const MEMBERSHIP_TIERS = [
-  { name: 'Baseline', monthly: 299, credits: 350, bonus: 51 },
-  { name: 'Protocol', monthly: 599, credits: 750, bonus: 151 },
-  { name: 'Performance', monthly: 1299, credits: 1700, bonus: 401 },
-];
+  { name: 'Baseline', monthly: 299, credits: 350, discount: 15, hbot: 1, rlt: 1 },
+  { name: 'Protocol', monthly: 599, credits: 750, discount: 20, hbot: 2, rlt: 2 },
+  { name: 'Performance', monthly: 1299, credits: 1700, discount: 25, hbot: 4, rlt: 4 },
+].map(t => {
+  const sessionValue = t.hbot * HBOT_SESSION_RETAIL + t.rlt * RLT_SESSION_RETAIL;
+  const totalValue = t.credits + sessionValue;
+  return { ...t, sessionValue, totalValue, bonus: totalValue - t.monthly };
+});
 
 // 3-month titration schedules based on human clinical trials
 // Tirzepatide: SURMOUNT-1/SURMOUNT-2 trials — 4-week dose escalation
@@ -577,11 +584,33 @@ export default function Memberships({ services }) {
                       <div style={styles.tierPrice}>
                         {formatPrice(tier.monthly)}<span style={styles.tierPeriod}>/mo</span>
                       </div>
-                      <div style={styles.tierCredits}>
-                        {formatPrice(tier.credits)} in monthly credits
+                      <div style={styles.tierTotalValue}>
+                        {formatPrice(tier.totalValue)} in total monthly value
                       </div>
                       <div style={styles.tierBonus}>
                         +{formatPrice(tier.bonus)} bonus value per month
+                      </div>
+
+                      <div style={styles.tierDivider} />
+
+                      <div style={styles.tierIncludes}>
+                        <div style={styles.tierIncludesLabel}>Included every month</div>
+                        <div style={styles.tierIncludesItem}>
+                          <Check size={13} strokeWidth={3} color="#16a34a" />
+                          <span>{formatPrice(tier.credits)} in credits for any service</span>
+                        </div>
+                        <div style={styles.tierIncludesItem}>
+                          <Check size={13} strokeWidth={3} color="#16a34a" />
+                          <span>{tier.hbot} HBOT session{tier.hbot > 1 ? 's' : ''} ({formatPrice(tier.hbot * HBOT_SESSION_RETAIL)} value)</span>
+                        </div>
+                        <div style={styles.tierIncludesItem}>
+                          <Check size={13} strokeWidth={3} color="#16a34a" />
+                          <span>{tier.rlt} Red Light session{tier.rlt > 1 ? 's' : ''} ({formatPrice(tier.rlt * RLT_SESSION_RETAIL)} value)</span>
+                        </div>
+                        <div style={styles.tierIncludesItem}>
+                          <Check size={13} strokeWidth={3} color="#16a34a" />
+                          <span>{tier.discount}% off additional sessions</span>
+                        </div>
                       </div>
 
                       <div style={styles.tierDivider} />
@@ -609,7 +638,7 @@ export default function Memberships({ services }) {
                       <div style={styles.tierSavings}>
                         {selectedTotal > 0 && selectedTotal <= tier.credits && (
                           <div style={styles.savingsLine}>
-                            You save {formatPrice(tier.credits - tier.monthly)} vs. retail every month
+                            You save {formatPrice(tier.totalValue - tier.monthly)} vs. retail every month
                           </div>
                         )}
                       </div>
@@ -1096,7 +1125,7 @@ const styles = {
     fontWeight: 500,
     color: '#737373',
   },
-  tierCredits: {
+  tierTotalValue: {
     fontSize: '0.85rem',
     color: '#525252',
     marginTop: '0.5rem',
@@ -1106,6 +1135,27 @@ const styles = {
     fontWeight: 600,
     color: '#16a34a',
     marginTop: '0.25rem',
+  },
+  tierIncludes: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5rem',
+  },
+  tierIncludesLabel: {
+    fontSize: '0.7rem',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    color: '#a3a3a3',
+    marginBottom: '0.125rem',
+  },
+  tierIncludesItem: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '0.375rem',
+    fontSize: '0.8rem',
+    color: '#404040',
+    lineHeight: 1.35,
   },
   tierDivider: {
     height: '1px',

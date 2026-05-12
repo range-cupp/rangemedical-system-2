@@ -50,7 +50,7 @@ async function getCampaignDetail(req, res) {
 
     const { data: recipients, error: rErr } = await supabase
       .from('email_campaign_recipients')
-      .select('id, patient_id, email, status, error_message, resend_email_id, sent_at')
+      .select('id, patient_id, email, status, error_message, resend_email_id, sent_at, delivered_at, opened_at, clicked_at, bounced_at')
       .eq('campaign_id', id)
       .order('sent_at', { ascending: true });
     if (rErr) throw rErr;

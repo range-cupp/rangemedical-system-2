@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
-import { Mail, Users, Send, ChevronLeft, Eye, Save, Filter, Trash2, Plus, Sparkles, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { Mail, Users, Send, ChevronLeft, Eye, Save, Filter, Trash2, Plus, Sparkles, CheckCircle, AlertCircle, Clock, RefreshCw, MailOpen, MousePointerClick } from 'lucide-react';
 
 const PROTOCOL_TYPES = [
   { value: 'peptide', label: 'Peptide' },
@@ -84,8 +84,9 @@ export default function EmailCampaignsPage() {
   const [detailCampaign, setDetailCampaign] = useState(null);
   const [detailRecipients, setDetailRecipients] = useState([]);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [recipientFilter, setRecipientFilter] = useState('all'); // all, sent, error
+  const [recipientFilter, setRecipientFilter] = useState('all'); // all, sent, error, opened, clicked
   const [recipientSearch, setRecipientSearch] = useState('');
+  const [refreshingStats, setRefreshingStats] = useState(false);
 
   useEffect(() => {
     fetchCampaigns();
@@ -118,6 +119,26 @@ export default function EmailCampaignsPage() {
       console.error('Error fetching campaign detail:', err);
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const refreshStats = async () => {
+    if (!detailCampaign?.id) return;
+    setRefreshingStats(true);
+    try {
+      const res = await fetch('/api/admin/campaign-stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaignId: detailCampaign.id }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        viewCampaignDetail(detailCampaign);
+      }
+    } catch (err) {
+      console.error('Refresh stats error:', err);
+    } finally {
+      setRefreshingStats(false);
     }
   };
 
@@ -412,25 +433,44 @@ export default function EmailCampaignsPage() {
   // ─── DETAIL VIEW ──────────────────────────────────────────────────
   if (view === 'detail') {
     const filteredRecipients = detailRecipients.filter(r => {
-      if (recipientFilter !== 'all' && r.status !== recipientFilter) return false;
+      if (recipientFilter === 'opened' && !r.opened_at) return false;
+      else if (recipientFilter === 'clicked' && !r.clicked_at) return false;
+      else if (recipientFilter !== 'all' && recipientFilter !== 'opened' && recipientFilter !== 'clicked' && r.status !== recipientFilter) return false;
       if (recipientSearch && !r.email.toLowerCase().includes(recipientSearch.toLowerCase())) return false;
       return true;
     });
     const sentCount = detailRecipients.filter(r => r.status === 'sent').length;
     const errorCount = detailRecipients.filter(r => r.status === 'error').length;
+    const openedCount = detailRecipients.filter(r => r.opened_at).length;
+    const clickedCount = detailRecipients.filter(r => r.clicked_at).length;
+    const bouncedCount = detailRecipients.filter(r => r.bounced_at).length;
+    const openRate = sentCount > 0 ? Math.round((openedCount / sentCount) * 100) : 0;
+    const clickRate = sentCount > 0 ? Math.round((clickedCount / sentCount) * 100) : 0;
 
     return (
       <AdminLayout title="Campaign Detail">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-          <button onClick={() => setView('list')} style={{ ...sharedStyles.btnSecondary, padding: '8px 12px' }}>
-            <ChevronLeft size={16} />
-          </button>
-          <div>
-            <h1 style={{ ...sharedStyles.pageTitle, fontSize: '24px' }}>
-              {detailCampaign?.name || 'Campaign Detail'}
-            </h1>
-            <p style={sharedStyles.pageSubtitle}>{detailCampaign?.subject}</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button onClick={() => setView('list')} style={{ ...sharedStyles.btnSecondary, padding: '8px 12px' }}>
+              <ChevronLeft size={16} />
+            </button>
+            <div>
+              <h1 style={{ ...sharedStyles.pageTitle, fontSize: '24px' }}>
+                {detailCampaign?.name || 'Campaign Detail'}
+              </h1>
+              <p style={sharedStyles.pageSubtitle}>{detailCampaign?.subject}</p>
+            </div>
           </div>
+          {detailCampaign?.status === 'sent' && (
+            <button
+              onClick={refreshStats}
+              disabled={refreshingStats}
+              style={{ ...sharedStyles.btnSecondary, gap: '8px', opacity: refreshingStats ? 0.6 : 1 }}
+            >
+              <RefreshCw size={14} style={refreshingStats ? { animation: 'spin 1s linear infinite' } : {}} />
+              {refreshingStats ? 'Refreshing...' : 'Refresh Stats'}
+            </button>
+          )}
         </div>
 
         {detailLoading ? (
@@ -438,23 +478,41 @@ export default function EmailCampaignsPage() {
         ) : (
           <>
             {/* Summary Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
               <div style={sharedStyles.card}>
                 <div style={{ ...sharedStyles.cardBody, textAlign: 'center', padding: '20px' }}>
-                  <div style={{ fontSize: '32px', fontWeight: '700' }}>{detailCampaign?.total_recipients || 0}</div>
-                  <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>Total Recipients</div>
-                </div>
-              </div>
-              <div style={sharedStyles.card}>
-                <div style={{ ...sharedStyles.cardBody, textAlign: 'center', padding: '20px' }}>
-                  <div style={{ fontSize: '32px', fontWeight: '700', color: '#16a34a' }}>{sentCount}</div>
+                  <div style={{ fontSize: '32px', fontWeight: '700' }}>{sentCount}</div>
                   <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>Sent</div>
                 </div>
               </div>
               <div style={sharedStyles.card}>
                 <div style={{ ...sharedStyles.cardBody, textAlign: 'center', padding: '20px' }}>
-                  <div style={{ fontSize: '32px', fontWeight: '700', color: errorCount > 0 ? '#dc2626' : '#666' }}>{errorCount}</div>
-                  <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>Errors</div>
+                  <div style={{ fontSize: '32px', fontWeight: '700', color: '#2563eb' }}>
+                    {openedCount}
+                    <span style={{ fontSize: '16px', fontWeight: '500', color: '#666', marginLeft: '4px' }}>{openRate}%</span>
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#666', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    <MailOpen size={13} /> Opened
+                  </div>
+                </div>
+              </div>
+              <div style={sharedStyles.card}>
+                <div style={{ ...sharedStyles.cardBody, textAlign: 'center', padding: '20px' }}>
+                  <div style={{ fontSize: '32px', fontWeight: '700', color: '#7c3aed' }}>
+                    {clickedCount}
+                    <span style={{ fontSize: '16px', fontWeight: '500', color: '#666', marginLeft: '4px' }}>{clickRate}%</span>
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#666', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    <MousePointerClick size={13} /> Clicked
+                  </div>
+                </div>
+              </div>
+              <div style={sharedStyles.card}>
+                <div style={{ ...sharedStyles.cardBody, textAlign: 'center', padding: '20px' }}>
+                  <div style={{ fontSize: '32px', fontWeight: '700', color: errorCount + bouncedCount > 0 ? '#dc2626' : '#666' }}>
+                    {errorCount + bouncedCount}
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>Errors / Bounced</div>
                 </div>
               </div>
               <div style={sharedStyles.card}>
@@ -512,6 +570,8 @@ export default function EmailCampaignsPage() {
                   >
                     <option value="all">All</option>
                     <option value="sent">Sent</option>
+                    <option value="opened">Opened</option>
+                    <option value="clicked">Clicked</option>
                     <option value="error">Errors</option>
                   </select>
                 </div>
@@ -522,7 +582,8 @@ export default function EmailCampaignsPage() {
                     <tr>
                       <th style={sharedStyles.th}>Email</th>
                       <th style={sharedStyles.th}>Status</th>
-                      <th style={sharedStyles.th}>Resend ID</th>
+                      <th style={sharedStyles.th}>Opened</th>
+                      <th style={sharedStyles.th}>Clicked</th>
                       <th style={sharedStyles.th}>Error</th>
                       <th style={sharedStyles.th}>Sent At</th>
                     </tr>
@@ -536,6 +597,10 @@ export default function EmailCampaignsPage() {
                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#16a34a', fontSize: '13px' }}>
                               <CheckCircle size={14} /> Sent
                             </span>
+                          ) : r.status === 'bounced' ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#dc2626', fontSize: '13px' }}>
+                              <AlertCircle size={14} /> Bounced
+                            </span>
                           ) : r.status === 'error' ? (
                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#dc2626', fontSize: '13px' }}>
                               <AlertCircle size={14} /> Error
@@ -546,8 +611,23 @@ export default function EmailCampaignsPage() {
                             </span>
                           )}
                         </td>
-                        <td style={{ ...sharedStyles.td, fontSize: '12px', color: '#999', fontFamily: 'monospace' }}>
-                          {r.resend_email_id || '—'}
+                        <td style={sharedStyles.td}>
+                          {r.opened_at ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#2563eb', fontSize: '13px' }}>
+                              <MailOpen size={14} /> {new Date(r.opened_at).toLocaleString()}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#ccc', fontSize: '13px' }}>—</span>
+                          )}
+                        </td>
+                        <td style={sharedStyles.td}>
+                          {r.clicked_at ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#7c3aed', fontSize: '13px' }}>
+                              <MousePointerClick size={14} /> {new Date(r.clicked_at).toLocaleString()}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#ccc', fontSize: '13px' }}>—</span>
+                          )}
                         </td>
                         <td style={{ ...sharedStyles.td, fontSize: '12px', color: '#dc2626' }}>
                           {r.error_message || '—'}

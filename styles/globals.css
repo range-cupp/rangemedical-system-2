@@ -2298,3 +2298,8 @@ p {
   .tx-photos img { height: 240px; }
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+

@@ -88,7 +88,56 @@ export default async function handler(req, res) {
       }
     });
 
-    const lapsedPatientIds = Object.keys(lapsedByPatient);
+    let lapsedPatientIds = Object.keys(lapsedByPatient);
+
+    // Filter out patients who already purchased another round:
+    // 1. Check for any newer peptide protocol created after their last one ended
+    // 2. Check for recent peptide purchases
+    if (lapsedPatientIds.length > 0) {
+      // Check for newer protocols (any status) created after the ended one
+      const { data: newerProtocols } = await supabase
+        .from('protocols')
+        .select('patient_id, created_at, start_date')
+        .eq('program_type', 'peptide')
+        .in('patient_id', lapsedPatientIds);
+
+      const alreadyReupped = new Set();
+      (newerProtocols || []).forEach(np => {
+        const lastEnded = lapsedByPatient[np.patient_id];
+        if (!lastEnded) return;
+        const endedDate = new Date(lastEnded.end_date);
+        const newerCreated = new Date(np.created_at);
+        const newerStart = np.start_date ? new Date(np.start_date) : null;
+        // If this protocol was created after the last one ended, or starts after it ended, they've re-upped
+        if (newerCreated > endedDate || (newerStart && newerStart > endedDate)) {
+          alreadyReupped.add(np.patient_id);
+        }
+      });
+
+      // Also check purchases table for recent peptide purchases
+      const { data: recentPurchases } = await supabase
+        .from('purchases')
+        .select('patient_id, purchase_date, created_at')
+        .in('patient_id', lapsedPatientIds)
+        .eq('category', 'peptide')
+        .in('status', ['completed', 'succeeded', 'active']);
+
+      (recentPurchases || []).forEach(pur => {
+        const lastEnded = lapsedByPatient[pur.patient_id];
+        if (!lastEnded) return;
+        const endedDate = new Date(lastEnded.end_date);
+        const purchaseDate = new Date(pur.purchase_date || pur.created_at);
+        if (purchaseDate > endedDate) {
+          alreadyReupped.add(pur.patient_id);
+        }
+      });
+
+      // Remove patients who already re-upped
+      alreadyReupped.forEach(pid => {
+        delete lapsedByPatient[pid];
+      });
+      lapsedPatientIds = Object.keys(lapsedByPatient);
+    }
     const { data: lapsedPatients } = lapsedPatientIds.length > 0
       ? await supabase
           .from('patients')

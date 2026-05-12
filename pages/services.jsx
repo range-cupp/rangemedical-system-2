@@ -7,6 +7,7 @@ import Layout from '../components/Layout';
 
 export default function Services() {
   const [visible, setVisible] = useState({});
+  const [addOnsOpen, setAddOnsOpen] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -111,6 +112,45 @@ export default function Services() {
                   <li>Hormones: DHEA-S, FSH, LH, IGF-1, Cortisol</li>
                   <li>Best for full health picture</li>
                 </ul>
+              </div>
+            </div>
+
+            {/* Add-On Labs Toggle */}
+            <button className="svc-addon-toggle" onClick={() => setAddOnsOpen(!addOnsOpen)}>
+              <span>Add-On Labs</span>
+              <svg className={`svc-addon-chevron ${addOnsOpen ? 'svc-addon-chevron-open' : ''}`} width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+
+            <div className={`svc-addon-panel ${addOnsOpen ? 'svc-addon-panel-open' : ''}`}>
+              <div className="svc-price-grid svc-price-grid-3">
+                <div className="svc-price-card">
+                  <h3>Heavy Metals &mdash; Blood</h3>
+                  <div className="svc-card-price">$220</div>
+                  <div className="svc-card-detail">3 toxic metals via blood draw</div>
+                  <ul className="svc-card-list">
+                    <li>Arsenic</li>
+                    <li>Lead</li>
+                    <li>Mercury</li>
+                  </ul>
+                </div>
+                <div className="svc-price-card">
+                  <h3>Heavy Metals &mdash; Urine</h3>
+                  <div className="svc-card-price">$280</div>
+                  <div className="svc-card-detail">21 toxic metals via urine collection</div>
+                  <ul className="svc-card-list">
+                    <li>Comprehensive 21-metal panel</li>
+                    <li>Avoid seafood 48 hrs prior</li>
+                  </ul>
+                </div>
+                <div className="svc-price-card">
+                  <h3>Mold Profile Plus IgE</h3>
+                  <div className="svc-card-price">$200</div>
+                  <div className="svc-card-detail">6 mold allergens via serum</div>
+                  <ul className="svc-card-list">
+                    <li>Penicillium, Cladosporium, Aspergillus</li>
+                    <li>Mucor, Alternaria, Stemphylium</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
@@ -586,6 +626,14 @@ export default function Services() {
         .svc-card-list { list-style: none; padding: 0; margin: 0 0 1.25rem; flex: 1; }
         .svc-card-list li { font-size: 0.8125rem; color: #525252; line-height: 1.6; padding: 0.1875rem 0 0.1875rem 1.125rem; position: relative; }
         .svc-card-list li::before { content: '–'; position: absolute; left: 0; color: #808080; font-weight: 600; }
+
+        /* ── ADD-ON TOGGLE ── */
+        .svc-addon-toggle { display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 2.5rem; padding: 0.75rem 1.25rem; background: none; border: 1px solid #d0d0d0; font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.06em; color: #525252; cursor: pointer; transition: all 0.2s; }
+        .svc-addon-toggle:hover { border-color: #1a1a1a; color: #1a1a1a; }
+        .svc-addon-chevron { transition: transform 0.3s ease; }
+        .svc-addon-chevron-open { transform: rotate(180deg); }
+        .svc-addon-panel { max-height: 0; overflow: hidden; transition: max-height 0.4s ease, margin-top 0.3s ease; margin-top: 0; }
+        .svc-addon-panel-open { max-height: 600px; margin-top: 1.5rem; }
 
         /* ── CTA ── */
         .v2-cta-section { background: #1a1a1a; text-align: center; }

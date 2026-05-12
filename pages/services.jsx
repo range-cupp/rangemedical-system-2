@@ -190,7 +190,7 @@ export default function Services() {
                 <h3>Weight Loss Program</h3>
                 <div className="svc-card-price">From $399/month</div>
                 <ul className="svc-card-list">
-                  <li>Medication included (Tirzepatide, Semaglutide, or Retatrutide)</li>
+                  <li>Medication included</li>
                   <li>Monthly provider check-ins &amp; dose adjustments</li>
                   <li>Direct messaging with your provider</li>
                   <li>Nutrition guidance included</li>
@@ -209,9 +209,9 @@ export default function Services() {
                 <div className="svc-card-price">$150&ndash;400/month</div>
                 <div className="svc-card-detail">Varies by peptide and protocol &mdash; discussed at your assessment</div>
                 <ul className="svc-card-list">
-                  <li>BPC-157 + TB-4 for recovery &amp; healing</li>
-                  <li>Growth hormone secretagogues (CJC/Ipamorelin, Tesamorelin)</li>
-                  <li>Immune, sleep, cognitive, and longevity peptides</li>
+                  <li>Recovery &amp; healing protocols</li>
+                  <li>Growth hormone support</li>
+                  <li>Immune, sleep, cognitive, and longevity protocols</li>
                   <li>Pre-filled syringes, prescription required</li>
                 </ul>
               </div>

@@ -1,21 +1,12 @@
 // pages/services.jsx
-// Services & Treatments — V2 design, full pricing menu with embedded checkout
+// Services & Treatments — V2 design, full pricing menu
 
-import Link from 'next/link';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
-import CheckoutModal from '../components/CheckoutModal';
 import Layout from '../components/Layout';
 
 export default function Services() {
   const [visible, setVisible] = useState({});
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [checkoutProduct, setCheckoutProduct] = useState(null);
-
-  const openCheckout = (product) => {
-    setCheckoutProduct(product);
-    setCheckoutOpen(true);
-  };
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -42,7 +33,7 @@ export default function Services() {
         <link rel="canonical" href="https://www.range-medical.com/services" />
 
         <meta property="og:title" content="Services & Pricing | Range Medical | Newport Beach" />
-        <meta property="og:description" content="Full pricing for all regenerative medicine services at Range Medical. Book and pay online." />
+        <meta property="og:description" content="Full pricing for all regenerative medicine services at Range Medical." />
         <meta property="og:url" content="https://www.range-medical.com/services" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Range Medical" />
@@ -72,7 +63,7 @@ export default function Services() {
             <h1>Everything we offer. <em>One page.</em></h1>
             <div className="v2-hero-rule" />
             <p className="v2-hero-body">
-              Full pricing for every service. Book and pay online, or call us at{' '}
+              Full pricing for every service. Call or text us at{' '}
               <a href="tel:9499973988" className="svc-phone-link">(949) 997-3988</a>.
             </p>
           </div>
@@ -114,11 +105,7 @@ export default function Services() {
                   <div className="svc-card-detail">60 min infusion</div>
                   <ul className="svc-card-list">
                     {iv.items.map((item, j) => <li key={j}>{item}</li>)}
-                  </ul>
-                  <button className="svc-btn-book" onClick={() => openCheckout({ name: `${iv.name} IV`, amountCents: iv.cents, amountLabel: '$225', serviceCategory: 'iv', serviceName: `Range IV \u2014 ${iv.name}` })}>
-                    Book &amp; Pay &mdash; $225
-                  </button>
-                </div>
+                  </ul>                </div>
               ))}
             </div>
 
@@ -137,11 +124,7 @@ export default function Services() {
                   {nad.popular && <div className="svc-card-badge">MOST POPULAR</div>}
                   <h3>NAD+ {nad.dose}</h3>
                   <div className="svc-card-price">{nad.price}</div>
-                  <div className="svc-card-detail">{nad.time} infusion</div>
-                  <button className="svc-btn-book" onClick={() => openCheckout({ name: `NAD+ IV ${nad.dose}`, amountCents: nad.cents, amountLabel: nad.price, serviceCategory: 'iv', serviceName: `NAD+ IV \u2014 ${nad.dose}` })}>
-                    Book &amp; Pay &mdash; {nad.price}
-                  </button>
-                </div>
+                  <div className="svc-card-detail">{nad.time} infusion</div>                </div>
               ))}
             </div>
 
@@ -158,11 +141,7 @@ export default function Services() {
                 <div key={i} className="svc-price-card">
                   <h3>Glutathione {g.dose}</h3>
                   <div className="svc-card-price">{g.price}</div>
-                  <div className="svc-card-detail">60 min IV push</div>
-                  <button className="svc-btn-book" onClick={() => openCheckout({ name: `Glutathione IV ${g.dose}`, amountCents: g.cents, amountLabel: g.price, serviceCategory: 'iv', serviceName: `Glutathione IV \u2014 ${g.dose}` })}>
-                    Book &amp; Pay &mdash; {g.price}
-                  </button>
-                </div>
+                  <div className="svc-card-detail">60 min IV push</div>                </div>
               ))}
             </div>
 
@@ -179,11 +158,7 @@ export default function Services() {
                 <div key={i} className="svc-price-card">
                   <h3>Vitamin C {vc.dose}</h3>
                   <div className="svc-card-price">{vc.price}</div>
-                  <div className="svc-card-detail">{vc.time} infusion</div>
-                  <button className="svc-btn-book" onClick={() => openCheckout({ name: `Vitamin C IV ${vc.dose}`, amountCents: vc.cents, amountLabel: vc.price, serviceCategory: 'iv', serviceName: `High-Dose Vitamin C IV \u2014 ${vc.dose}` })}>
-                    Book &amp; Pay &mdash; {vc.price}
-                  </button>
-                </div>
+                  <div className="svc-card-detail">{vc.time} infusion</div>                </div>
               ))}
             </div>
 
@@ -199,11 +174,7 @@ export default function Services() {
                 <div key={i} className="svc-price-card">
                   <h3>{mb.name}</h3>
                   <div className="svc-card-price">{mb.price}</div>
-                  <div className="svc-card-detail">{mb.time} infusion</div>
-                  <button className="svc-btn-book" onClick={() => openCheckout({ name: mb.name, amountCents: mb.cents, amountLabel: mb.price, serviceCategory: 'iv', serviceName: mb.name })}>
-                    Book &amp; Pay &mdash; {mb.price}
-                  </button>
-                </div>
+                  <div className="svc-card-detail">{mb.time} infusion</div>                </div>
               ))}
             </div>
           </div>
@@ -224,11 +195,7 @@ export default function Services() {
               {['B12 (Methylcobalamin)', 'B-Complex', 'Vitamin D3', 'Biotin', 'Amino Blend', 'NAC', 'BCAA'].map((inj, i) => (
                 <div key={i} className="svc-price-card svc-price-card-compact">
                   <h3>{inj}</h3>
-                  <div className="svc-card-price">$35</div>
-                  <button className="svc-btn-book" onClick={() => openCheckout({ name: `${inj} Injection`, amountCents: 3500, amountLabel: '$35', serviceCategory: 'injection', serviceName: `${inj} Injection` })}>
-                    Book &amp; Pay
-                  </button>
-                </div>
+                  <div className="svc-card-price">$35</div>                </div>
               ))}
             </div>
 
@@ -244,11 +211,7 @@ export default function Services() {
                 <div key={i} className="svc-price-card">
                   <h3>{inj.name}</h3>
                   <div className="svc-card-price">$50</div>
-                  <div className="svc-card-detail">{inj.desc}</div>
-                  <button className="svc-btn-book" onClick={() => openCheckout({ name: `${inj.name} Injection`, amountCents: 5000, amountLabel: '$50', serviceCategory: 'injection', serviceName: `${inj.name} Injection` })}>
-                    Book &amp; Pay
-                  </button>
-                </div>
+                  <div className="svc-card-detail">{inj.desc}</div>                </div>
               ))}
             </div>
 
@@ -264,11 +227,7 @@ export default function Services() {
               ].map((nad, i) => (
                 <div key={i} className="svc-price-card svc-price-card-compact">
                   <h3>NAD+ {nad.dose}</h3>
-                  <div className="svc-card-price">{nad.price}</div>
-                  <button className="svc-btn-book" onClick={() => openCheckout({ name: `NAD+ Injection ${nad.dose}`, amountCents: nad.cents, amountLabel: nad.price, serviceCategory: 'injection', serviceName: `NAD+ Injection \u2014 ${nad.dose}` })}>
-                    Book &amp; Pay
-                  </button>
-                </div>
+                  <div className="svc-card-price">{nad.price}</div>                </div>
               ))}
             </div>
 
@@ -286,11 +245,7 @@ export default function Services() {
                   <li>Any standard injection ($35 each)</li>
                   <li>Take home for self-administration</li>
                   <li>MWF protocol recommended</li>
-                </ul>
-                <button className="svc-btn-book" onClick={() => openCheckout({ name: 'Standard Injection Package', amountCents: 35000, amountLabel: '$350', serviceCategory: 'injection', serviceName: 'Standard Injection Package (12 for 10)' })}>
-                  Buy Package &mdash; $350
-                </button>
-              </div>
+                </ul>              </div>
               <div className="svc-price-card svc-price-card-featured">
                 <div className="svc-card-badge">SPECIALTY</div>
                 <h3>NAD+ / Premium Package</h3>
@@ -300,11 +255,7 @@ export default function Services() {
                   <li>NAD+ (100mg) or any premium injection</li>
                   <li>Take home for self-administration</li>
                   <li>MWF protocol recommended</li>
-                </ul>
-                <button className="svc-btn-book" onClick={() => openCheckout({ name: 'NAD+ / Premium Injection Package', amountCents: 50000, amountLabel: '$500', serviceCategory: 'injection', serviceName: 'NAD+ / Premium Injection Package (12 for 10)' })}>
-                  Buy Package &mdash; $500
-                </button>
-              </div>
+                </ul>              </div>
             </div>
           </div>
         </section>
@@ -331,11 +282,7 @@ export default function Services() {
                   <li>Structured 6-week schedule &mdash; 3x/week</li>
                   <li>Weekly check-ins to track progress</li>
                   <li>Money-back guarantee</li>
-                </ul>
-                <button className="svc-btn-book" onClick={() => openCheckout({ name: '6-Week Cellular Energy Reset', amountCents: 299900, amountLabel: '$2,999', serviceCategory: 'hbot', serviceName: 'Six-Week Cellular Energy Reset' })}>
-                  Book &amp; Pay &mdash; $2,999
-                </button>
-              </div>
+                </ul>              </div>
             </div>
 
             {/* HBOT */}
@@ -345,27 +292,15 @@ export default function Services() {
             <div className="svc-price-grid svc-price-grid-3">
               <div className="svc-price-card">
                 <h3>Single Session</h3>
-                <div className="svc-card-price">$185</div>
-                <button className="svc-btn-book" onClick={() => openCheckout({ name: 'HBOT Single Session', amountCents: 18500, amountLabel: '$185', serviceCategory: 'hbot', serviceName: 'HBOT \u2014 Single Session' })}>
-                  Book &amp; Pay
-                </button>
-              </div>
+                <div className="svc-card-price">$185</div>              </div>
               <div className="svc-price-card">
                 <h3>5-Session Pack</h3>
                 <div className="svc-card-price">$850</div>
-                <div className="svc-card-detail">$170/session &mdash; save 8%</div>
-                <button className="svc-btn-book" onClick={() => openCheckout({ name: 'HBOT 5-Session Pack', amountCents: 85000, amountLabel: '$850', serviceCategory: 'hbot', serviceName: 'HBOT \u2014 5-Session Pack' })}>
-                  Buy Pack &mdash; $850
-                </button>
-              </div>
+                <div className="svc-card-detail">$170/session &mdash; save 8%</div>              </div>
               <div className="svc-price-card">
                 <h3>10-Session Pack</h3>
                 <div className="svc-card-price">$1,600</div>
-                <div className="svc-card-detail">$160/session &mdash; save 14%</div>
-                <button className="svc-btn-book" onClick={() => openCheckout({ name: 'HBOT 10-Session Pack', amountCents: 160000, amountLabel: '$1,600', serviceCategory: 'hbot', serviceName: 'HBOT \u2014 10-Session Pack' })}>
-                  Buy Pack &mdash; $1,600
-                </button>
-              </div>
+                <div className="svc-card-detail">$160/session &mdash; save 14%</div>              </div>
             </div>
 
             <h3 className="svc-subsection-title svc-mt-sm">HBOT MEMBERSHIPS</h3>
@@ -381,11 +316,7 @@ export default function Services() {
                   {m.popular && <div className="svc-card-badge">BEST VALUE</div>}
                   <h3>HBOT {m.freq}</h3>
                   <div className="svc-card-price">{m.price}</div>
-                  <div className="svc-card-detail" dangerouslySetInnerHTML={{ __html: m.detail }} />
-                  <button className="svc-btn-book" onClick={() => openCheckout({ name: `HBOT Membership \u2014 ${m.freq}`, amountCents: m.cents, amountLabel: m.price, serviceCategory: 'hbot', serviceName: `HBOT Membership \u2014 ${m.freq}` })}>
-                    Start Membership
-                  </button>
-                </div>
+                  <div className="svc-card-detail" dangerouslySetInnerHTML={{ __html: m.detail }} />                </div>
               ))}
             </div>
 
@@ -396,36 +327,20 @@ export default function Services() {
             <div className="svc-price-grid svc-price-grid-4">
               <div className="svc-price-card">
                 <h3>Single Session</h3>
-                <div className="svc-card-price">$85</div>
-                <button className="svc-btn-book" onClick={() => openCheckout({ name: 'RLT Single Session', amountCents: 8500, amountLabel: '$85', serviceCategory: 'rlt', serviceName: 'Red Light Therapy \u2014 Single Session' })}>
-                  Book &amp; Pay
-                </button>
-              </div>
+                <div className="svc-card-price">$85</div>              </div>
               <div className="svc-price-card">
                 <h3>5-Session Pack</h3>
                 <div className="svc-card-price">$375</div>
-                <div className="svc-card-detail">$75/session</div>
-                <button className="svc-btn-book" onClick={() => openCheckout({ name: 'RLT 5-Session Pack', amountCents: 37500, amountLabel: '$375', serviceCategory: 'rlt', serviceName: 'Red Light Therapy \u2014 5-Session Pack' })}>
-                  Buy Pack &mdash; $375
-                </button>
-              </div>
+                <div className="svc-card-detail">$75/session</div>              </div>
               <div className="svc-price-card">
                 <h3>10-Session Pack</h3>
                 <div className="svc-card-price">$600</div>
-                <div className="svc-card-detail">$60/session</div>
-                <button className="svc-btn-book" onClick={() => openCheckout({ name: 'RLT 10-Session Pack', amountCents: 60000, amountLabel: '$600', serviceCategory: 'rlt', serviceName: 'Red Light Therapy \u2014 10-Session Pack' })}>
-                  Buy Pack &mdash; $600
-                </button>
-              </div>
+                <div className="svc-card-detail">$60/session</div>              </div>
               <div className="svc-price-card svc-price-card-featured">
                 <div className="svc-card-badge">MEMBERSHIP</div>
                 <h3>RLT Reset</h3>
                 <div className="svc-card-price">$399/mo</div>
-                <div className="svc-card-detail">Up to 12 sessions/month</div>
-                <button className="svc-btn-book" onClick={() => openCheckout({ name: 'RLT Reset Membership', amountCents: 39900, amountLabel: '$399/mo', serviceCategory: 'rlt', serviceName: 'Red Light Reset Membership' })}>
-                  Start Membership
-                </button>
-              </div>
+                <div className="svc-card-detail">Up to 12 sessions/month</div>              </div>
             </div>
 
             {/* Combo Memberships */}
@@ -442,11 +357,7 @@ export default function Services() {
                   {m.popular && <div className="svc-card-badge">MOST POPULAR</div>}
                   <h3>Combo {m.freq}</h3>
                   <div className="svc-card-price">{m.price}</div>
-                  <div className="svc-card-detail">{m.detail}</div>
-                  <button className="svc-btn-book" onClick={() => openCheckout({ name: `HBOT + RLT Combo \u2014 ${m.freq}`, amountCents: m.cents, amountLabel: m.price, serviceCategory: 'hbot', serviceName: `HBOT + RLT Combo Membership \u2014 ${m.freq}` })}>
-                    Start Membership
-                  </button>
-                </div>
+                  <div className="svc-card-detail">{m.detail}</div>                </div>
               ))}
             </div>
 
@@ -457,20 +368,12 @@ export default function Services() {
             <div className="svc-price-grid svc-price-grid-2">
               <div className="svc-price-card">
                 <h3>Single Injection</h3>
-                <div className="svc-card-price">$750</div>
-                <button className="svc-btn-book" onClick={() => openCheckout({ name: 'PRP Injection', amountCents: 75000, amountLabel: '$750', serviceCategory: 'injection', serviceName: 'PRP Therapy \u2014 Single Injection' })}>
-                  Book &amp; Pay &mdash; $750
-                </button>
-              </div>
+                <div className="svc-card-price">$750</div>              </div>
               <div className="svc-price-card svc-price-card-featured">
                 <div className="svc-card-badge">SAVE $450</div>
                 <h3>3-Injection Pack</h3>
                 <div className="svc-card-price">$1,800</div>
-                <div className="svc-card-detail">$600/injection</div>
-                <button className="svc-btn-book" onClick={() => openCheckout({ name: 'PRP 3-Injection Pack', amountCents: 180000, amountLabel: '$1,800', serviceCategory: 'injection', serviceName: 'PRP Therapy \u2014 3-Injection Pack' })}>
-                  Buy Pack &mdash; $1,800
-                </button>
-              </div>
+                <div className="svc-card-detail">$600/injection</div>              </div>
             </div>
 
             {/* Exosome */}
@@ -481,9 +384,7 @@ export default function Services() {
               <div className="svc-price-card svc-price-card-wide">
                 <h3>Exosome Therapy</h3>
                 <div className="svc-card-price">Consultation-based</div>
-                <div className="svc-card-detail">Pricing discussed at your assessment</div>
-                <Link href="/assessment" className="svc-btn-start">Book Your Range Assessment &rarr;</Link>
-              </div>
+                <div className="svc-card-detail">Pricing discussed at your assessment</div>              </div>
             </div>
           </div>
         </section>
@@ -509,9 +410,7 @@ export default function Services() {
                   <li>Provider check-ins &amp; dose adjustments</li>
                   <li>One Range IV per month ($225 value)</li>
                 </ul>
-                <div className="svc-card-note">Requires baseline lab panel (Essential $350 / Elite $750)</div>
-                <Link href="/assessment" className="svc-btn-start">Book Your Range Assessment &rarr;</Link>
-              </div>
+                <div className="svc-card-note">Requires baseline lab panel (Essential $350 / Elite $750)</div>              </div>
             </div>
 
             {/* Weight Loss */}
@@ -528,9 +427,7 @@ export default function Services() {
                   <li>Direct messaging with your provider</li>
                   <li>Nutrition guidance included</li>
                 </ul>
-                <div className="svc-card-note">Requires baseline lab panel (Essential $350 / Elite $750)</div>
-                <Link href="/assessment" className="svc-btn-start">Book Your Range Assessment &rarr;</Link>
-              </div>
+                <div className="svc-card-note">Requires baseline lab panel (Essential $350 / Elite $750)</div>              </div>
             </div>
 
             {/* Peptide Therapy */}
@@ -547,9 +444,7 @@ export default function Services() {
                   <li>Growth hormone secretagogues (CJC/Ipamorelin, Tesamorelin)</li>
                   <li>Immune, sleep, cognitive, and longevity peptides</li>
                   <li>Pre-filled syringes, prescription required</li>
-                </ul>
-                <Link href="/assessment" className="svc-btn-start">Book Your Range Assessment &rarr;</Link>
-              </div>
+                </ul>              </div>
             </div>
           </div>
         </section>
@@ -571,11 +466,7 @@ export default function Services() {
                   <li>Hormones (gender-specific) + Thyroid panel</li>
                   <li>Fasting Insulin, HgbA1c, Vitamin D</li>
                   <li>Best for first-time labs or general health check</li>
-                </ul>
-                <button className="svc-btn-book" onClick={() => openCheckout({ name: 'Essential Blood Panel', amountCents: 35000, amountLabel: '$350', serviceCategory: 'lab_panel', serviceName: 'Lab Panel \u2014 Essential' })}>
-                  Book &amp; Pay &mdash; $350
-                </button>
-              </div>
+                </ul>              </div>
               <div className="svc-price-card svc-price-card-featured">
                 <div className="svc-card-badge">MOST COMPLETE</div>
                 <h3>Elite Blood Panel</h3>
@@ -587,11 +478,7 @@ export default function Services() {
                   <li>Inflammation: CRP-HS, Sed Rate</li>
                   <li>Hormones: DHEA-S, FSH, LH, IGF-1, Cortisol</li>
                   <li>Best for full health picture</li>
-                </ul>
-                <button className="svc-btn-book" onClick={() => openCheckout({ name: 'Elite Blood Panel', amountCents: 75000, amountLabel: '$750', serviceCategory: 'lab_panel', serviceName: 'Lab Panel \u2014 Elite' })}>
-                  Book &amp; Pay &mdash; $750
-                </button>
-              </div>
+                </ul>              </div>
             </div>
           </div>
         </section>
@@ -601,31 +488,16 @@ export default function Services() {
           <div className="v2-container v2-cta-inner">
             <h2>Not sure where to <em>start?</em></h2>
             <div className="v2-cta-rule" />
-            <p>Book your $197 Range Assessment &mdash; it goes directly toward treatment.</p>
+            <p>Call or text us to schedule your first visit.</p>
             <div className="v2-cta-buttons">
-              <Link href="/assessment" className="v2-btn-white">Book Your Range Assessment</Link>
-              <a href="tel:9499973988" className="v2-btn-outline">(949) 997-3988</a>
+              <a href="tel:9499973988" className="v2-btn-white">(949) 997-3988</a>
             </div>
             <div className="v2-cta-location">
-              Range Medical &bull; 1901 Westcliff Dr, Newport Beach &bull; Walk-ins welcome
+              Range Medical &bull; 1901 Westcliff Dr, Suite 10, Newport Beach &bull; Walk-ins welcome
             </div>
           </div>
         </section>
       </div>
-
-      {/* ── CHECKOUT MODAL ── */}
-      {checkoutProduct && (
-        <CheckoutModal
-          isOpen={checkoutOpen}
-          onClose={() => setCheckoutOpen(false)}
-          productName={checkoutProduct.name}
-          amountCents={checkoutProduct.amountCents}
-          amountLabel={checkoutProduct.amountLabel}
-          description={checkoutProduct.serviceName}
-          serviceCategory={checkoutProduct.serviceCategory}
-          serviceName={checkoutProduct.serviceName}
-        />
-      )}
 
       <style jsx>{`
         /* ── RESET ── */
@@ -687,12 +559,6 @@ export default function Services() {
         .svc-card-list li { font-size: 0.8125rem; color: #525252; line-height: 1.6; padding: 0.1875rem 0 0.1875rem 1.125rem; position: relative; }
         .svc-card-list li::before { content: '–'; position: absolute; left: 0; color: #808080; font-weight: 600; }
 
-        /* ── BUTTONS ── */
-        .svc-btn-book { display: block; width: 100%; padding: 0.75rem 1rem; background: #1a1a1a; color: #ffffff; font-family: 'Inter', -apple-system, sans-serif; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; border: none; cursor: pointer; transition: background 0.2s; margin-top: auto; }
-        .svc-btn-book:hover { background: #404040; }
-
-        :global(.svc-btn-start) { display: block; width: 100%; padding: 0.75rem 1rem; background: transparent; color: #1a1a1a; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; border: 1.5px solid #1a1a1a; text-decoration: none; text-align: center; transition: all 0.2s; margin-top: auto; }
-        :global(.svc-btn-start:hover) { background: #1a1a1a; color: #ffffff; }
 
         /* ── CTA ── */
         .v2-cta-section { background: #1a1a1a; text-align: center; }
@@ -702,8 +568,6 @@ export default function Services() {
         .v2-cta-buttons { display: flex; justify-content: center; gap: 1rem; margin-bottom: 3rem; flex-wrap: wrap; }
         :global(.v2-btn-white) { display: inline-block; background: #ffffff; color: #1a1a1a; padding: 0.875rem 2rem; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.12em; text-decoration: none; transition: all 0.2s; }
         :global(.v2-btn-white:hover) { background: #f0f0f0; }
-        :global(.v2-btn-outline) { display: inline-block; background: transparent; color: #ffffff; padding: 0.875rem 2rem; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.12em; text-decoration: none; border: 1px solid #404040; transition: all 0.2s; }
-        :global(.v2-btn-outline:hover) { border-color: #ffffff; }
         .v2-cta-location { font-size: 0.8125rem; color: #525252; letter-spacing: 0.03em; }
 
         /* ── ANIMATIONS ── */

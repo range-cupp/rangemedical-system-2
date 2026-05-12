@@ -10,6 +10,7 @@ import { todayPacific, nowPacificISO } from '../../../lib/date-utils';
 import { buildAdaptiveHRTSchedule, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
 import { extractWLFields } from '../../../lib/wl-note-parser';
 import { syncWLNoteToServiceLog, isWLEncounter } from '../../../lib/wl-note-sync';
+import { isProviderConsultNote, generateAndEmailPlanSummary } from '../../../lib/plan-summary';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -448,6 +449,13 @@ export default async function handler(req, res) {
       } catch (bloodDrawErr) {
         console.error('Blood draw HRT sync error (non-fatal):', bloodDrawErr.message);
       }
+    }
+
+    // ── Plan Summary: auto-generate for provider consultation notes ──
+    if (isProviderConsultNote(created_by, encounter_service)) {
+      generateAndEmailPlanSummary(data.id).catch(err =>
+        console.error('[plan-summary] Generation error (non-fatal):', err.message)
+      );
     }
 
     return res.status(201).json({

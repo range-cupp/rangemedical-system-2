@@ -661,6 +661,13 @@ export default function PatientProfile() {
   const [payInvoiceCard, setPayInvoiceCard] = useState('');
   const [payInvoiceLoading, setPayInvoiceLoading] = useState(false);
 
+  // Plan summaries state
+  const [planSummaries, setPlanSummaries] = useState([]);
+  const [planSummariesFetched, setPlanSummariesFetched] = useState(false);
+  const [planSummariesLoading, setPlanSummariesLoading] = useState(false);
+  const [expandedSummaryId, setExpandedSummaryId] = useState(null);
+  const [regeneratingSummaryId, setRegeneratingSummaryId] = useState(null);
+
   // Timeline state
   const [timeline, setTimeline] = useState([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
@@ -1451,6 +1458,21 @@ export default function PatientProfile() {
       setFollowUpsFetched(true);
     } catch (err) {
       console.error('Error fetching follow-ups:', err);
+    }
+  };
+
+  const fetchPlanSummaries = async () => {
+    if (!id || planSummariesFetched) return;
+    setPlanSummariesLoading(true);
+    try {
+      const res = await fetch(`/api/notes/plan-summaries?patient_id=${id}`);
+      const data = await res.json();
+      setPlanSummaries(Array.isArray(data) ? data : []);
+      setPlanSummariesFetched(true);
+    } catch (err) {
+      console.error('Error fetching plan summaries:', err);
+    } finally {
+      setPlanSummariesLoading(false);
     }
   };
 
@@ -6086,6 +6108,7 @@ export default function PatientProfile() {
             { key: 'records', label: 'Documents', icon: '📄', count: (intakes.length + consents.length + medicalDocuments.length) || 0 },
             { key: 'tasks', label: 'Tasks', icon: '✅', count: patientTasks.filter(t => (t.task_category || 'business') === 'medical' && t.status === 'pending').length || 0 },
             { key: 'follow_ups', label: 'Follow-Ups', icon: '🔔', count: followUps.filter(f => (f.status === 'pending' || f.status === 'in_progress') && MEDICAL_FOLLOW_UP_TYPES.includes(f.type)).length || 0 },
+            { key: 'plan_summaries', label: 'Plan Summaries', icon: '📑', count: planSummaries.length || 0 },
           ] : [
             { key: 'protocols', label: 'Protocols', icon: '🩺', count: activeProtocols.length || 0 },
             { key: 'messages', label: 'Messages', icon: '💬', count: commsLog.filter(c => c.direction === 'inbound' && c.status !== 'read').length || 0 },
@@ -6101,6 +6124,7 @@ export default function PatientProfile() {
                 setActiveTab(tab.key);
                 if (tab.key === 'records' && timeline.length === 0) fetchTimeline();
                 if (tab.key === 'follow_ups' && !followUpsFetched) fetchFollowUps();
+                if (tab.key === 'plan_summaries' && !planSummariesFetched) fetchPlanSummaries();
               }}
             >
               <span className="px-tab-icon">{tab.icon}</span>
@@ -11612,6 +11636,176 @@ export default function PatientProfile() {
                               style={{ fontSize: 12, color: '#999', background: 'none', border: 'none', cursor: 'pointer' }}
                             >Dismiss</button>
                           </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            );
+          })()}
+
+          {/* Plan Summaries Tab */}
+          {activeTab === 'plan_summaries' && (() => {
+            const TYPE_COLORS = {
+              prescription: { color: '#2563eb', bg: '#eff6ff' },
+              supplement:   { color: '#059669', bg: '#ecfdf5' },
+              therapy:      { color: '#7c3aed', bg: '#f5f3ff' },
+              lab:          { color: '#d97706', bg: '#fffbeb' },
+              referral:     { color: '#dc2626', bg: '#fef2f2' },
+            };
+
+            const handleRegenerate = async (noteId) => {
+              setRegeneratingSummaryId(noteId);
+              try {
+                const res = await fetch('/api/notes/plan-summary', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ note_id: noteId }),
+                });
+                const data = await res.json();
+                if (data.summary) {
+                  setPlanSummaries(prev => prev.map(s =>
+                    s.id === noteId ? { ...s, plan_summary: data.summary } : s
+                  ));
+                }
+              } catch (err) {
+                console.error('Error regenerating summary:', err);
+              } finally {
+                setRegeneratingSummaryId(null);
+              }
+            };
+
+            const providerLabel = (createdBy) => {
+              if (!createdBy) return 'Provider';
+              const lower = createdBy.toLowerCase();
+              if (lower.includes('burgess')) return 'Dr. Damian Burgess';
+              if (lower.includes('brendyn') || lower.includes('reed')) return 'Brendyn Reed, PA-C';
+              return createdBy;
+            };
+
+            return (
+              <section className="card">
+                <div className="card-header">
+                  <h3>Plan Summaries ({planSummaries.length})</h3>
+                </div>
+                {planSummariesLoading ? (
+                  <div className="empty">Loading plan summaries...</div>
+                ) : planSummaries.length === 0 ? (
+                  <div className="empty">No plan summaries yet. Summaries are auto-generated when a provider creates a consultation note.</div>
+                ) : (
+                  <div>
+                    {planSummaries.map(s => {
+                      const summary = s.plan_summary || {};
+                      const isExpanded = expandedSummaryId === s.id;
+                      const noteDate = new Date(s.note_date).toLocaleDateString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric',
+                        timeZone: 'America/Los_Angeles',
+                      });
+                      return (
+                        <div key={s.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                          <div
+                            onClick={() => setExpandedSummaryId(isExpanded ? null : s.id)}
+                            style={{
+                              padding: '14px 16px', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: 12,
+                              background: isExpanded ? '#f9fafb' : '#fff',
+                            }}
+                          >
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>
+                                  {summary.visit_type || 'Consultation'}
+                                </span>
+                                {s.status === 'signed' && (
+                                  <span style={{
+                                    fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4,
+                                    color: '#059669', background: '#ecfdf5',
+                                  }}>Signed</span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: 12, color: '#6b7280' }}>
+                                {providerLabel(s.created_by)} &middot; {noteDate}
+                              </div>
+                            </div>
+                            <span style={{ fontSize: 18, color: '#9ca3af', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'none' }}>
+                              ▾
+                            </span>
+                          </div>
+
+                          {isExpanded && (
+                            <div style={{ padding: '0 16px 16px' }}>
+                              {/* Assessment */}
+                              <div style={{ marginBottom: 16 }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Assessment</div>
+                                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: '#1f2937' }}>{summary.assessment || 'No assessment provided.'}</p>
+                              </div>
+
+                              {/* Treatment Plan */}
+                              {summary.treatment_plan && summary.treatment_plan.length > 0 && (
+                                <div style={{ marginBottom: 16 }}>
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Treatment Plan</div>
+                                  <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, overflow: 'hidden' }}>
+                                    {summary.treatment_plan.map((p, i) => {
+                                      const tc = TYPE_COLORS[p.type] || { color: '#6b7280', bg: '#f3f4f6' };
+                                      return (
+                                        <div key={i} style={{
+                                          padding: '10px 12px', borderBottom: i < summary.treatment_plan.length - 1 ? '1px solid #f3f4f6' : 'none',
+                                          display: 'flex', alignItems: 'center', gap: 10,
+                                          background: i % 2 === 0 ? '#fff' : '#fafafa',
+                                        }}>
+                                          <span style={{
+                                            fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
+                                            color: tc.color, background: tc.bg, textTransform: 'uppercase', whiteSpace: 'nowrap',
+                                          }}>{p.type}</span>
+                                          <span style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{p.item}</span>
+                                          {p.details && <span style={{ fontSize: 12, color: '#6b7280' }}>— {p.details}</span>}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Action Items */}
+                              {summary.action_items && summary.action_items.length > 0 && (
+                                <div style={{
+                                  marginBottom: 16, padding: '12px 16px',
+                                  background: '#fef3c7', borderLeft: '4px solid #f59e0b', borderRadius: 4,
+                                }}>
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Action Items</div>
+                                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                                    {summary.action_items.map((a, i) => (
+                                      <li key={i} style={{ fontSize: 13, lineHeight: 1.6, color: '#1f2937', marginBottom: 4 }}>{a}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {/* Follow-Up */}
+                              <div style={{
+                                padding: '10px 14px', background: '#f9fafb', borderRadius: 6,
+                                marginBottom: 12,
+                              }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Follow-Up</div>
+                                <p style={{ margin: 0, fontSize: 13, color: '#1f2937' }}>{summary.follow_up || 'Not specified'}</p>
+                              </div>
+
+                              {/* Regenerate button */}
+                              <div style={{ textAlign: 'right' }}>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleRegenerate(s.id); }}
+                                  disabled={regeneratingSummaryId === s.id}
+                                  style={{
+                                    fontSize: 12, color: '#6b7280', background: 'none', border: '1px solid #e5e7eb',
+                                    padding: '4px 12px', borderRadius: 4, cursor: 'pointer',
+                                  }}
+                                >
+                                  {regeneratingSummaryId === s.id ? 'Regenerating...' : 'Regenerate Summary'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}

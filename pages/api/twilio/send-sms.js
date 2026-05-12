@@ -49,8 +49,25 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Look up patient email for email copy
+    let patientEmail = null;
+    let patientDisplayName = patient_name || null;
+    if (patient_id) {
+      const { data: patientRow } = await supabase
+        .from('patients')
+        .select('email, first_name, last_name')
+        .eq('id', patient_id)
+        .single();
+      if (patientRow) {
+        patientEmail = patientRow.email || null;
+        if (!patientDisplayName) {
+          patientDisplayName = [patientRow.first_name, patientRow.last_name].filter(Boolean).join(' ') || null;
+        }
+      }
+    }
+
     // Send via configured provider (or explicit override from UI toggle)
-    const result = await sendSMS({ to: normalizedTo, message, provider, mediaUrl: media_url });
+    const result = await sendSMS({ to: normalizedTo, message, provider, mediaUrl: media_url, patientEmail, patientName: patientDisplayName });
 
     if (result.success) {
       await logComm({

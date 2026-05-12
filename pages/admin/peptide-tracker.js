@@ -221,6 +221,22 @@ export default function PeptideTracker() {
             {p.total_protocols === 1 ? '1st protocol' : `${p.total_protocols} protocols`}
           </span>
         </td>
+        {isLapsed && (
+          <td style={sharedStyles.td}>
+            {p.last_note_date ? (
+              <span style={{
+                ...sharedStyles.badge,
+                background: '#dbeafe', color: '#1e40af',
+                fontSize: '12px',
+              }}>
+                Noted {new Date(p.last_note_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                {p.last_note_by ? ` · ${p.last_note_by.split(' ')[0]}` : ''}
+              </span>
+            ) : (
+              <span style={{ fontSize: '13px', color: '#999' }}>—</span>
+            )}
+          </td>
+        )}
       </tr>
     );
   }
@@ -385,6 +401,7 @@ export default function PeptideTracker() {
                         <th style={sharedStyles.th}>Ended</th>
                         <th style={sharedStyles.th}>Days Since</th>
                         <th style={sharedStyles.th}>History</th>
+                        <th style={sharedStyles.th}>Follow-Up</th>
                       </tr>
                     </thead>
                     <tbody>

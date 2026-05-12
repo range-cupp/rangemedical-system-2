@@ -164,9 +164,35 @@ export default async function handler(req, res) {
       countMap[p.patient_id] = (countMap[p.patient_id] || 0) + 1;
     });
 
+    // Fetch recent staff notes for lapsed patients (notes created after their protocol ended)
+    const { data: recentNotes } = lapsedPatientIds.length > 0
+      ? await supabase
+          .from('patient_notes')
+          .select('patient_id, created_by, note_date, created_at')
+          .in('patient_id', lapsedPatientIds)
+          .eq('note_category', 'internal')
+          .order('created_at', { ascending: false })
+      : { data: [] };
+
+    // Build a map: patient_id -> most recent note after their protocol ended
+    const noteMap = {};
+    (recentNotes || []).forEach(n => {
+      const lastEnded = lapsedByPatient[n.patient_id];
+      if (!lastEnded) return;
+      const noteDate = new Date(n.note_date || n.created_at);
+      const endedDate = new Date(lastEnded.end_date);
+      if (noteDate >= endedDate && !noteMap[n.patient_id]) {
+        noteMap[n.patient_id] = {
+          note_date: n.note_date || n.created_at,
+          created_by: n.created_by,
+        };
+      }
+    });
+
     const enrichedLapsed = Object.values(lapsedByPatient).map(p => {
       const pt = lapsedPatientMap[p.patient_id] || {};
       const daysSinceEnded = Math.ceil((new Date(today) - new Date(p.end_date)) / (1000 * 60 * 60 * 24));
+      const lastNote = noteMap[p.patient_id] || null;
       return {
         ...p,
         patient_name: p.patient_name || (pt.first_name ? `${pt.first_name} ${pt.last_name || ''}`.trim() : null),
@@ -175,6 +201,8 @@ export default async function handler(req, res) {
         days_since_ended: daysSinceEnded,
         duration_days: Math.ceil((new Date(p.end_date) - new Date(p.start_date)) / (1000 * 60 * 60 * 24)),
         total_protocols: countMap[p.patient_id] || 1,
+        last_note_date: lastNote?.note_date || null,
+        last_note_by: lastNote?.created_by || null,
       };
     }).sort((a, b) => a.days_since_ended - b.days_since_ended);
 

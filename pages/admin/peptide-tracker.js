@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import AdminLayout from '../../components/AdminLayout';
 import { sharedStyles } from '../../components/AdminLayout';
 
-export default function PeptidePipeline() {
+export default function PeptideTracker() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState([]);
@@ -18,13 +18,13 @@ export default function PeptidePipeline() {
   async function loadData() {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/peptide-pipeline');
+      const res = await fetch('/api/admin/peptide-tracker');
       const data = await res.json();
       setActive(data.active || []);
       setLapsed(data.lapsed || []);
       setStats(data.stats || {});
     } catch (err) {
-      console.error('Failed to load peptide pipeline:', err);
+      console.error('Failed to load peptide tracker:', err);
     }
     setLoading(false);
   }
@@ -89,11 +89,11 @@ export default function PeptidePipeline() {
     });
 
   return (
-    <AdminLayout title="Peptide Pipeline">
+    <AdminLayout title="Peptide Tracker">
       <div style={sharedStyles.pageHeader}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h1 style={sharedStyles.pageTitle}>Peptide Pipeline</h1>
+            <h1 style={sharedStyles.pageTitle}>Peptide Tracker</h1>
             <p style={sharedStyles.pageSubtitle}>Follow-up cadence for active and recently completed peptide patients</p>
           </div>
           <button onClick={loadData} style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}>

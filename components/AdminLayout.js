@@ -31,7 +31,7 @@ const NAV_ITEMS = [
   { href: '/staff-chat', label: 'Assistant', icon: 'message', group: 'business' },
   { href: '/admin/send-forms', label: 'Send Forms', icon: 'file-text', group: 'medical' },
   { href: '/admin/peptide-guide', label: 'Peptide Guide', icon: 'flask', group: 'business' },
-  { href: '/admin/peptide-pipeline', label: 'Peptide Pipeline', icon: 'trending-down', group: 'business' },
+  { href: '/admin/peptide-tracker', label: 'Peptide Tracker', icon: 'activity', group: 'medical' },
   { href: '/admin/service-log', label: 'Service Log', icon: 'clipboard', group: 'medical' },
   { href: '/admin/wl-tracker', label: 'WL Tracker', icon: 'activity', group: 'medical' },
   { href: '/admin/hrt-tracker', label: 'HRT Tracker', icon: 'activity', group: 'medical' },

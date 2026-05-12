@@ -1,6 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
+import { supabase } from '../../lib/supabase';
+
+const BookingTab = dynamic(() => import('../../components/BookingTab'), { ssr: false });
 
 const TYPE_COLORS = {
   prescription: { color: '#2563eb', bg: '#eff6ff' },
@@ -26,6 +30,32 @@ function fmtDate(iso) {
   });
 }
 
+function matchSupplementPrice(itemName, catalog) {
+  if (!itemName || !catalog.length) return null;
+  const norm = itemName.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  for (const product of catalog) {
+    const prodNorm = product.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (norm === prodNorm) return product;
+  }
+
+  for (const product of catalog) {
+    const prodNorm = product.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (norm.includes(prodNorm) || prodNorm.includes(norm)) return product;
+  }
+
+  const keywords = itemName.toLowerCase().split(/[\s,+&\/]+/).filter(w => w.length > 2);
+  for (const product of catalog) {
+    const prodLower = product.name.toLowerCase();
+    const matchCount = keywords.filter(k => prodLower.includes(k)).length;
+    if (matchCount >= 2 || (keywords.length === 1 && matchCount === 1 && keywords[0].length > 3)) {
+      return product;
+    }
+  }
+
+  return null;
+}
+
 export default function PlanSummariesPage() {
   const [summaries, setSummaries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +63,8 @@ export default function PlanSummariesPage() {
   const [filterProvider, setFilterProvider] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [regeneratingId, setRegeneratingId] = useState(null);
+  const [supplementCatalog, setSupplementCatalog] = useState([]);
+  const [bookingPatient, setBookingPatient] = useState(null);
 
   useEffect(() => {
     fetch('/api/notes/plan-summaries')
@@ -40,6 +72,14 @@ export default function PlanSummariesPage() {
       .then(data => setSummaries(Array.isArray(data) ? data : []))
       .catch(err => console.error('Error fetching plan summaries:', err))
       .finally(() => setLoading(false));
+
+    supabase
+      .from('pos_services')
+      .select('id, name, price_cents')
+      .eq('category', 'supplements')
+      .eq('active', true)
+      .order('name')
+      .then(({ data }) => setSupplementCatalog(data || []));
   }, []);
 
   const filtered = useMemo(() => {
@@ -83,6 +123,9 @@ export default function PlanSummariesPage() {
       setRegeneratingId(null);
     }
   };
+
+  const hasLabItems = (summary) =>
+    (summary.treatment_plan || []).some(p => p.type === 'lab');
 
   return (
     <AdminLayout title="Plan Summaries">
@@ -192,6 +235,7 @@ export default function PlanSummariesPage() {
                           <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, overflow: 'hidden' }}>
                             {summary.treatment_plan.map((p, i) => {
                               const tc = TYPE_COLORS[p.type] || { color: '#6b7280', bg: '#f3f4f6' };
+                              const priceMatch = p.type === 'supplement' ? matchSupplementPrice(p.item, supplementCatalog) : null;
                               return (
                                 <div key={i} style={{
                                   padding: '10px 12px', borderBottom: i < summary.treatment_plan.length - 1 ? '1px solid #f3f4f6' : 'none',
@@ -203,7 +247,17 @@ export default function PlanSummariesPage() {
                                     color: tc.color, background: tc.bg, textTransform: 'uppercase', whiteSpace: 'nowrap',
                                   }}>{p.type}</span>
                                   <span style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{p.item}</span>
-                                  {p.details && <span style={{ fontSize: 12, color: '#6b7280' }}>— {p.details}</span>}
+                                  {p.details && <span style={{ fontSize: 12, color: '#6b7280', flex: 1 }}>— {p.details}</span>}
+                                  {p.type === 'supplement' && (
+                                    <span style={{
+                                      fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', marginLeft: 'auto',
+                                      padding: '2px 8px', borderRadius: 4,
+                                      color: priceMatch ? '#059669' : '#9ca3af',
+                                      background: priceMatch ? '#ecfdf5' : '#f3f4f6',
+                                    }}>
+                                      {priceMatch ? `$${(priceMatch.price_cents / 100).toFixed(0)}` : '?'}
+                                    </span>
+                                  )}
                                 </div>
                               );
                             })}
@@ -226,14 +280,32 @@ export default function PlanSummariesPage() {
                         </div>
                       )}
 
-                      {/* Regenerate */}
-                      <div style={{ textAlign: 'right' }}>
+                      {/* Action buttons */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                        {hasLabItems(summary) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setBookingPatient({
+                                id: s.patient_id,
+                                name: s.patient_name || 'Unknown',
+                              });
+                            }}
+                            style={{
+                              fontSize: 12, fontWeight: 600, color: '#d97706', background: '#fffbeb',
+                              border: '1px solid #fde68a', padding: '6px 14px', borderRadius: 6,
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                            }}
+                          >
+                            <span>🔬</span> Schedule Labs
+                          </button>
+                        )}
                         <button
                           onClick={(e) => { e.stopPropagation(); handleRegenerate(s.id); }}
                           disabled={regeneratingId === s.id}
                           style={{
                             fontSize: 12, color: '#6b7280', background: 'none', border: '1px solid #e5e7eb',
-                            padding: '4px 12px', borderRadius: 4, cursor: 'pointer',
+                            padding: '4px 12px', borderRadius: 4, cursor: 'pointer', marginLeft: 'auto',
                           }}
                         >
                           {regeneratingId === s.id ? 'Regenerating...' : 'Regenerate Summary'}
@@ -247,6 +319,46 @@ export default function PlanSummariesPage() {
           </div>
         )}
       </div>
+
+      {/* Booking modal for scheduling labs */}
+      {bookingPatient && (
+        <div onClick={() => setBookingPatient(null)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', zIndex: 1000, padding: '24px',
+          }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{
+              background: '#fff', width: '100%', maxWidth: '1200px',
+              maxHeight: '92vh', overflow: 'auto',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+            }}>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '16px 24px', borderBottom: '1px solid #e5e5e5',
+              position: 'sticky', top: 0, background: '#fff', zIndex: 1,
+            }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>🔬 Schedule Follow-Up Labs</h3>
+                <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
+                  for <strong>{bookingPatient.name}</strong>
+                </div>
+              </div>
+              <button onClick={() => setBookingPatient(null)}
+                style={{ background: 'none', border: 'none', fontSize: '26px', cursor: 'pointer', color: '#666', lineHeight: 1 }}>
+                ×
+              </button>
+            </div>
+            <div style={{ padding: '20px 24px' }}>
+              <BookingTab preselectedPatient={{
+                id: bookingPatient.id,
+                name: bookingPatient.name,
+              }} />
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

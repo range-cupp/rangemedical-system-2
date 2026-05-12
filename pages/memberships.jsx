@@ -6,9 +6,9 @@ import fs from 'fs';
 import path from 'path';
 
 const MEMBERSHIP_TIERS = [
-  { name: 'Baseline', monthly: 299, credits: 450, bonus: 151 },
-  { name: 'Protocol', monthly: 599, credits: 950, bonus: 351 },
-  { name: 'Performance', monthly: 1299, credits: 2100, bonus: 801 },
+  { name: 'Baseline', monthly: 299, credits: 350, bonus: 51 },
+  { name: 'Protocol', monthly: 599, credits: 750, bonus: 151 },
+  { name: 'Performance', monthly: 1299, credits: 1700, bonus: 401 },
 ];
 
 // 3-month titration schedules based on human clinical trials

@@ -3,6 +3,18 @@ import { useRouter } from 'next/router';
 import AdminLayout from '../../components/AdminLayout';
 import { sharedStyles } from '../../components/AdminLayout';
 
+function formatPhone(raw) {
+  if (!raw) return '';
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length === 11 && digits[0] === '1') {
+    return `(${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+  }
+  return raw;
+}
+
 export default function PeptideTracker() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -12,6 +24,11 @@ export default function PeptideTracker() {
   const [tab, setTab] = useState('ending-soon');
   const [search, setSearch] = useState('');
   const [lapsedFilter, setLapsedFilter] = useState('all');
+
+  // Drawer state
+  const [drawerData, setDrawerData] = useState(null);
+  const [drawerLoading, setDrawerLoading] = useState(false);
+  const [drawerProtocol, setDrawerProtocol] = useState(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -27,6 +44,23 @@ export default function PeptideTracker() {
       console.error('Failed to load peptide tracker:', err);
     }
     setLoading(false);
+  }
+
+  function openDrawer(protocol) {
+    if (!protocol.patient_id) return;
+    setDrawerProtocol(protocol);
+    setDrawerLoading(true);
+    setDrawerData(null);
+    fetch(`/api/patients/${protocol.patient_id}`)
+      .then(r => r.json())
+      .then(data => { setDrawerData(data); setDrawerLoading(false); })
+      .catch(() => setDrawerLoading(false));
+  }
+
+  function closeDrawer() {
+    setDrawerData(null);
+    setDrawerLoading(false);
+    setDrawerProtocol(null);
   }
 
   function getUrgencyStyle(daysRemaining) {
@@ -50,7 +84,6 @@ export default function PeptideTracker() {
     return `${days}d`;
   }
 
-  // Deduplicate active by patient — show the soonest-ending protocol per patient
   function deduplicateByPatient(protocols) {
     const byPatient = {};
     protocols.forEach(p => {
@@ -58,7 +91,6 @@ export default function PeptideTracker() {
       if (!byPatient[key] || p.days_remaining < byPatient[key].days_remaining) {
         byPatient[key] = { ...p };
       }
-      // Track how many active protocols this patient has
       byPatient[key].activeCount = (byPatient[key].activeCount || 0) + 1;
     });
     return Object.values(byPatient);
@@ -88,6 +120,87 @@ export default function PeptideTracker() {
       return true;
     });
 
+  const sectionHead = { margin: '0 0 10px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888' };
+  const drawerCard = { background: '#f9fafb', borderRadius: '0', padding: '14px 16px', marginBottom: '16px' };
+
+  function renderRow(p, isLapsed) {
+    return (
+      <tr
+        key={p.id}
+        style={sharedStyles.trHover}
+        onClick={() => openDrawer(p)}
+        onMouseEnter={e => e.currentTarget.style.background = '#f9f9f9'}
+        onMouseLeave={e => e.currentTarget.style.background = ''}
+      >
+        <td style={sharedStyles.td}>
+          <span style={{ fontWeight: '600', color: '#000' }}>
+            {p.patient_name || 'Unknown'}
+          </span>
+          {!isLapsed && p.activeCount > 1 && (
+            <span style={{ fontSize: '12px', color: '#666', marginLeft: '6px' }}>
+              ({p.activeCount} active)
+            </span>
+          )}
+        </td>
+        <td style={sharedStyles.td}>
+          <span style={{ fontSize: '15px' }}>{p.medication || '—'}</span>
+        </td>
+        <td style={sharedStyles.td}>
+          <span style={{
+            ...sharedStyles.badge,
+            background: '#f5f5f5',
+            color: '#333',
+            fontSize: '12px',
+          }}>
+            {getDurationLabel(p.duration_days)}
+          </span>
+        </td>
+        <td style={sharedStyles.td}>
+          {p.end_date ? new Date(p.end_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+        </td>
+        <td style={sharedStyles.td}>
+          {isLapsed ? (
+            <span style={{
+              ...sharedStyles.badge,
+              ...getLapsedUrgencyStyle(p.days_since_ended),
+              fontSize: '13px',
+            }}>
+              {p.days_since_ended} {p.days_since_ended === 1 ? 'day' : 'days'} ago
+            </span>
+          ) : (
+            <span style={{
+              ...sharedStyles.badge,
+              ...getUrgencyStyle(p.days_remaining),
+              fontSize: '13px',
+            }}>
+              {p.days_remaining <= 0 ? 'TODAY' : p.days_remaining === 1 ? '1 day' : `${p.days_remaining} days`}
+            </span>
+          )}
+        </td>
+        <td style={sharedStyles.td}>
+          <span style={{ fontSize: '14px', color: p.total_protocols > 1 ? '#166534' : '#666' }}>
+            {p.total_protocols === 1 ? '1st protocol' : `${p.total_protocols} protocols`}
+          </span>
+        </td>
+      </tr>
+    );
+  }
+
+  // Get peptide protocols from drawer data
+  function getDrawerPeptideProtocols() {
+    if (!drawerData) return [];
+    const all = [
+      ...(drawerData.activeProtocols || []),
+      ...(drawerData.completedProtocols || []),
+    ];
+    return all.filter(p => {
+      const pt = (p.program_type || '').toLowerCase();
+      const pn = (p.program_name || '').toLowerCase();
+      const med = (p.medication || '').toLowerCase();
+      return pt === 'peptide' || pn.includes('peptide') || med.includes('bpc') || med.includes('tb4') || med.includes('tb-500') || med.includes('wolverine') || med.includes('glow') || med.includes('klow') || med.includes('ghk') || med.includes('mots') || med.includes('blend');
+    }).sort((a, b) => new Date(b.start_date || 0) - new Date(a.start_date || 0));
+  }
+
   return (
     <AdminLayout title="Peptide Tracker">
       <div style={sharedStyles.pageHeader}>
@@ -103,7 +216,7 @@ export default function PeptideTracker() {
       </div>
 
       {loading ? (
-        <div style={sharedStyles.loading}>Loading pipeline data...</div>
+        <div style={sharedStyles.loading}>Loading tracker data...</div>
       ) : (
         <>
           {/* Stats Row */}
@@ -180,7 +293,7 @@ export default function PeptideTracker() {
             )}
           </div>
 
-          {/* Active / Ending Soon Tab */}
+          {/* Ending Soon Tab */}
           {tab === 'ending-soon' && (
             <div style={sharedStyles.card}>
               <div style={sharedStyles.cardHeader}>
@@ -201,90 +314,10 @@ export default function PeptideTracker() {
                         <th style={sharedStyles.th}>End Date</th>
                         <th style={sharedStyles.th}>Days Left</th>
                         <th style={sharedStyles.th}>History</th>
-                        <th style={sharedStyles.th}>Contact</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredActive.map(p => (
-                        <tr
-                          key={p.id}
-                          style={sharedStyles.trHover}
-                          onMouseEnter={e => e.currentTarget.style.background = '#f9f9f9'}
-                          onMouseLeave={e => e.currentTarget.style.background = ''}
-                        >
-                          <td style={sharedStyles.td}>
-                            <span
-                              style={{ fontWeight: '600', cursor: 'pointer', color: '#000' }}
-                              onClick={() => router.push(`/admin/patient/${p.patient_id}`)}
-                            >
-                              {p.patient_name || 'Unknown'}
-                            </span>
-                            {p.activeCount > 1 && (
-                              <span style={{ fontSize: '12px', color: '#666', marginLeft: '6px' }}>
-                                ({p.activeCount} active)
-                              </span>
-                            )}
-                          </td>
-                          <td style={sharedStyles.td}>
-                            <span style={{ fontSize: '15px' }}>{p.medication || '—'}</span>
-                          </td>
-                          <td style={sharedStyles.td}>
-                            <span style={{
-                              ...sharedStyles.badge,
-                              background: '#f5f5f5',
-                              color: '#333',
-                              fontSize: '12px',
-                            }}>
-                              {getDurationLabel(p.duration_days)}
-                            </span>
-                          </td>
-                          <td style={sharedStyles.td}>
-                            {p.end_date ? new Date(p.end_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
-                          </td>
-                          <td style={sharedStyles.td}>
-                            <span style={{
-                              ...sharedStyles.badge,
-                              ...getUrgencyStyle(p.days_remaining),
-                              fontSize: '13px',
-                            }}>
-                              {p.days_remaining <= 0 ? 'TODAY' : p.days_remaining === 1 ? '1 day' : `${p.days_remaining} days`}
-                            </span>
-                          </td>
-                          <td style={sharedStyles.td}>
-                            <span style={{ fontSize: '14px', color: p.total_protocols > 1 ? '#166534' : '#666' }}>
-                              {p.total_protocols === 1 ? '1st protocol' : `${p.total_protocols} protocols`}
-                            </span>
-                          </td>
-                          <td style={sharedStyles.td}>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              {p.patient_phone && (
-                                <a
-                                  href={`sms:${p.patient_phone}`}
-                                  style={{ fontSize: '13px', color: '#2563eb', textDecoration: 'none' }}
-                                  title={p.patient_phone}
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  Text
-                                </a>
-                              )}
-                              {p.patient_phone && p.patient_email && <span style={{ color: '#ccc' }}>|</span>}
-                              {p.patient_email && (
-                                <a
-                                  href={`mailto:${p.patient_email}`}
-                                  style={{ fontSize: '13px', color: '#2563eb', textDecoration: 'none' }}
-                                  title={p.patient_email}
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  Email
-                                </a>
-                              )}
-                              {!p.patient_phone && !p.patient_email && (
-                                <span style={{ fontSize: '13px', color: '#999' }}>No contact</span>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {filteredActive.map(p => renderRow(p, false))}
                     </tbody>
                   </table>
                 </div>
@@ -292,7 +325,7 @@ export default function PeptideTracker() {
             </div>
           )}
 
-          {/* Lapsed / Follow Up Tab */}
+          {/* Follow Up Tab */}
           {tab === 'follow-up' && (
             <div style={sharedStyles.card}>
               <div style={sharedStyles.cardHeader}>
@@ -313,85 +346,10 @@ export default function PeptideTracker() {
                         <th style={sharedStyles.th}>Ended</th>
                         <th style={sharedStyles.th}>Days Since</th>
                         <th style={sharedStyles.th}>History</th>
-                        <th style={sharedStyles.th}>Contact</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredLapsed.map(p => (
-                        <tr
-                          key={p.id}
-                          style={sharedStyles.trHover}
-                          onMouseEnter={e => e.currentTarget.style.background = '#f9f9f9'}
-                          onMouseLeave={e => e.currentTarget.style.background = ''}
-                        >
-                          <td style={sharedStyles.td}>
-                            <span
-                              style={{ fontWeight: '600', cursor: 'pointer', color: '#000' }}
-                              onClick={() => router.push(`/admin/patient/${p.patient_id}`)}
-                            >
-                              {p.patient_name || 'Unknown'}
-                            </span>
-                          </td>
-                          <td style={sharedStyles.td}>
-                            <span style={{ fontSize: '15px' }}>{p.medication || '—'}</span>
-                          </td>
-                          <td style={sharedStyles.td}>
-                            <span style={{
-                              ...sharedStyles.badge,
-                              background: '#f5f5f5',
-                              color: '#333',
-                              fontSize: '12px',
-                            }}>
-                              {getDurationLabel(p.duration_days)}
-                            </span>
-                          </td>
-                          <td style={sharedStyles.td}>
-                            {p.end_date ? new Date(p.end_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
-                          </td>
-                          <td style={sharedStyles.td}>
-                            <span style={{
-                              ...sharedStyles.badge,
-                              ...getLapsedUrgencyStyle(p.days_since_ended),
-                              fontSize: '13px',
-                            }}>
-                              {p.days_since_ended} {p.days_since_ended === 1 ? 'day' : 'days'} ago
-                            </span>
-                          </td>
-                          <td style={sharedStyles.td}>
-                            <span style={{ fontSize: '14px', color: p.total_protocols > 1 ? '#166534' : '#666' }}>
-                              {p.total_protocols === 1 ? '1st protocol' : `${p.total_protocols} protocols`}
-                            </span>
-                          </td>
-                          <td style={sharedStyles.td}>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              {p.patient_phone && (
-                                <a
-                                  href={`sms:${p.patient_phone}`}
-                                  style={{ fontSize: '13px', color: '#2563eb', textDecoration: 'none' }}
-                                  title={p.patient_phone}
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  Text
-                                </a>
-                              )}
-                              {p.patient_phone && p.patient_email && <span style={{ color: '#ccc' }}>|</span>}
-                              {p.patient_email && (
-                                <a
-                                  href={`mailto:${p.patient_email}`}
-                                  style={{ fontSize: '13px', color: '#2563eb', textDecoration: 'none' }}
-                                  title={p.patient_email}
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  Email
-                                </a>
-                              )}
-                              {!p.patient_phone && !p.patient_email && (
-                                <span style={{ fontSize: '13px', color: '#999' }}>No contact</span>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {filteredLapsed.map(p => renderRow(p, true))}
                     </tbody>
                   </table>
                 </div>
@@ -400,6 +358,188 @@ export default function PeptideTracker() {
           )}
         </>
       )}
+
+      {/* Patient Drawer */}
+      {(drawerProtocol || drawerLoading) && (() => {
+        const pt = drawerData?.patient;
+        const peptideProtos = getDrawerPeptideProtocols();
+
+        return (
+          <>
+            <div onClick={closeDrawer} style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 9998
+            }} />
+            <div style={{
+              position: 'fixed', top: 0, right: 0, bottom: 0, width: '440px', maxWidth: '92vw',
+              background: '#fff', zIndex: 9999, boxShadow: '-4px 0 24px rgba(0,0,0,0.18)',
+              display: 'flex', flexDirection: 'column', overflow: 'hidden'
+            }}>
+              {/* Header */}
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#000', flexShrink: 0 }}>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '600', color: '#fff' }}>
+                  {pt ? `${pt.first_name} ${pt.last_name}` : (drawerProtocol?.patient_name || 'Patient')}
+                </h3>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {(pt || drawerProtocol?.patient_id) && (
+                    <a href={`/admin/patient/${pt?.id || drawerProtocol?.patient_id}`}
+                      style={{ fontSize: '12px', color: '#fff', textDecoration: 'none', padding: '4px 12px', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '0' }}>
+                      Full Profile →
+                    </a>
+                  )}
+                  <button onClick={closeDrawer}
+                    style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#fff', padding: '0 4px', lineHeight: 1 }}>
+                    ×
+                  </button>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+                {drawerLoading && !pt ? (
+                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>Loading patient...</div>
+                ) : pt ? (
+                  <>
+                    {/* Demographics */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '13px', color: '#666' }}>
+                        {pt.date_of_birth && (
+                          <span style={{ background: '#f3f4f6', padding: '3px 8px' }}>
+                            DOB: {new Date(pt.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
+                          </span>
+                        )}
+                        {pt.gender && <span style={{ background: '#f3f4f6', padding: '3px 8px' }}>{pt.gender}</span>}
+                        {pt.created_at && (
+                          <span style={{ background: '#f3f4f6', padding: '3px 8px' }}>
+                            Since {new Date(pt.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Contact */}
+                    <div style={drawerCard}>
+                      <h4 style={sectionHead}>Contact</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {pt.phone ? (
+                          <a href={`tel:${pt.phone}`} style={{
+                            display: 'flex', alignItems: 'center', gap: '10px',
+                            fontSize: '20px', fontWeight: '600', color: '#000',
+                            textDecoration: 'none', padding: '12px 16px',
+                            background: '#fff', border: '1px solid #e5e7eb',
+                          }}>
+                            <span style={{ fontSize: '20px' }}>📞</span>
+                            {formatPhone(pt.phone)}
+                          </a>
+                        ) : <span style={{ fontSize: '13px', color: '#bbb' }}>No phone on file</span>}
+                        {pt.email ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span>✉️</span>
+                            <a href={`mailto:${pt.email}`} style={{ fontSize: '14px', color: '#111', textDecoration: 'none' }}>{pt.email}</a>
+                          </div>
+                        ) : <span style={{ fontSize: '13px', color: '#bbb' }}>No email on file</span>}
+                        {pt.phone && (
+                          <a href={`sms:${pt.phone}`} style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                            fontSize: '13px', color: '#2563eb', textDecoration: 'none',
+                            padding: '8px 14px', border: '1px solid #dbeafe', background: '#eff6ff',
+                            width: 'fit-content',
+                          }}>
+                            💬 Send Text
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Current Protocol Context */}
+                    {drawerProtocol && (
+                      <div style={drawerCard}>
+                        <h4 style={sectionHead}>
+                          {drawerProtocol.days_remaining != null ? 'Current Protocol' : 'Last Protocol'}
+                        </h4>
+                        <div style={{ fontSize: '15px', fontWeight: '600', color: '#111', marginBottom: '6px' }}>
+                          {drawerProtocol.medication || '—'}
+                        </div>
+                        <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#666', flexWrap: 'wrap' }}>
+                          <span>{getDurationLabel(drawerProtocol.duration_days)} protocol</span>
+                          {drawerProtocol.start_date && (
+                            <span>Started {new Date(drawerProtocol.start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                          )}
+                          {drawerProtocol.end_date && (
+                            <span>
+                              {drawerProtocol.days_remaining != null && drawerProtocol.days_remaining >= 0
+                                ? `Ends ${new Date(drawerProtocol.end_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                                : `Ended ${new Date(drawerProtocol.end_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                              }
+                            </span>
+                          )}
+                        </div>
+                        {drawerProtocol.days_remaining != null && (
+                          <div style={{ marginTop: '10px' }}>
+                            <span style={{
+                              ...sharedStyles.badge,
+                              ...getUrgencyStyle(drawerProtocol.days_remaining),
+                              fontSize: '13px',
+                            }}>
+                              {drawerProtocol.days_remaining <= 0 ? 'Ends today' : `${drawerProtocol.days_remaining} days remaining`}
+                            </span>
+                          </div>
+                        )}
+                        {drawerProtocol.days_since_ended != null && (
+                          <div style={{ marginTop: '10px' }}>
+                            <span style={{
+                              ...sharedStyles.badge,
+                              ...getLapsedUrgencyStyle(drawerProtocol.days_since_ended),
+                              fontSize: '13px',
+                            }}>
+                              Ended {drawerProtocol.days_since_ended} days ago
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Peptide Protocol History */}
+                    <div style={drawerCard}>
+                      <h4 style={sectionHead}>Peptide History ({peptideProtos.length})</h4>
+                      {peptideProtos.length === 0 ? (
+                        <div style={{ fontSize: '13px', color: '#999' }}>No peptide protocols found</div>
+                      ) : peptideProtos.map((proto, i) => {
+                        const dur = proto.start_date && proto.end_date
+                          ? Math.ceil((new Date(proto.end_date) - new Date(proto.start_date)) / (1000 * 60 * 60 * 24))
+                          : null;
+                        const isActive = proto.status === 'active';
+                        return (
+                          <div key={proto.id || i} style={{ padding: '10px 0', borderBottom: i < peptideProtos.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ fontSize: '14px', fontWeight: '600', color: '#111' }}>
+                                {proto.medication || proto.program_name || 'Peptide Protocol'}
+                              </div>
+                              <span style={{
+                                fontSize: '11px', fontWeight: '600', padding: '2px 8px',
+                                background: isActive ? '#dcfce7' : '#f3f4f6',
+                                color: isActive ? '#166534' : '#666',
+                              }}>
+                                {isActive ? 'ACTIVE' : 'COMPLETED'}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#888', marginTop: '3px' }}>
+                              {proto.start_date && new Date(proto.start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {dur && ` · ${getDurationLabel(dur)}`}
+                              {proto.frequency && ` · ${proto.frequency}`}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>Failed to load patient data</div>
+                )}
+              </div>
+            </div>
+          </>
+        );
+      })()}
     </AdminLayout>
   );
 }

@@ -1,7 +1,5 @@
-import Link from 'next/link';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
-import Layout from '../components/Layout';
 
 export default function PriceList() {
   const [visible, setVisible] = useState({});
@@ -22,21 +20,28 @@ export default function PriceList() {
   }, []);
 
   return (
-    <Layout
-      title="Price List | Range Medical | Newport Beach"
-      description="Complete price list for all Range Medical services. IV therapy, injections, HBOT, red light therapy, hormone optimization, weight loss, peptides, labs, and more."
-    >
+    <>
       <Head>
-        <meta name="keywords" content="Range Medical prices, IV therapy cost, HBOT pricing, red light therapy price, hormone optimization cost, weight loss clinic pricing, Newport Beach" />
-        <link rel="canonical" href="https://www.range-medical.com/price-list" />
-        <meta property="og:title" content="Price List | Range Medical | Newport Beach" />
-        <meta property="og:description" content="Complete pricing for all regenerative medicine services at Range Medical." />
-        <meta property="og:url" content="https://www.range-medical.com/price-list" />
-        <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="Range Medical" />
+        <title>Price List | Range Medical | Newport Beach</title>
+        <meta name="description" content="Complete price list for all Range Medical services. IV therapy, injections, HBOT, red light therapy, hormone optimization, weight loss, peptides, labs, and more." />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex, nofollow" />
+        <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <div>
+        {/* HEADER */}
+        <header className="pl-header">
+          <div className="pl-header-inner">
+            <img
+              src="https://www.range-medical.com/brand/range_logo_transparent_black.png"
+              alt="Range Medical"
+              className="pl-logo"
+            />
+            <a href="tel:9499973988" className="pl-header-phone">(949) 997-3988</a>
+          </div>
+        </header>
+
         {/* HERO */}
         <section className="pl-hero">
           <div className="pl-hero-inner">
@@ -44,12 +49,9 @@ export default function PriceList() {
             <h1>Our prices. <em>No surprises.</em></h1>
             <div className="pl-hero-rule" />
             <p className="pl-hero-body">
-              Every service, every price. Questions? Call us at{' '}
+              Every service, every price. Questions? Call or text us at{' '}
               <a href="tel:9499973988" className="pl-phone-link">(949) 997-3988</a>.
             </p>
-            <div className="pl-hero-links">
-              <Link href="/services" className="pl-hero-cta">Book &amp; Pay Online &rarr;</Link>
-            </div>
           </div>
         </section>
 
@@ -599,13 +601,12 @@ export default function PriceList() {
           <div className="pl-container pl-cta-inner">
             <h2>Ready to <em>start?</em></h2>
             <div className="pl-cta-rule" />
-            <p>Book and pay online, or call us to schedule.</p>
+            <p>Call or text us to schedule your first visit.</p>
             <div className="pl-cta-buttons">
-              <Link href="/services" className="pl-btn-white">Book &amp; Pay Online</Link>
-              <a href="tel:9499973988" className="pl-btn-outline">(949) 997-3988</a>
+              <a href="tel:9499973988" className="pl-btn-white">(949) 997-3988</a>
             </div>
             <div className="pl-cta-location">
-              Range Medical &bull; 1901 Westcliff Dr, Newport Beach &bull; Walk-ins welcome
+              Range Medical &bull; 1901 Westcliff Dr, Suite 10, Newport Beach &bull; Walk-ins welcome
             </div>
           </div>
         </section>
@@ -614,22 +615,26 @@ export default function PriceList() {
       <style jsx>{`
         :global(body) { margin: 0; font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; background: #ffffff; color: #1a1a1a; }
 
+        /* HEADER */
+        .pl-header { border-bottom: 1px solid #e0e0e0; background: #ffffff; position: sticky; top: 0; z-index: 100; }
+        .pl-header-inner { max-width: 1200px; margin: 0 auto; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+        .pl-logo { height: 28px; width: auto; }
+        .pl-header-phone { font-size: 0.8125rem; font-weight: 700; color: #1a1a1a; text-decoration: none; letter-spacing: 0.02em; }
+        .pl-header-phone:hover { opacity: 0.7; }
+
         /* HERO */
-        .pl-hero { padding: 6rem 2rem 5rem; max-width: 1200px; margin: 0 auto; }
+        .pl-hero { padding: 5rem 2rem 4rem; max-width: 1200px; margin: 0 auto; }
         .pl-hero-inner { max-width: 800px; }
         .pl-label { display: flex; align-items: center; gap: 0.625rem; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.14em; color: #737373; text-transform: uppercase; margin-bottom: 2rem; }
         .pl-dot { display: inline-block; width: 8px; height: 8px; background: #808080; }
         .pl-hero h1 { font-size: clamp(3rem, 8vw, 5.5rem); font-weight: 900; line-height: 0.95; letter-spacing: -0.03em; color: #1a1a1a; margin: 0 0 2.5rem; }
         .pl-hero-rule { width: 100%; max-width: 700px; height: 1px; background: #e0e0e0; margin-bottom: 2rem; }
-        .pl-hero-body { font-size: 1.0625rem; line-height: 1.75; color: #737373; max-width: 520px; margin: 0 0 2rem; }
+        .pl-hero-body { font-size: 1.0625rem; line-height: 1.75; color: #737373; max-width: 520px; margin: 0; }
         .pl-phone-link { color: #1a1a1a; text-decoration: none; font-weight: 600; border-bottom: 1px solid #d0d0d0; transition: border-color 0.2s; }
         .pl-phone-link:hover { border-color: #1a1a1a; }
-        .pl-hero-links { display: flex; gap: 1rem; }
-        :global(.pl-hero-cta) { display: inline-block; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #1a1a1a; text-decoration: none; border: 1.5px solid #1a1a1a; padding: 0.75rem 1.75rem; transition: all 0.2s; }
-        :global(.pl-hero-cta:hover) { background: #1a1a1a; color: #ffffff; }
 
         /* JUMP NAV */
-        .pl-jump-bar { position: sticky; top: 64px; z-index: 90; background: #ffffff; border-top: 1px solid #e0e0e0; border-bottom: 1px solid #e0e0e0; }
+        .pl-jump-bar { position: sticky; top: 53px; z-index: 90; background: #ffffff; border-top: 1px solid #e0e0e0; border-bottom: 1px solid #e0e0e0; }
         .pl-jump-inner { max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; gap: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
         .pl-jump-inner::-webkit-scrollbar { display: none; }
         .pl-jump-link { flex-shrink: 0; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.1em; color: #737373; text-decoration: none; padding: 1rem 1.25rem; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
@@ -672,10 +677,8 @@ export default function PriceList() {
         .pl-cta-rule { width: 60px; height: 1px; background: #404040; margin: 0 auto 2rem; }
         .pl-cta-inner p { font-size: 1rem; color: #737373; margin: 0 0 2.5rem; }
         .pl-cta-buttons { display: flex; justify-content: center; gap: 1rem; margin-bottom: 3rem; flex-wrap: wrap; }
-        :global(.pl-btn-white) { display: inline-block; background: #ffffff; color: #1a1a1a; padding: 0.875rem 2rem; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.12em; text-decoration: none; transition: all 0.2s; }
+        :global(.pl-btn-white) { display: inline-block; background: #ffffff; color: #1a1a1a; padding: 0.875rem 2.5rem; font-size: 0.8125rem; font-weight: 800; letter-spacing: 0.08em; text-decoration: none; transition: all 0.2s; }
         :global(.pl-btn-white:hover) { background: #f0f0f0; }
-        :global(.pl-btn-outline) { display: inline-block; background: transparent; color: #ffffff; padding: 0.875rem 2rem; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.12em; text-decoration: none; border: 1px solid #404040; transition: all 0.2s; }
-        :global(.pl-btn-outline:hover) { border-color: #ffffff; }
         .pl-cta-location { font-size: 0.8125rem; color: #525252; letter-spacing: 0.03em; }
 
         /* ANIMATIONS */
@@ -699,6 +702,6 @@ export default function PriceList() {
           .pl-row-popular { margin: 0 -0.75rem; padding: 0.875rem 0.75rem; }
         }
       `}</style>
-    </Layout>
+    </>
   );
 }

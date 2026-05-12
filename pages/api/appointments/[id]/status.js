@@ -2,14 +2,18 @@
 // Update appointment status with validation and event logging
 
 import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
 import { logComm } from '../../../../lib/comms-log';
 import { autoLogSessionFromAppointment } from '../../../../lib/auto-session-log';
 import { sendSMS, normalizePhone } from '../../../../lib/send-sms';
+import { generateBookingCancellationHtml } from '../../../../lib/appointment-emails';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const VALID_TRANSITIONS = {
   scheduled: ['confirmed', 'checked_in', 'completed', 'cancelled', 'no_show', 'rescheduled'],
@@ -265,26 +269,30 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
     );
   }
 
-  // Send cancellation SMS
+  // Send cancellation SMS + email
   if (newStatus === 'cancelled' && appointment.patient_id) {
     const { data: patient } = await supabase
       .from('patients')
-      .select('ghl_contact_id, name, phone')
+      .select('ghl_contact_id, name, phone, email')
       .eq('id', appointment.patient_id)
       .single();
 
     const phone = normalizePhone(patient?.phone);
+    const firstName = (patient?.name || 'there').split(' ')[0];
+    const apptDate = new Date(appointment.start_time).toLocaleDateString('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric',
+      timeZone: 'America/Los_Angeles',
+    });
+    const apptTime = new Date(appointment.start_time).toLocaleTimeString('en-US', {
+      hour: 'numeric', minute: '2-digit',
+      timeZone: 'America/Los_Angeles',
+    });
+
+    // SMS
     if (patient && phone) {
-      const firstName = patient.name.split(' ')[0];
-      const apptDate = new Date(appointment.start_time).toLocaleDateString('en-US', {
-        weekday: 'long', month: 'long', day: 'numeric',
-              timeZone: 'America/Los_Angeles',
-      });
       const message = `Hi ${firstName}, your ${appointment.service_name} appointment on ${apptDate} has been cancelled. Please call (949) 997-3988 to reschedule.`;
-
       try {
-        const smsResult = await sendSMS({ to: phone, message });
-
+        const smsResult = await sendSMS({ to: phone, message, skipEmailCopy: true });
         await logComm({
           channel: 'sms',
           messageType: 'appointment_cancellation',
@@ -304,13 +312,48 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
         console.error('Cancellation SMS error:', err);
       }
     }
+
+    // Email
+    if (patient?.email) {
+      try {
+        const emailSubject = `Appointment Cancelled — Range Medical`;
+        const emailHtml = generateBookingCancellationHtml({
+          patientName: patient.name,
+          serviceName: appointment.service_name,
+          date: apptDate,
+          time: apptTime,
+        });
+        await resend.emails.send({
+          from: 'Range Medical <noreply@range-medical.com>',
+          replyTo: 'info@range-medical.com',
+          to: patient.email,
+          subject: emailSubject,
+          html: emailHtml,
+        });
+        await logComm({
+          channel: 'email',
+          messageType: 'appointment_cancellation',
+          message: emailHtml,
+          source: 'appointments/status',
+          patientId: appointment.patient_id,
+          patientName: patient.name,
+          recipient: patient.email,
+          subject: emailSubject,
+          status: 'sent',
+          direction: 'outbound',
+          htmlBody: emailHtml,
+        });
+      } catch (err) {
+        console.error('Cancellation email error:', err);
+      }
+    }
   }
 
-  // No-show: send patient SMS + log
+  // No-show: send patient SMS + email + log
   if (newStatus === 'no_show' && appointment.patient_id) {
     const { data: noShowPatient } = await supabase
       .from('patients')
-      .select('ghl_contact_id, name, phone')
+      .select('ghl_contact_id, name, phone, email')
       .eq('id', appointment.patient_id)
       .single();
 
@@ -324,8 +367,7 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
       const noShowMsg = `Hi ${firstName}, we missed you at your ${appointment.service_name} appointment on ${apptDate}. Please call or text (949) 997-3988 to reschedule.`;
 
       try {
-        const smsResult = await sendSMS({ to: noShowPhone, message: noShowMsg });
-
+        const smsResult = await sendSMS({ to: noShowPhone, message: noShowMsg, skipEmailCopy: true });
         await logComm({
           channel: 'sms',
           messageType: 'appointment_no_show',
@@ -354,6 +396,50 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
         patientName: appointment.patient_name,
         provider: null,
       });
+    }
+
+    // No-show email
+    if (noShowPatient?.email) {
+      const firstName = noShowPatient.name.split(' ')[0];
+      const apptDate = new Date(appointment.start_time).toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric',
+        timeZone: 'America/Los_Angeles',
+      });
+      const apptTime = new Date(appointment.start_time).toLocaleTimeString('en-US', {
+        hour: 'numeric', minute: '2-digit',
+        timeZone: 'America/Los_Angeles',
+      });
+      try {
+        const emailSubject = `We Missed You — Range Medical`;
+        const emailHtml = generateBookingCancellationHtml({
+          patientName: noShowPatient.name,
+          serviceName: appointment.service_name,
+          date: apptDate,
+          time: apptTime,
+        });
+        await resend.emails.send({
+          from: 'Range Medical <noreply@range-medical.com>',
+          replyTo: 'info@range-medical.com',
+          to: noShowPatient.email,
+          subject: emailSubject,
+          html: emailHtml,
+        });
+        await logComm({
+          channel: 'email',
+          messageType: 'appointment_no_show',
+          message: emailHtml,
+          source: 'appointments/status',
+          patientId: appointment.patient_id,
+          patientName: noShowPatient.name,
+          recipient: noShowPatient.email,
+          subject: emailSubject,
+          status: 'sent',
+          direction: 'outbound',
+          htmlBody: emailHtml,
+        });
+      } catch (err) {
+        console.error('No-show email error:', err);
+      }
     }
   }
 }

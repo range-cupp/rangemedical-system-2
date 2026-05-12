@@ -1,4 +1,4 @@
-import Layout from '../components/Layout';
+import AdminLayout from '../components/AdminLayout';
 import Head from 'next/head';
 import { useState, useMemo } from 'react';
 import { Check, ChevronDown, ChevronUp, Phone, Calendar } from 'lucide-react';
@@ -351,10 +351,7 @@ export default function Memberships({ services }) {
   };
 
   return (
-    <Layout
-      title="Membership Calculator | Range Medical"
-      description="See how a Range Medical membership pays for itself. Compare tiers based on the services you actually use. Newport Beach. (949) 997-3988"
-    >
+    <AdminLayout title="Memberships">
       <Head>
         <link rel="canonical" href="https://www.range-medical.com/memberships" />
       </Head>
@@ -559,7 +556,7 @@ export default function Memberships({ services }) {
           }
         }
       `}</style>
-    </Layout>
+    </AdminLayout>
   );
 }
 

@@ -10,6 +10,9 @@ const RLT_SESSION_RETAIL = 85;
 
 const MEMBERSHIP_PRICE = 299;
 const INCLUDED_VALUE = HBOT_SESSION_RETAIL + RLT_SESSION_RETAIL; // $270
+const FOLLOWUP_LAB_RETAIL = 350;
+const FOLLOWUP_LAB_MONTHLY = Math.round(FOLLOWUP_LAB_RETAIL / 3); // ~$117 amortized
+const MONTHLY_VALUE = INCLUDED_VALUE + FOLLOWUP_LAB_MONTHLY; // ongoing avg
 
 const PROGRAM_PREFIXES = ['hrt-', 'wl-', 'pep-'];
 const LAB_ESSENTIAL_IDS = new Set(['lab-mens-essential', 'lab-womens-essential']);
@@ -455,7 +458,7 @@ export default function Memberships({ services }) {
                   </div>
                   <div style={styles.mcItem}>
                     <Check size={14} strokeWidth={3} color="#16a34a" />
-                    <span>Follow-up Essential panel every 12 weeks</span>
+                    <span>Follow-up Essential panel every 12 weeks ({formatPrice(FOLLOWUP_LAB_RETAIL)} value)</span>
                   </div>
                 </div>
 
@@ -486,7 +489,7 @@ export default function Memberships({ services }) {
                 <div style={styles.mcDivider} />
 
                 <div style={styles.mcValueLine}>
-                  {formatPrice(INCLUDED_VALUE + 350)} in value your first month &mdash; you pay {formatPrice(MEMBERSHIP_PRICE)}
+                  {formatPrice(MONTHLY_VALUE)}/mo in value &mdash; you pay {formatPrice(MEMBERSHIP_PRICE)}
                 </div>
               </div>
 

@@ -112,7 +112,7 @@ async function saveCampaign(req, res, campaign) {
   return res.json({ campaign: data });
 }
 
-// Send campaign to all segment recipients
+// Send campaign to all segment recipients using Resend batch API
 async function sendCampaign(req, res, campaign) {
   const { name, subject, htmlBody, filters, fromEmail, replyTo } = campaign;
 
@@ -120,7 +120,6 @@ async function sendCampaign(req, res, campaign) {
     return res.status(400).json({ error: 'Subject and email body are required' });
   }
 
-  // Get recipients from segment
   const patients = await querySegment(filters || {});
   const recipients = patients.filter(p => p.email);
 
@@ -128,11 +127,9 @@ async function sendCampaign(req, res, campaign) {
     return res.status(400).json({ error: 'No recipients with email addresses in this segment' });
   }
 
-  // Build from/reply-to
   const fromAddr = fromEmail || 'Range Medical <info@range-medical.com>';
   const replyAddr = replyTo || null;
 
-  // Save campaign record
   const { data: campaignRow, error: cErr } = await supabase
     .from('email_campaigns')
     .insert({
@@ -149,98 +146,87 @@ async function sendCampaign(req, res, campaign) {
     .single();
   if (cErr) throw cErr;
 
-  // Send emails one at a time with delay to avoid Resend 429 rate limits
   let sentCount = 0;
   let errorCount = 0;
+  const BATCH_SIZE = 100;
 
-  for (let i = 0; i < recipients.length; i++) {
-    const patient = recipients[i];
+  for (let batchStart = 0; batchStart < recipients.length; batchStart += BATCH_SIZE) {
+    const batch = recipients.slice(batchStart, batchStart + BATCH_SIZE);
+
+    const emails = batch.map(patient => {
+      const payload = { from: fromAddr, to: patient.email, subject, html: htmlBody };
+      if (replyAddr) payload.reply_to = replyAddr;
+      return payload;
+    });
 
     try {
-      const sendPayload = {
-        from: fromAddr,
-        to: patient.email,
-        subject,
-        html: htmlBody,
-      };
-      if (replyAddr) sendPayload.reply_to = replyAddr;
+      const batchResult = await resend.batch.send(emails);
 
-      const sendResult = await resend.emails.send(sendPayload);
+      if (batchResult?.error) {
+        const errMsg = batchResult.error.message || JSON.stringify(batchResult.error);
+        for (const patient of batch) {
+          await supabase.from('email_campaign_recipients').insert({
+            campaign_id: campaignRow.id,
+            patient_id: patient.id,
+            email: patient.email,
+            status: 'error',
+            error_message: errMsg,
+          });
+          errorCount++;
+        }
+      } else {
+        const ids = batchResult?.data?.data || batchResult?.data || [];
+        const now = new Date().toISOString();
 
-      // Resend SDK returns { data, error } — check for error response
-      if (sendResult?.error) {
-        const errMsg = sendResult.error.message || JSON.stringify(sendResult.error);
-        throw new Error(errMsg);
+        const recipientRows = batch.map((patient, idx) => ({
+          campaign_id: campaignRow.id,
+          patient_id: patient.id,
+          email: patient.email,
+          status: 'sent',
+          resend_email_id: ids[idx]?.id || null,
+          sent_at: now,
+        }));
+
+        await supabase.from('email_campaign_recipients').insert(recipientRows);
+
+        const commRows = batch.map(patient => ({
+          channel: 'email',
+          message_type: 'campaign',
+          message: subject,
+          source: 'email-campaigns',
+          patient_id: patient.id,
+          patient_name: patient.name,
+          recipient: patient.email,
+          subject,
+          status: 'sent',
+        }));
+        await supabase.from('comms_log').insert(commRows);
+
+        sentCount += batch.length;
       }
-
-      const resendEmailId = sendResult?.data?.id || sendResult?.id || null;
-
-      // Log to comms_log
-      await logComm({
-        channel: 'email',
-        messageType: 'campaign',
-        message: subject,
-        source: 'email-campaigns',
-        patientId: patient.id,
-        patientName: patient.name,
-        recipient: patient.email,
-        subject,
-        status: 'sent',
-        htmlBody,
-      });
-
-      // Track recipient with Resend ID
-      await supabase.from('email_campaign_recipients').insert({
-        campaign_id: campaignRow.id,
-        patient_id: patient.id,
-        email: patient.email,
-        status: 'sent',
-        resend_email_id: resendEmailId,
-        sent_at: new Date().toISOString(),
-      });
-
-      sentCount++;
     } catch (err) {
       const errMsg = err.message || 'Unknown error';
-      await supabase.from('email_campaign_recipients').insert({
+      const errorRows = batch.map(patient => ({
         campaign_id: campaignRow.id,
         patient_id: patient.id,
         email: patient.email,
         status: 'error',
         error_message: errMsg,
-      });
-
-      await logComm({
-        channel: 'email',
-        messageType: 'campaign',
-        message: subject,
-        source: 'email-campaigns',
-        patientId: patient.id,
-        patientName: patient.name,
-        recipient: patient.email,
-        subject,
-        status: 'error',
-        errorMessage: errMsg,
-      });
-
-      errorCount++;
+      }));
+      await supabase.from('email_campaign_recipients').insert(errorRows);
+      errorCount += batch.length;
     }
 
-    // Rate limit: ~2 emails/sec to stay well under Resend limits
-    if (i < recipients.length - 1) {
-      await new Promise(r => setTimeout(r, 500));
-    }
+    await supabase
+      .from('email_campaigns')
+      .update({ sent_count: sentCount, error_count: errorCount })
+      .eq('id', campaignRow.id);
 
-    // Update progress every 10 emails
-    if ((i + 1) % 10 === 0 || i === recipients.length - 1) {
-      await supabase
-        .from('email_campaigns')
-        .update({ sent_count: sentCount, error_count: errorCount })
-        .eq('id', campaignRow.id);
+    if (batchStart + BATCH_SIZE < recipients.length) {
+      await new Promise(r => setTimeout(r, 1000));
     }
   }
 
-  // Mark campaign complete
   const finalStatus = errorCount === recipients.length ? 'failed' : 'sent';
   await supabase
     .from('email_campaigns')
@@ -260,3 +246,7 @@ async function sendCampaign(req, res, campaign) {
     total: recipients.length,
   });
 }
+
+export const config = {
+  maxDuration: 300,
+};

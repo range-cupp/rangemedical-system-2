@@ -310,6 +310,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [prepNotes, setPrepNotes] = useState('');
   const [sendingForms, setSendingForms] = useState(false);
   const [sendFormsStatus, setSendFormsStatus] = useState(null);
+  const [sendingFormsEmail, setSendingFormsEmail] = useState(false);
+  const [sendFormsEmailStatus, setSendFormsEmailStatus] = useState(null);
 
   const sendMissingFormsInline = async (appt, missingFormIds) => {
     if (!appt?.patient_id || !missingFormIds?.length) return;
@@ -342,6 +344,39 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       setSendFormsStatus({ ok: false, msg: err.message });
     } finally {
       setSendingForms(false);
+    }
+  };
+
+  const sendMissingFormsEmail = async (appt, missingFormIds) => {
+    if (!appt?.patient_id || !missingFormIds?.length) return;
+    const email = apptPatientInfo?.email || appt.attendee_email;
+    if (!email) {
+      setSendFormsEmailStatus({ ok: false, msg: 'No email address on file' });
+      return;
+    }
+    const firstName = (appt.patient_name || appt.attendee_name || '').trim().split(/\s+/)[0] || null;
+    setSendingFormsEmail(true);
+    setSendFormsEmailStatus(null);
+    try {
+      const res = await fetch('/api/admin/send-forms-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          firstName,
+          formIds: missingFormIds,
+          patientId: appt.patient_id,
+          patientName: appt.patient_name || appt.attendee_name || null,
+          patientPhone: apptPatientInfo?.phone || appt.attendee_phone || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send');
+      setSendFormsEmailStatus({ ok: true, msg: `${missingFormIds.length} form${missingFormIds.length > 1 ? 's' : ''} sent via email` });
+    } catch (err) {
+      setSendFormsEmailStatus({ ok: false, msg: err.message });
+    } finally {
+      setSendingFormsEmail(false);
     }
   };
 
@@ -2418,24 +2453,46 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                   ))}
                   {!allDone && appt.patient_id && (
                     <div style={{ marginTop: '8px' }}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const missing = formChecks.filter(f => !f.done).map(f => f.formId);
-                          sendMissingFormsInline(appt, missing);
-                        }}
-                        disabled={sendingForms}
-                        style={{
-                          fontSize: '11px', fontWeight: 600, padding: '5px 10px',
-                          background: sendingForms ? '#e5e7eb' : '#2563eb', color: '#fff',
-                          border: 'none', cursor: sendingForms ? 'wait' : 'pointer',
-                        }}
-                      >
-                        {sendingForms ? 'Sending…' : `Send ${missingCount} Missing Form${missingCount > 1 ? 's' : ''} via SMS`}
-                      </button>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const missing = formChecks.filter(f => !f.done).map(f => f.formId);
+                            sendMissingFormsInline(appt, missing);
+                          }}
+                          disabled={sendingForms}
+                          style={{
+                            fontSize: '11px', fontWeight: 600, padding: '5px 10px',
+                            background: sendingForms ? '#e5e7eb' : '#2563eb', color: '#fff',
+                            border: 'none', cursor: sendingForms ? 'wait' : 'pointer',
+                          }}
+                        >
+                          {sendingForms ? 'Sending…' : `Send ${missingCount} Missing Form${missingCount > 1 ? 's' : ''} via SMS`}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const missing = formChecks.filter(f => !f.done).map(f => f.formId);
+                            sendMissingFormsEmail(appt, missing);
+                          }}
+                          disabled={sendingFormsEmail}
+                          style={{
+                            fontSize: '11px', fontWeight: 600, padding: '5px 10px',
+                            background: sendingFormsEmail ? '#e5e7eb' : '#059669', color: '#fff',
+                            border: 'none', cursor: sendingFormsEmail ? 'wait' : 'pointer',
+                          }}
+                        >
+                          {sendingFormsEmail ? 'Sending…' : `Email ${missingCount} Missing Form${missingCount > 1 ? 's' : ''}`}
+                        </button>
+                      </div>
                       {sendFormsStatus && (
                         <div style={{ fontSize: '11px', marginTop: '5px', color: sendFormsStatus.ok ? '#166534' : '#991b1b' }}>
                           {sendFormsStatus.ok ? '✓ ' : '✗ '}{sendFormsStatus.msg}
+                        </div>
+                      )}
+                      {sendFormsEmailStatus && (
+                        <div style={{ fontSize: '11px', marginTop: '5px', color: sendFormsEmailStatus.ok ? '#166534' : '#991b1b' }}>
+                          {sendFormsEmailStatus.ok ? '✓ ' : '✗ '}{sendFormsEmailStatus.msg}
                         </div>
                       )}
                     </div>

@@ -73,7 +73,9 @@
     { "id": "rlt-1x", "category": "Red Light Therapy", "name": "RLT — 1x/Week", "price": 340, "unit": "monthly", "sessions_per_week": 1 },
     { "id": "rlt-2x", "category": "Red Light Therapy", "name": "RLT — 2x/Week", "price": 680, "unit": "monthly", "sessions_per_week": 2 },
     { "id": "rlt-3x", "category": "Red Light Therapy", "name": "RLT — 3x/Week", "price": 1020, "unit": "monthly", "sessions_per_week": 3 },
-    { "id": "combo-3x", "category": "HBOT+RLT Combo", "name": "HBOT + RLT Challenge — 3x/Week", "price": 3240, "unit": "monthly", "sessions_per_week": 3 },
+    { "id": "combo-1x", "category": "HBOT+RLT Combo", "name": "HBOT + RLT — 1x/Week", "price": 1080, "unit": "monthly", "sessions_per_week": 1 },
+    { "id": "combo-2x", "category": "HBOT+RLT Combo", "name": "HBOT + RLT — 2x/Week", "price": 2160, "unit": "monthly", "sessions_per_week": 2 },
+    { "id": "combo-3x", "category": "HBOT+RLT Combo", "name": "HBOT + RLT — 3x/Week", "price": 3240, "unit": "monthly", "sessions_per_week": 3 },
 
     // ─── HBOT + RLT COMBO MEMBERSHIPS ────────────────────────────
     { "id": "combo-membership-1x", "category": "HBOT+RLT Combo", "name": "Combo — 1x/Week", "price": 899, "unit": "monthly" },

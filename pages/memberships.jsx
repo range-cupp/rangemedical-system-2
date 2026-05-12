@@ -81,6 +81,8 @@ const DISPLAY_NAMES = {
   'rlt-1x': '1x/Week (4 sessions/mo)',
   'rlt-2x': '2x/Week (8 sessions/mo)',
   'rlt-3x': '3x/Week (12 sessions/mo)',
+  'combo-1x': '1x/Week — HBOT + RLT each session',
+  'combo-2x': '2x/Week — HBOT + RLT each session',
   'combo-3x': '3x/Week — HBOT + RLT each session',
 };
 
@@ -92,6 +94,8 @@ const MEMBERSHIP_PRICES = {
   'rlt-1x': { price: 399, label: 'RLT Membership' },
   'rlt-2x': { price: 399, label: 'RLT Membership' },
   'rlt-3x': { price: 399, label: 'RLT Membership' },
+  'combo-1x': { price: 899, label: 'Combo Membership' },
+  'combo-2x': { price: 1499, label: 'Combo Membership' },
   'combo-3x': { price: 1999, label: 'Combo Membership' },
 };
 
@@ -222,8 +226,8 @@ const CALCULATOR_CATEGORIES = [
         items: ['rlt-1x', 'rlt-2x', 'rlt-3x'],
       },
       {
-        label: 'HBOT + RLT Challenge',
-        items: ['combo-3x'],
+        label: 'HBOT + RLT Combo',
+        items: ['combo-1x', 'combo-2x', 'combo-3x'],
       },
     ],
   },

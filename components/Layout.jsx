@@ -90,6 +90,8 @@ export default function Layout({ children, title, description, logoOnly }) {
                     </div>
                   </div>
 
+                  <Link href="/lab-panels" className="rm-nav-link">Labs</Link>
+                  <Link href="/memberships" className="rm-nav-link">Plans</Link>
                   <Link href="/how-it-works" className="rm-nav-link">How It Works</Link>
                   <Link href="/reviews" className="rm-nav-link">Reviews</Link>
                 </div>
@@ -146,6 +148,8 @@ export default function Layout({ children, title, description, logoOnly }) {
                 <Link href="/peptide-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Peptide Therapy</Link>
               </div>
             )}
+            <Link href="/lab-panels" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Labs</Link>
+            <Link href="/memberships" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Plans</Link>
             <Link href="/how-it-works" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>How It Works</Link>
             <Link href="/reviews" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Reviews</Link>
             <Link href="/assessment" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Book Assessment</Link>
@@ -197,6 +201,8 @@ export default function Layout({ children, title, description, logoOnly }) {
                 <li><Link href="/iv-therapy">IV Therapy</Link></li>
                 <li><Link href="/injection-therapy">Injections</Link></li>
                 <li><Link href="/cellular-energy-reset">Cellular Reset</Link></li>
+                <li><Link href="/lab-panels">Lab Panels</Link></li>
+                <li><Link href="/memberships">Plans & Memberships</Link></li>
               </ul>
             </div>
             <div className="rm-footer-col">

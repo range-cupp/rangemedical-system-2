@@ -226,15 +226,6 @@ export default function PlanSummariesPage() {
                         </div>
                       )}
 
-                      {/* Follow-Up */}
-                      <div style={{
-                        padding: '10px 14px', background: '#f9fafb', borderRadius: 6,
-                        marginBottom: 12,
-                      }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Follow-Up</div>
-                        <p style={{ margin: 0, fontSize: 13, color: '#1f2937' }}>{summary.follow_up || 'Not specified'}</p>
-                      </div>
-
                       {/* Regenerate */}
                       <div style={{ textAlign: 'right' }}>
                         <button

@@ -15,19 +15,34 @@ export default async function handler(req, res) {
   }
 
   const { patient_id } = req.query;
-  if (!patient_id) {
-    return res.status(400).json({ error: 'patient_id is required' });
-  }
 
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('patient_notes')
-      .select('id, plan_summary, note_date, created_by, encounter_service, status, signed_by, signed_at')
-      .eq('patient_id', patient_id)
+      .select('id, patient_id, plan_summary, note_date, created_by, encounter_service, status, signed_by, signed_at')
       .not('plan_summary', 'is', null)
       .order('note_date', { ascending: false });
 
+    if (patient_id) {
+      query = query.eq('patient_id', patient_id);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
+
+    if (!patient_id && data && data.length > 0) {
+      const patientIds = [...new Set(data.map(n => n.patient_id))];
+      const { data: patients } = await supabase
+        .from('patients')
+        .select('id, first_name, last_name, name')
+        .in('id', patientIds);
+
+      const patientMap = {};
+      (patients || []).forEach(p => {
+        patientMap[p.id] = `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.name || 'Unknown';
+      });
+      data.forEach(n => { n.patient_name = patientMap[n.patient_id] || 'Unknown'; });
+    }
 
     return res.status(200).json(data || []);
   } catch (err) {

@@ -230,7 +230,7 @@ export default async function handler(req, res) {
     });
   }
 
-  console.log(`Patient deleted: ${patientName} (${patient_id}) — ${totalRecords} related records removed`);
+  console.log(`Patient deleted: ${patient_id} — ${totalRecords} related records removed`);
 
   return res.status(200).json({
     success: true,

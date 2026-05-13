@@ -142,7 +142,7 @@ export default async function handler(req, res) {
       subject,
     });
 
-    console.log(`Injection video email sent to ${email}: ${videoNames}`);
+    console.log(`Injection video email sent: ${videoNames}`);
 
     return res.status(200).json({
       success: true,

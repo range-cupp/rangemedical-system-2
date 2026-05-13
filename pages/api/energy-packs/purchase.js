@@ -199,7 +199,7 @@ export default async function handler(req, res) {
       }).catch(err => console.error('Patient SMS error:', err));
     }
 
-    console.log(`Energy & Recovery Pack sold: ${customerName} (${normalizedEmail}) — pack ${pack?.id}`);
+    console.log(`Energy & Recovery Pack sold: pack ${pack?.id}`);
 
     return res.status(200).json({
       success: true,

@@ -160,7 +160,7 @@ export default async function handler(req, res) {
     });
 
     const itemNames = purchases.map(p => p.item_name).join(', ');
-    console.log(`Consolidated receipt sent to ${patient.email} for ${purchases.length} items`);
+    console.log(`Consolidated receipt sent to patient ${patient.id?.slice(0,8)} for ${purchases.length} items`);
     await logComm({
       channel: 'email',
       messageType: 'receipt',

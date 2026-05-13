@@ -86,7 +86,7 @@ export default async function handler(req, res) {
       } else {
         linked++;
         details.push({ lead: `${lead.first_name} ${lead.last_name}`, patientId: patient.id, status: 'linked' });
-        console.log(`Linked assessment PDF for ${lead.first_name} ${lead.last_name} → patient ${patient.id}`);
+        console.log(`Linked assessment PDF for patient ${patient.id}`);
       }
     }
 

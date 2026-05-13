@@ -86,7 +86,7 @@ export default async function handler(req, res) {
 
           patientId = newPatient.id;
           results.patientsCreated++;
-          console.log(`Created patient for ${email}: ${patientId}`);
+          console.log(`Created patient for consent linking: ${patientId}`);
         }
 
         if (!patientId) {
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
           results.errors.push({ email, error: `Update consents: ${updateError.message}` });
         } else {
           results.consentsLinked += consents.length;
-          console.log(`Linked ${consents.length} consents to patient ${patientId} (${email})`);
+          console.log(`Linked ${consents.length} consents to patient ${patientId}`);
         }
 
       } catch (e) {

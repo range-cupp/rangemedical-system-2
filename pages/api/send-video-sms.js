@@ -89,7 +89,7 @@ export default async function handler(req, res) {
         patientName: patientName || firstName || null,
       });
 
-      console.log(`Blooio opt-in prompt sent to ${normalizedPhone}, video links queued: ${videoNames}`);
+      console.log(`Blooio opt-in prompt sent, video links queued: ${videoNames}`);
 
       return res.status(200).json({
         success: true,
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
       provider: result.provider || null,
     });
 
-    console.log(`Video SMS sent to ${normalizedPhone}: ${videoNames}`);
+    console.log(`Video SMS sent: ${videoNames}`);
 
     return res.status(200).json({
       success: true,

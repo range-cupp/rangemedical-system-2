@@ -65,7 +65,7 @@ export default async function handler(req, res) {
     if (updateError) {
       console.error('Status callback update error:', updateError.message);
     } else if (updated) {
-      console.log(`Updated comms_log ${updated.id} for ${updated.patient_name}: ${mappedStatus}`);
+      console.log(`Updated comms_log ${updated.id}: ${mappedStatus}`);
     } else {
       // Message SID not found — could be from GHL fallback or old message
       console.log(`No comms_log entry found for MessageSid: ${MessageSid}`);
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
 
     // If delivery failed, log details for debugging
     if (MessageStatus === 'failed' || MessageStatus === 'undelivered') {
-      console.error(`SMS delivery failure: ${MessageSid} to ${To} — ${ErrorCode}: ${ErrorMessage}`);
+      console.error(`SMS delivery failure: ${MessageSid} — ${ErrorCode}: ${ErrorMessage}`);
     }
 
     res.setHeader('Content-Type', 'text/xml');

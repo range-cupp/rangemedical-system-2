@@ -15,7 +15,6 @@ import AdminVoiceWidget from './AdminVoiceWidget';
 // group: 'medical' = clinical sidebar, 'business' = operations sidebar, undefined = show in both
 const NAV_ITEMS = [
   { href: '/admin', label: 'Dashboard', icon: 'grid' },
-  { href: '/admin/follow-ups', label: 'Follow-Ups', icon: 'bell' },
   { href: '/admin/pipelines', label: 'Pipelines', icon: 'trending-down', group: 'business' },
   { href: '/admin/referrals', label: 'Referrals', icon: 'user-plus', group: 'business' },
   { href: '/admin/patients', label: 'Patients', icon: 'users' },

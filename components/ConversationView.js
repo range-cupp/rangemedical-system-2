@@ -33,7 +33,7 @@ const FORM_OPTIONS = [
   { id: 'questionnaire', name: 'Baseline Questionnaire' },
 ];
 
-export default function ConversationView({ patientId, patientName, patientPhone, ghlContactId, onBack, onPatientLinked, onPrev, onNext, hasPrev, hasNext, onNeedsResponseCleared }) {
+export default function ConversationView({ patientId, patientName, patientPhone, patientEmail, ghlContactId, onBack, onPatientLinked, onPrev, onNext, hasPrev, hasNext, onNeedsResponseCleared }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
@@ -44,6 +44,8 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [callsSynced, setCallsSynced] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [smsProvider, setSmsProvider] = useState('blooio');
+  const [sendMode, setSendMode] = useState('sms'); // 'sms' | 'email'
+  const [emailSubject, setEmailSubject] = useState('');
   const [formatting, setFormatting] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [totalMessages, setTotalMessages] = useState(0);
@@ -105,6 +107,8 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     setShowClearNote(false);
     setClearNote('');
     setBotPaused(false);
+    setSendMode('sms');
+    setEmailSubject('');
     // Fetch bot_paused status for this patient
     if (patientId) {
       fetch(`/api/admin/patient-bot-status?patientId=${patientId}`)
@@ -508,14 +512,68 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     return d.toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit' });
   };
 
+  const sendEmail = async () => {
+    const msgText = newMessage.trim();
+    if (!msgText || !patientEmail) return;
+    if (!emailSubject.trim()) {
+      setError('Subject line is required for email');
+      return;
+    }
+    const tempId = `temp-${Date.now()}`;
+
+    setMessages(prev => [...prev, {
+      id: tempId,
+      channel: 'email',
+      message_type: 'staff_email',
+      message: msgText,
+      subject: emailSubject.trim(),
+      direction: 'outbound',
+      status: 'sending',
+      source: 'email-send',
+      created_at: new Date().toISOString(),
+    }]);
+    setNewMessage('');
+    setSending(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: patientEmail,
+          subject: emailSubject.trim(),
+          body: msgText,
+          patientId: linkedPatientId || patientId,
+          patientName: displayName || patientName,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'error' } : m));
+        throw new Error(data.error || 'Failed to send email');
+      }
+
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'sent' } : m));
+      setEmailSubject('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
   const sendMessage = async () => {
+    if (sendMode === 'email') return sendEmail();
+
     const hasText = newMessage.trim();
     const hasImage = imagePreview;
     if ((!hasText && !hasImage) || !patientPhone) return;
     const msgText = newMessage.trim();
     const tempId = `temp-${Date.now()}`;
 
-    // Immediately show message in UI before API call
     setMessages(prev => [...prev, {
       id: tempId,
       channel: 'sms',
@@ -532,7 +590,6 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     setError('');
     setShowEmojiPicker(false);
 
-    // Upload image first if present
     let uploadedMediaUrl = null;
     if (hasImage) {
       try {
@@ -582,7 +639,6 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         throw new Error((data.error || 'Failed to send') + details);
       }
 
-      // Update optimistic message with uploaded URL and sent status
       setMessages(prev => prev.map(m => m.id === tempId ? {
         ...m,
         status: 'sent',
@@ -2005,31 +2061,74 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         </div>
       )}
 
-      {/* Provider toggle */}
+      {/* Mode + provider toggle */}
       <div style={styles.providerToggle}>
-        <span style={styles.providerLabel}>Send via:</span>
-        <button
-          onClick={() => setSmsProvider('blooio')}
-          style={{
-            ...styles.providerBtn,
-            ...(smsProvider === 'blooio' ? styles.providerBtnActive : {}),
-          }}
-        >
-          Blooio
-        </button>
-        <button
-          onClick={() => setSmsProvider('twilio')}
-          style={{
-            ...styles.providerBtn,
-            ...(smsProvider === 'twilio' ? styles.providerBtnActive : {}),
-          }}
-        >
-          949 Number
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            onClick={() => setSendMode('sms')}
+            style={{
+              ...styles.modeBtn,
+              ...(sendMode === 'sms' ? styles.modeBtnActive : {}),
+            }}
+          >
+            💬 SMS
+          </button>
+          <button
+            onClick={() => { if (patientEmail) setSendMode('email'); }}
+            style={{
+              ...styles.modeBtn,
+              ...(sendMode === 'email' ? styles.modeBtnEmailActive : {}),
+              ...(!patientEmail ? { opacity: 0.35, cursor: 'not-allowed' } : {}),
+            }}
+            title={patientEmail ? `Email: ${patientEmail}` : 'No email on file'}
+          >
+            📧 Email
+          </button>
+        </div>
+        {sendMode === 'sms' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={styles.providerLabel}>Send via:</span>
+            <button
+              onClick={() => setSmsProvider('blooio')}
+              style={{
+                ...styles.providerBtn,
+                ...(smsProvider === 'blooio' ? styles.providerBtnActive : {}),
+              }}
+            >
+              Blooio
+            </button>
+            <button
+              onClick={() => setSmsProvider('twilio')}
+              style={{
+                ...styles.providerBtn,
+                ...(smsProvider === 'twilio' ? styles.providerBtnActive : {}),
+              }}
+            >
+              949 Number
+            </button>
+          </div>
+        )}
+        {sendMode === 'email' && patientEmail && (
+          <span style={{ fontSize: 12, color: '#64748b' }}>To: {patientEmail}</span>
+        )}
       </div>
 
-      {/* Image preview */}
-      {imagePreview && (
+      {/* Email subject line */}
+      {sendMode === 'email' && (
+        <div style={styles.emailSubjectRow}>
+          <span style={{ fontSize: 12, color: '#64748b', flexShrink: 0 }}>Subject:</span>
+          <input
+            type="text"
+            value={emailSubject}
+            onChange={e => setEmailSubject(e.target.value)}
+            placeholder="Email subject line"
+            style={styles.emailSubjectInput}
+          />
+        </div>
+      )}
+
+      {/* Image preview (SMS only) */}
+      {sendMode === 'sms' && imagePreview && (
         <div style={styles.imagePreviewBar}>
           <img src={imagePreview.previewUrl} alt="Preview" style={styles.imagePreviewThumb} />
           <span style={{ fontSize: 13, color: '#64748b', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -2056,18 +2155,20 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         >
           ⚡
         </button>
-        <button
-          onClick={handleFormatSMS}
-          disabled={!newMessage.trim() || formatting}
-          style={{
-            ...styles.templateBtn,
-            color: formatting ? '#9ca3af' : '#7c3aed',
-            opacity: !newMessage.trim() || formatting ? 0.4 : 1,
-          }}
-          title="AI Format"
-        >
-          {formatting ? '...' : '✨'}
-        </button>
+        {sendMode === 'sms' && (
+          <button
+            onClick={handleFormatSMS}
+            disabled={!newMessage.trim() || formatting}
+            style={{
+              ...styles.templateBtn,
+              color: formatting ? '#9ca3af' : '#7c3aed',
+              opacity: !newMessage.trim() || formatting ? 0.4 : 1,
+            }}
+            title="AI Format"
+          >
+            {formatting ? '...' : '✨'}
+          </button>
+        )}
         <button
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
           style={{
@@ -2078,14 +2179,16 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         >
           😊
         </button>
-        <button
-          onClick={() => imageInputRef.current?.click()}
-          style={styles.templateBtn}
-          title="Send image"
-          disabled={!patientPhone}
-        >
-          📷
-        </button>
+        {sendMode === 'sms' && (
+          <button
+            onClick={() => imageInputRef.current?.click()}
+            style={styles.templateBtn}
+            title="Send image"
+            disabled={!patientPhone}
+          >
+            📷
+          </button>
+        )}
         <input
           ref={imageInputRef}
           type="file"
@@ -2114,20 +2217,36 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             el.style.height = Math.min(el.scrollHeight, 200) + 'px';
           }}
           onKeyDown={handleKeyDown}
-          placeholder={patientPhone ? 'Type a message... (Enter to send)' : 'No phone number on file'}
+          placeholder={
+            sendMode === 'email'
+              ? (patientEmail ? 'Compose email... (Enter to send)' : 'No email on file')
+              : (patientPhone ? 'Type a message... (Enter to send)' : 'No phone number on file')
+          }
           style={styles.input}
-          rows={1}
-          disabled={!patientPhone}
+          rows={sendMode === 'email' ? 3 : 1}
+          disabled={sendMode === 'email' ? !patientEmail : !patientPhone}
         />
         <button
           onClick={sendMessage}
-          disabled={(!newMessage.trim() && !imagePreview) || sending || uploadingImage || !patientPhone}
+          disabled={
+            sendMode === 'email'
+              ? (!newMessage.trim() || !emailSubject.trim() || sending || !patientEmail)
+              : ((!newMessage.trim() && !imagePreview) || sending || uploadingImage || !patientPhone)
+          }
           style={{
             ...styles.sendBtn,
-            opacity: (!newMessage.trim() && !imagePreview) || sending || uploadingImage || !patientPhone ? 0.4 : 1,
+            ...(sendMode === 'email' ? { background: '#2563eb' } : {}),
+            opacity: (
+              sendMode === 'email'
+                ? (!newMessage.trim() || !emailSubject.trim() || sending || !patientEmail)
+                : ((!newMessage.trim() && !imagePreview) || sending || uploadingImage || !patientPhone)
+            ) ? 0.4 : 1,
           }}
         >
-          {uploadingImage ? '📤' : sending ? '...' : 'Send'}
+          {sendMode === 'email'
+            ? (sending ? '...' : '📧 Send')
+            : (uploadingImage ? '📤' : sending ? '...' : 'Send')
+          }
         </button>
       </div>
     </div>
@@ -2606,6 +2725,7 @@ const styles = {
   providerToggle: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: '6px',
     padding: '6px 16px',
     borderTop: '1px solid #f0f0f0',
@@ -2630,6 +2750,45 @@ const styles = {
     background: '#000',
     color: '#fff',
     borderColor: '#000',
+  },
+  modeBtn: {
+    padding: '3px 10px',
+    fontSize: '12px',
+    border: '1px solid #ddd',
+    borderRadius: '0',
+    background: '#fff',
+    color: '#666',
+    cursor: 'pointer',
+    fontWeight: '500',
+    fontFamily: 'inherit',
+  },
+  modeBtnActive: {
+    background: '#000',
+    color: '#fff',
+    borderColor: '#000',
+  },
+  modeBtnEmailActive: {
+    background: '#2563eb',
+    color: '#fff',
+    borderColor: '#2563eb',
+  },
+  emailSubjectRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '6px 16px',
+    borderTop: '1px solid #f0f0f0',
+    background: '#f0f7ff',
+  },
+  emailSubjectInput: {
+    flex: 1,
+    border: '1px solid #ddd',
+    borderRadius: '0',
+    padding: '5px 10px',
+    fontSize: 13,
+    fontFamily: 'inherit',
+    outline: 'none',
+    background: '#fff',
   },
   imagePreviewBar: {
     display: 'flex',

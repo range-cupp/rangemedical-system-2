@@ -240,6 +240,7 @@ export default function CommunicationsPage() {
         setSelectedPatient({
           ...p,
           phone: patient.phone || p.phone,
+          email: patient.email || null,
           ghl_contact_id: patient.ghl_contact_id || p.ghl_contact_id,
           name: patient.first_name && patient.last_name
             ? `${patient.first_name} ${patient.last_name}`
@@ -590,6 +591,7 @@ export default function CommunicationsPage() {
             patientId={selectedPatient?.id}
             patientName={selectedPatient?.name}
             patientPhone={selectedPatient?.phone || selectedPatient?.recipient}
+            patientEmail={selectedPatient?.email}
             ghlContactId={selectedPatient?.ghl_contact_id}
             onBack={handleBack}
             onPrev={() => navigatePatient(-1)}

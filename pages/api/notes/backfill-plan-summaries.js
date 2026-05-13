@@ -24,16 +24,15 @@ export default async function handler(req, res) {
     .gte('note_date', new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())
     .is('plan_summary', null)
     .or('created_by.ilike.%burgess%,created_by.ilike.%brendyn%,created_by.ilike.%reed%')
-    .or('encounter_service.ilike.%consult%,encounter_service.ilike.%lab review%,encounter_service.ilike.%lab_review%,encounter_service.ilike.%follow-up%,encounter_service.ilike.%follow_up%,encounter_service.ilike.%initial%')
     .order('note_date', { ascending: true });
 
   if (error) {
     return res.status(500).json({ error: error.message });
   }
 
-  // Filter to actual consult notes (exclude hrt_followup, injection, etc.)
-  const consultPattern = /lab.?review|consult|follow.?up.*(?:lab|consult)|initial/i;
-  const filtered = notes.filter(n => consultPattern.test(n.encounter_service || ''));
+  // Exclude procedural/non-consultation types — everything else gets a summary
+  const nonConsultPattern = /\binjection\b|iv.?therapy|range.?iv|nad\+?\s*iv|blood.?draw|medication.?pickup|pellet.?procedure|hrt.?followup/i;
+  const filtered = notes.filter(n => !nonConsultPattern.test(n.encounter_service || ''));
 
   const results = [];
   for (const note of filtered) {

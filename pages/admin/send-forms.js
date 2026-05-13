@@ -138,6 +138,9 @@ export default function SendFormsPage() {
   // Blooio opt-in status
   const [blooioOptIn, setBlooioOptIn] = useState(null); // null = unknown, true = opted in, false = first contact
 
+  // Preview modal
+  const [showPreview, setShowPreview] = useState(false);
+
   // Status
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
@@ -1039,7 +1042,7 @@ export default function SendFormsPage() {
           {/* Send button */}
           <div style={styles.sendSection}>
             <button
-              onClick={handleSend}
+              onClick={() => setShowPreview(true)}
               disabled={!canSend() || sending}
               style={{
                 ...styles.sendBtn,
@@ -1084,6 +1087,97 @@ export default function SendFormsPage() {
           )}
         </div>
       </div>
+
+      {/* Preview / Confirmation Modal */}
+      {showPreview && (() => {
+        const recipientName = mode === 'search' && selectedPatient
+          ? selectedPatient.name
+          : `${manualFirstName} ${manualLastName}`.trim();
+        const recipientDest = getRecipient();
+
+        const selectedItems = pageMode === 'forms'
+          ? sortForms(selectedForms).map(id => AVAILABLE_FORMS.find(f => f.id === id)).filter(Boolean)
+          : pageMode === 'guides'
+            ? selectedGuides.map(id => AVAILABLE_GUIDES.find(g => g.id === id)).filter(Boolean)
+            : pageMode === 'videos'
+              ? selectedVideos.map(slug => INJECTION_VIDEO_LIST.find(v => v.slug === slug)).filter(Boolean)
+              : [];
+
+        return (
+          <div style={styles.previewOverlay} onClick={() => setShowPreview(false)}>
+            <div style={styles.previewModal} onClick={e => e.stopPropagation()}>
+              <div style={styles.previewHeader}>
+                <h3 style={styles.previewTitle}>Review Before Sending</h3>
+                <button onClick={() => setShowPreview(false)} style={styles.previewClose}>✕</button>
+              </div>
+
+              {/* Recipient */}
+              <div style={styles.previewSection}>
+                <div style={styles.previewLabel}>To</div>
+                <div style={styles.previewRecipient}>
+                  <div style={styles.previewRecipientName}>{recipientName}</div>
+                  <div style={styles.previewRecipientDest}>
+                    {deliveryMethod === 'email' ? '📧' : '💬'} {recipientDest}
+                  </div>
+                </div>
+              </div>
+
+              {/* Delivery method */}
+              <div style={styles.previewSection}>
+                <div style={styles.previewLabel}>Via</div>
+                <div style={styles.previewVia}>
+                  {deliveryMethod === 'email' ? 'Email' : 'SMS'}
+                  {deliveryMethod === 'sms' && blooioOptIn === false && (
+                    <span style={styles.previewOptInNote}>
+                      Two-step: opt-in prompt will send first
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Items being sent */}
+              <div style={styles.previewSection}>
+                <div style={styles.previewLabel}>
+                  {pageMode === 'questionnaire' ? 'Questionnaire' : `${selectedItems.length} ${selectedItems.length === 1 ? itemLabel : itemLabelPlural}`}
+                </div>
+                {pageMode === 'questionnaire' ? (
+                  <div style={styles.previewItemRow}>
+                    <span style={styles.previewItemIcon}>📊</span>
+                    <span style={styles.previewItemName}>Symptoms Questionnaire</span>
+                  </div>
+                ) : (
+                  <div style={styles.previewItemList}>
+                    {selectedItems.map(item => (
+                      <div key={item.id || item.slug} style={styles.previewItemRow}>
+                        <span style={styles.previewItemIcon}>{item.icon}</span>
+                        <span style={styles.previewItemName}>{item.name}</span>
+                        {item.time && <span style={styles.previewItemTime}>{item.time}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              <div style={styles.previewActions}>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  style={styles.previewBackBtn}
+                >
+                  Go Back
+                </button>
+                <button
+                  onClick={() => { setShowPreview(false); handleSend(); }}
+                  disabled={sending}
+                  style={styles.previewConfirmBtn}
+                >
+                  {sending ? 'Sending...' : `Confirm & Send`}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </AdminLayout>
   );
 }
@@ -1461,5 +1555,142 @@ const styles = {
     fontWeight: '500',
     whiteSpace: 'nowrap',
     flexShrink: 0,
+  },
+  // Preview modal
+  previewOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+  previewModal: {
+    background: '#fff',
+    width: '500px',
+    maxWidth: '90vw',
+    maxHeight: '80vh',
+    display: 'flex',
+    flexDirection: 'column',
+    border: '1px solid #e5e5e5',
+  },
+  previewHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '20px 24px',
+    borderBottom: '1px solid #e5e5e5',
+  },
+  previewTitle: {
+    margin: 0,
+    fontSize: '16px',
+    fontWeight: '600',
+  },
+  previewClose: {
+    background: 'none',
+    border: 'none',
+    fontSize: '18px',
+    cursor: 'pointer',
+    color: '#999',
+    padding: '4px 8px',
+    fontFamily: 'inherit',
+  },
+  previewSection: {
+    padding: '16px 24px',
+    borderBottom: '1px solid #f0f0f0',
+  },
+  previewLabel: {
+    fontSize: '11px',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    color: '#999',
+    letterSpacing: '0.5px',
+    marginBottom: '8px',
+  },
+  previewRecipient: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  previewRecipientName: {
+    fontSize: '15px',
+    fontWeight: '600',
+  },
+  previewRecipientDest: {
+    fontSize: '13px',
+    color: '#666',
+  },
+  previewVia: {
+    fontSize: '14px',
+    fontWeight: '500',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  previewOptInNote: {
+    fontSize: '11px',
+    color: '#92400e',
+    background: '#fffbeb',
+    border: '1px solid #fde68a',
+    padding: '2px 8px',
+    fontWeight: '500',
+  },
+  previewItemList: {
+    maxHeight: '280px',
+    overflowY: 'auto',
+  },
+  previewItemRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '8px 12px',
+    background: '#f9fafb',
+    border: '1px solid #f0f0f0',
+    marginBottom: '4px',
+  },
+  previewItemIcon: {
+    fontSize: '14px',
+    flexShrink: 0,
+  },
+  previewItemName: {
+    flex: 1,
+    fontSize: '13px',
+    fontWeight: '500',
+  },
+  previewItemTime: {
+    fontSize: '11px',
+    color: '#999',
+    flexShrink: 0,
+  },
+  previewActions: {
+    display: 'flex',
+    gap: '10px',
+    padding: '20px 24px',
+  },
+  previewBackBtn: {
+    flex: 1,
+    padding: '12px',
+    border: '1px solid #ddd',
+    background: '#fff',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    color: '#333',
+  },
+  previewConfirmBtn: {
+    flex: 2,
+    padding: '12px',
+    border: 'none',
+    background: '#000',
+    color: '#fff',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
   },
 };

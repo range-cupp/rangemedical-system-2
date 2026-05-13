@@ -383,7 +383,7 @@ export default function Quiz() {
                     value={leadInfo.phone}
                     onChange={(e) => setLeadInfo({ ...leadInfo, phone: e.target.value })}
                   />
-                  <p className="sms-consent">By providing my phone number, I agree to receive text messages from Range Medical. Msg &amp; data rates may apply. Up to 10 msg/mo. Reply STOP to cancel, HELP for help. <a href="/terms-of-use" target="_blank" rel="noopener noreferrer">Terms</a> &amp; <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy</a>.</p>
+                  <p className="sms-consent">By providing your phone number, you consent to receive text messages from Range Medical regarding your care, appointments, and health information. Message and data rates may apply. Up to 10 msg/mo. Reply STOP to opt out. <a href="/terms-of-use" target="_blank" rel="noopener noreferrer">Terms</a> &amp; <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy</a>.</p>
                   <input
                     type="email"
                     placeholder="Email address"

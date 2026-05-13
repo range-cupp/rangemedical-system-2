@@ -343,7 +343,7 @@ export default function EnergyCheckout() {
             </button>
 
             <p style={{ textAlign: 'center', fontSize: 13, color: '#a3a3a3', marginTop: 12 }}>
-              By continuing, you agree to receive texts from Range Medical. Reply STOP to opt out.
+              By continuing, you consent to receive text messages from Range Medical regarding your care and appointments. Message and data rates may apply. Reply STOP to opt out.
             </p>
           </>
         )}

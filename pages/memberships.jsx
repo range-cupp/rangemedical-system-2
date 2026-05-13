@@ -486,7 +486,10 @@ export default function Memberships({ services }) {
                 <div style={styles.mcDivider} />
 
                 <div style={styles.mcValueLine}>
-                  {formatPrice(MONTHLY_VALUE)}/mo in value &mdash; you pay {formatPrice(MEMBERSHIP_PRICE)}
+                  {formatPrice(INCLUDED_VALUE + FOLLOWUP_LAB_RETAIL)}+ in value your first month &mdash; you pay {formatPrice(MEMBERSHIP_PRICE)}
+                </div>
+                <div style={styles.mcValueSub}>
+                  Plus member discounts on every service, every visit
                 </div>
               </div>
 
@@ -845,6 +848,12 @@ const styles = {
     fontWeight: 600,
     color: '#16a34a',
     textAlign: 'center',
+  },
+  mcValueSub: {
+    fontSize: '0.75rem',
+    color: '#737373',
+    textAlign: 'center',
+    marginTop: '0.25rem',
   },
   savingsCard: {
     marginTop: '1.25rem',

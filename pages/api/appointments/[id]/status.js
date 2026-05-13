@@ -221,9 +221,11 @@ async function advanceLabsPipelineOnCompletion(appointment) {
     return;
   }
 
-  // Advance from any pre-completed stage to consult_completed
+  // Advance from any pre-completed stage to consult_completed —
+  // but only when the completed appointment is a consult or lab review.
+  const isConsult = sn.includes('consult') || sn.includes('lab review');
   const preCompletedStages = ['ready_to_schedule', 'scheduling_attempted', 'consult_booked'];
-  if (!preCompletedStages.includes(card.stage)) return;
+  if (!isConsult || !preCompletedStages.includes(card.stage)) return;
 
   const consultDate = new Date(appointment.start_time)
     .toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });

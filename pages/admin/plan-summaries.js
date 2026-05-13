@@ -102,10 +102,6 @@ function generatePreviewHtml({ patientFirstName, providerName, noteDate, visitTy
     </div>
     <p style="margin:0 0 4px;font-size:14px;line-height:1.6;color:#1f2937;font-weight:600;">${greeting}</p>
     ${messageBlock}
-    <div style="margin-bottom:20px;">
-      <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Summary</div>
-      <p style="margin:0;font-size:14px;line-height:1.6;color:#1f2937;">${assessment || ''}</p>
-    </div>
     ${treatmentPlan && treatmentPlan.length > 0 ? `<div style="margin-bottom:20px;">
       <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Your Treatment Plan</div>
       <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:6px;">
@@ -637,21 +633,6 @@ export default function PlanSummariesPage() {
                       onChange={e => setEmailForm(prev => ({ ...prev, personalMessage: e.target.value }))}
                       placeholder="Add a personal note to the patient... Leave blank for default greeting."
                       rows={3}
-                      style={{
-                        width: '100%', padding: '10px 12px', fontSize: 14, border: '1px solid #d1d5db',
-                        borderRadius: 6, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5,
-                        boxSizing: 'border-box',
-                      }}
-                    />
-                  </div>
-
-                  {/* Assessment */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Summary</label>
-                    <textarea
-                      value={emailForm.assessment}
-                      onChange={e => setEmailForm(prev => ({ ...prev, assessment: e.target.value }))}
-                      rows={4}
                       style={{
                         width: '100%', padding: '10px 12px', fontSize: 14, border: '1px solid #d1d5db',
                         borderRadius: 6, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5,

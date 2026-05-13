@@ -26,6 +26,7 @@ const NAV_ITEMS = [
   { href: '/admin/clinic-sources', label: 'Clinic Sources', icon: 'pie-chart', adminOnly: true, group: 'business' },
   { href: '/admin/communications', label: 'Communications', icon: 'message' },
   { href: '/admin/email-campaigns', label: 'Email Campaigns', icon: 'mail', adminOnly: true, group: 'business' },
+  { href: '/admin/email-log', label: 'Email Log', icon: 'mail', adminOnly: true, group: 'business' },
   { href: '/admin/google-reviews', label: 'Google Reviews', icon: 'star', adminOnly: true, group: 'business' },
   { href: '/admin/tasks', label: 'Tasks', icon: 'check-square', group: 'business' },
   { href: '/staff-chat', label: 'Assistant', icon: 'message', group: 'business' },

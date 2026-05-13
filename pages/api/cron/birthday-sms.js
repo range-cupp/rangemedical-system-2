@@ -224,7 +224,7 @@ export default async function handler(req, res) {
           giftToken,
         });
 
-        console.log(`Birthday SMS sent to ${patient.name || patient.first_name} (${phone}) — gift: ${giftLink}`);
+        console.log(`Birthday SMS sent to patient ${patient.id?.slice(0, 8)} — gift: ${giftLink}`);
       } else {
         results.errors.push({
           patient: patient.name || patient.first_name,

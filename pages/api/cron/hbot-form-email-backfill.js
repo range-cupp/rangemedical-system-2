@@ -208,7 +208,7 @@ export default async function handler(req, res) {
 
         sent++;
         results.push({ trialId: trial.id, name: customerName, email: trial.email, sent: true, forms: missingFormIds });
-        console.log(`Form email sent to ${trial.email} (${customerName}): ${formNames}`);
+        console.log(`Form email sent to trial ${trial.id?.slice(0, 8)}: ${formNames}`);
       } catch (sendErr) {
         console.error(`hbot-form-email-backfill send error for trial ${trial.id}:`, sendErr);
         results.push({ trialId: trial.id, name: `${trial.first_name} ${trial.last_name}`, error: sendErr.message });

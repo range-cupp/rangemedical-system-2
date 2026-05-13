@@ -113,7 +113,7 @@ export default async function handler(req, res) {
         });
 
         results.push({ email: sub.email, day: nextDay, status: 'sent' });
-        console.log(`[oxygen-daily] Day ${nextDay} sent to ${sub.first_name} <${sub.email}>`);
+        console.log(`[oxygen-daily] Day ${nextDay} sent to subscriber ${sub.id?.slice(0, 8)}`);
       } catch (sendError) {
         console.error(`[oxygen-daily] Failed for ${sub.email}:`, sendError);
 

@@ -223,7 +223,7 @@ export default async function handler(req, res) {
 
         if (smsResult.success) {
           results.sent.push({ name: displayName, service: serviceName, time: appointmentTime });
-          console.log(`[appointment-reminder] Sent to ${displayName} (${normalizedPhone})`);
+          console.log(`[appointment-reminder] Sent to patient ${booking.patient_id?.slice(0, 8) || 'unknown'}`);
         } else {
           results.errors.push({ name: displayName, error: smsResult.error });
           console.error(`[appointment-reminder] Failed for ${displayName}:`, smsResult.error);

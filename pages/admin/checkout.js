@@ -27,6 +27,7 @@ import {
   PEPTIDE_OPTIONS,
   PEPTIDE_PRODUCT_CATALOG,
   getPeptideProgramName,
+  HCG_PRICING,
   IV_THERAPY_TYPES,
   RANGE_IV_OPTIONS,
   getDoseOptions,
@@ -272,6 +273,9 @@ function CheckoutInner() {
   const [peptidePhase, setPeptidePhase] = useState(0); // 0 = not applicable
   const [peptideInClinicCount, setPeptideInClinicCount] = useState(0);
   const [peptideInjectionCount, setPeptideInjectionCount] = useState(0); // Custom count for phase-based peptides (0 = use full phase package)
+  const [hcgDose, setHcgDose] = useState('');
+  const [hcgFrequency, setHcgFrequency] = useState(0);
+  const [hcgWeeks, setHcgWeeks] = useState(0);
 
   // ── Vial Builder (clinic-side single-vial sales w/ dose + frequency) ──
   const [vialSelectedId, setVialSelectedId] = useState('');
@@ -789,12 +793,13 @@ function CheckoutInner() {
   // ── Peptide Builder helpers ──
   // Display labels + display order for the catalog's `category` field.
   const PEPTIDE_CATEGORY_META = {
-    recovery:  { label: 'Recovery',        order: 1 },
-    gh_blend:  { label: 'Growth Hormone',  order: 2 },
-    longevity: { label: 'Longevity',       order: 3 },
-    cognitive: { label: 'Cognitive',        order: 4 },
-    skin:      { label: 'Skin & Hair',     order: 5 },
-    peptide:   { label: 'Other',           order: 6 },
+    recovery:     { label: 'Recovery',        order: 1 },
+    gh_blend:     { label: 'Growth Hormone',  order: 2 },
+    longevity:    { label: 'Longevity',       order: 3 },
+    cognitive:    { label: 'Cognitive',        order: 4 },
+    skin:         { label: 'Skin & Hair',     order: 5 },
+    hrt_support:  { label: 'HRT Support',     order: 6 },
+    peptide:      { label: 'Other',           order: 7 },
   };
 
   function getPeptideCatalogGroups() {
@@ -960,6 +965,86 @@ function CheckoutInner() {
     setPeptidePhase(0);
     setPeptideInClinicCount(0);
     setPeptideInjectionCount(0);
+    setHcgDose('');
+    setHcgFrequency(0);
+    setHcgWeeks(0);
+  }
+
+  // ── HCG Builder helpers ──
+  function getHcgTotalInjections() {
+    return hcgFrequency * hcgWeeks;
+  }
+
+  function getHcgTotalIU() {
+    const iu = parseInt(hcgDose) || 0;
+    return iu * getHcgTotalInjections();
+  }
+
+  function getHcgPriceCents() {
+    const totalIU = getHcgTotalIU();
+    if (totalIU <= 0) return 0;
+    return Math.round((totalIU / 1000) * HCG_PRICING.centsPerThousandIU);
+  }
+
+  function hcgBuilderReady() {
+    return hcgDose && hcgFrequency > 0 && hcgWeeks > 0 && getHcgPriceCents() > 0;
+  }
+
+  function addHcgBuilderToCart() {
+    if (!hcgBuilderReady()) return;
+    const totalInj = getHcgTotalInjections();
+    const totalIU = getHcgTotalIU();
+    const totalCents = getHcgPriceCents();
+    const durationDays = hcgWeeks * 7;
+    const inClinicCount = Math.max(0, Math.min(peptideInClinicCount || 0, totalInj));
+    const takeHomeCount = totalInj - inClinicCount;
+    const durationLabel = `${hcgWeeks} week${hcgWeeks > 1 ? 's' : ''}`;
+    const serviceName = `HCG ${hcgDose} — ${hcgFrequency}x/week × ${durationLabel} (${totalInj} injections)`;
+    const displayName = `HRT Support Program — ${durationLabel}`;
+
+    const cartItem = {
+      id: 'peptide-builder-' + Date.now(),
+      name: displayName,
+      category: 'peptide',
+      sub_category: 'HRT Support',
+      price: totalCents,
+      quantity: 1,
+      peptide_identifier: 'HCG',
+      delivery_method: takeHomeCount > 0 ? 'take_home' : 'in_clinic',
+      duration_days: durationDays,
+      itemDiscountType: 'none',
+      itemDiscountValue: '',
+      peptideConfig: {
+        medication: 'HCG',
+        category: 'hrt_support',
+        durationDays,
+        durationLabel,
+        phase: null,
+        totalInjections: totalInj,
+        inClinicCount,
+        takeHomeCount,
+        hasInClinic: inClinicCount > 0,
+        hasTakeHome: takeHomeCount > 0,
+        internalName: serviceName,
+        vialId: null,
+        guideSlug: null,
+        hcgDose,
+        hcgFrequency,
+        hcgWeeks,
+        totalIU,
+      },
+    };
+
+    setCartItems(prev => [...prev, cartItem]);
+    setCartOpen(true);
+
+    // Reset
+    setPeptideCategory('');
+    setPeptideMedication('');
+    setHcgDose('');
+    setHcgFrequency(0);
+    setHcgWeeks(0);
+    setPeptideInClinicCount(0);
   }
 
   // ── Vial Builder helpers ──
@@ -4062,9 +4147,14 @@ function CheckoutInner() {
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '8px' }}>
                                   {(pepGroups[peptideCategory] || []).map(p => {
                                     const selected = peptideMedication === p.medication;
-                                    const minPrice = Math.min(
-                                      ...(p.phases?.length ? p.phases.map(ph => ph.price || 0) : (p.durations || []).map(d => d.price || 0)).filter(v => v > 0)
-                                    );
+                                    const minPrice = p.hcgConfig
+                                      ? 50
+                                      : Math.min(
+                                          ...(p.phases?.length ? p.phases.map(ph => ph.price || 0) : (p.durations || []).map(d => d.price || 0)).filter(v => v > 0)
+                                        );
+                                    const subtitle = p.hcgConfig
+                                      ? 'custom dose · from'
+                                      : (p.phases?.length ? `${p.phases.length} phase${p.phases.length > 1 ? 's' : ''}` : `${p.durations?.length || 0} duration${(p.durations?.length || 0) > 1 ? 's' : ''}`);
                                     return (
                                       <button
                                         key={p.medication}
@@ -4074,6 +4164,7 @@ function CheckoutInner() {
                                           setPeptidePhase(0);
                                           setPeptideInClinicCount(0);
                                           setPeptideInjectionCount(0);
+                                          if (p.hcgConfig) { setHcgDose(''); setHcgFrequency(0); setHcgWeeks(0); }
                                         }}
                                         style={{
                                           padding: '12px 14px',
@@ -4087,7 +4178,7 @@ function CheckoutInner() {
                                       >
                                         <div style={{ fontWeight: 600, color: '#1a1a1a', marginBottom: '2px' }}>{p.medication}</div>
                                         <div style={{ fontSize: '11px', color: '#888' }}>
-                                          {p.phases?.length ? `${p.phases.length} phase${p.phases.length > 1 ? 's' : ''}` : `${p.durations?.length || 0} duration${(p.durations?.length || 0) > 1 ? 's' : ''}`}
+                                          {subtitle}
                                           {isFinite(minPrice) && minPrice > 0 ? ` · from ${formatPrice(minPrice * 100)}` : ''}
                                         </div>
                                       </button>
@@ -4097,8 +4188,152 @@ function CheckoutInner() {
                               </div>
                             )}
 
+                            {/* ── HCG Builder (dosage / frequency / weeks) ── */}
+                            {pepProduct?.hcgConfig && (
+                              <>
+                                {/* Dosage */}
+                                <div style={{ marginBottom: '20px' }}>
+                                  <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>DOSAGE</label>
+                                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    {HCG_PRICING.doses.map(d => {
+                                      const selected = hcgDose === d;
+                                      return (
+                                        <button
+                                          key={d}
+                                          onClick={() => setHcgDose(d)}
+                                          style={{
+                                            padding: '12px 18px', fontSize: '14px', fontWeight: 600,
+                                            border: '1px solid #ddd', background: '#fff', cursor: 'pointer', minWidth: '90px',
+                                            ...(selected ? { border: '2px solid #7c3aed', background: '#f5f3ff', color: '#7c3aed' } : {}),
+                                          }}
+                                        >{d}</button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* Frequency */}
+                                {hcgDose && (
+                                  <div style={{ marginBottom: '20px' }}>
+                                    <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>FREQUENCY</label>
+                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                      {HCG_PRICING.frequencies.map(f => {
+                                        const selected = hcgFrequency === f.value;
+                                        return (
+                                          <button
+                                            key={f.value}
+                                            onClick={() => setHcgFrequency(f.value)}
+                                            style={{
+                                              padding: '12px 24px', fontSize: '14px', fontWeight: 600,
+                                              border: '1px solid #ddd', background: '#fff', cursor: 'pointer', minWidth: '140px',
+                                              ...(selected ? { border: '2px solid #2E75B6', background: '#EBF3FB', color: '#2E75B6' } : {}),
+                                            }}
+                                          >{f.label}</button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Weeks */}
+                                {hcgDose && hcgFrequency > 0 && (
+                                  <div style={{ marginBottom: '20px' }}>
+                                    <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>WEEKS</label>
+                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                      {HCG_PRICING.weeks.map(w => {
+                                        const selected = hcgWeeks === w.value;
+                                        const weekInj = hcgFrequency * w.value;
+                                        const weekIU = (parseInt(hcgDose) || 0) * weekInj;
+                                        const weekPrice = Math.round((weekIU / 1000) * HCG_PRICING.centsPerThousandIU);
+                                        return (
+                                          <button
+                                            key={w.value}
+                                            onClick={() => { setHcgWeeks(w.value); setPeptideInClinicCount(0); }}
+                                            style={{
+                                              padding: '12px 18px', fontSize: '14px', fontWeight: 600,
+                                              border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
+                                              minWidth: '140px', textAlign: 'left',
+                                              ...(selected ? { border: '2px solid #10b981', background: '#f0fdf4', color: '#065f46' } : {}),
+                                            }}
+                                          >
+                                            <div>{w.label}</div>
+                                            <div style={{ fontSize: '12px', fontWeight: 500, color: selected ? '#065f46' : '#666', marginTop: '2px' }}>
+                                              {weekInj} injections · {formatPrice(weekPrice)}
+                                            </div>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* HCG Fulfillment */}
+                                {hcgBuilderReady() && (() => {
+                                  const totalInj = getHcgTotalInjections();
+                                  const mode = peptideInClinicCount === 0
+                                    ? 'take_home'
+                                    : peptideInClinicCount >= totalInj
+                                    ? 'in_clinic'
+                                    : 'split';
+                                  const modeBtn = (active, color, bg) => ({
+                                    padding: '10px 16px', fontSize: '14px', fontWeight: 600,
+                                    border: '1px solid #ddd', background: '#fff', cursor: 'pointer', flex: 1,
+                                    ...(active ? { border: `2px solid ${color}`, background: bg, color } : {}),
+                                  });
+                                  return (
+                                    <div style={{ marginBottom: '20px' }}>
+                                      <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>FULFILLMENT</label>
+                                      <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                                        <button onClick={() => setPeptideInClinicCount(0)} style={modeBtn(mode === 'take_home', '#2E75B6', '#EBF3FB')}>All Take-Home</button>
+                                        <button onClick={() => setPeptideInClinicCount(Math.max(1, Math.min(peptideInClinicCount || 1, totalInj - 1)))} style={modeBtn(mode === 'split', '#7c3aed', '#f5f3ff')} disabled={totalInj < 2}>First Few In Clinic</button>
+                                        <button onClick={() => setPeptideInClinicCount(totalInj)} style={modeBtn(mode === 'in_clinic', '#e67e22', '#FFF5EB')}>All In Clinic</button>
+                                      </div>
+                                      {mode === 'split' && (
+                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '12px', background: '#f9fafb', border: '1px solid #e5e5e5' }}>
+                                          <label style={{ fontSize: '12px', color: '#666' }}># done in clinic:</label>
+                                          <input
+                                            type="number" min="1" max={totalInj - 1} value={peptideInClinicCount}
+                                            onChange={e => setPeptideInClinicCount(Math.max(1, Math.min(parseInt(e.target.value) || 1, totalInj - 1)))}
+                                            style={{ width: '72px', padding: '8px', border: '1px solid #ddd', fontSize: '15px', fontWeight: 600, textAlign: 'center' }}
+                                          />
+                                          <span style={{ fontSize: '13px', color: '#666' }}>
+                                            First <strong>{peptideInClinicCount}</strong> in clinic · <strong>{totalInj - peptideInClinicCount}</strong> take-home
+                                          </span>
+                                        </div>
+                                      )}
+                                      {mode !== 'split' && (
+                                        <div style={{ fontSize: '13px', color: '#666' }}>
+                                          {mode === 'in_clinic'
+                                            ? <>All <strong>{totalInj}</strong> injections done in clinic</>
+                                            : <>All <strong>{totalInj}</strong> injections take-home</>}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+
+                                {/* HCG Summary + Add to Cart */}
+                                {hcgBuilderReady() && (
+                                  <div style={{ borderTop: '2px solid #1a1a1a', paddingTop: '16px', marginTop: '16px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                      <div style={{ fontSize: '14px', color: '#666' }}>
+                                        HCG {hcgDose} · {hcgFrequency}x/week × {hcgWeeks} week{hcgWeeks > 1 ? 's' : ''} · {getHcgTotalInjections()} injections · {(getHcgTotalIU()).toLocaleString()} IU total
+                                      </div>
+                                      <div style={{ fontSize: '22px', fontWeight: 700 }}>{formatPrice(getHcgPriceCents())}</div>
+                                    </div>
+                                    <button
+                                      onClick={addHcgBuilderToCart}
+                                      style={{ width: '100%', padding: '14px', fontSize: '16px', fontWeight: 700, background: '#1a1a1a', color: '#fff', border: 'none', cursor: 'pointer' }}
+                                    >
+                                      Add to Cart — {formatPrice(getHcgPriceCents())}
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )}
+
                             {/* Duration — phase-based peptides keep the tier buttons; simple peptides get a custom-count grid */}
-                            {pepProduct && (pepProduct.durations?.length > 0) && pepProduct.phases?.length > 0 && (
+                            {pepProduct && !pepProduct.hcgConfig && (pepProduct.durations?.length > 0) && pepProduct.phases?.length > 0 && (
                               <div style={{ marginBottom: '20px' }}>
                                 <label style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#888', display: 'block', marginBottom: '8px' }}>DURATION</label>
                                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -4133,7 +4368,7 @@ function CheckoutInner() {
                             )}
 
                             {/* Injection count — simple (non-phase) peptides get a 1..maxTier grid with tier days as packages */}
-                            {pepProduct && (pepProduct.durations?.length > 0) && !pepProduct.phases?.length && (() => {
+                            {pepProduct && !pepProduct.hcgConfig && (pepProduct.durations?.length > 0) && !pepProduct.phases?.length && (() => {
                               const tierDaysSet = new Set(pepProduct.durations.map(d => d.days));
                               const maxTier = Math.max(...pepProduct.durations.map(d => d.days));
                               const tierLabel = (n) => pepProduct.durations.find(d => d.days === n)?.label || `${n} Day`;
@@ -4252,7 +4487,7 @@ function CheckoutInner() {
                             })()}
 
                             {/* Fulfillment (only if product supports in-clinic AND we have a total) */}
-                            {pepProduct?.deliveryOptions?.includes('in_clinic') && totalInjForCurrent > 0 && (() => {
+                            {pepProduct && !pepProduct.hcgConfig && pepProduct.deliveryOptions?.includes('in_clinic') && totalInjForCurrent > 0 && (() => {
                               const mode = peptideInClinicCount === 0
                                 ? 'take_home'
                                 : peptideInClinicCount >= totalInjForCurrent
@@ -4313,8 +4548,8 @@ function CheckoutInner() {
                               );
                             })()}
 
-                            {/* Summary + Add to Cart */}
-                            {peptideBuilderReady() && (
+                            {/* Summary + Add to Cart (non-HCG peptides) */}
+                            {!pepProduct?.hcgConfig && peptideBuilderReady() && (
                               <div style={{ borderTop: '2px solid #1a1a1a', paddingTop: '16px', marginTop: '16px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                                   <div style={{ fontSize: '14px', color: '#666' }}>

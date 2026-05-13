@@ -143,8 +143,8 @@ export default async function handler(req, res) {
     .single();
 
   if (upsertErr) {
-    console.error('[lead-magnet/subscribe] upsert error:', upsertErr);
-    return res.status(500).json({ error: 'Database error' });
+    console.error('[lead-magnet/subscribe] upsert error:', JSON.stringify(upsertErr));
+    return res.status(500).json({ error: 'Database error', detail: upsertErr.message, code: upsertErr.code });
   }
 
   const emailContent = EMAIL_1_BY_TAG[tag];

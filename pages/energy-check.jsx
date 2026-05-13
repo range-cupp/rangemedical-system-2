@@ -867,7 +867,7 @@ export default function EnergyCheckPage() {
                       onChange={(e) => setContact((c) => ({ ...c, consentSms: e.target.checked }))}
                     />
                     <label htmlFor="ec-sms-consent">
-                      I agree to receive text messages from Range Medical with my results and follow-up info. Msg & data rates may apply. Reply STOP to unsubscribe.
+                      I consent to receive text messages from Range Medical regarding my care, appointments, and health information. Message and data rates may apply. Reply STOP to opt out.
                     </label>
                   </div>
 

@@ -817,7 +817,7 @@ export default function IntakeForm() {
                   <label htmlFor="phone">Phone Number <span className="required">*</span></label>
                   <input type="tel" id="phone" name="phone" placeholder="(555) 555-5555" autoComplete="tel" required />
                   <span className="field-error" id="phoneError">Phone number is required</span>
-                  <p className="sms-consent">By providing my phone number, I agree to receive text messages from Range Medical regarding my appointments, lab results, and health updates. Message and data rates may apply. Message frequency varies (up to 10 msg/mo). Reply STOP to cancel, HELP for help. View our <a href="/terms-of-use" target="_blank" rel="noopener noreferrer">Terms of Use</a> and <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.</p>
+                  <p className="sms-consent">By providing your phone number, you consent to receive text messages from Range Medical regarding your care, appointments, and health information. Message and data rates may apply. Up to 10 msg/mo. Reply STOP to opt out. View our <a href="/terms-of-use" target="_blank" rel="noopener noreferrer">Terms of Use</a> and <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.</p>
                 </div>
               </div>
 

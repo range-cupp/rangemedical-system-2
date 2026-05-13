@@ -466,7 +466,7 @@ export default function SuperBowlGiveaway() {
                   placeholder="(555) 555-5555"
                   autoComplete="tel"
                 />
-                <p className="sb-sms-consent">By providing my phone number, I agree to receive text messages from Range Medical. Msg &amp; data rates may apply. Up to 10 msg/mo. Reply STOP to cancel, HELP for help. <a href="/terms-of-use" target="_blank" rel="noopener noreferrer">Terms</a> &amp; <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy</a>.</p>
+                <p className="sb-sms-consent">By providing your phone number, you consent to receive text messages from Range Medical regarding your care, appointments, and health information. Message and data rates may apply. Up to 10 msg/mo. Reply STOP to opt out. <a href="/terms-of-use" target="_blank" rel="noopener noreferrer">Terms</a> &amp; <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy</a>.</p>
               </div>
 
               <div className="sb-field">
@@ -550,8 +550,7 @@ export default function SuperBowlGiveaway() {
                     className="sb-consent-checkbox"
                   />
                   <span className="sb-consent-text">
-                    I agree to receive text messages from Range Medical about this giveaway and future health tips.
-                    Message frequency varies. Reply STOP to opt out. Message & data rates may apply.
+                    I consent to receive text messages from Range Medical regarding my care, appointments, and health information. Message and data rates may apply. Reply STOP to opt out.
                   </span>
                 </label>
               </div>

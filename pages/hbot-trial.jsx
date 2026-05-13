@@ -590,9 +590,7 @@ export default function HBOTTrial() {
                       onChange={(e) => { setContact({ ...contact, consent: e.target.checked }); clearFieldError('consent'); }}
                     />
                     <label htmlFor="fs-consent">
-                      I agree to receive text and email from Range Medical about
-                      scheduling my session and related health offers. Msg &amp; data
-                      rates may apply. Reply STOP to opt out.
+                      I consent to receive text messages from Range Medical regarding my care, appointments, and health information. Message and data rates may apply. Reply STOP to opt out.
                     </label>
                   </div>
                   {errors.consent && <div className="fs-field-errmsg">{errors.consent}</div>}

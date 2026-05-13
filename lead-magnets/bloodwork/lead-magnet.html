@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0B1B2B;
+  --off-white: #F7F4EE;
+  --methylene-blue: #1B4D8C;
+  --body-text: #1A1A1A;
+  --muted-grey: #6B6660;
+  --danger-bg: #F5E8E4;
+  --danger-text: #7A2E2E;
+  --alt-row: #EDEAE3;
+}
+
+@page {
+  size: Letter;
+  margin: 0;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  background: var(--off-white);
+  color: var(--body-text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 11pt;
+  line-height: 1.6;
+  orphans: 3;
+  widows: 3;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.page {
+  width: 8.5in;
+  min-height: 11in;
+  padding: 0.75in 0.75in 0.75in 0.75in;
+  background: var(--off-white);
+  page-break-after: always;
+  position: relative;
+}
+
+.page:last-child {
+  page-break-after: auto;
+}
+
+.page-number {
+  position: absolute;
+  bottom: 0.4in;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 8pt;
+  color: var(--muted-grey);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+}
+
+.page-number-left {
+  left: 0.75in;
+}
+
+.page-number-right {
+  right: 0.75in;
+}
+
+h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  color: var(--navy);
+  font-size: 28pt;
+  line-height: 1.15;
+  margin-bottom: 0.15in;
+}
+
+h2 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600;
+  color: var(--navy);
+  font-size: 18pt;
+  line-height: 1.25;
+  margin-bottom: 0.08in;
+  padding-bottom: 0.06in;
+  border-bottom: 1.5px solid var(--methylene-blue);
+}
+
+h3 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600;
+  color: var(--navy);
+  font-size: 13pt;
+  line-height: 1.3;
+  margin-top: 0.18in;
+  margin-bottom: 0.06in;
+}
+
+p {
+  margin-bottom: 0.12in;
+}
+
+.subtitle {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--muted-grey);
+  font-size: 13pt;
+  line-height: 1.4;
+}
+
+.attribution {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 10pt;
+  color: var(--muted-grey);
+  margin-top: 0.25in;
+  letter-spacing: 0.03em;
+}
+
+.cover-footer {
+  position: absolute;
+  bottom: 0.75in;
+  left: 0.75in;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 9pt;
+  color: var(--muted-grey);
+  letter-spacing: 0.02em;
+}
+
+.cover-rule {
+  width: 100%;
+  height: 2px;
+  background: var(--methylene-blue);
+  margin-top: 0.2in;
+  margin-bottom: 0.3in;
+}
+
+.bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0.15in 0;
+}
+
+.bullets li {
+  padding: 0.08in 0 0.08in 0.2in;
+  position: relative;
+  line-height: 1.55;
+  margin-bottom: 0.06in;
+}
+
+.bullets li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.16in;
+  width: 5px;
+  height: 5px;
+  background: var(--methylene-blue);
+  border-radius: 50%;
+}
+
+.numbered-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.15in 0;
+  counter-reset: item;
+}
+
+.numbered-list li {
+  padding: 0.08in 0 0.08in 0.3in;
+  position: relative;
+  line-height: 1.55;
+  margin-bottom: 0.08in;
+  counter-increment: item;
+}
+
+.numbered-list li::before {
+  content: counter(item) ".";
+  position: absolute;
+  left: 0;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.marker-section {
+  margin-bottom: 0.2in;
+}
+
+.marker-section h3 {
+  margin-bottom: 0.04in;
+}
+
+.range-line {
+  font-size: 9.5pt;
+  color: var(--muted-grey);
+  margin-top: 0.04in;
+  line-height: 1.5;
+}
+
+.range-line strong {
+  color: var(--body-text);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.12in 0;
+  font-size: 9.5pt;
+}
+
+table th {
+  background: var(--navy);
+  color: var(--off-white);
+  font-weight: 600;
+  font-size: 8.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.08in 0.12in;
+  text-align: left;
+}
+
+table td {
+  padding: 0.07in 0.12in;
+  vertical-align: top;
+  line-height: 1.45;
+  border-bottom: 0.5px solid #DDD;
+}
+
+table tr:nth-child(even) td {
+  background: var(--alt-row);
+}
+
+table tr:nth-child(odd) td {
+  background: var(--off-white);
+}
+
+.danger-callout {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border-radius: 16px;
+  padding: 20px;
+  margin: 0.15in 0;
+}
+
+.danger-callout strong {
+  display: block;
+  font-size: 10.5pt;
+  margin-bottom: 0.06in;
+  line-height: 1.35;
+}
+
+.danger-callout p {
+  margin-bottom: 0;
+  font-size: 10pt;
+  line-height: 1.55;
+}
+
+.pull-quote {
+  border-left: 2px solid var(--methylene-blue);
+  padding: 0.12in 0 0.12in 0.25in;
+  margin: 0.2in 0;
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 500;
+  font-style: italic;
+  font-size: 14pt;
+  line-height: 1.45;
+  color: var(--navy);
+}
+
+.cta-section {
+  text-align: center;
+  margin-top: 0.4in;
+}
+
+.cta-button {
+  display: inline-block;
+  background: var(--navy);
+  color: var(--off-white);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 13pt;
+  padding: 0.15in 0.5in;
+  text-decoration: none;
+  letter-spacing: 0.03em;
+  border-radius: 4px;
+}
+
+.cta-small {
+  font-size: 9pt;
+  color: var(--muted-grey);
+  margin-top: 0.15in;
+  line-height: 1.5;
+}
+
+.qr-code {
+  margin-top: 0.2in;
+}
+
+.qr-code img {
+  width: 150px;
+  height: 150px;
+}
+
+.signature {
+  margin-top: 0.3in;
+  font-size: 10pt;
+  line-height: 1.6;
+  color: var(--body-text);
+}
+
+.signature .name {
+  font-weight: 600;
+}
+
+.signature .title-line {
+  color: var(--muted-grey);
+  font-style: italic;
+}
+
+.disclaimer-page h2 {
+  font-size: 14pt;
+  color: var(--muted-grey);
+  border-bottom-color: var(--muted-grey);
+}
+
+.disclaimer-page p,
+.disclaimer-page .citation {
+  font-size: 9.5pt;
+  color: var(--muted-grey);
+  line-height: 1.6;
+}
+
+.disclaimer-page .citation {
+  font-style: italic;
+  margin-bottom: 0.06in;
+  padding-left: 0.2in;
+  text-indent: -0.2in;
+}
+
+.section-intro {
+  font-size: 10.5pt;
+  color: var(--muted-grey);
+  margin-bottom: 0.15in;
+  font-style: italic;
+}
+
+.compact-marker {
+  margin-bottom: 0.12in;
+}
+
+.compact-marker h3 {
+  margin-top: 0.1in;
+  margin-bottom: 0.03in;
+  font-size: 12pt;
+}
+
+.compact-marker p {
+  font-size: 10pt;
+  margin-bottom: 0.04in;
+}
+
+.compact-marker .range-line {
+  font-size: 9pt;
+}
+
+.what-included li {
+  margin-bottom: 0.1in;
+}
+
+.what-included li strong {
+  color: var(--navy);
+}
+
+.page-8-table td:first-child {
+  font-weight: 600;
+  color: var(--navy);
+  white-space: nowrap;
+}
+
+.page-8-table td:last-child {
+  font-size: 9pt;
+}
+</style>
+</head>
+<body>
+
+<!-- PAGE 1: COVER -->
+<section class="page" style="display: flex; flex-direction: column; justify-content: center;">
+  <div style="margin-top: 2in;">
+    <h1 style="font-size: 32pt; line-height: 1.1; margin-bottom: 0.1in;">The Bloodwork<br>Your Doctor<br>Isn't Running</h1>
+    <div class="cover-rule"></div>
+    <p class="subtitle" style="font-size: 15pt;">What "Normal Labs, Feel Like Shit"<br>Actually Means at 45</p>
+    <p class="attribution" style="margin-top: 0.35in;">A Range Medical Guide for Men 45&ndash;55</p>
+  </div>
+  <div class="cover-footer">Newport Beach, California &middot; range-medical.com</div>
+</section>
+
+<!-- PAGE 2: TL;DR -->
+<section class="page">
+  <h2>If You Stop Reading Here</h2>
+
+  <p>Your last physical was probably bullshit. Not because your doctor is a bad doctor&mdash;because the standard physical was designed to catch disease, not optimize a guy who's still walking around looking fine but feels 15 years older than he should. Here's what actually matters.</p>
+
+  <ol class="numbered-list">
+    <li><strong>"Normal" on your lab report means you're not actively dying.</strong> It does not mean you're healthy. Reference ranges are built from population averages&mdash;and the population is sick.</li>
+    <li><strong>A standard physical at your PCP runs maybe 8 markers.</strong> The ones that predict heart attacks, diabetes, and the slow grind of decline aren't on that list.</li>
+    <li><strong>Total testosterone of 380 ng/dL is "normal."</strong> It's also a level that would have gotten you diagnosed as hypogonadal in 1980. The reference range moved. Your body didn't.</li>
+    <li><strong>ApoB and Lp(a) tell you more about your cardiovascular risk</strong> than the cholesterol panel your doctor has been running for 30 years. Most PCPs still don't order them.</li>
+    <li><strong>Insulin resistance shows up in your bloodwork 10&ndash;20 years before diabetes does.</strong> If you're only checking A1c, you're checking for the fire after the house is already burning.</li>
+  </ol>
+
+  <span class="page-number page-number-left">2</span>
+</section>
+
+<!-- PAGE 3: WHY THIS MATTERS -->
+<section class="page">
+  <h2>Why Your Last Physical Missed 80% of What Matters</h2>
+
+  <p>You're 48. You go in for your annual. Doctor draws blood, sends it to the lab, you get a portal message a week later: "All results normal." Maybe a note about cholesterol. Maybe nothing.</p>
+
+  <p>You feel like shit. You can't sleep. You're 30 pounds heavier than you were at 35. Your libido is gone. You're working out and watching muscle disappear anyway. But the labs are "normal." So you go home and assume this is just what 48 feels like.</p>
+
+  <p>It's not.</p>
+
+  <p>Here's what actually happened: your doctor ran a panel that was designed in the 1980s to screen for overt disease. It tells him whether you're diabetic, whether your kidneys are failing, whether your cholesterol is in the actively-dangerous zone. It does not tell him&mdash;or you&mdash;whether your hormones are in a range a healthy man would want, whether your cardiovascular risk is being driven by particles his panel can't even see, or whether your insulin has been creeping up for a decade.</p>
+
+  <p>The standard panel was built to catch you when you're already broken. This guide is about what to measure before you get there.</p>
+
+  <p style="margin-top: 0.2in; font-style: italic; color: var(--muted-grey); font-size: 10pt;">A note on the reference ranges in this guide: I'll give you the standard "normal" ranges your lab uses, and the optimal ranges a longevity-focused provider would actually target. They're not the same. The difference is where most of the slow decline lives.</p>
+
+  <span class="page-number page-number-right">3</span>
+</section>
+
+<!-- PAGE 4: THE SIX MARKERS -->
+<section class="page">
+  <h2>The Six Your PCP Probably Skipped</h2>
+
+  <div class="marker-section">
+    <h3>1. ApoB</h3>
+    <p>ApoB measures the actual number of atherogenic particles in your blood&mdash;the ones that drive plaque. It is a better predictor of cardiovascular events than LDL cholesterol, full stop. The National Lipid Association said so officially in 2024. Your doctor is running LDL because that's what's in the standard panel. He's not running ApoB unless you ask.</p>
+    <p class="range-line"><strong>Standard:</strong> 55&ndash;140 mg/dL &middot; <strong>Optimal (primary prevention):</strong> &lt;90 mg/dL &middot; <strong>Higher-risk:</strong> &lt;70 mg/dL &middot; <strong>Aggressive:</strong> &lt;60 mg/dL</p>
+  </div>
+
+  <div class="marker-section">
+    <h3>2. Lipoprotein(a)&mdash;Lp(a)</h3>
+    <p>Lp(a) is a genetically determined particle that drives cardiovascular and aortic valve disease independent of everything else you do. It is roughly 70&ndash;90% genetic, meaning you can be a marathoner who eats clean and still have a 3x cardiovascular risk because of one number you've never had measured. The American Heart Association told doctors in 2022 to start checking it. Most still don't.</p>
+    <p class="range-line"><strong>Risk threshold:</strong> &ge;50 mg/dL (or &ge;125 nmol/L) per ACC/AHA. You measure it once in your life. You never have to measure it again.</p>
+  </div>
+
+  <div class="marker-section">
+    <h3>3. Total and Free Testosterone (with SHBG)</h3>
+    <p>The standard testosterone test is total T. The lab reports "normal" as anything above 264 ng/dL based on a 2018 Endocrine Society guideline harmonized to healthy young men. Two problems: first, "healthy young men" is not "you at 48," and second, total T doesn't tell you what's actually bioavailable. Free testosterone&mdash;calculated from total T and SHBG&mdash;does. Most PCPs don't run SHBG. Some don't even run free T.</p>
+    <p class="range-line"><strong>Standard total T:</strong> 264&ndash;916 ng/dL &middot; <strong>Where guys feel good:</strong> Total T 700&ndash;1000+ with free T in the upper third of range.</p>
+  </div>
+
+  <div class="marker-section">
+    <h3>4. Fasting Insulin (and HOMA-IR)</h3>
+    <p>A1c and fasting glucose tell you whether you're diabetic right now. Fasting insulin tells you what your pancreas has been doing for the last decade to keep you out of diabetes. HOMA-IR is the calculated index that combines them. Insulin resistance shows up on this number 10 to 20 years before A1c moves.</p>
+    <p class="range-line"><strong>Standard:</strong> ~2.5&ndash;13 &mu;IU/mL &middot; <strong>Optimal:</strong> &lt;7, ideally &lt;5 &middot; <strong>HOMA-IR:</strong> &lt;2.0 no IR &middot; 2.0&ndash;2.9 early IR &middot; &ge;3.0 significant IR</p>
+  </div>
+
+  <div class="marker-section">
+    <h3>5. hs-CRP</h3>
+    <p>High-sensitivity C-reactive protein is a marker of systemic inflammation. The JUPITER trial in 2008 established it as an independent predictor of cardiovascular events even when LDL was normal. The AHA uses three buckets: low, average, and high risk.</p>
+    <p class="range-line"><strong>Buckets:</strong> &lt;1.0 mg/L low risk &middot; 1.0&ndash;3.0 average &middot; &gt;3.0 high &middot; Two readings two weeks apart tells you about your baseline.</p>
+  </div>
+
+  <div class="marker-section">
+    <h3>6. Estradiol (yes, estradiol)</h3>
+    <p>Estrogen isn't a "women's hormone." Men make it from testosterone via aromatase, and it does real work&mdash;bone density, libido, cognition. Too low is as bad as too high. Most men on TRT find this out the hard way. Most PCPs don't measure it.</p>
+    <p class="range-line"><strong>Optimal for men:</strong> ~20&ndash;40 pg/mL (sensitive assay). If you're considering testosterone optimization, this is the number that determines whether you'll feel great or feel like you have PMS.</p>
+  </div>
+
+  <span class="page-number page-number-left">4</span>
+</section>
+
+<!-- PAGE 5: ADVANCED SIX -->
+<section class="page">
+  <h2>The Advanced Six&mdash;For Optimizing, Not Just Surviving</h2>
+
+  <p class="section-intro">The first six tell you whether something is wrong. These six tell you whether you're optimizing or coasting.</p>
+
+  <div class="compact-marker">
+    <h3>Free T3 and Free T4</h3>
+    <p>Most PCPs check TSH and call it a thyroid panel. TSH is the brain's signal to the thyroid&mdash;not the thyroid's output. You can have normal TSH and a sluggish thyroid that's tanking your energy, mood, and metabolism. Free T3 and free T4 measure the actual hormones doing the work.</p>
+    <p class="range-line"><strong>Optimal Free T3:</strong> upper third of range, typically 3.5&ndash;4.2 pg/mL.</p>
+  </div>
+
+  <div class="compact-marker">
+    <h3>DHEA-S</h3>
+    <p>The mother hormone for testosterone and estrogen. Drops 80% between age 25 and 75. Most PCPs never look at it.</p>
+    <p class="range-line"><strong>Optimal:</strong> Top quartile for age, typically 300&ndash;500 &mu;g/dL for men over 40.</p>
+  </div>
+
+  <div class="compact-marker">
+    <h3>Cortisol (AM)</h3>
+    <p>If you're waking at 3am, it's probably this. Morning cortisol tells you whether your HPA axis is functioning. Chronically elevated or chronically suppressed both kill recovery, sleep, and body composition.</p>
+    <p class="range-line"><strong>Optimal AM:</strong> 10&ndash;18 &mu;g/dL drawn before 9am.</p>
+  </div>
+
+  <div class="compact-marker">
+    <h3>Vitamin D (25-OH)</h3>
+    <p>Boring marker, real impact. Most men in Newport Beach are deficient anyway&mdash;sounds insane in a sunny climate, but it's the truth. Drives bone, mood, immune function, testosterone production.</p>
+    <p class="range-line"><strong>Optimal:</strong> 50&ndash;80 ng/mL. Lab "normal" of 30+ is the floor, not the goal.</p>
+  </div>
+
+  <div class="compact-marker">
+    <h3>Ferritin</h3>
+    <p>Iron storage. Too low and you're exhausted. Too high (which is more common in men) and you may have hemochromatosis driving cardiovascular and liver risk.</p>
+    <p class="range-line"><strong>Optimal:</strong> 50&ndash;150 ng/mL. Anything over 300 in a man warrants a workup.</p>
+  </div>
+
+  <div class="compact-marker">
+    <h3>Homocysteine</h3>
+    <p>Marker of methylation status. Elevated homocysteine independently predicts cardiovascular events and cognitive decline. Driven largely by B-vitamin status&mdash;fixable with the right protocol.</p>
+    <p class="range-line"><strong>Optimal:</strong> &lt;8 &mu;mol/L.</p>
+  </div>
+
+  <span class="page-number page-number-right">5</span>
+</section>
+
+<!-- PAGE 6: DANGER ZONE -->
+<section class="page">
+  <h2>What Nobody Tells You About Reading Your Own Labs</h2>
+
+  <p>This is the page everyone wants to skip. Don't.</p>
+
+  <div class="danger-callout">
+    <strong>"Normal" is not "optimal," and the gap is where the decline lives.</strong>
+    <p>Lab reference ranges are built from population averages. The population is fat, tired, hormonally suppressed, and inflamed. If you anchor yourself to "normal," you're benchmarking against the people who feel like you do. The whole point of advanced bloodwork is to see how far you are from optimal&mdash;not how close you are to disease.</p>
+  </div>
+
+  <div class="danger-callout">
+    <strong>Self-medicating off Reddit doses is how guys end up with hematocrit at 56% and a stroke risk they didn't know they had.</strong>
+    <p>You've Googled the protocols. You've seen the threads. You know guys who buy testosterone from a peptide site and inject themselves on a schedule a guy with no medical license recommended. Some of them are fine. Some of them have hematocrit so elevated their blood is sludge. Some have estradiol high enough to grow breast tissue. Some have suppressed their own production so completely they can't reverse it. The labs in this guide are what prevent all three of those.</p>
+  </div>
+
+  <div class="danger-callout">
+    <strong>Lp(a) is genetic. If yours is high, your kids' may be too.</strong>
+    <p>This is the one nobody talks about. If you find out at 48 that your Lp(a) is 80 mg/dL and you have a 3x cardiovascular risk you've been carrying your entire life, your kids likely inherited the same gene. Measure them in their 20s. Catching it early changes the trajectory.</p>
+  </div>
+
+  <div class="danger-callout">
+    <strong>"I feel fine" is not a substitute for bloodwork.</strong>
+    <p>The Newport Beach Guy is famous for this. He feels fine&mdash;until the cardiologist says he had a silent MI two years ago and didn't notice. Or the urologist tells him his testosterone has been in the gutter for a decade and that's why his marriage has been weird. The first symptom of most decline is the absence of symptoms. By the time something hurts, you've been losing ground for years.</p>
+  </div>
+
+  <span class="page-number page-number-left">6</span>
+</section>
+
+<!-- PAGE 7: WHY DOCTORS DON'T RUN THESE -->
+<section class="page">
+  <h2>"Why Isn't My Doctor Running These?"</h2>
+
+  <p>Fair question. The short answer is: insurance, time, and inertia. The longer answer is more useful.</p>
+
+  <h3>Insurance</h3>
+  <p>Most of these markers&mdash;ApoB, Lp(a), fasting insulin, free testosterone, SHBG, hs-CRP&mdash;are not covered by standard insurance unless you already have a diagnosis that justifies them. Which means your doctor can order them, but you might get a $400 bill in the mail. Most PCPs default to what insurance covers, which is the basic panel from 1985.</p>
+
+  <h3>Time</h3>
+  <p>Your PCP has 12 minutes with you. He's catching disease, not optimizing your physiology. He's not trained to read free T3 in the upper-third-of-range as "this is why you feel slow." He's trained to read it as "not hypothyroid, all good."</p>
+
+  <h3>Inertia</h3>
+  <p>Medical guidelines update slowly. ApoB has been a better marker than LDL for 30+ years. The 2024 NLA consensus made it official. Your PCP's panel hasn't caught up. It probably won't for another five years.</p>
+
+  <p style="margin-top: 0.25in;">None of this is your doctor's fault. It's a structural problem. He's working inside a system designed for sick-care, not optimization. If you want optimization, you have to go outside that system. That's it.</p>
+
+  <span class="page-number page-number-right">7</span>
+</section>
+
+<!-- PAGE 8: SIDE-BY-SIDE TABLE -->
+<section class="page">
+  <h2>A Side-by-Side: "Normal" vs. Optimal</h2>
+
+  <table class="page-8-table">
+    <thead>
+      <tr>
+        <th style="width: 18%;">Marker</th>
+        <th style="width: 22%;">Standard Lab "Normal"</th>
+        <th style="width: 25%;">Optimal Range (Men 45&ndash;55)</th>
+        <th style="width: 35%;">Why It Matters</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>ApoB</td>
+        <td>55&ndash;140 mg/dL</td>
+        <td>&lt;90 mg/dL (primary prev.)</td>
+        <td>Better CV predictor than LDL cholesterol</td>
+      </tr>
+      <tr>
+        <td>Lp(a)</td>
+        <td>Not routinely tested</td>
+        <td>&lt;50 mg/dL (&lt;125 nmol/L)</td>
+        <td>Genetic; 3x CV risk if elevated; test once</td>
+      </tr>
+      <tr>
+        <td>Total T</td>
+        <td>264&ndash;916 ng/dL</td>
+        <td>700&ndash;1000+ ng/dL</td>
+        <td>Bottom of "normal" is symptomatic for most</td>
+      </tr>
+      <tr>
+        <td>Free T</td>
+        <td>Varies by lab</td>
+        <td>Upper third of range</td>
+        <td>What your body actually uses</td>
+      </tr>
+      <tr>
+        <td>Fasting Insulin</td>
+        <td>~2.5&ndash;13 &mu;IU/mL</td>
+        <td>&lt;7, ideally &lt;5</td>
+        <td>Predicts diabetes 10&ndash;20 years early</td>
+      </tr>
+      <tr>
+        <td>HOMA-IR</td>
+        <td>Not routinely calc'd</td>
+        <td>&lt;2.0</td>
+        <td>Gold standard insulin resistance index</td>
+      </tr>
+      <tr>
+        <td>hs-CRP</td>
+        <td>&lt;3.0 mg/L</td>
+        <td>&lt;1.0 mg/L</td>
+        <td>Systemic inflammation; independent CV risk</td>
+      </tr>
+      <tr>
+        <td>Estradiol</td>
+        <td>11&ndash;44 pg/mL</td>
+        <td>20&ndash;40 pg/mL (sensitive)</td>
+        <td>Too low or too high wrecks TRT outcomes</td>
+      </tr>
+      <tr>
+        <td>Free T3</td>
+        <td>2.0&ndash;4.4 pg/mL</td>
+        <td>3.5&ndash;4.2 pg/mL</td>
+        <td>Actual thyroid output; TSH alone misses it</td>
+      </tr>
+      <tr>
+        <td>DHEA-S</td>
+        <td>Varies by age</td>
+        <td>300&ndash;500 &mu;g/dL</td>
+        <td>Mother hormone; drops 80% by 75</td>
+      </tr>
+      <tr>
+        <td>Cortisol (AM)</td>
+        <td>6&ndash;23 &mu;g/dL</td>
+        <td>10&ndash;18 &mu;g/dL</td>
+        <td>3am wake-ups, recovery, body comp</td>
+      </tr>
+      <tr>
+        <td>Vitamin D</td>
+        <td>&ge;30 ng/mL</td>
+        <td>50&ndash;80 ng/mL</td>
+        <td>Most NB men are deficient despite the sun</td>
+      </tr>
+      <tr>
+        <td>Ferritin</td>
+        <td>20&ndash;400 ng/mL</td>
+        <td>50&ndash;150 ng/mL</td>
+        <td>High in men = hemochromatosis screen</td>
+      </tr>
+      <tr>
+        <td>Homocysteine</td>
+        <td>5&ndash;15 &mu;mol/L</td>
+        <td>&lt;8 &mu;mol/L</td>
+        <td>Methylation; CV and cognitive risk</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="pull-quote" style="margin-top: 0.3in;">
+    You can sit in the bottom of the "normal" range for ten markers simultaneously and feel like absolute garbage. The lab will tell you everything's fine. Your body knows otherwise.
+  </div>
+
+  <span class="page-number page-number-left">8</span>
+</section>
+
+<!-- PAGE 9: RANGE MEDICAL -->
+<section class="page">
+  <h2>How We Do This at Range Medical</h2>
+
+  <p>Range Medical is a cash-pay clinic in Newport Beach. We've served over 1,000 patients in 9 months across two doors: Optimization (labs, hormones, peptides, weight loss) and Recovery (injuries, BPC-157, PRP, red light, hyperbaric oxygen).</p>
+
+  <p>I'm Chris Cupp. I'm not a doctor. I'm the patient who became the operator. Lost 100 pounds, figured out my own hormones, sleep, and metabolism, and built this place because the version of healthcare I needed at 40 didn't exist. We have actual providers running the medicine. I run the place.</p>
+
+  <h3>The Range Assessment</h3>
+  <p>The Range Assessment is how we figure out where you actually are.</p>
+
+  <p><strong>What's included:</strong></p>
+  <ul class="bullets what-included">
+    <li><strong>The Essential Panel</strong>&mdash;every marker on page 4 of this guide, plus standard metabolic, lipid, and CBC. Total T, free T, SHBG, estradiol, A1c, fasting insulin, hs-CRP, lipid panel.</li>
+    <li><strong>Optional Elite add-ons</strong>&mdash;ApoB, Lp(a), DHEA-S, full thyroid (free T3, free T4, reverse T3, TPO antibodies), homocysteine, vitamin D, ferritin, cortisol AM. The full picture from page 5.</li>
+    <li><strong>A one-on-one provider conversation.</strong> Your labs read with you, not emailed at you. Forty-five minutes. We tell you what's actually going on and what we'd do about it.</li>
+    <li><strong>A personalized protocol.</strong> The intervention is one option. Sometimes it's testosterone. Sometimes it's a GLP-1. Sometimes it's "your sleep is destroying you, fix that first." Sometimes it's "your labs are great, here's what to keep doing." That last one happens more often than you'd think.</li>
+  </ul>
+
+  <p><strong>What it costs:</strong> $197 — applied as a credit toward any labs or treatment plan. It's not an extra cost on top.</p>
+
+  <p style="margin-top: 0.15in; font-style: italic; color: var(--muted-grey);">If hormone optimization isn't right for you, we'll tell you. If a GLP-1 isn't right for you, we'll tell you. We've turned plenty of people away from both. That's the whole point of having a provider.</p>
+
+  <span class="page-number page-number-right">9</span>
+</section>
+
+<!-- PAGE 10: BOOK CTA -->
+<section class="page">
+  <h2>Book the Range Assessment</h2>
+
+  <p>If you've read this far, you already know your last physical didn't tell you what you needed to know. The Range Assessment will.</p>
+
+  <div class="cta-section">
+    <a href="https://www.range-medical.com/book-assessment" class="cta-button">BOOK YOUR ASSESSMENT</a>
+
+    <div class="qr-code">
+      <img src="QR_CODE_DATA_URI_PLACEHOLDER" alt="Scan to book your Range Assessment" />
+    </div>
+
+    <p class="cta-small">
+      Or visit https://www.range-medical.com/book-assessment<br>
+      Reply to any email from me directly. It comes to my inbox.
+    </p>
+  </div>
+
+  <div class="signature" style="text-align: center; margin-top: 0.5in;">
+    <p>&mdash; Chris Cupp</p>
+    <p class="title-line">Head Janitor, Range Medical</p>
+    <p class="title-line">Newport Beach, California</p>
+  </div>
+
+  <span class="page-number page-number-left">10</span>
+</section>
+
+<!-- PAGE 11: DISCLAIMER -->
+<section class="page disclaimer-page">
+  <h2>Disclaimer</h2>
+
+  <p>This guide is for educational purposes and does not constitute medical advice. Range Medical does not establish a doctor-patient relationship through this document. The reference ranges, optimal targets, and protocols discussed are general frameworks based on current peer-reviewed literature and clinical practice&mdash;they are not prescriptions. Individual results vary. Some markers, ranges, and recommendations remain debated within the medical community; this guide reflects current consensus among longevity-focused practitioners as of 2026. Always consult a licensed medical provider before making changes to any treatment, medication, or supplement regimen. Lab values must be interpreted in the context of your full medical history, symptoms, and individual physiology&mdash;not in isolation. If you are experiencing chest pain, severe shortness of breath, suicidal ideation, or other medical emergencies, contact emergency services or your physician immediately.</p>
+
+  <h3 style="margin-top: 0.3in; font-size: 11pt; color: var(--muted-grey);">Citations</h3>
+
+  <p class="citation">1. Wilson PWF, Jacobson TA, Martin SS, et al. "Role of apolipoprotein B in the clinical management of cardiovascular risk in adults: An Expert Clinical Consensus from the National Lipid Association." <em>Journal of Clinical Lipidology</em> 2024;18(5):e647&ndash;e663. doi:10.1016/j.jacl.2024.08.013</p>
+
+  <p class="citation">2. Reyes-Soffer G, Ginsberg HN, Berglund L, et al. "Lipoprotein(a): A Genetically Determined, Causal, and Prevalent Risk Factor for Atherosclerotic Cardiovascular Disease: A Scientific Statement From the American Heart Association." <em>Arteriosclerosis, Thrombosis, and Vascular Biology</em> 2022;42(1):e48&ndash;e60. doi:10.1161/ATV.0000000000000147</p>
+
+  <p class="citation">3. Bhasin S, Brito JP, Cunningham GR, et al. "Testosterone Therapy in Men With Hypogonadism: An Endocrine Society Clinical Practice Guideline." <em>Journal of Clinical Endocrinology &amp; Metabolism</em> 2018;103(5):1715&ndash;1744. doi:10.1210/jc.2018-00229</p>
+
+  <p class="citation">4. Ridker PM, Danielson E, Fonseca FAH, et al. "Rosuvastatin to Prevent Vascular Events in Men and Women with Elevated C-Reactive Protein." <em>New England Journal of Medicine</em> 2008;359(21):2195&ndash;2207. doi:10.1056/NEJMoa0807646</p>
+
+  <p class="citation">5. Kronenberg F, Mora S, Stroes ESG, et al. "Lipoprotein(a) in atherosclerotic cardiovascular disease and aortic stenosis: a European Atherosclerosis Society consensus statement." <em>European Heart Journal</em> 2022;43(39):3925&ndash;3946. doi:10.1093/eurheartj/ehac361</p>
+
+  <p class="citation">6. Tsimikas S, Marcovina SM. "Ancestry, Lipoprotein(a), and Cardiovascular Risk Thresholds: JACC Review Topic of the Week." <em>Journal of the American College of Cardiology</em> 2022;80(9):934&ndash;946. doi:10.1016/j.jacc.2022.06.019</p>
+
+  <span class="page-number page-number-right">11</span>
+</section>
+
+</body>
+</html>

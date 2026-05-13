@@ -1,0 +1,12 @@
+{
+  "name": "bloodwork-lead-magnet",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "generate": "node generate-pdf.js"
+  },
+  "dependencies": {
+    "puppeteer": "^24.0.0",
+    "qrcode": "^1.5.4"
+  }
+}

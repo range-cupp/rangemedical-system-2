@@ -6,6 +6,7 @@
 // Full audit trail for compliance.
 
 import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 
 const supabase = createClient(
@@ -131,6 +132,52 @@ export default async function handler(req, res) {
       .eq('id', request.id);
 
     console.log(`Dose change DENIED by ${request.provider_name} for ${request.patient_name}: ${request.current_dose} -> ${request.proposed_dose}`);
+
+    // Email the requester about the denial
+    if (request.requested_by_email) {
+      try {
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const medLine = request.is_secondary_med
+          ? `${request.secondary_medication_name} (HRT secondary)`
+          : (request.medication || 'medication');
+        await resend.emails.send({
+          from: 'Range Medical <notifications@range-medical.com>',
+          to: request.requested_by_email,
+          subject: `Dose change denied — ${request.patient_name}`,
+          html: `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background:#f5f5f5;">
+<table width="100%" cellspacing="0" cellpadding="0" style="background:#f5f5f5;">
+<tr><td align="center" style="padding:40px 20px;">
+<table width="600" cellspacing="0" cellpadding="0" style="background:#fff;max-width:600px;">
+<tr><td style="background:#000;padding:24px 30px;text-align:center;">
+  <h1 style="margin:0;color:#fff;font-size:24px;font-weight:700;letter-spacing:0.1em;">RANGE MEDICAL</h1>
+</td></tr>
+<tr><td style="padding:36px 30px 24px;">
+  <h2 style="margin:0 0 8px;color:#c53030;font-size:20px;">Dose Change Denied</h2>
+  <p style="margin:0 0 20px;color:#666;font-size:14px;">Denied by ${request.provider_name}</p>
+  <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+    <tr><td style="padding:10px 12px;background:#f9f9f9;border:1px solid #eee;font-weight:600;width:40%;">Patient</td>
+        <td style="padding:10px 12px;background:#f9f9f9;border:1px solid #eee;">${request.patient_name}</td></tr>
+    <tr><td style="padding:10px 12px;border:1px solid #eee;font-weight:600;">Medication</td>
+        <td style="padding:10px 12px;border:1px solid #eee;">${medLine}</td></tr>
+    <tr><td style="padding:10px 12px;background:#f9f9f9;border:1px solid #eee;font-weight:600;">Requested</td>
+        <td style="padding:10px 12px;background:#f9f9f9;border:1px solid #eee;">${request.current_dose} → ${request.proposed_dose}</td></tr>
+    ${denial_reason ? `<tr><td style="padding:10px 12px;border:1px solid #eee;font-weight:600;">Reason</td>
+        <td style="padding:10px 12px;border:1px solid #eee;">${denial_reason}</td></tr>` : ''}
+  </table>
+</td></tr>
+<tr><td style="background:#fafafa;padding:20px 30px;border-top:1px solid #eee;">
+  <p style="margin:0;color:#888;font-size:13px;text-align:center;">Range Medical &bull; (949) 997-3988</p>
+</td></tr>
+</table>
+</td></tr></table>
+</body></html>`,
+        });
+      } catch (emailErr) {
+        console.error('Failed to email requester about denied dose change:', emailErr);
+      }
+    }
 
     return res.status(200).json({ success: true, status: 'denied' });
   }
@@ -474,6 +521,53 @@ async function notifyRequesterOfApproval(request) {
       });
       if (!smsResult?.success) {
         console.error('Failed to SMS requester about approved dose change:', smsResult?.error);
+      }
+    }
+
+    // 3. Email — ensures the requester is notified even when SMS is down.
+    if (request.requested_by_email) {
+      try {
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const { error: emailErr } = await resend.emails.send({
+          from: 'Range Medical <notifications@range-medical.com>',
+          to: request.requested_by_email,
+          subject: `Dose ${direction} approved — ${request.patient_name}`,
+          html: `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background:#f5f5f5;">
+<table width="100%" cellspacing="0" cellpadding="0" style="background:#f5f5f5;">
+<tr><td align="center" style="padding:40px 20px;">
+<table width="600" cellspacing="0" cellpadding="0" style="background:#fff;max-width:600px;">
+<tr><td style="background:#000;padding:24px 30px;text-align:center;">
+  <h1 style="margin:0;color:#fff;font-size:24px;font-weight:700;letter-spacing:0.1em;">RANGE MEDICAL</h1>
+</td></tr>
+<tr><td style="padding:36px 30px 24px;">
+  <h2 style="margin:0 0 8px;color:#1a7f37;font-size:20px;">Dose ${direction === 'increase' ? 'Increase' : 'Decrease'} Approved ✓</h2>
+  <p style="margin:0 0 20px;color:#666;font-size:14px;">Approved by ${request.provider_name}</p>
+  <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+    <tr><td style="padding:10px 12px;background:#f9f9f9;border:1px solid #eee;font-weight:600;width:40%;">Patient</td>
+        <td style="padding:10px 12px;background:#f9f9f9;border:1px solid #eee;">${request.patient_name}</td></tr>
+    <tr><td style="padding:10px 12px;border:1px solid #eee;font-weight:600;">Medication</td>
+        <td style="padding:10px 12px;border:1px solid #eee;">${medLine}</td></tr>
+    <tr><td style="padding:10px 12px;background:#f9f9f9;border:1px solid #eee;font-weight:600;">Previous Dose</td>
+        <td style="padding:10px 12px;background:#f9f9f9;border:1px solid #eee;">${request.current_dose}</td></tr>
+    <tr><td style="padding:10px 12px;border:1px solid #eee;font-weight:600;">New Dose</td>
+        <td style="padding:10px 12px;border:1px solid #eee;font-weight:600;color:#1a7f37;">${request.proposed_dose}</td></tr>
+    ${request.reason ? `<tr><td style="padding:10px 12px;background:#f9f9f9;border:1px solid #eee;font-weight:600;">Reason</td>
+        <td style="padding:10px 12px;background:#f9f9f9;border:1px solid #eee;">${request.reason}</td></tr>` : ''}
+  </table>
+  <p style="margin:0;color:#666;font-size:14px;">Please document this dose change in an encounter note.</p>
+</td></tr>
+<tr><td style="background:#fafafa;padding:20px 30px;border-top:1px solid #eee;">
+  <p style="margin:0;color:#888;font-size:13px;text-align:center;">Range Medical &bull; (949) 997-3988</p>
+</td></tr>
+</table>
+</td></tr></table>
+</body></html>`,
+        });
+        if (emailErr) console.error('Failed to email requester about approved dose change:', emailErr);
+      } catch (emailCatchErr) {
+        console.error('Email exception in notifyRequesterOfApproval:', emailCatchErr.message);
       }
     }
   } catch (err) {

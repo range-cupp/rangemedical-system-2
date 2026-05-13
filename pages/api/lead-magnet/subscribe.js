@@ -116,36 +116,19 @@ export default async function handler(req, res) {
   const tag = reqTag && EMAIL_1_BY_TAG[reqTag] ? reqTag : DEFAULT_TAG;
   const cleaned = email.trim().toLowerCase();
 
-  const { data: existing } = await supabase
-    .from('lead_magnet_subscribers')
-    .select('id, last_email_sent')
-    .eq('email', cleaned)
-    .eq('tag', tag)
-    .maybeSingle();
+  const { data: rpcResult, error: rpcErr } = await supabase
+    .rpc('subscribe_lead_magnet', { p_email: cleaned, p_tag: tag });
 
-  if (existing && existing.last_email_sent >= 1) {
+  if (rpcErr) {
+    console.error('[lead-magnet/subscribe] rpc error:', JSON.stringify(rpcErr));
+    return res.status(500).json({ error: 'Database error' });
+  }
+
+  if (rpcResult.already_subscribed) {
     return res.status(200).json({ ok: true, already_subscribed: true });
   }
 
-  const { data: sub, error: upsertErr } = await supabase
-    .from('lead_magnet_subscribers')
-    .upsert(
-      {
-        email: cleaned,
-        tag,
-        subscribed_at: new Date().toISOString(),
-        last_email_sent: 1,
-        last_send_at: new Date().toISOString(),
-      },
-      { onConflict: 'email,tag' }
-    )
-    .select('id')
-    .single();
-
-  if (upsertErr) {
-    console.error('[lead-magnet/subscribe] upsert error:', JSON.stringify(upsertErr));
-    return res.status(500).json({ error: 'Database error', detail: upsertErr.message, code: upsertErr.code });
-  }
+  const sub = { id: rpcResult.id };
 
   const emailContent = EMAIL_1_BY_TAG[tag];
   const unsubLink = `https://www.range-medical.com/api/lead-magnet/unsubscribe?id=${sub.id}`;

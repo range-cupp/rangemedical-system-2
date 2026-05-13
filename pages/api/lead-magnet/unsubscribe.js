@@ -14,10 +14,7 @@ export default async function handler(req, res) {
     return res.status(400).send('Missing subscriber ID');
   }
 
-  await supabase
-    .from('lead_magnet_subscribers')
-    .update({ unsubscribed: true })
-    .eq('id', id);
+  await supabase.rpc('unsubscribe_lead_magnet', { p_id: id });
 
   if (req.method === 'POST') {
     return res.status(200).end();

@@ -321,11 +321,7 @@ export default async function handler(req, res) {
   const activeTags = Object.keys(EMAILS_BY_TAG);
 
   const { data: subscribers, error: subErr } = await supabase
-    .from('lead_magnet_subscribers')
-    .select('id, email, tag, subscribed_at, last_email_sent')
-    .in('tag', activeTags)
-    .eq('unsubscribed', false)
-    .lt('last_email_sent', 5);
+    .rpc('get_drip_eligible', { p_tags: activeTags });
 
   if (subErr) {
     console.error('[cron/lead-magnet-drip] query error:', subErr);
@@ -380,12 +376,7 @@ export default async function handler(req, res) {
         }
 
         await supabase
-          .from('lead_magnet_subscribers')
-          .update({
-            last_email_sent: nextEmail,
-            last_send_at: new Date().toISOString(),
-          })
-          .eq('id', sub.id);
+          .rpc('update_drip_sent', { p_id: sub.id, p_email_num: nextEmail });
 
         return nextEmail;
       })

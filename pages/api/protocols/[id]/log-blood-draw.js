@@ -69,7 +69,7 @@ export default async function handler(req, res) {
             notes: drawLabel
           });
       }
-      console.log(`✓ Blood draw rescheduled: ${drawLabel} for ${patientName} → ${rescheduleDate}`);
+      console.log(`✓ Blood draw rescheduled: ${drawLabel} for patient ${protocol.patient_id?.slice(0,8)} → ${rescheduleDate}`);
       return res.status(200).json({ success: true, message: `${drawLabel} rescheduled to ${rescheduleDate}`, action: 'rescheduled' });
     }
 
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
         .eq('protocol_id', id)
         .eq('log_type', 'blood_draw_reschedule')
         .eq('notes', drawLabel);
-      console.log(`✓ Blood draw reschedule undone: ${drawLabel} for ${patientName}`);
+      console.log(`✓ Blood draw reschedule undone: ${drawLabel} for patient ${protocol.patient_id?.slice(0,8)}`);
       return res.status(200).json({ success: true, message: `${drawLabel} reset to original schedule`, action: 'undo-rescheduled' });
     }
 
@@ -259,7 +259,7 @@ export default async function handler(req, res) {
       console.error('Pipeline card advance error (non-fatal):', pipelineErr.message);
     }
 
-    console.log(`✓ Blood draw logged: ${drawLabel} for ${patientName} on ${logDate}`);
+    console.log(`✓ Blood draw logged: ${drawLabel} for patient ${protocol.patient_id?.slice(0,8)} on ${logDate}`);
 
     return res.status(200).json({
       success: true,

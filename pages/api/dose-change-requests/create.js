@@ -242,7 +242,7 @@ export default async function handler(req, res) {
     }
 
     const channels = [smsResult.success && 'SMS', emailSent && 'email'].filter(Boolean).join(' + ');
-    console.log(`Dose change request created: ${patient_name} ${current_dose} -> ${proposed_dose}, sent to ${providerName} via ${channels}`);
+    console.log(`Dose change request created: patient ${patient_id?.slice(0,8)} ${current_dose} -> ${proposed_dose}, sent to ${providerName} via ${channels}`);
 
     return res.status(200).json({
       success: true,

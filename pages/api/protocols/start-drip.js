@@ -103,7 +103,7 @@ export default async function handler(req, res) {
       .update({ drip_start_date: today })
       .eq('id', protocolId);
 
-    console.log(`Manual drip started for protocol ${protocolId} - Email 1 sent to ${patient.email}`);
+    console.log(`Manual drip started for protocol ${protocolId} - Email 1 sent to patient ${patient.id?.slice(0,8)}`);
 
     return res.status(200).json({
       success: true,

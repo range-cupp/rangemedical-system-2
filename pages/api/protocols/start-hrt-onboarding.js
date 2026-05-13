@@ -140,7 +140,7 @@ export default async function handler(req, res) {
             status: 'pending',
             source: 'start-hrt-onboarding'
           }).then(() => {}).catch(err => { console.error('notification queue error:', err.message); });
-          console.log(`HRT onboarding SMS queued for ${patient.name} (quiet hours)`);
+          console.log(`HRT onboarding SMS queued for patient ${patient.id?.slice(0,8)} (quiet hours)`);
         } else {
           const smsResult = await sendSMS({
             to: phone,
@@ -235,7 +235,7 @@ export default async function handler(req, res) {
       .eq('id', protocolId);
 
     const portalUrl = `https://www.range-medical.com/hrt/${accessToken}`;
-    console.log(`HRT onboarding started for protocol ${protocolId} - Welcome email sent to ${patient.email} - Portal: ${portalUrl}`);
+    console.log(`HRT onboarding started for protocol ${protocolId} - Welcome email sent to patient ${patient.id?.slice(0,8)}`);
 
     return res.status(200).json({
       success: true,

@@ -218,7 +218,7 @@ export default async function handler(req, res) {
     console.log('Signature URL:', intakeRecord.signature_url);
     console.log('Is Minor:', intakeRecord.is_minor);
     console.log('Interested in Optimization:', intakeRecord.interested_in_optimization);
-    console.log('Symptoms:', intakeRecord.symptoms);
+    console.log('Symptoms: (redacted)');
 
     // Insert into intakes table
     const { data, error } = await supabase
@@ -369,7 +369,7 @@ export default async function handler(req, res) {
           console.error('Patient creation from intake error:', createErr);
         } else {
           linkedPatientId = np.id;
-          console.log(`Intake: created new patient ${linkedPatientId} (${capFirst} ${capLast} / ${normalizedEmail})`);
+          console.log(`Intake: created new patient ${linkedPatientId}`);
         }
       }
 

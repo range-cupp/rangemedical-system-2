@@ -308,7 +308,7 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log('✓ Patient check-in logged:', patient.name, parsedWeight, 'lbs', `(Injection ${newSessionsUsed}/${totalSessions})`);
+    console.log('✓ Patient check-in logged:', patient.id?.slice(0,8), parsedWeight, 'lbs', `(Injection ${newSessionsUsed}/${totalSessions})`);
 
     return res.status(200).json({
       success: true,

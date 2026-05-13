@@ -285,7 +285,7 @@ export default async function handler(req, res) {
     }
 
     const patientName = protocol.patients?.name || 'Unknown';
-    console.log(`✓ Injection logged for ${patientName}: #${newSessionsUsed}/${totalSessions} on ${log_date}`);
+    console.log(`✓ Injection logged for patient ${protocol.patient_id?.slice(0,8)}: #${newSessionsUsed}/${totalSessions} on ${log_date}`);
 
     return res.status(200).json({
       success: true,

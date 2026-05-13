@@ -34,14 +34,19 @@ export default async function handler(req, res) {
       const patientIds = [...new Set(data.map(n => n.patient_id))];
       const { data: patients } = await supabase
         .from('patients')
-        .select('id, first_name, last_name, name')
+        .select('id, first_name, last_name, name, email')
         .in('id', patientIds);
 
       const patientMap = {};
+      const emailMap = {};
       (patients || []).forEach(p => {
         patientMap[p.id] = `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.name || 'Unknown';
+        emailMap[p.id] = p.email || null;
       });
-      data.forEach(n => { n.patient_name = patientMap[n.patient_id] || 'Unknown'; });
+      data.forEach(n => {
+        n.patient_name = patientMap[n.patient_id] || 'Unknown';
+        n.patient_email = emailMap[n.patient_id] || null;
+      });
     }
 
     return res.status(200).json(data || []);

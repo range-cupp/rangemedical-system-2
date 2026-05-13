@@ -34,6 +34,23 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Protocol not found' });
     }
 
+    // Look up canonical patient info from patients table
+    let patientName = protocol.patient_name || null;
+    let patientEmail = protocol.patient_email || null;
+    let patientPhone = protocol.patient_phone || null;
+    if (protocol.patient_id) {
+      const { data: patient } = await supabase
+        .from('patients')
+        .select('name, email, phone')
+        .eq('id', protocol.patient_id)
+        .single();
+      if (patient) {
+        patientName = patient.name || patientName;
+        patientEmail = patient.email || patientEmail;
+        patientPhone = patient.phone || patientPhone;
+      }
+    }
+
     const purchaseDate = todayPacific();
     const itemName = `${protocol.medication || 'WL Injection'} — Comp Injection #${injectionNum}`;
 
@@ -42,9 +59,9 @@ export default async function handler(req, res) {
       .insert({
         patient_id: protocol.patient_id,
         ghl_contact_id: protocol.ghl_contact_id || null,
-        patient_name: protocol.patient_name || null,
-        patient_email: protocol.patient_email || null,
-        patient_phone: protocol.patient_phone || null,
+        patient_name: patientName,
+        patient_email: patientEmail,
+        patient_phone: patientPhone,
         protocol_id: protocolId,
         protocol_created: true,
         purchase_date: purchaseDate,

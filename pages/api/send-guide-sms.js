@@ -147,7 +147,7 @@ export default async function handler(req, res) {
         patientName: patientName || firstName || null,
       });
 
-      console.log(`Blooio opt-in prompt sent to ${normalizedPhone}, guide links queued: ${guideNames}`);
+      console.log(`Blooio opt-in prompt sent, guide links queued: ${guideNames}`);
 
       return res.status(200).json({
         success: true,
@@ -180,7 +180,7 @@ export default async function handler(req, res) {
       provider: result.provider || null,
     });
 
-    console.log(`Guide SMS sent to ${normalizedPhone}: ${guideNames}`);
+    console.log(`Guide SMS sent: ${guideNames}`);
 
     return res.status(200).json({
       success: true,

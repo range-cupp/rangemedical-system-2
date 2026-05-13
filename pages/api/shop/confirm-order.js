@@ -238,7 +238,7 @@ export default async function handler(req, res) {
         subject: `Your Range Medical Order — ${orderNumber}`,
         html: buildReceiptEmail(patient, { ...order, shipping_address: addressData }, orderItems),
       });
-      console.log('Receipt email sent:', patient.email, emailResult);
+      console.log(`Receipt email sent: patient ${patient.id?.slice(0,8)}, order ${orderNumber}`);
     } catch (emailErr) {
       console.error('Receipt email error:', emailErr);
     }

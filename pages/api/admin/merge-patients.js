@@ -409,7 +409,7 @@ export default async function handler(req, res) {
       errors.push({ table: 'patients (delete)', error: deleteError.message });
     }
 
-    console.log(`Patient merged: ${displayName} — ${Object.values(moved).reduce((a, b) => a + b, 0)} records transferred, duplicate ${duplicateId} deleted`);
+    console.log(`Patient merged: ${primaryId?.slice(0,8)} — ${Object.values(moved).reduce((a, b) => a + b, 0)} records transferred, duplicate ${duplicateId} deleted`);
 
     return res.status(200).json({
       success: true,

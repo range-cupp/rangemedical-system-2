@@ -193,7 +193,7 @@ export default async function handler(req, res) {
           medication: session.medication,
         });
 
-        console.log(`IV follow-up sent to ${patient.name || patient.first_name} (${phone})`);
+        console.log(`IV follow-up sent to patient ${patient.id?.slice(0, 8)}`);
       } else {
         results.errors.push({
           patient: patient.name || patient.first_name,

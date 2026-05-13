@@ -464,7 +464,7 @@ export default async function handler(req, res) {
             email: recipEmail,
             referral_source: 'Range Medical',
           });
-        console.log(`Created patient profile for gift recipient: ${recipient_name} (${recipEmail})`);
+        console.log(`Created patient profile for gift recipient (PHI redacted)`);
       }
     }
 

@@ -126,7 +126,7 @@ export default async function handler(req, res) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://range-medical.com';
     const paymentUrl = `${baseUrl}/rlt-trial?trial_id=${trial.id}`;
 
-    console.log(`ManyChat lead created: ${fullName} → trial ${trial.id}, pipeline ${lead.id}`);
+    console.log(`ManyChat lead created: trial ${trial.id}, pipeline ${lead.id}`);
 
     return res.status(200).json({
       success: true,

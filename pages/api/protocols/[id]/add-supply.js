@@ -125,7 +125,7 @@ Billing period extended for another month.${notes ? `\n\nNotes: ${notes}` : ''}`
     // Auto-resolve any payment-related follow-ups
     await resolvePaymentFollowUps(protocol.patient_id, id);
 
-    console.log(`✓ Payment recorded for protocol ${id} for ${patientName}. New end date: ${newEndDate}`);
+    console.log(`✓ Payment recorded for protocol ${id} for patient ${protocol.patient_id?.slice(0,8)}. New end date: ${newEndDate}`);
 
     return res.status(200).json({
       success: true,

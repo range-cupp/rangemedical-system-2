@@ -125,7 +125,7 @@ export default async function handler(req, res) {
         const firstName = patient.first_name || (patient.name ? patient.name.split(' ')[0] : null);
         const personalizedHtml = personalizeEmail(emailTemplate.html, firstName);
 
-        console.log(`Sending email 1 to ${patient.email} (${patient.name}) - new protocol`);
+        console.log(`Sending email 1 to patient ${patient.id?.slice(0, 8)} - new protocol`);
 
         const { error: sendError } = await resend.emails.send({
           from: 'Range Medical <noreply@range-medical.com>',
@@ -176,7 +176,7 @@ export default async function handler(req, res) {
       const firstName = patient.first_name || (patient.name ? patient.name.split(' ')[0] : null);
       const personalizedHtml = personalizeEmail(emailTemplate.html, firstName);
 
-      console.log(`Sending email ${emailTemplate.emailNumber} to ${patient.email} (${patient.name})`);
+      console.log(`Sending email ${emailTemplate.emailNumber} to patient ${patient.id?.slice(0, 8)}`);
 
       const { error: sendError } = await resend.emails.send({
         from: 'Range Medical <noreply@range-medical.com>',
@@ -203,7 +203,7 @@ export default async function handler(req, res) {
 
       await logComm({ channel: 'email', messageType: `drip_email_${emailTemplate.emailNumber}`, message: `Drip email ${emailTemplate.emailNumber}: ${emailTemplate.subject}`, source: 'wl-drip-emails', patientId: protocol.patient_id, protocolId: protocol.id, patientName: patient.name, recipient: patient.email, subject: emailTemplate.subject });
 
-      console.log(`Sent email ${emailTemplate.emailNumber} to ${patient.name} (${patient.email})`);
+      console.log(`Sent email ${emailTemplate.emailNumber} to patient ${patient.id?.slice(0, 8)}`);
 
       results.push({
         protocol_id: protocol.id,

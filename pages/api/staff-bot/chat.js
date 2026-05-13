@@ -277,7 +277,7 @@ Bundle types and what they include:
 // ── Execute a tool call from Claude ─────────────────────────────────────────
 
 async function executeTool(toolName, toolInput, staff) {
-  console.log(`[StaffBot] Tool: ${toolName}`, JSON.stringify(toolInput));
+  console.log(`[StaffBot] Tool: ${toolName}`);
   switch (toolName) {
     case 'check_availability':   return await handleCheckAvailability(toolInput);
     case 'book_appointment':     return await handleBookAppointment(toolInput);

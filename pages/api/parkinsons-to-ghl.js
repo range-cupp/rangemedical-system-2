@@ -51,7 +51,7 @@ export default async function handler(req, res) {
       formattedPhone = '+' + formattedPhone;
     }
 
-    console.log('📤 Processing Parkinson\'s assessment for:', `${firstName} ${lastName}`);
+    console.log('📤 Processing Parkinson\'s assessment');
 
     // Step 1: Search for existing contact by email
     let contactId = null;

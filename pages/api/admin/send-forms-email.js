@@ -164,7 +164,7 @@ export default async function handler(req, res) {
       subject,
     });
 
-    console.log(`Forms email sent to ${email}: ${formNames} (bundle: ${bundle.token})`);
+    console.log(`Forms email sent: ${formNames} (bundle: ${bundle.token})`);
 
     return res.status(200).json({
       success: true,

@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`📋 Processing ${consentType} consent for ${firstName || ''} ${lastName || ''}`);
+    console.log(`📋 Processing ${consentType} consent for patient (name redacted)`);
 
     // Match patient in priority order: ghl_contact_id → email (ilike) → phone
     let patientId = null;

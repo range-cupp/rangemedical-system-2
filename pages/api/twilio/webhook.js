@@ -38,7 +38,7 @@ export default async function handler(req, res) {
       NumMedia,       // number of media attachments
     } = req.body;
 
-    console.log(`Inbound SMS from ${From}: ${Body}`);
+    console.log('Inbound SMS received');
 
     // Try to match the sender to a patient by phone.
     // Phones may be stored in many formats: +19495395023, (949) 539-5023, 9495395023, etc.
@@ -78,9 +78,9 @@ export default async function handler(req, res) {
       }
 
       if (patient) {
-        console.log(`Inbound SMS matched to patient: ${patient.first_name} ${patient.last_name} (${patient.id})`);
+        console.log(`Inbound SMS matched to patient ${patient.id?.slice(0, 8)}`);
       } else {
-        console.warn(`Inbound SMS from ${From} — no matching patient found`);
+        console.warn('Inbound SMS — no matching patient found');
       }
     }
 
@@ -155,7 +155,7 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         if (pendingPrompt) {
-          console.log(`HRT IV schedule YES reply from ${patient.name} — sending booking link`);
+          console.log(`HRT IV schedule YES reply from patient ${patient.id?.slice(0, 8)} — sending booking link`);
 
           // Look up patient email for pre-filling the booking form
           const { data: patientDetails } = await supabase
@@ -201,7 +201,7 @@ export default async function handler(req, res) {
             .catch(err => { console.error('comms_log error:', err.message); });
 
           if (linkResult.success) {
-            console.log(`HRT IV scheduling link sent to ${patient.name} (${From})`);
+            console.log(`HRT IV scheduling link sent to patient ${patient.id?.slice(0, 8)}`);
           }
         }
       }
@@ -233,7 +233,7 @@ export default async function handler(req, res) {
 
         if (pendingReminder) {
           const firstName = patient.first_name || (patient.name || '').split(' ')[0] || 'there';
-          console.log(`Lab prep READY reply from ${patient.name} — sending instructions link`);
+          console.log(`Lab prep READY reply from patient ${patient.id?.slice(0, 8)} — sending instructions link`);
 
           // Generate a lab prep token for acknowledgment tracking
           let labPrepUrl = 'https://www.range-medical.com/lab-prep';
@@ -280,7 +280,7 @@ export default async function handler(req, res) {
             .catch(err => { console.error('comms_log error:', err.message); });
 
           if (prepResult.success) {
-            console.log(`Lab prep instructions sent to ${patient.name} (${From})`);
+            console.log(`Lab prep instructions sent to patient ${patient.id?.slice(0, 8)}`);
           }
         }
       }
@@ -316,7 +316,7 @@ export default async function handler(req, res) {
 
           if (match) {
             const firstName = (match.name || '').trim().split(/\s+/)[0] || 'there';
-            console.log(`Giveaway scholarship YES reply from ${match.name} (${From})`);
+            console.log(`Giveaway scholarship YES reply from entry ${match.id?.slice(0, 8)}`);
 
             await supabase
               .from('giveaway_entries')

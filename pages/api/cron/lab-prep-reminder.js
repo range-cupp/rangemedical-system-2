@@ -145,7 +145,7 @@ async function sendLabPrepSMS({ booking, patient, messageType, results }) {
           patientName: displayName,
         });
         results.sent.push({ name: displayName, phone: normalizedPhone, type: messageType, optinRequired: true });
-        console.log(`[lab-prep-reminder] Sent opt-in prompt + queued link for ${displayName} (${normalizedPhone})`);
+        console.log(`[lab-prep-reminder] Sent opt-in prompt + queued link for patient ${booking.patient_id?.slice(0, 8) || 'unknown'}`);
       } else {
         results.errors.push({ name: displayName, type: messageType, error: promptResult.error });
         console.error(`[lab-prep-reminder] Opt-in prompt failed for ${displayName}:`, promptResult.error);
@@ -167,7 +167,7 @@ async function sendLabPrepSMS({ booking, patient, messageType, results }) {
 
     if (smsResult.success) {
       results.sent.push({ name: displayName, phone: normalizedPhone, type: messageType });
-      console.log(`[lab-prep-reminder] Sent ${messageType} to ${displayName} (${normalizedPhone})`);
+      console.log(`[lab-prep-reminder] Sent ${messageType} to patient ${booking.patient_id?.slice(0, 8) || 'unknown'}`);
     } else {
       results.errors.push({ name: displayName, type: messageType, error: smsResult.error });
       console.error(`[lab-prep-reminder] Failed ${messageType} for ${displayName}:`, smsResult.error);

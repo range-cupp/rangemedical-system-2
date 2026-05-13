@@ -182,7 +182,7 @@ export default async function handler(req, res) {
           });
           peptideTasksCreated++;
         }
-        console.log(`Peptide renewal task created for ${patientName} — ${protocol.program_name}`);
+        console.log(`Peptide renewal task created for patient ${protocol.patient_id?.slice(0, 8)} — ${protocol.program_name}`);
       }
     }
 

@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       intakeData
     } = req.body;
 
-    console.log(`📝 Processing ${consentType || 'consent'} form for: ${firstName} ${lastName}`);
+    console.log(`📝 Processing ${consentType || 'consent'} form`);
 
     // Format phone number for GHL (remove non-digits, ensure +1 prefix)
     let formattedPhone = phone?.replace(/\D/g, '');
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
     
     // First, try to find by phone number (most reliable)
     if (formattedPhone) {
-      console.log('🔍 Searching for contact by phone:', formattedPhone);
+      console.log('🔍 Searching for contact by phone (phone redacted)');
       
       const phoneSearchParams = new URLSearchParams({
         locationId: GHL_LOCATION_ID,
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
 
     // If not found by phone, try email
     if (!contactId && email) {
-      console.log('🔍 Searching for contact by email:', email);
+      console.log('🔍 Searching for contact by email (email redacted)');
       
       const emailSearchParams = new URLSearchParams({
         locationId: GHL_LOCATION_ID,
@@ -184,10 +184,7 @@ export default async function handler(req, res) {
       contactPayload.dateOfBirth = dobFormatted;
     }
 
-    console.log('📤 Payload to GHL:', JSON.stringify({
-      ...contactPayload,
-      customFields: customFields.length + ' fields'
-    }));
+    console.log('📤 Payload prepared for GHL:', contactId ? `update ${contactId}` : 'new contact');
 
     // ============================================
     // CREATE OR UPDATE CONTACT

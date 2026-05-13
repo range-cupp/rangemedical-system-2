@@ -155,7 +155,7 @@ export default async function handler(req, res) {
             .update({ gift_sent: true, gift_sent_at: now })
             .eq('id', promo.id);
           stats.sent++;
-          console.log(`Mothers Day gift sent: ${promo.gift_cards.code} -> ${promo.recipient_email}`);
+          console.log(`Mothers Day gift sent: ${promo.gift_cards.code} -> promo ${promo.id}`);
         } else {
           stats.errors.push({ id: promo.id, error: result });
           console.error(`Mothers Day gift send failed: ${promo.id}`, result);

@@ -115,7 +115,7 @@ export default async function handler(req, res) {
       // Don't fail the response — payment succeeded, we should still notify
     }
 
-    console.log(`Website checkout purchase created: ${purchase?.id} — ${serviceName || productName} (${amount}) for ${customerName}`);
+    console.log(`Website checkout purchase created: ${purchase?.id} — ${serviceName || productName} (${amount})`);
 
     // Auto-create protocol if patient matched and category is valid
     if (patientId && serviceCategory && serviceCategory !== 'Other' && purchase?.id) {
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
         console.error('Auto-protocol from website checkout failed:', protoErr.message);
       }
     } else if (!patientId) {
-      console.log(`Website checkout purchase unlinked — no patient match for ${normalizedEmail}`);
+      console.log(`Website checkout purchase unlinked — no patient match (email redacted)`);
     }
 
     // Staff chat alert — replaces prior owner SMS + notification email.

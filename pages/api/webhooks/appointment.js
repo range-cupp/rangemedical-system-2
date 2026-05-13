@@ -81,7 +81,7 @@ export default async function handler(req, res) {
   }
 
   console.log('📅 Appointment webhook received:', new Date().toISOString());
-  console.log('📦 Payload:', JSON.stringify(req.body, null, 2));
+  console.log('📦 Appointment webhook payload received');
 
   try {
     const payload = req.body;

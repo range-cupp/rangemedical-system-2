@@ -91,7 +91,7 @@ export default async function handler(req, res) {
       paymentIntent = await stripe.paymentIntents.create(intentParams);
     }
 
-    console.log(`Service payment intent created: ${paymentIntent.id} — ${productName} ($${(amountCents / 100).toFixed(2)}) for ${fullName}`);
+    console.log(`Service payment intent created: ${paymentIntent.id} — ${productName} ($${(amountCents / 100).toFixed(2)})`);
 
     return res.status(200).json({
       clientSecret: paymentIntent.client_secret,

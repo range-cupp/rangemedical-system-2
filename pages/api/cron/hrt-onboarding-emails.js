@@ -138,7 +138,7 @@ export default async function handler(req, res) {
         const personalizedSubject = personalizeHRTEmail(emailSubject, protocol, patient);
 
         // Send email
-        console.log(`Sending HRT onboarding [${step.stepId}] to ${patient.email} (${patient.name})`);
+        console.log(`Sending HRT onboarding [${step.stepId}] to patient ${patient.id?.slice(0, 8)}`);
 
         const { error: sendError } = await resend.emails.send({
           from: 'Range Medical <noreply@range-medical.com>',
@@ -255,7 +255,7 @@ export default async function handler(req, res) {
           const personalizedHtml = personalizeHRTEmail(reminder.html, protocol, patient);
           const personalizedSubject = personalizeHRTEmail(reminder.subject, protocol, patient);
 
-          console.log(`Sending HRT recurring [${reminder.type}] to ${patient.email} (${patient.name})`);
+          console.log(`Sending HRT recurring [${reminder.type}] to patient ${patient.id?.slice(0, 8)}`);
 
           const { error: sendError } = await resend.emails.send({
             from: 'Range Medical <noreply@range-medical.com>',

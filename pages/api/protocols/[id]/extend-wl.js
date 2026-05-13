@@ -208,7 +208,7 @@ Protocol extended for ${daysToExtend} days. Sessions: ${protocol.total_sessions 
       }
     }
 
-    console.log(`✓ WL protocol ${id} extended for ${patientName}. New end date: ${newEndDate}`);
+    console.log(`✓ WL protocol ${id} extended for patient ${protocol.patient_id?.slice(0,8)}. New end date: ${newEndDate}`);
 
     return res.status(200).json({
       success: true,

@@ -302,7 +302,7 @@ export default async function handler(req, res) {
         subject: `Order Received — ${orderNumber} — Range Medical`,
         html: buildPatientConfirmationEmail(patient, orderNumber, orderItems, subtotalCents, shippingCents, totalCents, shippingMethod, addressData),
       });
-      console.log('Patient confirmation email sent:', patient.email);
+      console.log(`Patient confirmation email sent: patient ${patient.id?.slice(0,8)}, order ${orderNumber}`);
     } catch (emailErr) {
       console.error('Patient confirmation email error:', emailErr);
     }

@@ -205,7 +205,7 @@ ${notes ? `Notes: ${notes}` : ''}`;
       });
     }
 
-    console.log(`✓ HRT Refill processed for ${patientName}: ${normalizedSupplyType}, ${dose}, refill date: ${refillDateStr}`);
+    console.log(`✓ HRT Refill processed for patient ${protocol.patient_id?.slice(0,8)}: ${normalizedSupplyType}, ${dose}, refill date: ${refillDateStr}`);
 
     return res.status(200).json({
       success: true,

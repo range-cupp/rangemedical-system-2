@@ -138,7 +138,7 @@ export default async function handler(req, res) {
       direction: 'outbound',
     });
 
-    console.log(`Symptoms questionnaire email sent to ${patientEmail} for ${displayName}`);
+    console.log(`Symptoms questionnaire email sent for patient ${patientId?.slice(0,8)}`);
 
     return res.status(200).json({ success: true, message: 'Email sent successfully' });
 

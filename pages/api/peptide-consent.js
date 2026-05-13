@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
     
     console.log('=== Peptide Consent Integration Start ===');
-    console.log('Processing consent for:', consentData.email);
+    console.log('Processing consent for: (email redacted)');
 
     // ============================================================
     // STEP 1: CREATE/UPDATE CONTACT IN GOHIGHLEVEL
@@ -208,7 +208,7 @@ Email: ${consentData.email}`,
     }
 
     console.log('\n=== Peptide Consent Integration Complete ===');
-    console.log('Results:', JSON.stringify(results, null, 2));
+    console.log('Results:', results.ghlContactCreated ? 'contact created' : 'contact skipped', results.rangeDbSaved ? 'db saved' : 'db skipped', results.errors?.length ? `${results.errors.length} errors` : 'no errors');
 
     return res.status(200).json({ 
       success: true,

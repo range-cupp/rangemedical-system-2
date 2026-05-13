@@ -164,7 +164,7 @@ export default async function handler(req, res) {
     // Send email notification
     await sendEmailNotification(data);
 
-    console.log(`New ${partner} lead:`, data.id, `${firstName} ${lastName}`);
+    console.log(`New ${partner} lead:`, data.id);
 
     return res.status(200).json({ 
       success: true, 

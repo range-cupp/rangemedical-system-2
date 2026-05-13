@@ -79,7 +79,7 @@ export default async function handler(req, res) {
 
     console.log('Parsed data - injured:', injured);
     console.log('Parsed data - interestedInOptimization:', interestedInOptimization);
-    console.log('Parsed data - symptoms:', symptoms);
+    console.log('Parsed data - symptoms: (redacted)');
     console.log('Parsed data - medicalHistory keys:', Object.keys(medicalHistory));
 
     // Format phone number for GHL (E.164 format: +1XXXXXXXXXX)
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log('Formatted phone:', formattedPhone);
+    console.log('Formatted phone: (phone redacted)');
 
     // ============================================
     // SEARCH FOR EXISTING CONTACT
@@ -102,7 +102,7 @@ export default async function handler(req, res) {
     
     // Search by phone first
     if (formattedPhone) {
-      console.log('Searching for contact by phone:', formattedPhone);
+      console.log('Searching for contact by phone (phone redacted)');
       const phoneSearchParams = new URLSearchParams({
         locationId: GHL_LOCATION_ID,
         query: formattedPhone
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
     
     // If not found by phone, search by email
     if (!contactId && email) {
-      console.log('Searching for contact by email:', email);
+      console.log('Searching for contact by email (email redacted)');
       const emailSearchParams = new URLSearchParams({
         locationId: GHL_LOCATION_ID,
         query: email
@@ -369,7 +369,7 @@ export default async function handler(req, res) {
       contactPayload.dateOfBirth = dobFormatted;
     }
 
-    console.log('Contact payload:', JSON.stringify(contactPayload, null, 2));
+    console.log('Contact payload prepared for', contactId ? 'update' : 'creation');
 
     // ============================================
     // CREATE OR UPDATE CONTACT
@@ -415,7 +415,6 @@ export default async function handler(req, res) {
 
     const responseText = await response.text();
     console.log('GHL Response status:', response.status);
-    console.log('GHL Response body:', responseText);
 
     let result;
     try {

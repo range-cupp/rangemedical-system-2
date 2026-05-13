@@ -258,7 +258,7 @@ export default async function handler(req, res) {
       req,
     });
 
-    console.log(`Email sent by ${employee.name} to ${to}: ${subject}`);
+    console.log(`Email sent by ${employee.name}: "${subject}"`);
 
     return res.status(200).json({
       success: true,

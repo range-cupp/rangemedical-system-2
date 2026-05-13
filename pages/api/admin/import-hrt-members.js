@@ -166,7 +166,7 @@ async function importContact(contact) {
     .maybeSingle();
 
   if (existing) {
-    console.log(`  Skipping ${name} - already exists`);
+    console.log(`  Skipping ${contactId?.slice(0,8)} - already exists`);
     return { skipped: true, reason: 'Already exists' };
   }
 
@@ -201,7 +201,7 @@ async function importContact(contact) {
     startDate = new Date();
   }
 
-  console.log(`  Importing ${name} (${membershipType}, started ${startDate.toISOString().split('T')[0]})`);
+  console.log(`  Importing ${contactId?.slice(0,8)} (${membershipType}, started ${startDate.toISOString().split('T')[0]})`);
 
   // Create the membership
   const { data: membership, error: membershipError } = await supabase

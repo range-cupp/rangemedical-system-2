@@ -269,7 +269,7 @@ async function sendRangeIVPerkEmail(patientId) {
       html,
     });
 
-    console.log(`Range IV perk email sent to ${patient.email}`);
+    console.log(`Range IV perk email sent to patient ${patient.id?.slice(0,8)}…`);
 
     await logComm({
       channel: 'email',
@@ -392,7 +392,7 @@ async function processHRTMembershipPerk(invoice) {
     }).catch(err => { console.error('logComm error:', err.message); });
 
     if (promptResult.success) {
-      console.log(`HRT IV scheduling prompt sent to ${patient.name} (${patient.phone})`);
+      console.log(`HRT IV scheduling prompt sent to patient ${patient.id?.slice(0,8)}…`);
     }
   }
 }
@@ -596,7 +596,7 @@ export default async function handler(req, res) {
               .catch(flagErr => console.error('Failed to flag purchase:', flagErr.message));
           }
         } else if (!patientId) {
-          console.log(`Payment Link purchase unlinked — no patient match for ${customerEmail}`);
+          console.log(`Payment Link purchase unlinked — no patient match (email redacted)`);
         }
       }
     } catch (err) {
@@ -726,7 +726,7 @@ export default async function handler(req, res) {
           if (purchaseErr) {
             console.error('Webhook invoice.paid purchase creation error:', purchaseErr.message);
           } else {
-            console.log(`Purchase recorded from invoice.paid: ${purchase.id} — ${description} ($${(amountPaidCents / 100).toFixed(2)}) for ${patientName}`);
+            console.log(`Purchase recorded from invoice.paid: ${purchase.id} — ${description} ($${(amountPaidCents / 100).toFixed(2)})`);
           }
         } else {
           console.log(`Webhook idempotency: purchase already exists for PI ${paymentIntentId}, skipping`);

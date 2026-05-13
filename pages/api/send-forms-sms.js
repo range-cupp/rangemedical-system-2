@@ -105,7 +105,7 @@ export default async function handler(req, res) {
         formBundleId: bundle.id || null,
       });
 
-      console.log(`Blooio opt-in prompt sent to ${normalizedPhone}, link queued (bundle: ${bundle.token})`);
+      console.log(`Blooio opt-in prompt sent, link queued (bundle: ${bundle.token})`);
 
       return res.status(200).json({
         success: true,
@@ -140,7 +140,7 @@ export default async function handler(req, res) {
       provider: result.provider || null,
     });
 
-    console.log(`Forms SMS sent to ${normalizedPhone}: ${formNames} (bundle: ${bundle.token})`);
+    console.log(`Forms SMS sent: ${formNames} (bundle: ${bundle.token})`);
 
     return res.status(200).json({
       success: true,

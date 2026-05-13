@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   try {
     const payload = req.body;
 
-    console.log('Consent webhook received:', JSON.stringify(payload, null, 2));
+    console.log('Consent webhook received');
 
     // Extract data from various possible field names
     const consentData = {

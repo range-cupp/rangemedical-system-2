@@ -34,7 +34,7 @@ export default async function handler(req, res) {
         const lastName = nameParts.slice(1).join(' ') || '';
 
         // Step 1: Search for existing contact
-        console.log('Searching for existing contact:', email);
+        console.log('Searching for existing contact (email redacted)');
         const searchResponse = await fetch(
             `https://services.leadconnectorhq.com/contacts/search/duplicate?locationId=${GHL_LOCATION_ID}&email=${encodeURIComponent(email)}`,
             {

@@ -72,7 +72,7 @@ export default async function handler(req, res) {
 
     if (GHL_API_KEY) {
       try {
-        console.log('🔍 Searching for contact in GHL:', email);
+        console.log('🔍 Searching for contact in GHL (email redacted)');
 
         // Search for existing contact
         const searchResponse = await fetch(

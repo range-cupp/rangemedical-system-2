@@ -68,7 +68,7 @@ export default async function handler(req, res) {
   try {
     const payload = req.body;
 
-    console.log('Intake webhook received:', JSON.stringify(payload, null, 2));
+    console.log('Intake webhook received');
 
     // Parse medical data
     const medicalData = parseMedicalData(payload);

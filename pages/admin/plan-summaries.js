@@ -17,7 +17,7 @@ const TYPE_COLORS = {
 function providerLabel(createdBy) {
   if (!createdBy) return 'Provider';
   const lower = createdBy.toLowerCase();
-  if (lower.includes('burgess')) return 'Dr. Damian Burgess';
+  if (lower.includes('burgess')) return 'Dr. Damien Burgess';
   if (lower.includes('brendyn') || lower.includes('reed')) return 'Brendyn Reed, PA-C';
   return createdBy;
 }

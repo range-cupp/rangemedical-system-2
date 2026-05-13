@@ -1537,6 +1537,29 @@
       "notes": "Single pre-filled in-office injection at 250 mcg. Sold as 'DSIP Protocol — Phase 1 (250 mcg) — One-Time'."
     },
 
+    // ─── HCG ──────────────────────────────────────────────────────────────────
+
+    {
+      "id": "pep-hcg-per-vial",
+      "name": "HCG — Per-Vial COGS (5000 IU)",
+      "cogs": 35.00,
+      "cogs_source": "supplier",
+      "cogs_breakdown": {
+        "vial_iu": 5000,
+        "vial_cost": 35.00,
+        "hardware_per_injection": 0.37,
+        "pricing_model": "$50 per 1000 IU consumed = $250 per vial retail equivalent",
+        "pricing_formula": "price = (dose_iu × injections_per_week × weeks / 1000) × $50",
+        "example_configs": {
+          "500iu_2x_4wk": { "total_iu": 4000, "injections": 8, "drug_cogs": 28.00, "hardware": 2.96, "total_cogs": 30.96, "sell_price": 200, "margin_pct": 84.5 },
+          "500iu_3x_4wk": { "total_iu": 6000, "injections": 12, "drug_cogs": 42.00, "hardware": 4.44, "total_cogs": 46.44, "sell_price": 300, "margin_pct": 84.5 },
+          "1000iu_2x_4wk": { "total_iu": 8000, "injections": 8, "drug_cogs": 56.00, "hardware": 2.96, "total_cogs": 58.96, "sell_price": 400, "margin_pct": 85.3 },
+          "1000iu_3x_4wk": { "total_iu": 12000, "injections": 12, "drug_cogs": 84.00, "hardware": 4.44, "total_cogs": 88.44, "sell_price": 600, "margin_pct": 85.3 }
+        }
+      },
+      "notes": "Dynamic pricing via checkout builder. $50 per 1000 IU consumed, ~84-85% gross margin across all configurations."
+    },
+
     // ─── OTHER ────────────────────────────────────────────────────────────────
 
     {

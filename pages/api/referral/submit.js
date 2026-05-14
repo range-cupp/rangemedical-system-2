@@ -28,7 +28,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { first_name, last_name, phone, email, partner_slug, interests, notes } = req.body;
+  const raw = req.body;
+  const first_name = (raw.first_name || '').trim();
+  const last_name = (raw.last_name || '').trim();
+  const phone = (raw.phone || '').trim();
+  const email = (raw.email || '').trim();
+  const { partner_slug, interests, notes } = raw;
 
   // Validate required fields
   if (!first_name || !last_name || !phone || !email || !partner_slug) {

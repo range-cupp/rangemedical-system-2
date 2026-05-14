@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { logComm } from '../../../../lib/comms-log';
 import { autoLogSessionFromAppointment } from '../../../../lib/auto-session-log';
+import { advanceLabsPipelineOnCompletion } from '../../../../lib/pipeline-automations';
 import { sendSMS, normalizePhone } from '../../../../lib/send-sms';
 import { generateBookingCancellationHtml } from '../../../../lib/appointment-emails';
 
@@ -181,68 +182,6 @@ async function advanceFreeSessionOnCompletion(appointment) {
     triggered_by: 'automation',
     automation_reason: `appointment_completed:${appointment.id}`,
   });
-}
-
-async function advanceLabsPipelineOnCompletion(appointment) {
-  if (!appointment.patient_id) return;
-  const { findActiveCard, moveCard } = await import('../../../../lib/pipelines-server');
-  const { runStageEntry, ensureLabsCardAtAwaitingResults } = await import('../../../../lib/pipeline-automations');
-
-  // Check both labs pipelines
-  let card = await findActiveCard({ patient_id: appointment.patient_id, pipeline: 'energy_workup' });
-  if (!card) {
-    card = await findActiveCard({ patient_id: appointment.patient_id, pipeline: 'follow_up_labs' });
-  }
-
-  const sn = (appointment.service_name || '').toLowerCase();
-  const isBloodDraw = sn.includes('blood draw') || sn.includes('phlebotomy');
-
-  // No card — create one at awaiting_results for completed blood draws
-  if (!card) {
-    if (isBloodDraw) {
-      await ensureLabsCardAtAwaitingResults({
-        patientId: appointment.patient_id,
-        reason: `appointment_completed:${appointment.id}`,
-      });
-    }
-    return;
-  }
-
-  // Blood draw completed → labs_scheduled → awaiting_results
-  if (card.stage === 'labs_scheduled') {
-    if (isBloodDraw) {
-      await moveCard({
-        card_id: card.id,
-        to_stage: 'awaiting_results',
-        triggered_by: 'automation',
-        automation_reason: `appointment_completed:${appointment.id}`,
-      });
-    }
-    return;
-  }
-
-  // Advance from any pre-completed stage to consult_completed —
-  // but only when the completed appointment is a consult or lab review.
-  const isConsult = sn.includes('consult') || sn.includes('lab review');
-  const preCompletedStages = ['ready_to_schedule', 'scheduling_attempted', 'consult_booked'];
-  if (!isConsult || !preCompletedStages.includes(card.stage)) return;
-
-  const consultDate = new Date(appointment.start_time)
-    .toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-
-  const updated = await moveCard({
-    card_id: card.id,
-    to_stage: 'consult_completed',
-    triggered_by: 'automation',
-    automation_reason: `appointment_completed:${appointment.id}`,
-  });
-  if (updated) {
-    await runStageEntry({
-      card: updated,
-      stage: 'consult_completed',
-      context: { consultDate },
-    });
-  }
 }
 
 async function processAppointmentEvent(appointment, newStatus, oldStatus) {

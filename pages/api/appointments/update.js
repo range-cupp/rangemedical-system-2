@@ -6,6 +6,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { logAction } from '../../../lib/auth';
 import { autoLogSessionFromAppointment } from '../../../lib/auto-session-log';
+import { advanceLabsPipelineOnCompletion } from '../../../lib/pipeline-automations';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -152,6 +153,12 @@ export default async function handler(req, res) {
 
         if (apptForSession) {
           await autoLogSessionFromAppointment(apptForSession);
+
+          if (table === 'appointments') {
+            advanceLabsPipelineOnCompletion(apptForSession).catch(err =>
+              console.error('Pipeline advance on completion error:', err)
+            );
+          }
         }
       } catch (sessionErr) {
         console.error('Auto-session-log error:', sessionErr);

@@ -68,7 +68,7 @@ const FAQS = [
   },
   {
     q: 'What if I need to reschedule?',
-    a: 'Email us at support@range-medical.com at least 24 hours before your time and we’ll help you move it.',
+    a: 'Email us at info@range-medical.com at least 24 hours before your time and we’ll help you move it.',
   },
 ];
 
@@ -415,7 +415,7 @@ export default function LabClarityVisit() {
               </div>
               <div>
                 <p style={s.footerInfo}>(949) 997-3988</p>
-                <p style={s.footerInfo}>support@range-medical.com</p>
+                <p style={s.footerInfo}>info@range-medical.com</p>
               </div>
             </div>
             <p style={s.disclaimer}>

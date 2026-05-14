@@ -168,7 +168,7 @@ async function sendConfirmationEmail({ fullName, email, date, time }) {
       body: JSON.stringify({
         from: 'Range Medical <noreply@range-medical.com>',
         to: email,
-        bcc: 'support@range-medical.com',
+        bcc: 'info@range-medical.com',
         subject: `Your Lab Clarity Visit is booked, ${firstName}`,
         html,
       }),

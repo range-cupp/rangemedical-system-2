@@ -1,11 +1,11 @@
 import Head from 'next/head';
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
-/* ── Slot generation ── */
+/* ── Date generation (client-side — only calendar dates, not slots) ── */
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -43,24 +43,33 @@ function getSelectedPrice(dates, selectedDate) {
   return d ? d.price : 97;
 }
 
-const MORNING_SLOTS = ['09:00','09:30','10:00','10:30','11:00','11:30'];
-const AFTERNOON_SLOTS = ['13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30'];
-const ALL_SLOTS = [...MORNING_SLOTS, ...AFTERNOON_SLOTS];
+/* ── Concerns ── */
 
-function getSlotsForDate(dateStr) {
-  const now = new Date();
-  const pacificStr = now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
-  const pacificNow = new Date(pacificStr);
+const CONCERN_OPTIONS = [
+  'Fatigue or low energy',
+  'Brain fog or poor focus',
+  'Unexplained weight gain',
+  'Poor sleep or insomnia',
+  'Low libido or sexual function',
+  'Muscle loss or weakness',
+  'Mood changes or irritability',
+  'Slow recovery from workouts',
+];
 
-  return ALL_SLOTS.map(time => {
-    const [h, m] = time.split(':').map(Number);
-    const [y, mo, d] = dateStr.split('-').map(Number);
-    const slotDate = new Date(y, mo - 1, d, h, m);
-    if (slotDate <= pacificNow) return null;
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const displayH = h > 12 ? h - 12 : h;
-    return { time, label: `${displayH}:${String(m).padStart(2, '0')} ${ampm}` };
-  }).filter(Boolean);
+/* ── DOB formatter ── */
+
+function formatDob(value) {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return digits.slice(0, 2) + '/' + digits.slice(2);
+  return digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4, 8);
+}
+
+function dobToIso(formatted) {
+  const parts = formatted.split('/');
+  if (parts.length !== 3 || parts[2].length !== 4) return null;
+  const [mm, dd, yyyy] = parts;
+  return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
 }
 
 /* ── Static content ── */
@@ -128,8 +137,10 @@ function LabClarityContent() {
 
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
+  const [slots, setSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
   const [form, setForm] = useState({
-    fullName: '', email: '', phone: '', dob: '', concern: '', agreed: false,
+    fullName: '', email: '', phone: '', dob: '', concern: '', concernOther: '', agreed: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -149,8 +160,24 @@ function LabClarityContent() {
   }, []);
 
   const dates = useMemo(() => getAvailableDates(), []);
-  const slots = useMemo(() => (selectedDate ? getSlotsForDate(selectedDate) : []), [selectedDate]);
   const price = selectedDate ? getSelectedPrice(dates, selectedDate) : null;
+
+  const fetchSlots = useCallback(async (dateStr) => {
+    setSlotsLoading(true);
+    try {
+      const res = await fetch(`/api/lab-clarity/slots?date=${dateStr}`);
+      const data = await res.json();
+      if (res.ok) {
+        setSlots(data.slots || []);
+      } else {
+        setSlots([]);
+      }
+    } catch {
+      setSlots([]);
+    } finally {
+      setSlotsLoading(false);
+    }
+  }, []);
 
   function scrollToCalendar() {
     calendarRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -160,6 +187,7 @@ function LabClarityContent() {
     setSelectedDate(dateStr);
     setSelectedTime(null);
     setError(null);
+    fetchSlots(dateStr);
   }
 
   function handleSlotSelect(time) {
@@ -210,8 +238,8 @@ function LabClarityContent() {
           fullName: form.fullName.trim(),
           email: form.email.trim(),
           phone: form.phone.trim(),
-          dob: form.dob || null,
-          concern: form.concern.trim() || null,
+          dob: dobToIso(form.dob) || null,
+          concern: (form.concern === 'Other' ? form.concernOther.trim() : form.concern) || null,
           date: selectedDate,
           time: selectedTime,
           paymentIntentId: paymentIntent.id,
@@ -329,7 +357,9 @@ function LabClarityContent() {
                 {/* Slot grid */}
                 {selectedDate && (
                   <div style={{ marginTop: 24 }}>
-                    {slots.length > 0 ? (
+                    {slotsLoading ? (
+                      <p style={s.noSlots}>Loading available times...</p>
+                    ) : slots.length > 0 ? (
                       <div className="lcv-slots">
                         {slots.map(slot => (
                           <button
@@ -400,23 +430,43 @@ function LabClarityContent() {
                       <label style={s.label}>Date of Birth <span style={s.optional}>(optional)</span></label>
                       <input
                         name="dob"
-                        type="date"
+                        type="text"
+                        inputMode="numeric"
                         value={form.dob}
-                        onChange={handleChange}
+                        onChange={(e) => {
+                          const formatted = formatDob(e.target.value);
+                          setForm(prev => ({ ...prev, dob: formatted }));
+                        }}
+                        maxLength={10}
                         style={s.input}
+                        placeholder="MM/DD/YYYY"
                       />
                     </div>
 
                     <div style={s.fieldGroup}>
                       <label style={s.label}>What's bothering you most right now? <span style={s.optional}>(optional)</span></label>
-                      <textarea
+                      <select
                         name="concern"
                         value={form.concern}
                         onChange={handleChange}
-                        rows={3}
-                        style={{ ...s.input, resize: 'vertical' }}
-                        placeholder="Low energy, weight gain, brain fog…"
-                      />
+                        style={s.input}
+                      >
+                        <option value="">Select a concern...</option>
+                        {CONCERN_OPTIONS.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                        <option value="Other">Other</option>
+                      </select>
+                      {form.concern === 'Other' && (
+                        <textarea
+                          name="concernOther"
+                          value={form.concernOther}
+                          onChange={handleChange}
+                          rows={3}
+                          style={{ ...s.input, resize: 'vertical', marginTop: 10 }}
+                          placeholder="Tell us what you're experiencing..."
+                        />
+                      )}
                     </div>
 
                     {/* Payment */}

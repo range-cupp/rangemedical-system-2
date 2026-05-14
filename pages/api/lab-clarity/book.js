@@ -46,6 +46,19 @@ export default async function handler(req, res) {
     const dow = new Date(date + 'T12:00:00Z').getUTCDay();
     const provider = (dow === 4 || dow === 5) ? 'Brendyn Reed' : 'Damien Burgess';
 
+    const { data: conflicts } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('provider', provider)
+      .lt('start_time', appointment_end)
+      .gt('end_time', appointment_start)
+      .in('status', ['scheduled', 'confirmed', 'checked_in', 'in_progress', 'completed'])
+      .limit(1);
+
+    if (conflicts && conflicts.length > 0) {
+      return res.status(409).json({ error: 'That time slot was just booked. Please choose another time.' });
+    }
+
     const { data, error: dbError } = await supabase
       .from('lab_clarity_bookings')
       .insert({

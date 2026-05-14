@@ -30,13 +30,38 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { filePath, fileName, fileSize, labType, panelType, collectionDate, notes, uploaded_by } = req.body;
+    const { step, filePath, fileName, fileSize, labType, panelType, collectionDate, notes, uploaded_by } = req.body;
 
+    // Step 1: Generate a signed upload URL so the browser can upload directly to storage
+    if (step === 'get-upload-url') {
+      if (!fileName) {
+        return res.status(400).json({ error: 'File name is required' });
+      }
+      const timestamp = Date.now();
+      const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const path = `${patientId}/${timestamp}-${safeName}`;
+
+      const { data, error } = await supabase.storage
+        .from('lab-documents')
+        .createSignedUploadUrl(path);
+
+      if (error) {
+        console.error('Signed upload URL error:', error);
+        return res.status(500).json({ error: 'Failed to create upload URL', details: error.message });
+      }
+
+      return res.status(200).json({
+        success: true,
+        signedUrl: data.signedUrl,
+        filePath: path,
+      });
+    }
+
+    // Step 2: File already uploaded to storage — create the database record
     if (!filePath || !fileName) {
       return res.status(400).json({ error: 'File path and name are required' });
     }
 
-    // Create database record (file already uploaded directly to storage by the client)
     const { data: docRecord, error: dbError } = await supabase
       .from('lab_documents')
       .insert({

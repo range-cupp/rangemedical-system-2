@@ -3844,24 +3844,12 @@ export default function PatientProfile() {
     try {
       const errors = [];
       for (const file of uploadForm.files) {
-        const timestamp = Date.now();
-        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const filePath = `${id}/${timestamp}-${safeName}`;
-
-        const { error: storageError } = await supabase.storage
-          .from('lab-documents')
-          .upload(filePath, file, { contentType: 'application/pdf', upsert: false });
-
-        if (storageError) {
-          errors.push(`${file.name}: ${storageError.message}`);
-          continue;
-        }
-
-        const res = await fetch(`/api/patients/${id}/upload-lab`, {
+        // Get a signed upload URL from the server (uses service role key)
+        const urlRes = await fetch(`/api/patients/${id}/upload-lab`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            filePath,
+            step: 'get-upload-url',
             fileName: file.name,
             fileSize: file.size,
             labType: uploadForm.labType,
@@ -3871,9 +3859,35 @@ export default function PatientProfile() {
             uploaded_by: employee?.name || 'Staff'
           }),
         });
+        const urlData = await urlRes.json();
+        if (!urlRes.ok) { errors.push(`${file.name}: ${urlData.error || 'Failed to get upload URL'}`); continue; }
 
-        const data = await res.json();
-        if (!res.ok) errors.push(`${file.name}: ${data.error || 'Upload failed'}`);
+        // Upload file directly to storage using signed URL
+        const uploadRes = await fetch(urlData.signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/pdf' },
+          body: file,
+        });
+        if (!uploadRes.ok) { errors.push(`${file.name}: Storage upload failed`); continue; }
+
+        // Confirm the upload and create the database record
+        const confirmRes = await fetch(`/api/patients/${id}/upload-lab`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            step: 'confirm',
+            filePath: urlData.filePath,
+            fileName: file.name,
+            fileSize: file.size,
+            labType: uploadForm.labType,
+            panelType: uploadForm.panelType,
+            collectionDate: uploadForm.collectionDate,
+            notes: uploadForm.notes,
+            uploaded_by: employee?.name || 'Staff'
+          }),
+        });
+        const confirmData = await confirmRes.json();
+        if (!confirmRes.ok) errors.push(`${file.name}: ${confirmData.error || 'Upload failed'}`);
       }
 
       if (errors.length > 0) throw new Error(errors.join('\n'));

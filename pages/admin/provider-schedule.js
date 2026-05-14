@@ -1,6 +1,5 @@
 // /pages/admin/provider-schedule.js
-// Provider Schedule Manager — view/edit Cal.com provider availability
-// Supports multiple schedules per provider (e.g., Newport Beach + Placentia)
+// Provider Schedule Manager — view/edit provider availability
 // Range Medical System
 
 import { useState, useEffect, useCallback } from 'react';
@@ -48,14 +47,6 @@ function buildAvailability(daySettings) {
   return Object.values(groups);
 }
 
-// Detect location from schedule name
-function getScheduleLocation(schedule) {
-  const name = (schedule?.name || '').toLowerCase();
-  if (name.includes('placentia') || name.includes('tlab')) {
-    return { label: 'Placentia', short: 'Placentia', color: '#7c3aed', bg: '#ede9fe', icon: '📍' };
-  }
-  return { label: 'Newport Beach', short: 'Newport Beach', color: '#0369a1', bg: '#e0f2fe', icon: '🏥' };
-}
 
 export default function ProviderSchedulePage() {
   return (
@@ -178,8 +169,7 @@ export function ProviderScheduleContent() {
         setEditProvider(null);
         setEditSchedule(null);
         fetchProviders();
-        const location = getScheduleLocation(editSchedule);
-        showSuccess(`${editProvider.name}'s ${location.short} hours updated`);
+        showSuccess(`${editProvider.name}'s hours updated`);
       } else {
         setError(data.error || 'Failed to save hours');
       }
@@ -307,9 +297,6 @@ export function ProviderScheduleContent() {
 
   const canManageSchedules = hasPermission('can_manage_schedules');
 
-  // Get modal schedule location for title
-  const editLocation = editSchedule ? getScheduleLocation(editSchedule) : null;
-  const overrideLocation = overrideSchedule ? getScheduleLocation(overrideSchedule) : null;
 
   return (
     <>
@@ -329,7 +316,6 @@ export function ProviderScheduleContent() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {providers.map(provider => {
             const schedules = provider.schedules || [];
-            const hasMultipleSchedules = schedules.length > 1;
 
             return (
               <div key={provider.userId} style={pageStyles.card}>
@@ -339,22 +325,16 @@ export function ProviderScheduleContent() {
                     <h3 style={pageStyles.providerName}>{provider.name}</h3>
                     <span style={pageStyles.providerEmail}>{provider.email}</span>
                   </div>
-                  {hasMultipleSchedules && (
-                    <span style={pageStyles.multiLocationBadge}>
-                      {schedules.length} locations
-                    </span>
-                  )}
                 </div>
 
                 {/* Render each schedule */}
                 {schedules.length === 0 && (
                   <div style={{ color: '#999', fontSize: '14px', padding: '12px 0' }}>
-                    No schedule configured in Cal.com
+                    No schedule configured
                   </div>
                 )}
 
                 {schedules.map((schedule, idx) => {
-                  const location = getScheduleLocation(schedule);
                   const overrides = schedule.overrides || [];
                   // Filter to future overrides only
                   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
@@ -365,35 +345,8 @@ export function ProviderScheduleContent() {
                       ...pageStyles.scheduleSection,
                       ...(idx > 0 ? { borderTop: '1px solid #e5e7eb', marginTop: '16px', paddingTop: '16px' } : {}),
                     }}>
-                      {/* Schedule header with location badge */}
-                      <div style={pageStyles.scheduleHeader}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          {hasMultipleSchedules && (
-                            <span style={{
-                              ...pageStyles.locationBadge,
-                              background: location.bg,
-                              color: location.color,
-                            }}>
-                              {location.icon} {location.label}
-                            </span>
-                          )}
-                          {hasMultipleSchedules && (
-                            <span style={pageStyles.scheduleName}>
-                              {schedule.name || 'Default Schedule'}
-                            </span>
-                          )}
-                        </div>
-                        {hasMultipleSchedules && canManageSchedules && (
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button onClick={() => openEditModal(provider, schedule)} style={pageStyles.actionBtn}>
-                              Edit Hours
-                            </button>
-                            <button onClick={() => openOverrideModal(provider, schedule)} style={pageStyles.actionBtnOutline}>
-                              Block Schedule
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      {/* Schedule header */}
+                      <div style={pageStyles.scheduleHeader} />
 
                       {/* Weekly grid */}
                       <div style={pageStyles.weekGrid}>
@@ -494,22 +447,7 @@ export function ProviderScheduleContent() {
         <div style={sharedStyles.modalOverlay} {...overlayClickProps(() => { setEditProvider(null); setEditSchedule(null); })}>
           <div style={{ ...sharedStyles.modal, maxWidth: '540px' }} onClick={e => e.stopPropagation()}>
             <div style={sharedStyles.modalHeader}>
-              <div>
-                <h2 style={sharedStyles.modalTitle}>Edit Hours — {editProvider.name}</h2>
-                {editLocation && (
-                  <span style={{
-                    fontSize: '13px',
-                    color: editLocation.color,
-                    background: editLocation.bg,
-                    padding: '2px 10px',
-                    borderRadius: 0,
-                    display: 'inline-block',
-                    marginTop: '4px',
-                  }}>
-                    {editLocation.icon} {editLocation.label}
-                  </span>
-                )}
-              </div>
+              <h2 style={sharedStyles.modalTitle}>Edit Hours — {editProvider.name}</h2>
               <button onClick={() => { setEditProvider(null); setEditSchedule(null); }} style={sharedStyles.modalClose}>✕</button>
             </div>
             <div style={sharedStyles.modalBody}>
@@ -575,22 +513,7 @@ export function ProviderScheduleContent() {
         <div style={sharedStyles.modalOverlay} {...overlayClickProps(() => { setOverrideProvider(null); setOverrideSchedule(null); })}>
           <div style={{ ...sharedStyles.modal, maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
             <div style={sharedStyles.modalHeader}>
-              <div>
-                <h2 style={sharedStyles.modalTitle}>Block Schedule — {overrideProvider.name}</h2>
-                {overrideLocation && (
-                  <span style={{
-                    fontSize: '13px',
-                    color: overrideLocation.color,
-                    background: overrideLocation.bg,
-                    padding: '2px 10px',
-                    borderRadius: 0,
-                    display: 'inline-block',
-                    marginTop: '4px',
-                  }}>
-                    {overrideLocation.icon} {overrideLocation.label}
-                  </span>
-                )}
-              </div>
+              <h2 style={sharedStyles.modalTitle}>Block Schedule — {overrideProvider.name}</h2>
               <button onClick={() => { setOverrideProvider(null); setOverrideSchedule(null); }} style={sharedStyles.modalClose}>✕</button>
             </div>
             <div style={sharedStyles.modalBody}>

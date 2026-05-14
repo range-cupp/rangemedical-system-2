@@ -29,7 +29,6 @@ const DAY_NAME_BY_NUM = {
 
 function locationDisplayName(locationId) {
   if (locationId === 'newport') return 'Newport Beach';
-  if (locationId === 'placentia') return 'Placentia - TLAB Wellness';
   return locationId;
 }
 
@@ -123,8 +122,8 @@ export default async function handler(req, res) {
     // 5. Build the response: one schedule per (employee, location).
     const providers = (employees || []).map(emp => {
       const empSchedules = (schedules || []).filter(s => s.employee_id === emp.id);
-      // Unique locations the provider has a schedule at.
-      const locationIds = [...new Set(empSchedules.map(s => s.location_id))];
+      // Unique locations the provider has a schedule at (Placentia retired).
+      const locationIds = [...new Set(empSchedules.map(s => s.location_id))].filter(id => id !== 'placentia');
       // Default location: 'newport' if present, else first.
       const defaultLoc = locationIds.includes('newport') ? 'newport' : locationIds[0];
 

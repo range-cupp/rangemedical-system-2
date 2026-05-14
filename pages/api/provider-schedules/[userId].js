@@ -86,7 +86,7 @@ async function handleGet(req, res) {
       .eq('employee_id', emp.id)
       .gte('override_date', today);
 
-    const locations = [...new Set((scheds || []).map(s => s.location_id))];
+    const locations = [...new Set((scheds || []).map(s => s.location_id))].filter(id => id !== 'placentia');
     const result = locations.map(locId => {
       const rows = (scheds || []).filter(s => s.location_id === locId);
       const ovs = (overrides || []).filter(o => !o.location_id || o.location_id === locId);
@@ -100,7 +100,7 @@ async function handleGet(req, res) {
       }
       return {
         id: `local::${emp.id}::${locId}`,
-        name: locId === 'newport' ? 'Newport Beach' : locId === 'placentia' ? 'Placentia - TLAB Wellness' : locId,
+        name: locId === 'newport' ? 'Newport Beach' : locId,
         timeZone: 'America/Los_Angeles',
         availability: Object.values(groups),
         overrides: ovs.map(o => ({

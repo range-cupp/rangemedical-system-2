@@ -40,7 +40,6 @@ const TOOLS = [
         service: { type: 'string', description: 'Service name, e.g. "Range IV", "Initial Consult", "HBOT"' },
         date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
         time: { type: 'string', description: 'Optional preferred time in HH:MM 24hr format' },
-        location: { type: 'string', description: 'Clinic location, e.g. "Newport Beach" or "Placentia". Required when the provider works at multiple locations.' },
       },
       required: ['service', 'date'],
     },
@@ -57,7 +56,6 @@ const TOOLS = [
         patient_name: { type: 'string', description: 'Full name of the patient being treated' },
         patient_id: { type: 'string', description: 'Patient UUID from context. Always include when available.' },
         provider_name: { type: 'string', description: 'Optional: name of the specific nurse or provider to assign this to, e.g. "Lily"' },
-        location: { type: 'string', description: 'Clinic location, e.g. "Newport Beach" or "Placentia". Required when the provider works at multiple locations.' },
       },
       required: ['service', 'date', 'time', 'patient_name'],
     },
@@ -182,7 +180,6 @@ Bundle types and what they include:
       properties: {
         date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
         service: { type: 'string', description: 'Service name to filter providers by, e.g. "Range IV". Always pass this.' },
-        location: { type: 'string', description: 'Optional location, e.g. "Newport Beach" or "Placentia"' },
       },
       required: ['date', 'service'],
     },
@@ -417,9 +414,7 @@ For detailed pricing or service descriptions → use get_service_info or search_
 
 ${liveCatalogBlock}
 
-LOCATIONS: Newport Beach (default) and Placentia.
-- Lily Diaz works Monday mornings at PLACENTIA ONLY — not Newport Beach on Mondays.
-- If booking Lily on Monday without location specified, ask which location first.
+LOCATION: Newport Beach only.
 
 BOOKING WORKFLOW:
 1. PATIENT: Partial name → lookup_patient. 2+ matches → ask which one.

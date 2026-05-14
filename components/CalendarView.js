@@ -250,7 +250,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
   // Cal.com availability state
   const [eventTypesMap, setEventTypesMap] = useState({}); // slug → { id, hosts }
-  const [providerSchedules, setProviderSchedules] = useState({}); // username → { newport: { monday: [{start,end}], ... }, locations: { placentia: { monday: [{start,end}] } } }
+  const [providerSchedules, setProviderSchedules] = useState({}); // username → { newport: { monday: [{start,end}], ... } }
   const [availableSlots, setAvailableSlots] = useState(null); // null = not loaded, [] = no slots, [...] = available
   const [slotsByProvider, setSlotsByProvider] = useState({}); // { employeeId: [{ start, end, providerName, providerFirstName }] } from /api/bookings/slots-v2
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -719,17 +719,10 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       .catch(err => console.error('Failed to load provider schedules:', err));
   }, []);
 
-  // Resolve the Cal.com event type for the current service + location
-  // Placentia has separate event types (e.g., 'range-iv-placentia') so we try the
-  // location-specific slug first, then fall back to the base slug.
   const resolveEventType = useCallback((slug) => {
     if (!slug) return null;
-    if (selectedLocation?.id === 'placentia') {
-      const placentiaSlug = `${slug}-placentia`;
-      if (eventTypesMap[placentiaSlug]) return { ...eventTypesMap[placentiaSlug], slug: placentiaSlug };
-    }
     return eventTypesMap[slug] ? { ...eventTypesMap[slug], slug } : null;
-  }, [eventTypesMap, selectedLocation?.id]);
+  }, [eventTypesMap]);
 
   // Check if a time slot falls within a provider's schedule hours for a given day
   // Accepts explicit provider username and location for per-provider column rendering
@@ -741,13 +734,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     const schedule = providerSchedules[provUsername];
     const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][dayOfWeek];
 
-    // Use location-specific schedule when applicable, fall back to newport (default)
-    let dayHours;
-    if (locationId === 'placentia' && schedule.locations?.placentia?.[dayName]) {
-      dayHours = schedule.locations.placentia[dayName];
-    } else {
-      dayHours = schedule.newport?.[dayName];
-    }
+    let dayHours = schedule.newport?.[dayName];
 
     if (!dayHours || dayHours.length === 0) return false; // Provider is off this day
 
@@ -1708,7 +1695,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '2px' }}>{appt.provider}</div>
               )}
               {(height >= 56 || isHovered) && appt.location && appt.location !== DEFAULT_LOCATION.label && (
-                <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '2px' }}>📍 {LOCATIONS.find(l => l.label === appt.location)?.short || 'Placentia'}</div>
+                <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '2px' }}>📍 {LOCATIONS.find(l => l.label === appt.location)?.short || appt.location}</div>
               )}
               {(height >= 72 || isHovered) && (
                 <div style={styles.apptBlockTime}>
@@ -1865,7 +1852,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       {appt.provider ? ` · ${appt.provider}` : ''}
                     </div>
                     {appt.location && appt.location !== DEFAULT_LOCATION.label && (
-                      <div style={{ fontSize: '11px', opacity: 0.6 }}>📍 {LOCATIONS.find(l => l.label === appt.location)?.short || 'Placentia'}</div>
+                      <div style={{ fontSize: '11px', opacity: 0.6 }}>📍 {LOCATIONS.find(l => l.label === appt.location)?.short || appt.location}</div>
                     )}
                   </div>
                 ))}

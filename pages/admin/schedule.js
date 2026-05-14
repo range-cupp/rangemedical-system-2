@@ -299,7 +299,7 @@ export default function SchedulePage() {
                   <td style={styles.td}>
                     {apt.location && apt.location !== 'Range Medical — Newport Beach' ? (
                       <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: 0, background: '#ede9fe', color: '#6d28d9', fontWeight: '500' }}>
-                        📍 Placentia
+                        📍 {apt.location.split('—')[0]?.trim() || 'Offsite'}
                       </span>
                     ) : (
                       <span style={{ fontSize: '13px', color: '#999' }}>Newport Beach</span>

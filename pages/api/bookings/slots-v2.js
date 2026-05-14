@@ -8,7 +8,7 @@
 //                      services.legacy_calcom_event_type_id)
 //   serviceSlug      — preferred; takes precedence if both supplied
 //   date             — YYYY-MM-DD (Pacific)
-//   locationId       — 'newport' (default) or 'placentia'
+//   locationId       — 'newport' (default)
 //   providerId       — UUID, optional, restricts to one provider
 //   providerUsername — alternative to providerId; resolved to UUID via employees table
 //

@@ -265,7 +265,7 @@ function TodaySchedule({ onSelectPatient }) {
         const statusInfo = STATUS_FLOW.find(s => s.key === a.status) || STATUS_FLOW[0];
         const checkInTime = a.checked_in_at ? new Date(a.checked_in_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' }) : null;
         const isOffsite = a.location && !a.location.toLowerCase().includes('newport');
-        const locationLabel = isOffsite ? (a.location.includes('Placentia') ? 'Placentia' : a.location.split('—')[0]?.trim() || 'Offsite') : null;
+        const locationLabel = isOffsite ? (a.location.split('—')[0]?.trim() || 'Offsite') : null;
         return (
           <div key={a.id}>
             <div

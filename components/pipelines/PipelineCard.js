@@ -223,7 +223,7 @@ function stageDate(card) {
     const drawDate = card.draw_appointment_at || card.scheduled_for;
     if (drawDate) {
       const d = daysUntil(drawDate);
-      const formatted = formatShortDate(drawDate);
+      const formatted = formatScheduledPacific(drawDate);
       const until = d == null ? '' : d < 0 ? ` · ${Math.abs(d)}d AGO` : d === 0 ? ' · TODAY' : ` · in ${d}d`;
       return { label: 'DRAW', text: `${formatted}${until}` };
     }
@@ -250,7 +250,7 @@ function stageDate(card) {
     const consultDate = card.consult_appointment_at;
     if (consultDate) {
       const d = daysUntil(consultDate);
-      const formatted = formatShortDate(consultDate);
+      const formatted = formatScheduledPacific(consultDate);
       const until = d == null ? '' : d < 0 ? ` · ${Math.abs(d)}d AGO` : d === 0 ? ' · TODAY' : ` · in ${d}d`;
       return { label: 'CONSULT', text: `${formatted}${until}` };
     }
@@ -259,6 +259,10 @@ function stageDate(card) {
 
   if (stage === 'consult_completed') {
     return enteredDate ? { label: 'DONE', text: `${enteredDate} · ${daysLabel} ago` } : null;
+  }
+
+  if (stage === 'closed') {
+    return enteredDate ? { label: 'CLOSED', text: `${enteredDate} · ${daysLabel} ago` } : null;
   }
 
   return enteredDate ? { label: 'SINCE', text: `${enteredDate} · ${daysLabel}` } : null;
@@ -313,6 +317,13 @@ export default function PipelineCard({ card, pipeline, onClick }) {
         <div style={styles.stageDate}>
           <span style={styles.stageDateLabel}>{sd.label}</span>
           <span style={urgent ? styles.stageDateValueUrgent : styles.stageDateValue}>{sd.text}</span>
+        </div>
+      )}
+
+      {card.stage === 'closed' && card.lost_reason && (
+        <div style={styles.stageDate}>
+          <span style={styles.stageDateLabel}>WHY</span>
+          <span style={styles.stageDateValue}>{card.lost_reason}</span>
         </div>
       )}
 

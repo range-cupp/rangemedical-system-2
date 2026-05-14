@@ -110,6 +110,26 @@ export default async function handler(req, res) {
             else                                 labTypeByPatient[a.patient_id] = 'Blood Draw';
           }
 
+          // Fill in consult dates for consult_booked cards that didn't match
+          // the future-only query (appointment may have passed or have a
+          // non-scheduled status).
+          const missingConsultIds = rows
+            .filter(r => r.stage === 'consult_booked' && r.patient_id && !consultApptByPatient[r.patient_id])
+            .map(r => r.patient_id);
+          if (missingConsultIds.length) {
+            const { data: broadConsults } = await client
+              .from('appointments')
+              .select('patient_id, start_time')
+              .in('patient_id', missingConsultIds)
+              .or('service_name.ilike.%consult%,service_name.ilike.%lab review%')
+              .order('start_time', { ascending: false });
+            for (const a of broadConsults || []) {
+              if (!consultApptByPatient[a.patient_id]) {
+                consultApptByPatient[a.patient_id] = a.start_time;
+              }
+            }
+          }
+
           for (const r of rows) {
             if (r.patient_id && drawnByPatient[r.patient_id]) {
               r.labs_drawn_at = drawnByPatient[r.patient_id];

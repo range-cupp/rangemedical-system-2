@@ -83,6 +83,7 @@ export default function PipelineDetailPanel({
   const [status, setStatus]     = useState(card.status);
   const [assigned, setAssigned] = useState(card.assigned_to || []);
   const [notes, setNotes]       = useState(card.notes || '');
+  const [lostReason, setLostReason] = useState(card.lost_reason || '');
   const [saving, setSaving]     = useState(false);
   const [events, setEvents]     = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
@@ -96,6 +97,7 @@ export default function PipelineDetailPanel({
     setStatus(card.status);
     setAssigned(card.assigned_to || []);
     setNotes(card.notes || '');
+    setLostReason(card.lost_reason || '');
     loadEvents();
     loadPatient();
     function onEsc(e) { if (e.key === 'Escape') onClose?.(); }
@@ -126,7 +128,8 @@ export default function PipelineDetailPanel({
   const statusChanged   = status !== card.status;
   const assignedChanged = JSON.stringify(assigned.sort()) !== JSON.stringify((card.assigned_to || []).sort());
   const notesChanged    = notes !== (card.notes || '');
-  const dirty = stageChanged || statusChanged || assignedChanged || notesChanged;
+  const reasonChanged   = lostReason !== (card.lost_reason || '');
+  const dirty = stageChanged || statusChanged || assignedChanged || notesChanged || reasonChanged;
 
   async function save() {
     if (!dirty || saving) return;
@@ -137,6 +140,7 @@ export default function PipelineDetailPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           stage, status, assigned_to: assigned, notes,
+          lost_reason: stage === 'closed' ? lostReason : undefined,
           triggered_by: currentUser,
         }),
       });
@@ -277,6 +281,18 @@ export default function PipelineDetailPanel({
               ))}
             </select>
           </Section>
+
+          {stage === 'closed' && (
+            <Section label="Close Reason">
+              <input
+                type="text"
+                value={lostReason}
+                onChange={(e) => setLostReason(e.target.value)}
+                style={styles.select}
+                placeholder="Why is this being closed?"
+              />
+            </Section>
+          )}
 
           <Section label="Status">
             <select

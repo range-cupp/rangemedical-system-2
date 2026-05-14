@@ -37,6 +37,7 @@ export default async function handler(req, res) {
         to_status: b.status,
         assigned_to: b.assigned_to,
         notes: b.notes,
+        lost_reason: b.lost_reason,
         triggered_by: b.triggered_by || 'manual',
         automation_reason: b.automation_reason || null,
       });

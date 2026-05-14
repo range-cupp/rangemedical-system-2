@@ -400,8 +400,6 @@ export default function ChatApp() {
   const [callPatientSearch, setCallPatientSearch] = useState('');
   const [callPatientResults, setCallPatientResults] = useState([]);
   const [searchingCallPatients, setSearchingCallPatients] = useState(false);
-  const [callbackStatus, setCallbackStatus] = useState(null); // null | 'calling' | 'error'
-  const [callbackMessage, setCallbackMessage] = useState('');
   const callSearchTimeout = useRef(null);
 
   const voice = useVoiceCall({ employeeId: employee?.id });
@@ -608,35 +606,14 @@ export default function ChatApp() {
   }, []);
 
   const handleDialCall = useCallback(async (number, name) => {
-    if (!number || callbackStatus === 'calling') return;
+    if (!number || voice.isActive) return;
     let n = number.replace(/\D/g, '');
     if (n.length === 10) n = '+1' + n;
     else if (n.length === 11 && n.startsWith('1')) n = '+' + n;
     else if (!n.startsWith('+')) n = '+' + n;
 
-    setCallbackStatus('calling');
-    setCallbackMessage(`Calling your phone... then connecting to ${name || n}`);
-    try {
-      const res = await fetch('/api/app/voice-callback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ employee_id: employee?.id, to: n, to_name: name || '' }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setCallbackStatus('error');
-        setCallbackMessage(data.error || 'Failed to start call');
-        setTimeout(() => setCallbackStatus(null), 5000);
-        return;
-      }
-      setCallbackMessage('Check your phone — answer to connect!');
-      setTimeout(() => setCallbackStatus(null), 15000);
-    } catch (err) {
-      setCallbackStatus('error');
-      setCallbackMessage('Network error — check your connection');
-      setTimeout(() => setCallbackStatus(null), 5000);
-    }
-  }, [callbackStatus, employee?.id]);
+    voice.call({ to: n, name: name || n });
+  }, [voice]);
 
   const handleKeyPress = useCallback((digit) => {
     setDialInput(prev => prev + digit);
@@ -983,8 +960,7 @@ export default function ChatApp() {
                   setDialInput={setDialInput}
                   onKeyPress={handleKeyPress}
                   onDial={handleDialCall}
-                  callbackStatus={callbackStatus}
-                  callbackMessage={callbackMessage}
+                  voiceIsActive={voice.isActive}
                   patientSearch={callPatientSearch}
                   onPatientSearch={handleCallPatientSearch}
                   patientResults={callPatientResults}
@@ -1266,11 +1242,11 @@ export default function ChatApp() {
               {activePatientPhone && (
                 <button
                   onClick={() => {
-                    if (callbackStatus !== 'calling') handleDialCall(activePatientPhone, activePatientName);
+                    if (!voice.isActive) handleDialCall(activePatientPhone, activePatientName);
                   }}
-                  disabled={callbackStatus === 'calling'}
+                  disabled={voice.isActive}
                   style={{
-                    background: callbackStatus === 'calling' ? '#e2e8f0' : '#22c55e',
+                    background: voice.isActive ? '#e2e8f0' : '#22c55e',
                     border: 'none',
                     borderRadius: '50%',
                     width: 34,
@@ -1278,7 +1254,7 @@ export default function ChatApp() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    cursor: callbackStatus === 'calling' ? 'default' : 'pointer',
+                    cursor: voice.isActive ? 'default' : 'pointer',
                     flexShrink: 0,
                   }}
                   title="Call from (949) 997-3988"
@@ -1782,7 +1758,7 @@ const DIAL_KEYS = [
 
 function CallsTabContent({
   subView, setSubView, dialInput, setDialInput, onKeyPress, onDial,
-  callbackStatus, callbackMessage,
+  voiceIsActive,
   patientSearch, onPatientSearch, patientResults, searchingPatients,
   callHistory, loadingCallHistory, fetchCallHistory, formatCallTime, formatCallDuration,
 }) {
@@ -1904,30 +1880,14 @@ function CallsTabContent({
             ))}
           </div>
 
-          {/* Callback status banner */}
-          {callbackStatus && (
-            <div style={{
-              width: '100%', maxWidth: 260, marginTop: 10, padding: '10px 14px',
-              borderRadius: 10, textAlign: 'center', fontSize: 13, fontWeight: 600,
-              background: callbackStatus === 'error' ? '#fef2f2' : '#f0fdf4',
-              color: callbackStatus === 'error' ? '#dc2626' : '#166534',
-              border: `1px solid ${callbackStatus === 'error' ? '#fecaca' : '#bbf7d0'}`,
-            }}>
-              {callbackStatus === 'calling' && (
-                <div style={{ width: 18, height: 18, border: '2.5px solid #bbf7d0', borderTopColor: '#166534', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 6px' }} />
-              )}
-              {callbackMessage}
-            </div>
-          )}
-
           {/* Call button */}
           <button
             onClick={() => onDial(dialInput)}
-            disabled={!dialInput.trim() || callbackStatus === 'calling'}
+            disabled={!dialInput.trim() || voiceIsActive}
             style={{
               marginTop: 14, width: 56, height: 56, borderRadius: '50%',
-              background: (!dialInput.trim() || callbackStatus === 'calling') ? '#e2e8f0' : '#22c55e',
-              border: 'none', cursor: (!dialInput.trim() || callbackStatus === 'calling') ? 'default' : 'pointer',
+              background: (!dialInput.trim() || voiceIsActive) ? '#e2e8f0' : '#22c55e',
+              border: 'none', cursor: (!dialInput.trim() || voiceIsActive) ? 'default' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
@@ -1955,7 +1915,7 @@ function CallsTabContent({
                 return (
                   <button
                     key={c.id || c.sid || i}
-                    onClick={() => { if (number && callbackStatus !== 'calling') onDial(number, name); }}
+                    onClick={() => { if (number && !voiceIsActive) onDial(number, name); }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', width: '100%',
                       borderBottom: i < callHistory.length - 1 ? '1px solid #f1f5f9' : 'none',

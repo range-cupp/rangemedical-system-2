@@ -401,10 +401,15 @@ function PatientDrawer({ patientId, allRows, onClose, onNoteAdded }) {
                   lineHeight: '1.5',
                 }}>
                   <div style={{ color: '#333' }}>{note.body}</div>
-                  <div style={{ fontSize: '11px', color: '#999', marginTop: '6px' }}>
+                  <div style={{ fontSize: '11px', color: '#999', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
                     {note.created_by && <span style={{ fontWeight: '500' }}>{note.created_by}</span>}
                     {note.created_by && ' • '}
                     {fmtDate(note.note_date)}
+                    {note.note_category && note.note_category !== 'medication_queue' && (
+                      <span style={{ background: '#f3f4f6', padding: '1px 6px', fontSize: '10px', color: '#888', marginLeft: '4px' }}>
+                        {note.note_category === 'internal' ? 'Staff Note' : note.note_category}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}

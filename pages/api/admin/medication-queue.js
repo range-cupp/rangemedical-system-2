@@ -211,17 +211,18 @@ export default async function handler(req, res) {
       .eq('entry_type', 'pickup')
       .order('entry_date', { ascending: false });
 
-    // 4. Medication queue notes (last 90 days)
+    // 4. Notes — medication_queue + internal (from peptide/other trackers)
     const { data: allNotes } = await supabase
       .from('patient_notes')
-      .select('id, patient_id, body, created_by, note_date, created_at')
+      .select('id, patient_id, body, created_by, note_date, note_category, created_at')
       .in('patient_id', patientIds)
-      .eq('note_category', 'medication_queue')
+      .in('note_category', ['medication_queue', 'internal'])
       .order('created_at', { ascending: false })
       .limit(500);
 
     const notesByPatient = {};
     for (const n of (allNotes || [])) {
+      if (!n.body) continue;
       if (!notesByPatient[n.patient_id]) notesByPatient[n.patient_id] = [];
       notesByPatient[n.patient_id].push(n);
     }

@@ -43,6 +43,9 @@ export default async function handler(req, res) {
     const endTime = addMinutes(time, 30);
     const appointment_end = `${date}T${endTime}:00${offset}`;
 
+    const dow = new Date(date + 'T12:00:00Z').getUTCDay();
+    const provider = (dow === 4 || dow === 5) ? 'Brendyn Reed' : 'Damien Burgess';
+
     const { data, error: dbError } = await supabase
       .from('lab_clarity_bookings')
       .insert({
@@ -70,7 +73,7 @@ export default async function handler(req, res) {
       patient_phone: phone,
       service_name: 'Lab Clarity Visit',
       service_category: 'consultation',
-      provider: 'Brendyn Reed',
+      provider,
       location: 'newport',
       start_time: appointment_start,
       end_time: appointment_end,
@@ -80,7 +83,8 @@ export default async function handler(req, res) {
       notes: concern || null,
     });
 
-    await sendConfirmationEmail({ fullName, email, date, time });
+    const visitPrice = (dow === 4 || dow === 5) ? 97 : 197;
+    await sendConfirmationEmail({ fullName, email, date, time, visitPrice });
 
     return res.status(200).json({ success: true, booking: data });
   } catch (err) {
@@ -105,7 +109,7 @@ function addMinutes(time, minutes) {
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
-async function sendConfirmationEmail({ fullName, email, date, time }) {
+async function sendConfirmationEmail({ fullName, email, date, time, visitPrice }) {
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
   if (!RESEND_API_KEY) return;
 
@@ -156,7 +160,7 @@ async function sendConfirmationEmail({ fullName, email, date, time }) {
           </table>
 
           <p style="margin:0 0 20px;font-size:15px;color:#1a1a1a;line-height:1.6;">
-            <strong>Reminder:</strong> Your $97 visit fee is credited toward any lab panel or treatment you choose within 7 days.
+            <strong>Reminder:</strong> Your $${visitPrice} visit fee is credited toward any lab panel or treatment you choose within 7 days.
           </p>
 
           <p style="margin:0 0 8px;font-size:14px;color:#737373;line-height:1.5;">

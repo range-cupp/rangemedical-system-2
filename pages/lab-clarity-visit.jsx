@@ -7,6 +7,8 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
 
 /* ── Slot generation ── */
 
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 function getAvailableDates() {
   const now = new Date();
   const pacificStr = now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
@@ -18,19 +20,27 @@ function getAvailableDates() {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
     const dow = d.getDay();
-    if (dow !== 4 && dow !== 5) continue;
+    if (dow === 0 || dow === 6) continue;
     const dateStr = [
       d.getFullYear(),
       String(d.getMonth() + 1).padStart(2, '0'),
       String(d.getDate()).padStart(2, '0'),
     ].join('-');
+    const isDiscounted = dow === 4 || dow === 5;
     dates.push({
       dateStr,
-      dayName: dow === 4 ? 'Thu' : 'Fri',
+      dayName: DAY_NAMES[dow],
       label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      price: isDiscounted ? 97 : 197,
+      provider: isDiscounted ? 'Brendyn Reed' : 'Damien Burgess',
     });
   }
   return dates;
+}
+
+function getSelectedPrice(dates, selectedDate) {
+  const d = dates.find(d => d.dateStr === selectedDate);
+  return d ? d.price : 97;
 }
 
 const MORNING_SLOTS = ['09:00','09:30','10:00','10:30','11:00','11:30'];
@@ -63,8 +73,8 @@ const STEPS = [
 
 const FAQS = [
   {
-    q: 'Is the $97 visit really credited to labs or treatment?',
-    a: 'Yes. If you move forward with labs or treatment within 7 days, we apply your full $97 at checkout.',
+    q: 'Is my visit fee really credited to labs or treatment?',
+    a: 'Yes. If you move forward with labs or treatment within 7 days, we apply your full visit fee at checkout.',
   },
   {
     q: 'Do you take insurance?',
@@ -140,6 +150,7 @@ function LabClarityContent() {
 
   const dates = useMemo(() => getAvailableDates(), []);
   const slots = useMemo(() => (selectedDate ? getSlotsForDate(selectedDate) : []), [selectedDate]);
+  const price = selectedDate ? getSelectedPrice(dates, selectedDate) : null;
 
   function scrollToCalendar() {
     calendarRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -171,7 +182,7 @@ function LabClarityContent() {
       const piRes = await fetch('/api/lab-clarity/create-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName: form.fullName.trim(), email: form.email.trim() }),
+        body: JSON.stringify({ fullName: form.fullName.trim(), email: form.email.trim(), amount: price * 100 }),
       });
       const piData = await piRes.json();
       if (!piRes.ok) throw new Error(piData.error || 'Payment initialization failed.');
@@ -214,7 +225,7 @@ function LabClarityContent() {
       if (typeof window.fbq === 'function') {
         window.fbq('track', 'Schedule', {
           content_name: 'Lab Clarity Visit',
-          value: 97.00,
+          value: price,
           currency: 'USD',
         });
       }
@@ -237,11 +248,11 @@ function LabClarityContent() {
     <>
       <Head>
         <title>Lab Clarity Visit — Range Medical | Newport Beach</title>
-        <meta name="description" content="Match how you feel with what your labs actually show. $97 Lab Clarity Visit at Range Medical in Newport Beach." />
+        <meta name="description" content="Match how you feel with what your labs actually show. Lab Clarity Visit starting at $97 at Range Medical in Newport Beach." />
         <meta name="robots" content="noindex, nofollow" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta property="og:title" content="Lab Clarity Visit — Range Medical" />
-        <meta property="og:description" content="Not feeling like yourself? Start with a 1-on-1 Lab Clarity Visit. $97, credited toward labs or treatment." />
+        <meta property="og:description" content="Not feeling like yourself? Start with a 1-on-1 Lab Clarity Visit starting at $97, credited toward labs or treatment." />
         <meta property="og:type" content="website" />
       </Head>
 
@@ -254,20 +265,26 @@ function LabClarityContent() {
             <p style={s.subhead}>Match how you feel with what your labs actually show — in one 1-on-1 visit.</p>
 
             <ul style={s.bulletList}>
-              <li style={s.bulletItem}><span style={s.bulletCheck}>✓</span> 1-on-1 provider visit on Thursday or Friday</li>
+              <li style={s.bulletItem}><span style={s.bulletCheck}>✓</span> 1-on-1 provider visit, Monday through Friday</li>
               <li style={s.bulletItem}><span style={s.bulletCheck}>✓</span> Review symptoms, goals, and history</li>
               <li style={s.bulletItem}><span style={s.bulletCheck}>✓</span> Get a simple written plan and recommended labs</li>
-              <li style={s.bulletItem}><span style={s.bulletCheck}>✓</span> Your $97 is credited toward any lab panel or treatment you choose in 7 days</li>
+              <li style={s.bulletItem}><span style={s.bulletCheck}>✓</span> Your visit fee is credited toward any lab panel or treatment you choose in 7 days</li>
             </ul>
 
-            <div style={s.priceBar}>
-              <span style={s.priceLabel}>Lab Clarity Visit:</span>
-              <span style={s.priceNew}>$97</span>
-              <span style={s.priceOld}>$197</span>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 32 }}>
+              <div style={s.priceBar}>
+                <span style={s.priceLabel}>Thu / Fri:</span>
+                <span style={s.priceNew}>$97</span>
+                <span style={s.priceOld}>$197</span>
+              </div>
+              <div style={s.priceBar}>
+                <span style={s.priceLabel}>Mon–Wed:</span>
+                <span style={{ ...s.priceNew, color: TEXT }}>$197</span>
+              </div>
             </div>
 
             <button onClick={scrollToCalendar} style={s.ctaBtn}>
-              See Thursday &amp; Friday Times
+              See Available Times
             </button>
           </div>
         </section>
@@ -275,7 +292,7 @@ function LabClarityContent() {
         {/* ── Choose Your Time ── */}
         <section ref={calendarRef} style={s.sectionAlt} id="choose-time">
           <div style={s.container}>
-            <h2 style={s.h2}>Choose Your Thursday or Friday Time</h2>
+            <h2 style={s.h2}>Choose Your Day and Time</h2>
 
             {submitted ? (
               <div style={s.successBox}>
@@ -298,6 +315,13 @@ function LabClarityContent() {
                     >
                       <span style={s.dateDow}>{d.dayName}</span>
                       <span style={s.dateLabel}>{d.label}</span>
+                      <span style={{
+                        ...s.datePriceBadge,
+                        ...(d.price === 97 ? s.datePriceBadgeDiscount : {}),
+                        ...(selectedDate === d.dateStr ? s.datePriceBadgeActive : {}),
+                      }}>
+                        ${d.price}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -400,14 +424,14 @@ function LabClarityContent() {
                       <div style={s.paymentHeader}>
                         <span style={s.paymentTitle}>Payment</span>
                         <div style={s.paymentPricing}>
-                          <span style={s.paymentOld}>$197</span>
-                          <span style={s.paymentNew}>$97</span>
+                          {price === 97 && <span style={s.paymentOld}>$197</span>}
+                          <span style={s.paymentNew}>${price}</span>
                         </div>
                       </div>
                       <div style={s.cardWrapper}>
                         <CardElement options={CARD_OPTIONS} />
                       </div>
-                      <p style={s.paymentNote}>Your $97 is credited toward labs or treatment if you continue within 7 days.</p>
+                      <p style={s.paymentNote}>Your ${price} is credited toward labs or treatment if you continue within 7 days.</p>
                     </div>
 
                     <label style={s.checkboxLabel}>
@@ -418,7 +442,7 @@ function LabClarityContent() {
                         onChange={handleChange}
                         style={s.checkbox}
                       />
-                      <span>I understand this is a $97 cash-pay visit and my $97 is credited toward labs or treatment if I continue within 7 days.</span>
+                      <span>I understand this is a ${price} cash-pay visit and my ${price} is credited toward labs or treatment if I continue within 7 days.</span>
                     </label>
 
                     {error && <p style={s.error}>{error}</p>}
@@ -431,14 +455,14 @@ function LabClarityContent() {
                         ...(submitting || !form.agreed || !stripe ? s.submitBtnDisabled : {}),
                       }}
                     >
-                      {submitting ? 'Processing payment…' : 'Pay $97 & Book My Visit'}
+                      {submitting ? 'Processing payment…' : `Pay $${price} & Book My Visit`}
                     </button>
                   </form>
                 )}
 
                 {!selectedDate && (
                   <p style={s.helperText}>
-                    Once you choose a time, you'll enter your details and pay the $97 to confirm your visit.
+                    Select a day and time to get started. Thu/Fri visits are $97, Mon-Wed visits are $197.
                   </p>
                 )}
               </>
@@ -728,6 +752,23 @@ const s = {
   dateLabel: {
     fontSize: 14,
     fontWeight: 500,
+  },
+  datePriceBadge: {
+    fontSize: 11,
+    fontWeight: 600,
+    marginTop: 4,
+    padding: '2px 8px',
+    borderRadius: 999,
+    background: '#e8e6e1',
+    color: TEXT_MUTED,
+  },
+  datePriceBadgeDiscount: {
+    background: '#e6f0e8',
+    color: ACCENT,
+  },
+  datePriceBadgeActive: {
+    background: 'rgba(255,255,255,0.25)',
+    color: '#fff',
   },
 
   /* Slot grid */

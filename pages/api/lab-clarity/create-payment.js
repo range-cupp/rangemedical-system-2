@@ -6,14 +6,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { fullName, email } = req.body;
+    const { fullName, email, amount } = req.body;
 
     if (!fullName || !email) {
       return res.status(400).json({ error: 'Name and email are required.' });
     }
 
+    const validAmounts = [9700, 19700];
+    const chargeAmount = validAmounts.includes(amount) ? amount : 9700;
+
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: 9700,
+      amount: chargeAmount,
       currency: 'usd',
       metadata: {
         type: 'lab_clarity_visit',
@@ -21,7 +24,7 @@ export default async function handler(req, res) {
         patient_email: email,
       },
       receipt_email: email,
-      description: 'Lab Clarity Visit — Range Medical',
+      description: `Lab Clarity Visit ($${chargeAmount / 100}) — Range Medical`,
     });
 
     return res.status(200).json({

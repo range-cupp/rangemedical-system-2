@@ -121,6 +121,7 @@ export default function MedicationQueuePage() {
   const [error, setError] = useState(null);
   const [tab, setTab] = useState('fulfillment');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [deliveryFilter, setDeliveryFilter] = useState('take_home');
   const [search, setSearch] = useState('');
   const [sortField, setSortField] = useState(null);
   const [sortDir, setSortDir] = useState('asc');
@@ -147,6 +148,9 @@ export default function MedicationQueuePage() {
   const filtered = useMemo(() => {
     if (!data?.patients) return [];
     let rows = data.patients;
+    if (deliveryFilter !== 'all') {
+      rows = rows.filter(r => r.fulfillment_type === deliveryFilter);
+    }
     if (categoryFilter !== 'all') {
       rows = rows.filter(r => r.category === categoryFilter);
     }
@@ -188,7 +192,7 @@ export default function MedicationQueuePage() {
       });
     }
     return rows;
-  }, [data, categoryFilter, search, tab, sortField, sortDir]);
+  }, [data, categoryFilter, deliveryFilter, search, tab, sortField, sortDir]);
 
   function handleSort(field) {
     if (sortField === field) {
@@ -289,13 +293,38 @@ export default function MedicationQueuePage() {
         </button>
       </div>
 
-      {/* Filters */}
+      {/* Delivery Filter */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
+        <span style={{ fontSize: '13px', fontWeight: '600', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginRight: '4px' }}>Delivery:</span>
+        <FilterPill
+          label="Take-Home"
+          active={deliveryFilter === 'take_home'}
+          color="#c2410c"
+          count={stats.by_fulfillment?.take_home || 0}
+          onClick={() => setDeliveryFilter('take_home')}
+        />
+        <FilterPill
+          label="In-Clinic"
+          active={deliveryFilter === 'in_clinic'}
+          color="#6b7280"
+          count={stats.by_fulfillment?.in_clinic || 0}
+          onClick={() => setDeliveryFilter('in_clinic')}
+        />
+        <FilterPill
+          label="All"
+          active={deliveryFilter === 'all'}
+          color="#000"
+          count={stats.total}
+          onClick={() => setDeliveryFilter('all')}
+        />
+      </div>
+
+      {/* Category Filters + Search */}
       <div style={{ ...sharedStyles.filterBar, marginBottom: '20px' }}>
         <FilterPill
           label="All"
           active={categoryFilter === 'all'}
           color="#000"
-          count={stats.total}
           onClick={() => setCategoryFilter('all')}
         />
         <FilterPill
@@ -411,7 +440,12 @@ function FulfillmentRow({ row }) {
 
       {/* Category */}
       <td style={sharedStyles.td}>
-        <Badge style={{ background: cs.bg, color: cs.text }}>{cs.label}</Badge>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+          <Badge style={{ background: cs.bg, color: cs.text }}>{cs.label}</Badge>
+          <span style={{ fontSize: '11px', color: '#999' }}>
+            {row.fulfillment_type === 'in_clinic' ? '🏥 In-clinic' : '📬 Take-home'}
+          </span>
+        </div>
       </td>
 
       {/* Medication */}
@@ -542,7 +576,12 @@ function PaymentRow({ row }) {
 
       {/* Category */}
       <td style={sharedStyles.td}>
-        <Badge style={{ background: cs.bg, color: cs.text }}>{cs.label}</Badge>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+          <Badge style={{ background: cs.bg, color: cs.text }}>{cs.label}</Badge>
+          <span style={{ fontSize: '11px', color: '#999' }}>
+            {row.fulfillment_type === 'in_clinic' ? '🏥 In-clinic' : '📬 Take-home'}
+          </span>
+        </div>
       </td>
 
       {/* Medication */}

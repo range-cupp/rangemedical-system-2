@@ -138,6 +138,18 @@ function computePaymentStatus(lastPurchase) {
   };
 }
 
+// Normalize delivery_method into 'take_home' or 'in_clinic'.
+// Peptides are always take-home. HRT self-injection = take-home.
+function normalizeFulfillmentType(deliveryMethod, category) {
+  if (category === 'peptide') return 'take_home';
+  const dm = (deliveryMethod || '').toLowerCase();
+  if (dm === 'in_clinic' || dm === 'in-clinic') return 'in_clinic';
+  if (dm === 'hybrid') return 'take_home';
+  if (dm === 'self_injection' || dm === 'take_home' || dm === 'take-home' || dm === 'overnight') return 'take_home';
+  if (!dm) return 'take_home';
+  return 'take_home';
+}
+
 // Dispense status priority for sorting (lower = more urgent)
 const DISPENSE_PRIORITY = { overdue: 0, due_now: 1, due_soon: 2, never: 3, active: 4 };
 const PAYMENT_PRIORITY = { unknown: 0, comp: 1, paid: 2 };
@@ -273,6 +285,7 @@ export default async function handler(req, res) {
         dose: proto.selected_dose || '',
         frequency: proto.frequency || '',
         delivery_method: proto.delivery_method || '',
+        fulfillment_type: normalizeFulfillmentType(proto.delivery_method, category),
         start_date: proto.start_date,
         end_date: proto.end_date,
         days_on_protocol: proto.start_date ? daysBetween(proto.start_date, todayISO) : null,
@@ -303,6 +316,10 @@ export default async function handler(req, res) {
         hrt: rows.filter(r => r.category === 'hrt').length,
         weight_loss: rows.filter(r => r.category === 'weight_loss').length,
         peptide: rows.filter(r => r.category === 'peptide').length,
+      },
+      by_fulfillment: {
+        take_home: rows.filter(r => r.fulfillment_type === 'take_home').length,
+        in_clinic: rows.filter(r => r.fulfillment_type === 'in_clinic').length,
       },
     };
 

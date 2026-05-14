@@ -131,7 +131,7 @@ function getRowBg(status, isSelected) {
 // =====================================================================
 const STATUS_LABEL = { completed: 'Completed', inactive: 'Inactive', cancelled: 'Cancelled', paused: 'Paused' };
 
-function PatientDrawer({ patientId, allRows, onClose, onNoteAdded }) {
+function PatientDrawer({ patientId, allRows, onClose, onNoteAdded, onRefresh }) {
   const { session } = useAuth();
   const [noteText, setNoteText] = useState('');
   const [saving, setSaving] = useState(false);
@@ -151,6 +151,7 @@ function PatientDrawer({ patientId, allRows, onClose, onNoteAdded }) {
 
   const needsAction = sorted.filter(r => r.dispense.status === 'overdue' || r.dispense.status === 'due_now' || r.dispense.status === 'due_soon');
   const notes = patient.notes || [];
+  const emails = patient.emails || [];
   const completedProtocols = patient.completed_protocols || [];
 
   async function saveNote() {
@@ -241,7 +242,7 @@ function PatientDrawer({ patientId, allRows, onClose, onNoteAdded }) {
       {/* Email Compose Modal */}
       <EmailComposeModal
         isOpen={emailOpen}
-        onClose={() => setEmailOpen(false)}
+        onClose={() => { setEmailOpen(false); if (onRefresh) onRefresh(); }}
         recipientEmail={patient.email}
         recipientName={patient.name}
         patientId={patientId}
@@ -251,6 +252,31 @@ function PatientDrawer({ patientId, allRows, onClose, onNoteAdded }) {
 
       {/* Scrollable content */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
+        {/* Outreach */}
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>
+          <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#999', marginBottom: '10px' }}>
+            Outreach
+          </div>
+          {emails.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {emails.slice(0, 5).map((email, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', lineHeight: '1.3' }}>
+                  <span style={{ flexShrink: 0, fontSize: '12px' }}>{'✉️'}</span>
+                  <span style={{ fontWeight: '500', color: '#333', flexShrink: 0 }}>
+                    {new Date(email.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                  <span style={{ color: '#888', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {email.subject}
+                  </span>
+                  <span style={{ color: '#bbb', fontSize: '12px', flexShrink: 0 }}>{email.sent_by}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize: '13px', color: '#ccc', fontStyle: 'italic' }}>No emails sent</div>
+          )}
+        </div>
+
         {/* Medications */}
         <div style={{ padding: '20px 24px' }}>
           <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#999', marginBottom: '14px' }}>
@@ -682,6 +708,7 @@ export default function MedicationQueuePage() {
           patientId={drawerPatientId}
           allRows={data.patients}
           onClose={closeDrawer}
+          onRefresh={loadData}
           onNoteAdded={(patientId, note) => {
             setData(prev => ({
               ...prev,
@@ -751,6 +778,9 @@ function FulfillmentRow({ row, onPatientClick, isSelected }) {
               {row.name}
               {row.notes && row.notes.length > 0 && (
                 <span title={`${row.notes.length} note${row.notes.length !== 1 ? 's' : ''}`} style={{ fontSize: '13px', color: '#6b7280', flexShrink: 0 }}>{'💬'}</span>
+              )}
+              {row.emails && row.emails.length > 0 && (
+                <span title={`Emailed ${new Date(row.emails[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`} style={{ fontSize: '13px', color: '#6b7280', flexShrink: 0 }}>{'✉️'}</span>
               )}
             </div>
             {row.frequency && (
@@ -887,6 +917,9 @@ function PaymentRow({ row, onPatientClick, isSelected }) {
             {row.name}
             {row.notes && row.notes.length > 0 && (
               <span title={`${row.notes.length} note${row.notes.length !== 1 ? 's' : ''}`} style={{ fontSize: '13px', color: '#6b7280', flexShrink: 0 }}>{'💬'}</span>
+            )}
+            {row.emails && row.emails.length > 0 && (
+              <span title={`Emailed ${new Date(row.emails[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`} style={{ fontSize: '13px', color: '#6b7280', flexShrink: 0 }}>{'✉️'}</span>
             )}
           </div>
         </div>

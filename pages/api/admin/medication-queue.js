@@ -244,6 +244,27 @@ export default async function handler(req, res) {
       notesByPatient[n.patient_id].push(n);
     }
 
+    // 5. Recent outreach emails (staff-sent)
+    const { data: allEmails } = await supabase
+      .from('comms_log')
+      .select('patient_id, subject, sent_by_employee_name, created_at')
+      .in('patient_id', patientIds)
+      .eq('channel', 'email')
+      .eq('status', 'sent')
+      .not('sent_by_employee_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(500);
+
+    const emailsByPatient = {};
+    for (const e of (allEmails || [])) {
+      if (!emailsByPatient[e.patient_id]) emailsByPatient[e.patient_id] = [];
+      emailsByPatient[e.patient_id].push({
+        subject: e.subject || '(no subject)',
+        sent_by: e.sent_by_employee_name || 'Staff',
+        date: e.created_at,
+      });
+    }
+
     // Index purchases by patient+category
     const purchasesByPatient = {};
     for (const p of (allPurchases || [])) {
@@ -369,6 +390,7 @@ export default async function handler(req, res) {
         dispense,
         payment,
         notes: notesByPatient[proto.patient_id] || [],
+        emails: emailsByPatient[proto.patient_id] || [],
         completed_protocols: completedByPatient[proto.patient_id] || [],
       });
     }

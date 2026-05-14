@@ -238,6 +238,10 @@ function LabClarityContent() {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!selectedDate || !selectedTime || !form.agreed || !stripe || !elements) return;
+    if (!dobToIso(form.dob)) {
+      setError('Please enter a valid date of birth (MM/DD/YYYY).');
+      return;
+    }
     setSubmitting(true);
     setError(null);
 
@@ -474,7 +478,7 @@ function LabClarityContent() {
                     </div>
 
                     <div style={s.fieldGroup}>
-                      <label style={s.label}>Date of Birth <span style={s.optional}>(optional)</span></label>
+                      <label style={s.label}>Date of Birth *</label>
                       <input
                         name="dob"
                         type="text"

@@ -8322,6 +8322,15 @@ export default function PatientProfile() {
                                                 <span style={{ marginRight: 6 }}>{isComp ? '🎁' : '📋'}</span>
                                                 Block {blockNum} · {injRange}
                                                 {isComp && <span style={{ fontWeight: 500, color: '#166534', marginLeft: 6 }}>· Complimentary</span>}
+                                                {!isComp && paidAmount > 0 && (
+                                                  <span
+                                                    onClick={(e) => { e.stopPropagation(); openEditPurchase(purchase); }}
+                                                    style={{ fontWeight: 600, color: '#166534', marginLeft: 6, cursor: 'pointer', borderBottom: '1px dashed #86efac' }}
+                                                    title="Click to edit purchase amount"
+                                                  >
+                                                    · ${Math.round(paidAmount)}
+                                                  </span>
+                                                )}
                                                 {chips.length > 0 && (
                                                   <>
                                                     <span style={{ color: '#cbd5e1', margin: '0 8px' }}>·</span>

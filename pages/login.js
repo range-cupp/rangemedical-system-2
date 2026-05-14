@@ -17,6 +17,12 @@ export default function Login() {
 
   // If already logged in, redirect to admin
   useEffect(() => {
+    // If admin rejected our session, clear it and show the login form
+    if (router.query.session === 'expired') {
+      supabase.auth.signOut().finally(() => setCheckingSession(false));
+      return;
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         router.replace('/admin');

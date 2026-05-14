@@ -5954,9 +5954,7 @@ export default function PatientProfile() {
                   whiteSpace: 'pre-wrap',
                   maxHeight: pinnedNoteExpanded ? 'none' : 80,
                   overflow: 'hidden',
-                }}>
-                  {pinnedNote.body}
-                </div>
+                }} dangerouslySetInnerHTML={{ __html: pinnedNote.body }} />
               </div>
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 {canEditNote(pinnedNote) && (

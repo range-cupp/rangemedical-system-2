@@ -366,6 +366,7 @@ function CheckoutInner() {
   const [dispLotNumber, setDispLotNumber] = useState('');
   const [dispExpirationDate, setDispExpirationDate] = useState('');
   const [dispFrequency, setDispFrequency] = useState('');
+  const [dispInjectionMethod, setDispInjectionMethod] = useState('');
   const [dispFulfillment, setDispFulfillment] = useState('in_clinic');
   const [dispTrackingNumber, setDispTrackingNumber] = useState('');
   const [dispNotes, setDispNotes] = useState('');
@@ -2473,6 +2474,7 @@ function CheckoutInner() {
     setDispLotNumber('');
     setDispExpirationDate('');
     setDispFrequency('');
+    setDispInjectionMethod('');
     setDispFulfillment('in_clinic');
     setDispTrackingNumber('');
     setDispNotes('');
@@ -2551,6 +2553,8 @@ function CheckoutInner() {
       const doseVal = protocol.selected_dose || (protocol.dose_per_injection ? `${protocol.dose_per_injection}mg` : '');
       if (doseVal) setDispDosage(doseVal);
       if (protocol.supply_type) setDispSupplyType(protocol.supply_type);
+      if (protocol.injection_method) setDispInjectionMethod(protocol.injection_method);
+      if (protocol.frequency) setDispFrequency(protocol.frequency);
     }
 
     // Auto-set entry type based on category
@@ -2632,6 +2636,7 @@ function CheckoutInner() {
         lotNumber: dispLotNumber || null,
         expirationDate: dispExpirationDate || null,
         frequency: dispFrequency || null,
+        injectionMethod: dispInjectionMethod || null,
         fulfillmentMethod: dispFulfillment,
         trackingNumber: dispTrackingNumber || null,
         notes: dispNotes || null,
@@ -2721,6 +2726,8 @@ function CheckoutInner() {
                 verified_by: d.verifiedBy,
                 lot_number: d.lotNumber,
                 expiration_date: d.expirationDate,
+                injection_method: d.injectionMethod,
+                injection_frequency: d.frequency,
                 fulfillment_method: 'in_clinic',
                 tracking_number: null,
                 entry_date: d.entryDate || null,
@@ -2749,6 +2756,8 @@ function CheckoutInner() {
               verified_by: d.verifiedBy,
               lot_number: d.lotNumber,
               expiration_date: d.expirationDate,
+              injection_method: d.injectionMethod,
+              injection_frequency: d.frequency,
               fulfillment_method: 'take_home',
               tracking_number: d.trackingNumber,
               entry_date: d.entryDate || null,
@@ -2776,6 +2785,8 @@ function CheckoutInner() {
             lot_number: d.lotNumber,
             expiration_date: d.expirationDate,
             frequency: d.frequency,
+            injection_method: d.injectionMethod,
+            injection_frequency: d.frequency,
             fulfillment_method: d.fulfillmentMethod,
             tracking_number: d.trackingNumber,
             entry_date: d.entryDate || null,
@@ -3644,6 +3655,77 @@ function CheckoutInner() {
                                           ))}
                                         </select>
                                       </div>
+                                    )}
+
+                                    {/* Injection Method + Frequency for primary testosterone */}
+                                    {cat === 'testosterone' && (dispMedication === 'Testosterone Cypionate' || dispMedication === 'Testosterone Enanthate') && (
+                                      <>
+                                        <div style={styles.dispenseFieldGroup}>
+                                          <label style={styles.fieldLabel}>Injection Method</label>
+                                          <div style={{ display: 'flex', gap: 8 }}>
+                                            {[
+                                              { value: 'im', label: 'IM' },
+                                              { value: 'subq', label: 'SubQ' },
+                                            ].map(m => (
+                                              <button
+                                                key={m.value}
+                                                type="button"
+                                                onClick={() => {
+                                                  setDispInjectionMethod(m.value);
+                                                  if (m.value === 'im') {
+                                                    setDispFrequency('every 3.5 days');
+                                                  } else {
+                                                    setDispFrequency('');
+                                                  }
+                                                }}
+                                                style={{
+                                                  flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 4,
+                                                  background: dispInjectionMethod === m.value ? '#0a0a0a' : '#fff',
+                                                  color: dispInjectionMethod === m.value ? '#fff' : '#374151',
+                                                  fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                                                }}
+                                              >
+                                                {m.label}
+                                              </button>
+                                            ))}
+                                          </div>
+                                          {dispInjectionMethod === 'im' && (
+                                            <div style={{ marginTop: 4, fontSize: 11, color: '#6b7280' }}>Every 3.5 days (IM)</div>
+                                          )}
+                                        </div>
+                                        {dispInjectionMethod === 'subq' && (
+                                          <div style={styles.dispenseFieldGroup}>
+                                            <label style={styles.fieldLabel}>Frequency</label>
+                                            <div style={{ display: 'flex', gap: 8 }}>
+                                              {[
+                                                { value: 'Daily', label: 'Daily' },
+                                                { value: 'every 3.5 days', label: 'Every 3.5 days' },
+                                              ].map(f => (
+                                                <button
+                                                  key={f.value}
+                                                  type="button"
+                                                  onClick={() => setDispFrequency(f.value)}
+                                                  style={{
+                                                    flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 4,
+                                                    background: dispFrequency === f.value ? '#0a0a0a' : '#fff',
+                                                    color: dispFrequency === f.value ? '#fff' : '#374151',
+                                                    fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                                                  }}
+                                                >
+                                                  {f.label}
+                                                </button>
+                                              ))}
+                                            </div>
+                                            {dispFrequency && (
+                                              <div style={{ marginTop: 4, fontSize: 11, color: '#6b7280' }}>
+                                                {dispFrequency === 'Daily'
+                                                  ? `SIG: ${dispDosage ? dispDosage.replace('/', ' ') + ' ' : ''}subcutaneous daily`
+                                                  : `SIG: ${dispDosage ? dispDosage.replace('/', ' ') + ' ' : ''}subcutaneous every 3.5 days`}
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </>
                                     )}
 
                                     {/* Supply type + Frequency for HRT secondary meds (HCG, Gonadorelin, Nandrolone) */}

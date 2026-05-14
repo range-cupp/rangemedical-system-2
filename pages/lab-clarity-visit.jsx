@@ -143,7 +143,7 @@ function LabClarityContent() {
   const [slots, setSlots] = useState([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [form, setForm] = useState({
-    fullName: '', email: '', phone: '', dob: '', concern: '', concernOther: '', agreed: false,
+    fullName: '', email: '', phone: '', dob: '', concerns: [], concernOther: '', agreed: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -276,7 +276,16 @@ function LabClarityContent() {
           email: form.email.trim(),
           phone: form.phone.trim(),
           dob: dobToIso(form.dob) || null,
-          concern: (form.concern === 'Other' ? form.concernOther.trim() : form.concern) || null,
+          concern: (() => {
+            const picked = [...form.concerns];
+            if (picked.includes('Other') && form.concernOther.trim()) {
+              picked[picked.indexOf('Other')] = form.concernOther.trim();
+            } else {
+              const idx = picked.indexOf('Other');
+              if (idx !== -1) picked.splice(idx, 1);
+            }
+            return picked.length > 0 ? picked.join(', ') : null;
+          })(),
           date: selectedDate,
           time: selectedTime,
           paymentIntentId: paymentIntent.id,
@@ -482,25 +491,43 @@ function LabClarityContent() {
                     </div>
 
                     <div style={s.fieldGroup}>
-                      <label style={s.label}>What's bothering you most right now? <span style={s.optional}>(optional)</span></label>
-                      <select
-                        name="concern"
-                        value={form.concern}
-                        onChange={handleChange}
-                        style={s.input}
-                      >
-                        <option value="">Select a concern...</option>
-                        {CONCERN_OPTIONS.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                        <option value="Other">Other</option>
-                      </select>
-                      {form.concern === 'Other' && (
+                      <label style={s.label}>What's bothering you? <span style={s.optional}>(select all that apply)</span></label>
+                      <div style={s.concernGrid}>
+                        {[...CONCERN_OPTIONS, 'Other'].map(opt => {
+                          const checked = form.concerns.includes(opt);
+                          return (
+                            <label
+                              key={opt}
+                              style={{
+                                ...s.concernChip,
+                                ...(checked ? s.concernChipActive : {}),
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => {
+                                  setForm(prev => ({
+                                    ...prev,
+                                    concerns: checked
+                                      ? prev.concerns.filter(c => c !== opt)
+                                      : [...prev.concerns, opt],
+                                  }));
+                                  if (!formStarted) { setFormStarted(true); trackEvent('form_start'); }
+                                }}
+                                style={{ display: 'none' }}
+                              />
+                              {opt}
+                            </label>
+                          );
+                        })}
+                      </div>
+                      {form.concerns.includes('Other') && (
                         <textarea
                           name="concernOther"
                           value={form.concernOther}
                           onChange={handleChange}
-                          rows={3}
+                          rows={2}
                           style={{ ...s.input, resize: 'vertical', marginTop: 10 }}
                           placeholder="Tell us what you're experiencing..."
                         />
@@ -922,6 +949,29 @@ const s = {
   optional: {
     fontWeight: 400,
     color: TEXT_MUTED,
+  },
+  concernGrid: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  concernChip: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '8px 16px',
+    border: `1px solid ${BORDER}`,
+    borderRadius: 999,
+    background: '#fff',
+    fontSize: 14,
+    color: TEXT,
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+    userSelect: 'none',
+  },
+  concernChipActive: {
+    background: ACCENT,
+    borderColor: ACCENT,
+    color: '#fff',
   },
   input: {
     width: '100%',

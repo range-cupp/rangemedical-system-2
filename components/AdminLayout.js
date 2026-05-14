@@ -263,7 +263,7 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
   // Redirect to login if not authenticated (after loading completes)
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.replace('/login');
+      router.replace('/login?session=expired');
     }
   }, [authLoading, isAuthenticated, router]);
 

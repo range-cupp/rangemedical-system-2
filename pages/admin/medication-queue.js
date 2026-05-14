@@ -6,6 +6,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
+import SMSComposeModal from '../../components/SMSComposeModal';
+import EmailComposeModal from '../../components/EmailComposeModal';
 
 const CATEGORY_STYLES = {
   hrt: { bg: '#f3e8ff', text: '#7c3aed', label: 'HRT' },
@@ -133,6 +135,8 @@ function PatientDrawer({ patientId, allRows, onClose, onNoteAdded }) {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState(null);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [smsOpen, setSmsOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
 
   const patientRows = allRows.filter(r => r.patient_id === patientId);
   if (patientRows.length === 0) return null;
@@ -204,17 +208,43 @@ function PatientDrawer({ patientId, allRows, onClose, onNoteAdded }) {
             <a href={`tel:${cleanPhone(patient.phone)}`} style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall, textDecoration: 'none', fontSize: '13px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ fontSize: '15px' }}>{'📞'}</span> {fmtPhone(patient.phone)}
             </a>
-            <a href={`sms:${cleanPhone(patient.phone)}`} style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall, textDecoration: 'none', fontSize: '13px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <button
+              onClick={() => setSmsOpen(true)}
+              style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall, fontSize: '13px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+            >
               <span style={{ fontSize: '15px' }}>{'💬'}</span> Text
-            </a>
+            </button>
           </>
         )}
         {patient.email && (
-          <a href={`mailto:${patient.email}`} style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall, textDecoration: 'none', fontSize: '13px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            onClick={() => setEmailOpen(true)}
+            style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall, fontSize: '13px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+          >
             <span style={{ fontSize: '15px' }}>{'✉️'}</span> Email
-          </a>
+          </button>
         )}
       </div>
+
+      {/* SMS Compose Modal */}
+      <SMSComposeModal
+        isOpen={smsOpen}
+        onClose={() => setSmsOpen(false)}
+        recipientPhone={patient.phone}
+        recipientName={patient.name}
+        patientId={patientId}
+        patientName={patient.name}
+      />
+
+      {/* Email Compose Modal */}
+      <EmailComposeModal
+        isOpen={emailOpen}
+        onClose={() => setEmailOpen(false)}
+        recipientEmail={patient.email}
+        recipientName={patient.name}
+        patientId={patientId}
+        patientName={patient.name}
+      />
 
       {/* Scrollable content */}
       <div style={{ flex: 1, overflowY: 'auto' }}>

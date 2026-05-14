@@ -12,40 +12,69 @@ import StaffMessagingPanel from './StaffMessagingPanel';
 import AdminVoiceWidget from './AdminVoiceWidget';
 
 
+// Sidebar nav organized into collapsible sections
 // group: 'medical' = clinical sidebar, 'business' = operations sidebar, undefined = show in both
-const NAV_ITEMS = [
+const NAV_SECTIONS = [
   { href: '/admin', label: 'Dashboard', icon: 'grid' },
-  { href: '/admin/pipelines', label: 'Pipelines', icon: 'trending-down', group: 'business' },
-  { href: '/admin/referrals', label: 'Referrals', icon: 'user-plus', group: 'business' },
   { href: '/admin/patients', label: 'Patients', icon: 'users' },
   { href: '/admin/schedule', label: 'Schedule', icon: 'calendar', group: 'medical' },
-  { href: '/admin/checkout', label: 'Checkout', icon: 'shopping-bag', group: 'business' },
-  { href: '/admin/quotes', label: 'Quotes', icon: 'file-text', group: 'business' },
-  { href: '/admin/payments', label: 'Payments', icon: 'credit-card', group: 'business' },
-  { href: '/admin/clinic-sources', label: 'Clinic Sources', icon: 'pie-chart', adminOnly: true, group: 'business' },
   { href: '/admin/communications', label: 'Communications', icon: 'message' },
-  { href: '/admin/email-campaigns', label: 'Email Campaigns', icon: 'mail', adminOnly: true, group: 'business' },
-  { href: '/admin/email-log', label: 'Email Log', icon: 'mail', adminOnly: true, group: 'business' },
-  { href: '/admin/google-reviews', label: 'Google Reviews', icon: 'star', adminOnly: true, group: 'business' },
   { href: '/admin/tasks', label: 'Tasks', icon: 'check-square', group: 'business' },
-  { href: '/staff-chat', label: 'Assistant', icon: 'message', group: 'business' },
-  { href: '/admin/send-forms', label: 'Send Forms', icon: 'file-text', group: 'medical' },
-  { href: '/admin/peptide-guide', label: 'Peptide Guide', icon: 'flask', group: 'business' },
-  { href: '/admin/service-log', label: 'Service Log', icon: 'clipboard', group: 'medical' },
-  { href: '/admin/medication-queue', label: 'Medication Queue', icon: 'pill', group: 'medical' },
-  { href: '/admin/wl-tracker', label: 'WL Tracker', icon: 'activity', group: 'medical' },
-  { href: '/admin/hrt-tracker', label: 'HRT Tracker', icon: 'activity', group: 'medical' },
-  { href: '/admin/peptide-tracker', label: 'Peptide Tracker', icon: 'activity', group: 'medical' },
-  { href: '/admin/plan-summaries', label: 'Plan Summaries', icon: 'file-text', group: 'medical' },
-  { href: '/admin/shop-access', label: 'Shop Access', icon: 'shopping-bag', group: 'business' },
-  { href: '/admin/snippets', label: 'Snippets', icon: 'file-text', group: 'business' },
-  { href: '/admin/team', label: 'Team', icon: 'user-check', group: 'business' },
-  { href: '/admin/employee-activity', label: 'Employee Activity', icon: 'activity', permission: 'can_manage_employees', group: 'business' },
-  { href: '/admin/data-health', label: 'Data Health', icon: 'activity', adminOnly: true, group: 'business' },
-  { href: '/admin/page-analytics', label: 'Page Analytics', icon: 'bar-chart', adminOnly: true, group: 'business' },
+  {
+    section: 'Clinical',
+    items: [
+      { href: '/admin/service-log', label: 'Service Log', icon: 'clipboard', group: 'medical' },
+      { href: '/admin/medication-queue', label: 'Medication Queue', icon: 'pill', group: 'medical' },
+      { href: '/admin/send-forms', label: 'Send Forms', icon: 'file-text', group: 'medical' },
+      { href: '/admin/plan-summaries', label: 'Plan Summaries', icon: 'file-text', group: 'medical' },
+    ],
+  },
+  {
+    section: 'Trackers',
+    items: [
+      { href: '/admin/wl-tracker', label: 'WL Tracker', icon: 'activity', group: 'medical' },
+      { href: '/admin/hrt-tracker', label: 'HRT Tracker', icon: 'activity', group: 'medical' },
+      { href: '/admin/peptide-tracker', label: 'Peptide Tracker', icon: 'activity', group: 'medical' },
+    ],
+  },
+  {
+    section: 'Billing & Sales',
+    items: [
+      { href: '/admin/checkout', label: 'Checkout', icon: 'shopping-bag', group: 'business' },
+      { href: '/admin/payments', label: 'Payments', icon: 'credit-card', group: 'business' },
+      { href: '/admin/quotes', label: 'Quotes', icon: 'file-text', group: 'business' },
+      { href: '/memberships', label: 'Memberships', icon: 'credit-card' },
+      { href: '/admin/shop-access', label: 'Shop Access', icon: 'shopping-bag', group: 'business' },
+    ],
+  },
+  {
+    section: 'Marketing & Growth',
+    items: [
+      { href: '/admin/pipelines', label: 'Pipelines', icon: 'trending-down', group: 'business' },
+      { href: '/admin/referrals', label: 'Referrals', icon: 'user-plus', group: 'business' },
+      { href: '/admin/email-campaigns', label: 'Email Campaigns', icon: 'mail', adminOnly: true, group: 'business' },
+      { href: '/admin/email-log', label: 'Email Log', icon: 'mail', adminOnly: true, group: 'business' },
+      { href: '/admin/google-reviews', label: 'Google Reviews', icon: 'star', adminOnly: true, group: 'business' },
+      { href: '/admin/clinic-sources', label: 'Clinic Sources', icon: 'pie-chart', adminOnly: true, group: 'business' },
+    ],
+  },
+  {
+    section: 'Admin',
+    items: [
+      { href: '/admin/team', label: 'Team', icon: 'user-check', group: 'business' },
+      { href: '/admin/employee-activity', label: 'Employee Activity', icon: 'activity', permission: 'can_manage_employees', group: 'business' },
+      { href: '/admin/data-health', label: 'Data Health', icon: 'activity', adminOnly: true, group: 'business' },
+      { href: '/admin/page-analytics', label: 'Page Analytics', icon: 'bar-chart', adminOnly: true, group: 'business' },
+      { href: '/admin/snippets', label: 'Snippets', icon: 'file-text', group: 'business' },
+      { href: '/staff-chat', label: 'Assistant', icon: 'message', group: 'business' },
+      { href: '/admin/peptide-guide', label: 'Peptide Guide', icon: 'flask', group: 'business' },
+    ],
+  },
   { href: '/admin/settings', label: 'Settings', icon: 'settings' },
-  { href: '/memberships', label: 'Memberships', icon: 'credit-card' }
 ];
+
+// Flat list derived from sections (for mobile grid, filtering, edit mode)
+const NAV_ITEMS = NAV_SECTIONS.flatMap(entry => entry.section ? entry.items : [entry]);
 
 // Simple SVG icons to avoid external dependency
 const icons = {
@@ -189,6 +218,11 @@ const icons = {
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
     </svg>
   ),
+  'chevron-right': (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  ),
   'alert-circle': (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
@@ -223,6 +257,7 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
   const [editNav, setEditNav] = useState(false);
   const [hiddenNav, setHiddenNav] = useState([]);
   const [globalViewMode, setGlobalViewMode] = useState('both'); // 'medical' | 'business' | 'both'
+  const [expandedSections, setExpandedSections] = useState({});
   const { employee, loading: authLoading, signOut, hasPermission, isAuthenticated } = useAuth();
   const { unreadCount, taskCount, overdueCount, purchaseCount } = useAdminNotifications();
 
@@ -252,6 +287,45 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
       if (saved && ['medical', 'business', 'both'].includes(saved)) setGlobalViewMode(saved);
     } catch {}
   }, [viewModeStorageKey]);
+
+  // Expanded sidebar sections — persisted per user in localStorage
+  const expandedStorageKey = employee?.id ? `sidebar_expanded_${employee.id}` : null;
+  useEffect(() => {
+    if (!expandedStorageKey) return;
+    try {
+      const raw = localStorage.getItem(expandedStorageKey);
+      if (raw) setExpandedSections(JSON.parse(raw));
+    } catch {}
+  }, [expandedStorageKey]);
+
+  const toggleSection = (sectionName) => {
+    setExpandedSections(prev => {
+      const next = { ...prev, [sectionName]: !prev[sectionName] };
+      if (expandedStorageKey) {
+        try { localStorage.setItem(expandedStorageKey, JSON.stringify(next)); } catch {}
+      }
+      return next;
+    });
+  };
+
+  const isSectionExpanded = (sectionName) => {
+    if (editNav) return true;
+    for (const entry of NAV_SECTIONS) {
+      if (entry.section !== sectionName) continue;
+      const hasActivePage = entry.items.some(item =>
+        currentPath === item.href ||
+        (item.href !== '/admin' && currentPath.startsWith(item.href))
+      );
+      if (hasActivePage) return true;
+      const hasBadge = entry.items.some(item =>
+        (item.href === '/admin/communications' && unreadCount > 0) ||
+        (item.href === '/admin/tasks' && taskCount > 0) ||
+        (item.href === '/admin/payments' && purchaseCount > 0)
+      );
+      if (hasBadge) return true;
+    }
+    return !!expandedSections[sectionName];
+  };
 
   const setAndPersistViewMode = (mode) => {
     setGlobalViewMode(mode);
@@ -296,6 +370,92 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
     : contextFilteredItems.filter(item => !hiddenNav.includes(item.href));
   const hiddenNavList = permittedNavItems.filter(item => hiddenNav.includes(item.href));
 
+  const filterItem = (item) => {
+    if (item.adminOnly && !employee?.is_admin) return false;
+    if (item.permission && !hasPermission(item.permission)) return false;
+    if (effectiveViewMode && item.group && item.group !== effectiveViewMode) return false;
+    if (!editNav && hiddenNav.includes(item.href)) return false;
+    return true;
+  };
+
+  const renderNavItem = (item) => {
+    const isHidden = hiddenNav.includes(item.href);
+    const isActive = currentPath === item.href ||
+      (item.href !== '/admin' && currentPath.startsWith(item.href)) ||
+      (item.href === '/admin/patients' && currentPath.startsWith('/patients'));
+    const showBadge = (item.href === '/admin/communications' && unreadCount > 0)
+      || (item.href === '/admin/tasks' && taskCount > 0)
+      || (item.href === '/admin/payments' && purchaseCount > 0);
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        style={{
+          ...styles.navLink,
+          background: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
+          color: isActive ? '#fff' : 'rgba(255,255,255,0.65)',
+          fontWeight: isActive ? '600' : '400',
+          position: 'relative',
+        }}
+        onClick={() => setSidebarOpen(false)}
+      >
+        <span style={styles.navIcon}>{icons[item.icon]}</span>
+        <span style={{ flex: 1, opacity: editNav && isHidden ? 0.45 : 1 }}>{item.label}</span>
+        {editNav && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              isHidden ? unhideItem(item.href) : hideItem(item.href);
+            }}
+            title={isHidden ? 'Show in sidebar' : 'Hide from sidebar'}
+            style={{
+              background: 'rgba(255,255,255,0.12)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              fontSize: '11px',
+              padding: '2px 8px',
+              marginRight: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            {isHidden ? 'Show' : 'Hide'}
+          </button>
+        )}
+        {showBadge && item.href === '/admin/tasks' ? (
+          <span style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+            {overdueCount > 0 && (
+              <span style={{
+                ...styles.unreadBadge,
+                background: '#dc2626',
+                position: 'relative',
+              }}>
+                {overdueCount > 99 ? '99+' : overdueCount}
+              </span>
+            )}
+            <span style={{
+              ...styles.unreadBadge,
+              position: 'relative',
+              ...(overdueCount > 0 ? { background: '#3b82f6' } : {}),
+            }}>
+              {taskCount > 99 ? '99+' : taskCount}
+            </span>
+          </span>
+        ) : showBadge && (
+          <span style={{
+            ...styles.unreadBadge,
+            ...(item.href === '/admin/payments' ? { background: '#16a34a' } : {}),
+          }}>
+            {item.href === '/admin/payments'
+              ? (purchaseCount > 99 ? '99+' : purchaseCount)
+              : (unreadCount > 99 ? '99+' : unreadCount)}
+          </span>
+        )}
+      </Link>
+    );
+  };
+
   return (
     <>
       <Head>
@@ -328,82 +488,32 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
           </div>
 
           <nav style={styles.nav}>
-            {visibleNavItems.map(item => {
-              const isHidden = hiddenNav.includes(item.href);
-              const isActive = currentPath === item.href ||
-                (item.href !== '/admin' && currentPath.startsWith(item.href)) ||
-                (item.href === '/admin/patients' && currentPath.startsWith('/patients'));
-              const showBadge = (item.href === '/admin/communications' && unreadCount > 0)
-                || (item.href === '/admin/tasks' && taskCount > 0)
-                || (item.href === '/admin/payments' && purchaseCount > 0);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  style={{
-                    ...styles.navLink,
-                    background: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
-                    color: isActive ? '#fff' : 'rgba(255,255,255,0.65)',
-                    fontWeight: isActive ? '600' : '400',
-                    position: 'relative',
-                  }}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <span style={styles.navIcon}>{icons[item.icon]}</span>
-                  <span style={{ flex: 1, opacity: editNav && isHidden ? 0.45 : 1 }}>{item.label}</span>
-                  {editNav && (
+            {NAV_SECTIONS.map((entry) => {
+              if (entry.section) {
+                const sectionItems = entry.items.filter(filterItem);
+                if (sectionItems.length === 0) return null;
+                const expanded = isSectionExpanded(entry.section);
+                return (
+                  <div key={entry.section}>
                     <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        isHidden ? unhideItem(item.href) : hideItem(item.href);
-                      }}
-                      title={isHidden ? 'Show in sidebar' : 'Hide from sidebar'}
-                      style={{
-                        background: 'rgba(255,255,255,0.12)',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '4px',
-                        fontSize: '11px',
-                        padding: '2px 8px',
-                        marginRight: '4px',
-                        cursor: 'pointer',
-                      }}
+                      onClick={() => toggleSection(entry.section)}
+                      style={styles.sectionHeader}
                     >
-                      {isHidden ? 'Show' : 'Hide'}
-                    </button>
-                  )}
-                  {showBadge && item.href === '/admin/tasks' ? (
-                    <span style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                      {overdueCount > 0 && (
-                        <span style={{
-                          ...styles.unreadBadge,
-                          background: '#dc2626',
-                          position: 'relative',
-                        }}>
-                          {overdueCount > 99 ? '99+' : overdueCount}
-                        </span>
-                      )}
                       <span style={{
-                        ...styles.unreadBadge,
-                        position: 'relative',
-                        ...(overdueCount > 0 ? { background: '#3b82f6' } : {}),
+                        display: 'flex',
+                        transform: expanded ? 'rotate(90deg)' : 'rotate(0)',
+                        transition: 'transform 0.15s',
                       }}>
-                        {taskCount > 99 ? '99+' : taskCount}
+                        {icons['chevron-right']}
                       </span>
-                    </span>
-                  ) : showBadge && (
-                    <span style={{
-                      ...styles.unreadBadge,
-                      ...(item.href === '/admin/payments' ? { background: '#16a34a' } : {}),
-                    }}>
-                      {item.href === '/admin/payments'
-                        ? (purchaseCount > 99 ? '99+' : purchaseCount)
-                        : (unreadCount > 99 ? '99+' : unreadCount)}
-                    </span>
-                  )}
-                </Link>
-              );
+                      <span style={{ flex: 1 }}>{entry.section}</span>
+                    </button>
+                    {expanded && sectionItems.map(renderNavItem)}
+                  </div>
+                );
+              }
+              if (!filterItem(entry)) return null;
+              return renderNavItem(entry);
             })}
           </nav>
 
@@ -1139,6 +1249,24 @@ const styles = {
     flexDirection: 'column',
     gap: '2px',
     overflowY: 'auto'
+  },
+  sectionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '8px 14px',
+    marginTop: '8px',
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: '11px',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    cursor: 'pointer',
+    border: 'none',
+    background: 'none',
+    width: '100%',
+    fontFamily: 'inherit',
+    transition: 'color 0.15s',
   },
   navLink: {
     textDecoration: 'none',

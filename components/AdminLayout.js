@@ -299,8 +299,9 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
   }, [expandedStorageKey]);
 
   const toggleSection = (sectionName) => {
+    const currentlyExpanded = isSectionExpanded(sectionName);
     setExpandedSections(prev => {
-      const next = { ...prev, [sectionName]: !prev[sectionName] };
+      const next = { ...prev, [sectionName]: !currentlyExpanded };
       if (expandedStorageKey) {
         try { localStorage.setItem(expandedStorageKey, JSON.stringify(next)); } catch {}
       }
@@ -310,6 +311,7 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
 
   const isSectionExpanded = (sectionName) => {
     if (editNav) return true;
+    if (sectionName in expandedSections) return expandedSections[sectionName];
     for (const entry of NAV_SECTIONS) {
       if (entry.section !== sectionName) continue;
       const hasActivePage = entry.items.some(item =>
@@ -324,8 +326,32 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
       );
       if (hasBadge) return true;
     }
-    return !!expandedSections[sectionName];
+    return false;
   };
+
+  // When navigating to a page inside a section, clear any explicit collapse so it auto-opens
+  useEffect(() => {
+    for (const entry of NAV_SECTIONS) {
+      if (!entry.section) continue;
+      const hasActivePage = entry.items.some(item =>
+        currentPath === item.href ||
+        (item.href !== '/admin' && currentPath.startsWith(item.href))
+      );
+      if (hasActivePage) {
+        setExpandedSections(prev => {
+          if (prev[entry.section] === false) {
+            const next = { ...prev };
+            delete next[entry.section];
+            if (expandedStorageKey) {
+              try { localStorage.setItem(expandedStorageKey, JSON.stringify(next)); } catch {}
+            }
+            return next;
+          }
+          return prev;
+        });
+      }
+    }
+  }, [currentPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setAndPersistViewMode = (mode) => {
     setGlobalViewMode(mode);

@@ -177,6 +177,8 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   const [expirationDate, setExpirationDate] = useState('');
   const [fulfillmentMethod, setFulfillmentMethod] = useState('in_clinic');
   const [trackingNumber, setTrackingNumber] = useState('');
+  const [injectionMethod, setInjectionMethod] = useState('');
+  const [injectionFrequency, setInjectionFrequency] = useState('');
 
   // Weight loss included add-ons (B12, vitamins)
   const [wlAddons, setWlAddons] = useState([]); // [{type:'b12', inClinic:0, takeHome:0}]
@@ -296,6 +298,8 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setExpirationDate('');
     setFulfillmentMethod('in_clinic');
     setTrackingNumber('');
+    setInjectionMethod('');
+    setInjectionFrequency('');
     setWlAddons([]);
     setIvMenuType('');
     setIvSpecialtyType('');
@@ -333,7 +337,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       category: selectedCategory,
       medication, dosage, supplyType, quantity, duration, weight,
       entryType, notes, administeredBy, verifiedBy,
-      lotNumber, expirationDate, fulfillmentMethod, trackingNumber,
+      lotNumber, expirationDate, fulfillmentMethod, trackingNumber, injectionMethod, injectionFrequency,
       selectedProtocol, coverageType, coverageOverride, coverage,
       selectedService, paymentMethod, selectedCardId,
       discountType, discountValue,
@@ -374,6 +378,8 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setExpirationDate(item.expirationDate || '');
     setFulfillmentMethod(item.fulfillmentMethod || 'in_clinic');
     setTrackingNumber(item.trackingNumber || '');
+    setInjectionMethod(item.injectionMethod || '');
+    setInjectionFrequency(item.injectionFrequency || '');
     setWlAddons(item.wlAddons ? [...item.wlAddons] : []);
     setSelectedProtocol(item.selectedProtocol || null);
     setCoverageType(item.coverageType || null);
@@ -540,6 +546,8 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
         }
         if (proto.selected_dose) setDosage(proto.selected_dose);
         if (proto.supply_type) setSupplyType(proto.supply_type);
+        if (proto.injection_method) setInjectionMethod(proto.injection_method);
+        if (proto.frequency) setInjectionFrequency(proto.frequency);
       }
 
       // Auto-set entry type based on category
@@ -881,6 +889,8 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
           expiration_date: item.expirationDate || null,
           fulfillment_method: item.fulfillmentMethod,
           tracking_number: item.trackingNumber || null,
+          injection_method: item.injectionMethod || null,
+          injection_frequency: item.injectionFrequency || null,
           purchase_id: purchaseId,
           send_receipt: sendReceipt && isLastItem, // only send email on last item
         };
@@ -1449,6 +1459,79 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                         placeholder="How many syringes?"
                         style={styles.input || styles.select}
                       />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Injection Method + Frequency (HRT) */}
+              {selectedCategory?.id === 'testosterone' && (
+                <>
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>Injection Method</label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {[
+                        { value: 'im', label: 'Intramuscular (IM)' },
+                        { value: 'subq', label: 'Subcutaneous (SubQ)' },
+                      ].map(m => (
+                        <button
+                          key={m.value}
+                          type="button"
+                          onClick={() => {
+                            setInjectionMethod(m.value);
+                            if (m.value === 'im') {
+                              setInjectionFrequency('every 3.5 days');
+                            } else {
+                              setInjectionFrequency('');
+                            }
+                          }}
+                          style={{
+                            flex: 1, padding: '10px 16px', border: '1px solid #d1d5db', borderRadius: 6,
+                            background: injectionMethod === m.value ? '#0a0a0a' : '#fff',
+                            color: injectionMethod === m.value ? '#fff' : '#374151',
+                            fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                          }}
+                        >
+                          {m.label}
+                        </button>
+                      ))}
+                    </div>
+                    {injectionMethod === 'im' && (
+                      <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280' }}>
+                        Every 3.5 days (IM)
+                      </div>
+                    )}
+                  </div>
+                  {injectionMethod === 'subq' && (
+                    <div style={styles.fieldGroup}>
+                      <label style={styles.label}>Frequency</label>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {[
+                          { value: 'Daily', label: 'Daily' },
+                          { value: 'every 3.5 days', label: 'Every 3.5 days' },
+                        ].map(f => (
+                          <button
+                            key={f.value}
+                            type="button"
+                            onClick={() => setInjectionFrequency(f.value)}
+                            style={{
+                              flex: 1, padding: '10px 16px', border: '1px solid #d1d5db', borderRadius: 6,
+                              background: injectionFrequency === f.value ? '#0a0a0a' : '#fff',
+                              color: injectionFrequency === f.value ? '#fff' : '#374151',
+                              fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                            }}
+                          >
+                            {f.label}
+                          </button>
+                        ))}
+                      </div>
+                      {injectionFrequency && (
+                        <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280' }}>
+                          {injectionFrequency === 'Daily'
+                            ? `SIG: ${dosage ? dosage.replace('/', ' ') + ' ' : ''}subcutaneous daily`
+                            : `SIG: ${dosage ? dosage.replace('/', ' ') + ' ' : ''}subcutaneous every 3.5 days`}
+                        </div>
+                      )}
                     </div>
                   )}
                 </>
@@ -2240,6 +2323,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                           </div>
                           {item.dosage && <div style={{ fontSize: '13px', color: '#666' }}>Dose: {item.dosage}</div>}
                           {item.supplyType && <div style={{ fontSize: '13px', color: '#666' }}>Supply: {formatSupplyType(item.supplyType)}</div>}
+                          {item.injectionMethod && <div style={{ fontSize: '13px', color: '#666' }}>{item.injectionMethod === 'subq' ? 'SubQ' : 'IM'}{item.injectionFrequency ? ` · ${item.injectionFrequency}` : ''}</div>}
                           {item.administeredBy && (
                             <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
                               {item.verifiedBy ? `Dispensed: ${item.administeredBy} · Verified: ${item.verifiedBy}` : `Staff: ${item.administeredBy}`}

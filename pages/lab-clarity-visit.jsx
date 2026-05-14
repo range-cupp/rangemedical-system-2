@@ -350,15 +350,15 @@ function LabClarityContent() {
               <li style={s.bulletItem}><span style={s.bulletCheck}>✓</span> Your visit fee is credited toward any lab panel or treatment you choose in 7 days</li>
             </ul>
 
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 32 }}>
+            <div style={s.priceRow}>
+              <div style={s.priceBar}>
+                <span style={s.priceLabel}>Mon–Wed:</span>
+                <span style={{ ...s.priceNew, fontSize: 22, color: TEXT }}>$197</span>
+              </div>
               <div style={s.priceBar}>
                 <span style={s.priceLabel}>Thu / Fri:</span>
                 <span style={s.priceNew}>$97</span>
                 <span style={s.priceOld}>$197</span>
-              </div>
-              <div style={s.priceBar}>
-                <span style={s.priceLabel}>Mon–Wed:</span>
-                <span style={{ ...s.priceNew, color: TEXT }}>$197</span>
               </div>
             </div>
 
@@ -736,7 +736,7 @@ const s = {
   /* Hero */
   hero: {
     background: SURFACE,
-    padding: '80px 0 64px',
+    padding: '48px 0 40px',
     borderBottom: `1px solid ${BORDER}`,
   },
   eyebrow: {
@@ -760,19 +760,19 @@ const s = {
     fontSize: 18,
     lineHeight: 1.6,
     color: TEXT_MUTED,
-    marginBottom: 32,
+    marginBottom: 20,
     maxWidth: 560,
   },
   bulletList: {
     listStyle: 'none',
     padding: 0,
-    marginBottom: 32,
+    marginBottom: 20,
   },
   bulletItem: {
-    fontSize: 16,
-    lineHeight: 1.6,
+    fontSize: 15,
+    lineHeight: 1.5,
     color: TEXT,
-    padding: '6px 0',
+    padding: '4px 0',
     display: 'flex',
     alignItems: 'flex-start',
     gap: 10,
@@ -784,15 +784,18 @@ const s = {
     flexShrink: 0,
     marginTop: 2,
   },
+  priceRow: {
+    display: 'flex',
+    gap: 12,
+    marginBottom: 24,
+  },
   priceBar: {
     display: 'flex',
     alignItems: 'baseline',
-    gap: 12,
-    marginBottom: 32,
-    padding: '16px 20px',
+    gap: 10,
+    padding: '12px 16px',
     background: '#f0eeea',
     borderRadius: 8,
-    maxWidth: 'fit-content',
   },
   priceLabel: {
     fontSize: 15,

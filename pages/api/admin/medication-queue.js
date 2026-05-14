@@ -62,23 +62,39 @@ function getHRTRefillIntervalDays(protocol, supplyTypeOverride, doseOverride, qt
   return qty * cadenceDays;
 }
 
+// --- Adaptive alert thresholds based on cycle length ---
+// Weekly cycles get shorter windows so they aren't perpetually "due now."
+// Monthly+ cycles get the full 7-day / 14-day lead time.
+function getAlertThresholds(cycleDays) {
+  if (!cycleDays || cycleDays <= 0) return { dueNow: 7, dueSoon: 14 };
+  if (cycleDays <= 7) return { dueNow: 2, dueSoon: 5 };
+  if (cycleDays <= 14) return { dueNow: 5, dueSoon: 10 };
+  return { dueNow: 7, dueSoon: 14 };
+}
+
+function applyStatus(daysRemaining, cycleDays, labelPrefix, base) {
+  const { dueNow, dueSoon } = getAlertThresholds(cycleDays);
+  if (daysRemaining <= 0) return { status: 'overdue', label: `${labelPrefix} needed`, ...base, days_until_due: 0 };
+  if (daysRemaining <= dueNow) return { status: 'due_now', label: `${labelPrefix} in ${daysRemaining}d`, ...base };
+  if (daysRemaining <= dueSoon) return { status: 'due_soon', label: `${labelPrefix} in ${daysRemaining}d`, ...base };
+  return { status: 'active', label: `${daysRemaining}d supply`, ...base };
+}
+
 // --- HRT dispense status ---
 function computeHRTDispense(protocol, lastPickup, todayISO) {
-  // Prefer next_expected_date from the protocol (set on each dispense)
   if (protocol.next_expected_date) {
     const daysRemaining = daysBetween(todayISO, protocol.next_expected_date);
+    const intervalDays = protocol.next_expected_date && protocol.last_refill_date
+      ? daysBetween(protocol.last_refill_date, protocol.next_expected_date)
+      : null;
     const base = {
       last_dispensed_date: protocol.last_refill_date || (lastPickup ? lastPickup.entry_date : null),
       next_due_date: protocol.next_expected_date,
       days_until_due: Math.max(0, daysRemaining),
     };
-    if (daysRemaining <= 0) return { status: 'overdue', label: 'Refill needed', ...base, days_until_due: 0 };
-    if (daysRemaining <= 7) return { status: 'due_now', label: `Refill in ${daysRemaining}d`, ...base };
-    if (daysRemaining <= 14) return { status: 'due_soon', label: `Refill in ${daysRemaining}d`, ...base };
-    return { status: 'active', label: `${daysRemaining}d supply`, ...base };
+    return applyStatus(daysRemaining, intervalDays, 'Refill', base);
   }
 
-  // Fallback: estimate from last pickup
   if (lastPickup) {
     const qty = lastPickup.quantity || 1;
     const intervalDays = getHRTRefillIntervalDays(protocol, lastPickup.supply_type, lastPickup.dosage, qty);
@@ -91,10 +107,7 @@ function computeHRTDispense(protocol, lastPickup, todayISO) {
       next_due_date: nextDue.toISOString().split('T')[0],
       days_until_due: Math.max(0, daysRemaining),
     };
-    if (daysRemaining <= 0) return { status: 'overdue', label: 'Refill needed', ...base, days_until_due: 0 };
-    if (daysRemaining <= 7) return { status: 'due_now', label: `Refill in ${daysRemaining}d`, ...base };
-    if (daysRemaining <= 14) return { status: 'due_soon', label: `Refill in ${daysRemaining}d`, ...base };
-    return { status: 'active', label: `${daysRemaining}d supply`, ...base };
+    return applyStatus(daysRemaining, intervalDays, 'Refill', base);
   }
 
   return {
@@ -112,14 +125,18 @@ function computePeptideDispense(protocol, todayISO) {
     };
   }
   const daysRemaining = daysBetween(todayISO, protocol.end_date);
+  const cycleDays = protocol.start_date && protocol.end_date
+    ? daysBetween(protocol.start_date, protocol.end_date)
+    : null;
   const base = {
     last_dispensed_date: protocol.start_date,
     next_due_date: protocol.end_date,
     days_until_due: Math.max(0, daysRemaining),
   };
+  const { dueNow, dueSoon } = getAlertThresholds(cycleDays);
   if (daysRemaining <= 0) return { status: 'overdue', label: 'Supply ended', ...base, days_until_due: 0 };
-  if (daysRemaining <= 7) return { status: 'due_now', label: `Ends in ${daysRemaining}d`, ...base };
-  if (daysRemaining <= 14) return { status: 'due_soon', label: `Ends in ${daysRemaining}d`, ...base };
+  if (daysRemaining <= dueNow) return { status: 'due_now', label: `Ends in ${daysRemaining}d`, ...base };
+  if (daysRemaining <= dueSoon) return { status: 'due_soon', label: `Ends in ${daysRemaining}d`, ...base };
   return { status: 'active', label: `${daysRemaining}d left`, ...base };
 }
 
@@ -309,12 +326,21 @@ export default async function handler(req, res) {
       } else if (category === 'weight_loss') {
         const cadenceDays = proto.checkin_cadence_days || parseFrequencyDays(proto.frequency) || 7;
         const wlDispense = computeWLDispense(cadenceDays, lastPurchase, todayISO);
+        const daysLeft = wlDispense.days_until_due;
+        const { dueNow, dueSoon } = getAlertThresholds(cadenceDays);
+        let status;
+        if (wlDispense.state === 'send_now') status = 'overdue';
+        else if (daysLeft != null && daysLeft <= 0) status = 'overdue';
+        else if (daysLeft != null && daysLeft <= dueNow) status = 'due_now';
+        else if (daysLeft != null && daysLeft <= dueSoon) status = 'due_soon';
+        else if (wlDispense.state === 'active') status = 'active';
+        else status = 'never';
         dispense = {
-          status: wlDispense.state === 'send_now' ? 'overdue' : wlDispense.state === 'due_now' ? 'due_now' : wlDispense.state === 'due_soon' ? 'due_soon' : wlDispense.state === 'active' ? 'active' : 'never',
+          status,
           label: wlDispense.label,
           last_dispensed_date: wlDispense.last_dispensed_date,
           next_due_date: null,
-          days_until_due: wlDispense.days_until_due,
+          days_until_due: daysLeft,
           sessions_remaining: wlDispense.sessions_remaining,
           total_sessions: wlDispense.total,
         };

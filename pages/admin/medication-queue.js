@@ -579,8 +579,8 @@ export default function MedicationQueuePage() {
       {/* Stats */}
       <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
         <StatCard value={stats.overdue} label="Overdue" color="#dc2626" sublabel="Supply exhausted" />
-        <StatCard value={stats.due_this_week} label="Due This Week" color="#c2410c" sublabel="Within 7 days" />
-        <StatCard value={stats.due_next_week} label="Due in 2 Weeks" color="#a16207" sublabel="8–14 days" />
+        <StatCard value={stats.due_this_week} label="Due Soon" color="#c2410c" sublabel="Prep now" />
+        <StatCard value={stats.due_next_week} label="Coming Up" color="#a16207" sublabel="Heads up" />
         <StatCard value={stats.needs_payment} label="Needs Payment" color="#6b7280" sublabel="No purchases on file" />
       </div>
 

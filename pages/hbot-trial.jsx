@@ -646,7 +646,7 @@ export default function HBOTTrial() {
               'New patients only. One free session per person.',
               "We'll review your information before your visit to make sure HBOT is a safe fit for you.",
             ]}
-            requiresCard={false}
+            requiresCard={true}
           />
         )}
       </div>

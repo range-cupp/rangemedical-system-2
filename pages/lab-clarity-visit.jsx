@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
@@ -77,7 +77,7 @@ const FAQS = [
 ];
 
 const REVIEWS = [
-  { name: 'Sarah M.', location: 'Newport Beach', text: 'I was skeptical, but after the Assessment I finally understood why I'd been so tired. Six weeks later I feel like myself again.' },
+  { name: 'Sarah M.', location: 'Newport Beach', text: 'I was skeptical, but after the Assessment I finally understood why I’d been so tired. Six weeks later I feel like myself again.' },
   { name: 'David L.', location: 'Costa Mesa', text: 'I kept telling my doctor I was tired and foggy. They said everything was normal. Range ran deeper labs and found the problem in two weeks.' },
   { name: 'Jennifer K.', location: 'Irvine', text: 'Clear communication, no pressure, and a plan that actually made sense. This is what healthcare should be.' },
 ];
@@ -126,6 +126,17 @@ function LabClarityContent() {
   const [error, setError] = useState(null);
   const [openFaq, setOpenFaq] = useState(null);
   const calendarRef = useRef(null);
+  const utmRef = useRef({});
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const utm = {};
+    for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term']) {
+      const val = params.get(key);
+      if (val) utm[key] = val;
+    }
+    utmRef.current = utm;
+  }, []);
 
   const dates = useMemo(() => getAvailableDates(), []);
   const slots = useMemo(() => (selectedDate ? getSlotsForDate(selectedDate) : []), [selectedDate]);
@@ -193,12 +204,20 @@ function LabClarityContent() {
           date: selectedDate,
           time: selectedTime,
           paymentIntentId: paymentIntent.id,
+          ...utmRef.current,
         }),
       });
       const bookData = await bookRes.json();
       if (!bookRes.ok) throw new Error(bookData.error || 'Booking failed.');
 
       setSubmitted(true);
+      if (typeof window.fbq === 'function') {
+        window.fbq('track', 'Schedule', {
+          content_name: 'Lab Clarity Visit',
+          value: 97.00,
+          currency: 'USD',
+        });
+      }
     } catch (err) {
       setError(err.message);
     } finally {

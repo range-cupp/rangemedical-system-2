@@ -26,7 +26,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { fullName, email, phone, dob, concern, date, time, paymentIntentId } = req.body;
+    const { fullName, email, phone, dob, concern, date, time, paymentIntentId,
+      utm_source, utm_medium, utm_campaign, utm_content, utm_term } = req.body;
 
     if (!fullName || !email || !phone || !date || !time) {
       return res.status(400).json({ error: 'Please fill out all required fields.' });
@@ -53,6 +54,11 @@ export default async function handler(req, res) {
         appointment_start,
         appointment_end,
         stripe_payment_intent_id: paymentIntentId || null,
+        utm_source: utm_source || null,
+        utm_medium: utm_medium || null,
+        utm_campaign: utm_campaign || null,
+        utm_content: utm_content || null,
+        utm_term: utm_term || null,
       })
       .select()
       .single();
@@ -157,7 +163,7 @@ async function sendConfirmationEmail({ fullName, email, date, time }) {
             <strong style="color:#1a1a1a;">When you arrive:</strong> Check in at the front desk. No paperwork needed ahead of time.
           </p>
           <p style="margin:0 0 0;font-size:14px;color:#737373;line-height:1.5;">
-            <strong style="color:#1a1a1a;">Need to reschedule?</strong> Reply to this email at least 24 hours before your visit and we’ll help you move it.
+            <strong style="color:#1a1a1a;">Need to reschedule?</strong> Reply to this email at least 24 hours before your visit and we'll help you move it.
           </p>
         </td></tr>
 

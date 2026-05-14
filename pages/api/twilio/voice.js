@@ -50,6 +50,21 @@ export default async function handler(req, res) {
 
   res.setHeader('Content-Type', 'text/xml');
 
+  // --- Outbound call from browser SDK (staff app WebRTC → PSTN) ---
+  if (from.startsWith('client:') && to && !to.startsWith('client:')) {
+    let dialed = to.replace(/[^+\d]/g, '');
+    if (dialed.length === 10) dialed = '+1' + dialed;
+    else if (dialed.length === 11 && dialed.startsWith('1')) dialed = '+' + dialed;
+    else if (!dialed.startsWith('+')) dialed = '+' + dialed;
+
+    return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial callerId="+19499973988" timeout="30" action="${baseUrl}/api/twilio/voicemail">
+    <Number statusCallbackEvent="initiated ringing answered completed" statusCallback="${statusCallback}" statusCallbackMethod="POST">${dialed}</Number>
+  </Dial>
+</Response>`);
+  }
+
   // --- Outbound call from Grandstream (SIP → extension or PSTN) ---
   if (from.includes('sip:') || direction === 'outbound') {
     // Extract the dialed number/extension from SIP To header

@@ -58,6 +58,21 @@ export default async function handler(req, res) {
 
     if (dbError) throw dbError;
 
+    await supabase.from('appointments').insert({
+      patient_name: fullName,
+      patient_phone: phone,
+      service_name: 'Lab Clarity Visit',
+      service_category: 'consultation',
+      provider: 'Brendyn Reed',
+      location: 'newport',
+      start_time: appointment_start,
+      end_time: appointment_end,
+      duration_minutes: 30,
+      status: 'confirmed',
+      source: 'lab-clarity-funnel',
+      notes: concern || null,
+    });
+
     await sendConfirmationEmail({ fullName, email, date, time });
 
     return res.status(200).json({ success: true, booking: data });

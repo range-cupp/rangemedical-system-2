@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     // Find active weight loss protocol
     const { data: protocol } = await supabase
       .from('protocols')
-      .select('id, medication, selected_dose, sessions_used, total_sessions, starting_weight, delivery_method, frequency, checkin_cadence_days, goal_weight')
+      .select('id, medication, selected_dose, sessions_used, total_sessions, starting_weight, delivery_method, frequency, checkin_cadence_days, goal_weight, comp')
       .eq('patient_id', patient_id)
       .ilike('program_type', 'weight_loss%')
       .in('status', ['active', 'in_progress'])
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
 
     const todayISO = todayPacificISO();
     const dispense = computeDispenseStatus(cadenceDays, lastPurchase, todayISO);
-    const payment = computePaymentStatus(lastPurchase);
+    const payment = computePaymentStatus(lastPurchase, protocol.comp);
 
     return res.status(200).json({
       protocol: {

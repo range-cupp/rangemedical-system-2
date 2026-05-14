@@ -469,7 +469,7 @@ async function handleGet(req, res) {
         id, patient_id, program_name, program_type, medication, selected_dose,
         frequency, checkin_cadence_days, injection_day, start_date, end_date,
         delivery_method, total_sessions, sessions_used,
-        starting_weight, goal_weight,
+        starting_weight, goal_weight, comp,
         checkin_reminder_enabled, reminder_opt_out, reminder_opt_out_reason,
         patients!inner ( id, name, first_name, last_name, phone, ghl_contact_id )
       `)
@@ -755,7 +755,7 @@ async function handleGet(req, res) {
         : null;
 
       const lastPurchase = lastPurchaseByPatient[patient.id];
-      const paymentStatus = computePaymentStatus(lastPurchase);
+      const paymentStatus = computePaymentStatus(lastPurchase, protocol.comp);
       const dispenseStatus = computeDispenseStatus(cadenceDays, lastPurchase, todayISO);
 
       // Weight history (sorted oldest → newest) + derived stats

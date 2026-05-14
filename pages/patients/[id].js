@@ -6794,7 +6794,8 @@ export default function PatientProfile() {
           {activeTab === 'medications' && (() => {
             // Derive active medications from active protocols
             const protocolMeds = [];
-            (activeProtocols || []).forEach(proto => {
+            const nonMedCategories = ['iv', 'iv_therapy', 'hbot', 'rlt', 'red_light'];
+            (activeProtocols || []).filter(p => !nonMedCategories.includes(p.category) && !nonMedCategories.includes(p.program_type)).forEach(proto => {
               const catStyle = getCategoryStyle(proto.category);
               const medName = proto.medication || getProtocolDisplayName(proto);
               const dose = proto.selected_dose || proto.starting_dose || '';
@@ -6897,7 +6898,7 @@ export default function PatientProfile() {
             });
 
             const closedProtocolMeds = [];
-            [...(completedProtocols || []), ...(historicProtocols || [])].forEach(proto => {
+            [...(completedProtocols || []), ...(historicProtocols || [])].filter(p => !nonMedCategories.includes(p.category) && !nonMedCategories.includes(p.program_type)).forEach(proto => {
               const medName = proto.medication || getProtocolDisplayName(proto);
               const dose = proto.selected_dose || proto.starting_dose || '';
               const wasDoseChange = doseChangeParentIds.has(proto.id);

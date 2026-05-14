@@ -144,6 +144,11 @@ export default function PlanSummariesPage() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
+  // Forward to staff state
+  const [forwardTo, setForwardTo] = useState('');
+  const [forwardingEmail, setForwardingEmail] = useState(false);
+  const [forwardSent, setForwardSent] = useState(null);
+
   useEffect(() => {
     fetch('/api/notes/plan-summaries')
       .then(r => r.json())
@@ -226,6 +231,8 @@ export default function PlanSummariesPage() {
     });
     setEmailView('edit');
     setEmailSent(false);
+    setForwardTo('');
+    setForwardSent(null);
   };
 
   const handleSendPatientEmail = async () => {
@@ -267,6 +274,29 @@ export default function PlanSummariesPage() {
       ...prev,
       treatmentPlan: prev.treatmentPlan.filter((_, i) => i !== idx),
     }));
+  };
+
+  const handleForwardToStaff = async () => {
+    if (!emailModal || !forwardTo) return;
+    setForwardingEmail(true);
+    try {
+      const res = await fetch('/api/notes/forward-plan-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note_id: emailModal.noteId, recipient_email: forwardTo }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setForwardSent(forwardTo);
+        setForwardTo('');
+      } else {
+        alert(data.error || 'Failed to forward');
+      }
+    } catch (err) {
+      alert('Error forwarding: ' + err.message);
+    } finally {
+      setForwardingEmail(false);
+    }
   };
 
   const previewHtml = emailModal ? generatePreviewHtml({
@@ -701,6 +731,50 @@ export default function PlanSummariesPage() {
                 </div>
               )}
             </div>
+
+            {/* Forward to Staff */}
+            {!emailSent && (
+              <div style={{
+                padding: '16px 24px', borderTop: '1px solid #e5e7eb', background: '#fafafa',
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Forward to Staff</div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <select
+                    value={forwardTo}
+                    onChange={e => { setForwardTo(e.target.value); setForwardSent(null); }}
+                    style={{
+                      flex: 1, padding: '8px 12px', fontSize: 13, border: '1px solid #d1d5db',
+                      borderRadius: 6, background: '#fff', cursor: 'pointer',
+                    }}
+                  >
+                    <option value="">Select staff member...</option>
+                    <option value="cupp@range-medical.com">Chris Cupp</option>
+                    <option value="burgess@range-medical.com">Damien Burgess FNP</option>
+                    <option value="brendyn@range-medical.com">Brendyn Reed NP</option>
+                    <option value="lily@range-medical.com">Lily Diaz RN</option>
+                    <option value="evan@range-medical.com">Evan Riederich</option>
+                    <option value="damon@range-medical.com">Damon Durante</option>
+                    <option value="tara@range-medical.com">Tara Ventimiglia</option>
+                  </select>
+                  <button
+                    onClick={handleForwardToStaff}
+                    disabled={!forwardTo || forwardingEmail}
+                    style={{
+                      padding: '8px 16px', fontSize: 13, fontWeight: 600,
+                      color: '#fff', background: !forwardTo ? '#9ca3af' : forwardingEmail ? '#6b7280' : '#374151',
+                      border: 'none', borderRadius: 6,
+                      cursor: !forwardTo ? 'not-allowed' : 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >{forwardingEmail ? 'Sending...' : 'Forward'}</button>
+                </div>
+                {forwardSent && (
+                  <div style={{ marginTop: 6, fontSize: 12, color: '#059669', fontWeight: 600 }}>
+                    Sent to {forwardSent}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Modal footer */}
             {!emailSent && (

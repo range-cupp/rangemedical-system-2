@@ -98,6 +98,7 @@ export default async function handler(req, res) {
 
     const visitPrice = (dow === 4 || dow === 5) ? 97 : 197;
     await sendConfirmationEmail({ fullName, email, date, time, visitPrice });
+    await sendStaffNotification({ fullName, email, phone, date, time, concern, provider, visitPrice });
 
     return res.status(200).json({ success: true, booking: data });
   } catch (err) {
@@ -214,5 +215,56 @@ async function sendConfirmationEmail({ fullName, email, date, time, visitPrice }
     });
   } catch (err) {
     console.error('Failed to send confirmation email:', err);
+  }
+}
+
+async function sendStaffNotification({ fullName, email, phone, date, time, concern, provider, visitPrice }) {
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  if (!RESEND_API_KEY) return;
+
+  const displayDate = new Date(date + 'T12:00:00Z').toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'America/Los_Angeles',
+  });
+
+  const [h, m] = time.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const dh = h > 12 ? h - 12 : h;
+  const displayTime = `${dh}:${String(m).padStart(2, '0')} ${ampm} PT`;
+
+  const html = `
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;">
+  <h2 style="color:#2E5D3A;margin:0 0 16px;">New Lab Clarity Visit Booked</h2>
+  <table style="width:100%;border-collapse:collapse;">
+    <tr><td style="padding:8px 0;color:#666;width:140px;">Patient</td><td style="padding:8px 0;font-weight:600;">${fullName}</td></tr>
+    <tr><td style="padding:8px 0;color:#666;">Email</td><td style="padding:8px 0;">${email}</td></tr>
+    <tr><td style="padding:8px 0;color:#666;">Phone</td><td style="padding:8px 0;">${phone}</td></tr>
+    <tr><td style="padding:8px 0;color:#666;">Date</td><td style="padding:8px 0;font-weight:600;">${displayDate}</td></tr>
+    <tr><td style="padding:8px 0;color:#666;">Time</td><td style="padding:8px 0;font-weight:600;">${displayTime}</td></tr>
+    <tr><td style="padding:8px 0;color:#666;">Provider</td><td style="padding:8px 0;">${provider}</td></tr>
+    <tr><td style="padding:8px 0;color:#666;">Amount Paid</td><td style="padding:8px 0;font-weight:600;">$${visitPrice}</td></tr>
+    ${concern ? `<tr><td style="padding:8px 0;color:#666;vertical-align:top;">Concerns</td><td style="padding:8px 0;">${concern}</td></tr>` : ''}
+  </table>
+</div>`;
+
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Range Medical <noreply@range-medical.com>',
+        to: 'cupp@range-medical.com',
+        subject: `New Lab Clarity Visit: ${fullName} — ${displayDate}`,
+        html,
+      }),
+    });
+  } catch (err) {
+    console.error('Failed to send staff notification:', err);
   }
 }

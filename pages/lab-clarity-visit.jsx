@@ -1,5 +1,9 @@
 import Head from 'next/head';
 import { useState, useMemo, useRef } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
 /* ── Slot generation ── */
 
@@ -78,9 +82,34 @@ const WHY_BULLETS = [
   'Co-created protocols used by high performers and athletes',
 ];
 
-/* ── Page component ── */
+const CARD_OPTIONS = {
+  style: {
+    base: {
+      fontSize: '15px',
+      color: '#1a1a1a',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      '::placeholder': { color: '#737373' },
+    },
+    invalid: { color: '#b91c1c' },
+  },
+};
+
+/* ── Wrapper (provides Stripe context) ── */
 
 export default function LabClarityVisit() {
+  return (
+    <Elements stripe={stripePromise}>
+      <LabClarityContent />
+    </Elements>
+  );
+}
+
+/* ── Page content ── */
+
+function LabClarityContent() {
+  const stripe = useStripe();
+  const elements = useElements();
+
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   const [form, setForm] = useState({
@@ -117,11 +146,36 @@ export default function LabClarityVisit() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!selectedDate || !selectedTime || !form.agreed) return;
+    if (!selectedDate || !selectedTime || !form.agreed || !stripe || !elements) return;
     setSubmitting(true);
     setError(null);
+
     try {
-      const res = await fetch('/api/lab-clarity/book', {
+      const piRes = await fetch('/api/lab-clarity/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName: form.fullName.trim(), email: form.email.trim() }),
+      });
+      const piData = await piRes.json();
+      if (!piRes.ok) throw new Error(piData.error || 'Payment initialization failed.');
+
+      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
+        piData.clientSecret,
+        {
+          payment_method: {
+            card: elements.getElement(CardElement),
+            billing_details: {
+              name: form.fullName.trim(),
+              email: form.email.trim(),
+              phone: form.phone.trim(),
+            },
+          },
+        }
+      );
+
+      if (stripeError) throw new Error(stripeError.message);
+
+      const bookRes = await fetch('/api/lab-clarity/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -132,10 +186,12 @@ export default function LabClarityVisit() {
           concern: form.concern.trim() || null,
           date: selectedDate,
           time: selectedTime,
+          paymentIntentId: paymentIntent.id,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Something went wrong');
+      const bookData = await bookRes.json();
+      if (!bookRes.ok) throw new Error(bookData.error || 'Booking failed.');
+
       setSubmitted(true);
     } catch (err) {
       setError(err.message);
@@ -199,7 +255,7 @@ export default function LabClarityVisit() {
             {submitted ? (
               <div style={s.successBox}>
                 <div style={s.successIcon}>✓</div>
-                <h3 style={s.successTitle}>You’re booked.</h3>
+                <h3 style={s.successTitle}>You're booked.</h3>
                 <p style={s.successText}>Check your email for the details of your Lab Clarity Visit.</p>
               </div>
             ) : (
@@ -303,7 +359,7 @@ export default function LabClarityVisit() {
                     </div>
 
                     <div style={s.fieldGroup}>
-                      <label style={s.label}>What’s bothering you most right now? <span style={s.optional}>(optional)</span></label>
+                      <label style={s.label}>What's bothering you most right now? <span style={s.optional}>(optional)</span></label>
                       <textarea
                         name="concern"
                         value={form.concern}
@@ -312,6 +368,21 @@ export default function LabClarityVisit() {
                         style={{ ...s.input, resize: 'vertical' }}
                         placeholder="Low energy, weight gain, brain fog…"
                       />
+                    </div>
+
+                    {/* Payment */}
+                    <div style={s.paymentSection}>
+                      <div style={s.paymentHeader}>
+                        <span style={s.paymentTitle}>Payment</span>
+                        <div style={s.paymentPricing}>
+                          <span style={s.paymentOld}>$197</span>
+                          <span style={s.paymentNew}>$97</span>
+                        </div>
+                      </div>
+                      <div style={s.cardWrapper}>
+                        <CardElement options={CARD_OPTIONS} />
+                      </div>
+                      <p style={s.paymentNote}>Your $97 is credited toward labs or treatment if you continue within 7 days.</p>
                     </div>
 
                     <label style={s.checkboxLabel}>
@@ -329,20 +400,20 @@ export default function LabClarityVisit() {
 
                     <button
                       type="submit"
-                      disabled={submitting || !form.agreed}
+                      disabled={submitting || !form.agreed || !stripe}
                       style={{
                         ...s.submitBtn,
-                        ...(submitting || !form.agreed ? s.submitBtnDisabled : {}),
+                        ...(submitting || !form.agreed || !stripe ? s.submitBtnDisabled : {}),
                       }}
                     >
-                      {submitting ? 'Booking your visit…' : 'Confirm My Lab Clarity Visit'}
+                      {submitting ? 'Processing payment…' : 'Pay $97 & Book My Visit'}
                     </button>
                   </form>
                 )}
 
                 {!selectedDate && (
                   <p style={s.helperText}>
-                    Once you choose a time, you’ll enter your details and pay the $97 to confirm your visit.
+                    Once you choose a time, you'll enter your details and pay the $97 to confirm your visit.
                   </p>
                 )}
               </>
@@ -431,7 +502,6 @@ export default function LabClarityVisit() {
 /* ── Styles ── */
 
 const ACCENT = '#2E5D3A';
-const ACCENT_HOVER = '#234A2E';
 const TEXT = '#1a1a1a';
 const TEXT_MUTED = '#737373';
 const BG = '#FAF9F6';
@@ -668,6 +738,54 @@ const s = {
     outline: 'none',
     boxSizing: 'border-box',
   },
+
+  /* Payment */
+  paymentSection: {
+    marginBottom: 24,
+    padding: '20px 20px 16px',
+    background: SURFACE,
+    borderRadius: 10,
+    border: `1px solid ${BORDER}`,
+  },
+  paymentHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  paymentTitle: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: TEXT,
+  },
+  paymentPricing: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: 8,
+  },
+  paymentOld: {
+    fontSize: 16,
+    color: TEXT_MUTED,
+    textDecoration: 'line-through',
+  },
+  paymentNew: {
+    fontSize: 22,
+    fontWeight: 700,
+    color: ACCENT,
+  },
+  cardWrapper: {
+    padding: '12px 14px',
+    border: `1px solid ${BORDER}`,
+    borderRadius: 8,
+    background: '#fff',
+  },
+  paymentNote: {
+    fontSize: 13,
+    color: TEXT_MUTED,
+    marginTop: 10,
+    lineHeight: 1.5,
+  },
+
   checkboxLabel: {
     display: 'flex',
     alignItems: 'flex-start',

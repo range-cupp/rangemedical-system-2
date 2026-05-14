@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { fullName, email, phone, dob, concern, date, time } = req.body;
+    const { fullName, email, phone, dob, concern, date, time, paymentIntentId } = req.body;
 
     if (!fullName || !email || !phone || !date || !time) {
       return res.status(400).json({ error: 'Please fill out all required fields.' });
@@ -52,6 +52,7 @@ export default async function handler(req, res) {
         concern: concern || null,
         appointment_start,
         appointment_end,
+        stripe_payment_intent_id: paymentIntentId || null,
       })
       .select()
       .single();

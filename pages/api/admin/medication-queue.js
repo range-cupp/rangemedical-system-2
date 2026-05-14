@@ -155,6 +155,7 @@ const DISPENSE_PRIORITY = { overdue: 0, due_now: 1, due_soon: 2, never: 3, activ
 const PAYMENT_PRIORITY = { unknown: 0, comp: 1, paid: 2 };
 
 export default async function handler(req, res) {
+  if (req.method === 'POST') return handlePost(req, res);
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   const todayISO = todayPacificISO();
@@ -206,6 +207,21 @@ export default async function handler(req, res) {
       .in('patient_id', patientIds)
       .eq('entry_type', 'pickup')
       .order('entry_date', { ascending: false });
+
+    // 4. Medication queue notes (last 90 days)
+    const { data: allNotes } = await supabase
+      .from('patient_notes')
+      .select('id, patient_id, body, created_by, note_date, created_at')
+      .in('patient_id', patientIds)
+      .eq('note_category', 'medication_queue')
+      .order('created_at', { ascending: false })
+      .limit(500);
+
+    const notesByPatient = {};
+    for (const n of (allNotes || [])) {
+      if (!notesByPatient[n.patient_id]) notesByPatient[n.patient_id] = [];
+      notesByPatient[n.patient_id].push(n);
+    }
 
     // Index purchases by patient+category
     const purchasesByPatient = {};
@@ -294,6 +310,7 @@ export default async function handler(req, res) {
         days_on_protocol: proto.start_date ? daysBetween(proto.start_date, todayISO) : null,
         dispense,
         payment,
+        notes: notesByPatient[proto.patient_id] || [],
       });
     }
 
@@ -328,4 +345,42 @@ export default async function handler(req, res) {
     console.error('[medication-queue] error:', err);
     return res.status(500).json({ error: err.message || 'Internal error' });
   }
+}
+
+// --- POST: Save a medication queue note ---
+async function handlePost(req, res) {
+  const { action, patient_id, body: noteBody, created_by } = req.body;
+
+  if (action !== 'save_note') {
+    return res.status(400).json({ error: `Unknown action: ${action}` });
+  }
+
+  if (!patient_id || !noteBody?.trim()) {
+    return res.status(400).json({ error: 'patient_id and body are required' });
+  }
+
+  const supabase = getSupabase();
+
+  const nowISO = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+
+  const { data, error } = await supabase
+    .from('patient_notes')
+    .insert({
+      patient_id,
+      body: noteBody.trim(),
+      created_by: created_by || 'Staff',
+      note_date: nowISO,
+      source: 'manual',
+      status: 'draft',
+      note_category: 'medication_queue',
+    })
+    .select('id, patient_id, body, created_by, note_date, created_at')
+    .single();
+
+  if (error) {
+    console.error('[medication-queue] save note error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+
+  return res.status(200).json({ success: true, note: data });
 }

@@ -124,9 +124,13 @@ function getRowBg(status, isSelected) {
 }
 
 // =====================================================================
-// Patient Drawer — shows ALL medications for one patient
+// Patient Drawer — shows ALL medications for one patient + notes
 // =====================================================================
-function PatientDrawer({ patientId, allRows, onClose }) {
+function PatientDrawer({ patientId, allRows, onClose, onNoteAdded }) {
+  const [noteText, setNoteText] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState(null);
+
   const patientRows = allRows.filter(r => r.patient_id === patientId);
   if (patientRows.length === 0) return null;
 
@@ -137,6 +141,30 @@ function PatientDrawer({ patientId, allRows, onClose }) {
   );
 
   const needsAction = sorted.filter(r => r.dispense.status === 'overdue' || r.dispense.status === 'due_now' || r.dispense.status === 'due_soon');
+  const notes = patient.notes || [];
+
+  async function saveNote() {
+    if (!noteText.trim()) return;
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      const resp = await fetch('/api/admin/medication-queue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save_note', patient_id: patientId, body: noteText }),
+      });
+      const json = await resp.json();
+      if (!resp.ok) throw new Error(json.error || 'Failed to save');
+      setNoteText('');
+      setSaveMsg('Saved');
+      if (onNoteAdded) onNoteAdded(patientId, json.note);
+      setTimeout(() => setSaveMsg(null), 2000);
+    } catch (err) {
+      setSaveMsg('Error: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div style={{
@@ -144,13 +172,12 @@ function PatientDrawer({ patientId, allRows, onClose }) {
       background: '#fff', borderLeft: '1px solid #e5e5e5',
       boxShadow: '-4px 0 20px rgba(0,0,0,0.08)',
       zIndex: 900, display: 'flex', flexDirection: 'column',
-      overflowY: 'auto',
     }}>
       {/* Header */}
       <div style={{
         padding: '20px 24px', borderBottom: '1px solid #e5e5e5',
         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-        position: 'sticky', top: 0, background: '#fff', zIndex: 1,
+        flexShrink: 0,
       }}>
         <div>
           <div style={{ fontSize: '20px', fontWeight: '700' }}>{patient.name}</div>
@@ -167,118 +194,153 @@ function PatientDrawer({ patientId, allRows, onClose }) {
       </div>
 
       {/* Contact */}
-      <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+      <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0', display: 'flex', gap: '10px', flexWrap: 'wrap', flexShrink: 0 }}>
         {patient.phone && (
           <>
-            <a
-              href={`tel:${cleanPhone(patient.phone)}`}
-              style={{
-                ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall,
-                textDecoration: 'none', fontSize: '13px', padding: '6px 12px',
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-              }}
-            >
+            <a href={`tel:${cleanPhone(patient.phone)}`} style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall, textDecoration: 'none', fontSize: '13px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ fontSize: '15px' }}>{'📞'}</span> {fmtPhone(patient.phone)}
             </a>
-            <a
-              href={`sms:${cleanPhone(patient.phone)}`}
-              style={{
-                ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall,
-                textDecoration: 'none', fontSize: '13px', padding: '6px 12px',
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-              }}
-            >
+            <a href={`sms:${cleanPhone(patient.phone)}`} style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall, textDecoration: 'none', fontSize: '13px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ fontSize: '15px' }}>{'💬'}</span> Text
             </a>
           </>
         )}
         {patient.email && (
-          <a
-            href={`mailto:${patient.email}`}
-            style={{
-              ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall,
-              textDecoration: 'none', fontSize: '13px', padding: '6px 12px',
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-            }}
-          >
+          <a href={`mailto:${patient.email}`} style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall, textDecoration: 'none', fontSize: '13px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontSize: '15px' }}>{'✉️'}</span> Email
           </a>
         )}
       </div>
 
-      {/* Medications */}
-      <div style={{ padding: '20px 24px', flex: 1 }}>
-        <div style={{
-          fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
-          letterSpacing: '0.8px', color: '#999', marginBottom: '14px',
-        }}>
-          Active Medications
+      {/* Scrollable content */}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {/* Medications */}
+        <div style={{ padding: '20px 24px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#999', marginBottom: '14px' }}>
+            Active Medications
+          </div>
+
+          {sorted.map(row => {
+            const cs = CATEGORY_STYLES[row.category];
+            const ds = DISPENSE_STYLES[row.dispense.status];
+            const ps = PAYMENT_STYLES[row.payment.status];
+            return (
+              <div key={row.protocol_id} style={{
+                border: '1px solid #e5e5e5', marginBottom: '12px',
+                background: row.dispense.status === 'overdue' ? '#fef2f2' : row.dispense.status === 'due_now' ? '#fffbeb' : '#fff',
+              }}>
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <Badge style={{ background: cs.bg, color: cs.text, fontSize: '11px', padding: '2px 8px' }}>{cs.label}</Badge>
+                    <span style={{ fontWeight: '600', fontSize: '15px' }}>{row.medication}</span>
+                  </div>
+                  {(row.dose || row.frequency) && (
+                    <div style={{ fontSize: '13px', color: '#888' }}>{[row.dose, row.frequency].filter(Boolean).join(' • ')}</div>
+                  )}
+                </div>
+                <div style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '13px', color: '#666' }}>Supply</span>
+                    <Badge style={{ background: ds.bg, color: ds.text, border: `1px solid ${ds.border}` }}>{row.dispense.label}</Badge>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '13px', color: '#666' }}>Payment</span>
+                    <Badge style={{ background: ps.bg, color: ps.text }}>
+                      {row.payment.status === 'paid' ? `Paid ${row.payment.label}` : row.payment.status === 'comp' ? 'Comp' : 'No Purchases'}
+                    </Badge>
+                  </div>
+                  {row.dispense.last_dispensed_date && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '13px', color: '#666' }}>Last Dispensed</span>
+                      <span style={{ fontSize: '13px', fontWeight: '500' }}>{fmtDate(row.dispense.last_dispensed_date)}</span>
+                    </div>
+                  )}
+                  {row.dispense.next_due_date && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '13px', color: '#666' }}>Next Due</span>
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: row.dispense.status === 'overdue' ? '#dc2626' : row.dispense.status === 'due_now' ? '#c2410c' : '#374151' }}>
+                        {fmtDate(row.dispense.next_due_date)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {sorted.map(row => {
-          const cs = CATEGORY_STYLES[row.category];
-          const ds = DISPENSE_STYLES[row.dispense.status];
-          const ps = PAYMENT_STYLES[row.payment.status];
-          return (
-            <div key={row.protocol_id} style={{
-              border: '1px solid #e5e5e5', marginBottom: '12px',
-              background: row.dispense.status === 'overdue' ? '#fef2f2' : row.dispense.status === 'due_now' ? '#fffbeb' : '#fff',
-            }}>
-              {/* Medication header */}
-              <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <Badge style={{ background: cs.bg, color: cs.text, fontSize: '11px', padding: '2px 8px' }}>{cs.label}</Badge>
-                  <span style={{ fontWeight: '600', fontSize: '15px' }}>{row.medication}</span>
-                </div>
-                {(row.dose || row.frequency) && (
-                  <div style={{ fontSize: '13px', color: '#888' }}>
-                    {[row.dose, row.frequency].filter(Boolean).join(' • ')}
-                  </div>
-                )}
-              </div>
+        {/* Notes */}
+        <div style={{ padding: '0 24px 20px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#999', marginBottom: '12px' }}>
+            Notes
+          </div>
 
-              {/* Status rows */}
-              <div style={{ padding: '12px 16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13px', color: '#666' }}>Supply</span>
-                  <Badge style={{ background: ds.bg, color: ds.text, border: `1px solid ${ds.border}` }}>
-                    {row.dispense.label}
-                  </Badge>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13px', color: '#666' }}>Payment</span>
-                  <Badge style={{ background: ps.bg, color: ps.text }}>
-                    {row.payment.status === 'paid' ? `Paid ${row.payment.label}` : row.payment.status === 'comp' ? 'Comp' : 'No Purchases'}
-                  </Badge>
-                </div>
-                {row.dispense.last_dispensed_date && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '13px', color: '#666' }}>Last Dispensed</span>
-                    <span style={{ fontSize: '13px', fontWeight: '500' }}>{fmtDate(row.dispense.last_dispensed_date)}</span>
-                  </div>
-                )}
-                {row.dispense.next_due_date && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '13px', color: '#666' }}>Next Due</span>
-                    <span style={{
-                      fontSize: '13px', fontWeight: '600',
-                      color: row.dispense.status === 'overdue' ? '#dc2626' : row.dispense.status === 'due_now' ? '#c2410c' : '#374151',
-                    }}>
-                      {fmtDate(row.dispense.next_due_date)}
-                    </span>
-                  </div>
-                )}
-              </div>
+          {/* Add note */}
+          <div style={{ marginBottom: '16px' }}>
+            <textarea
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              placeholder="Add a note… e.g. &quot;Sent 5/12, awaiting payment&quot;"
+              rows={2}
+              style={{
+                ...sharedStyles.input,
+                resize: 'vertical',
+                minHeight: '52px',
+                fontSize: '14px',
+                lineHeight: '1.4',
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+              {saveMsg ? (
+                <span style={{ fontSize: '13px', color: saveMsg.startsWith('Error') ? '#dc2626' : '#16a34a', fontWeight: '500' }}>{saveMsg}</span>
+              ) : <span />}
+              <button
+                onClick={saveNote}
+                disabled={saving || !noteText.trim()}
+                style={{
+                  ...sharedStyles.btnPrimary,
+                  ...sharedStyles.btnSmall,
+                  fontSize: '13px',
+                  padding: '6px 14px',
+                  opacity: (saving || !noteText.trim()) ? 0.5 : 1,
+                }}
+              >
+                {saving ? 'Saving…' : 'Save Note'}
+              </button>
             </div>
-          );
-        })}
+          </div>
+
+          {/* Existing notes */}
+          {notes.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {notes.slice(0, 10).map(note => (
+                <div key={note.id} style={{
+                  padding: '10px 14px',
+                  background: '#f9fafb',
+                  border: '1px solid #f0f0f0',
+                  fontSize: '13px',
+                  lineHeight: '1.5',
+                }}>
+                  <div style={{ color: '#333' }}>{note.body}</div>
+                  <div style={{ fontSize: '11px', color: '#999', marginTop: '6px' }}>
+                    {note.created_by && <span style={{ fontWeight: '500' }}>{note.created_by}</span>}
+                    {note.created_by && ' • '}
+                    {fmtDate(note.note_date)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {notes.length === 0 && (
+            <div style={{ fontSize: '13px', color: '#999', fontStyle: 'italic' }}>No notes yet</div>
+          )}
+        </div>
       </div>
 
       {/* Footer */}
       <div style={{
         padding: '16px 24px', borderTop: '1px solid #e5e5e5',
-        display: 'flex', gap: '10px',
-        position: 'sticky', bottom: 0, background: '#fff',
+        display: 'flex', gap: '10px', flexShrink: 0,
       }}>
         <Link
           href={`/admin/patient/${patientId}`}
@@ -529,7 +591,21 @@ export default function MedicationQueuePage() {
 
       {/* Patient Drawer */}
       {drawerPatientId && data?.patients && (
-        <PatientDrawer patientId={drawerPatientId} allRows={data.patients} onClose={closeDrawer} />
+        <PatientDrawer
+          patientId={drawerPatientId}
+          allRows={data.patients}
+          onClose={closeDrawer}
+          onNoteAdded={(patientId, note) => {
+            setData(prev => ({
+              ...prev,
+              patients: prev.patients.map(p =>
+                p.patient_id === patientId
+                  ? { ...p, notes: [note, ...(p.notes || [])] }
+                  : p
+              ),
+            }));
+          }}
+        />
       )}
     </AdminLayout>
   );
@@ -584,8 +660,11 @@ function FulfillmentRow({ row, onPatientClick, isSelected }) {
             {row.initials}
           </div>
           <div>
-            <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a56db', textDecoration: 'underline', textDecorationColor: '#cbd5e1' }}>
+            <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a56db', textDecoration: 'underline', textDecorationColor: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}>
               {row.name}
+              {row.notes && row.notes.length > 0 && (
+                <span title={`${row.notes.length} note${row.notes.length !== 1 ? 's' : ''}`} style={{ fontSize: '13px', color: '#6b7280', flexShrink: 0 }}>{'💬'}</span>
+              )}
             </div>
             {row.frequency && (
               <div style={{ fontSize: '12px', color: '#888' }}>{row.frequency}</div>
@@ -717,8 +796,11 @@ function PaymentRow({ row, onPatientClick, isSelected }) {
           }}>
             {row.initials}
           </div>
-          <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a56db', textDecoration: 'underline', textDecorationColor: '#cbd5e1' }}>
+          <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a56db', textDecoration: 'underline', textDecorationColor: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}>
             {row.name}
+            {row.notes && row.notes.length > 0 && (
+              <span title={`${row.notes.length} note${row.notes.length !== 1 ? 's' : ''}`} style={{ fontSize: '13px', color: '#6b7280', flexShrink: 0 }}>{'💬'}</span>
+            )}
           </div>
         </div>
       </td>

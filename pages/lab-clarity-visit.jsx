@@ -76,6 +76,12 @@ const FAQS = [
   },
 ];
 
+const REVIEWS = [
+  { name: 'Sarah M.', location: 'Newport Beach', text: 'I was skeptical, but after the Assessment I finally understood why I'd been so tired. Six weeks later I feel like myself again.' },
+  { name: 'David L.', location: 'Costa Mesa', text: 'I kept telling my doctor I was tired and foggy. They said everything was normal. Range ran deeper labs and found the problem in two weeks.' },
+  { name: 'Jennifer K.', location: 'Irvine', text: 'Clear communication, no pressure, and a plan that actually made sense. This is what healthcare should be.' },
+];
+
 const WHY_BULLETS = [
   'We start with data, not guesswork',
   'Local clinic focused on hormones, energy, and long-term health',
@@ -449,6 +455,22 @@ function LabClarityContent() {
                 </li>
               ))}
             </ul>
+          </div>
+        </section>
+
+        {/* ── Reviews ── */}
+        <section style={s.section}>
+          <div style={s.container}>
+            <h2 style={s.h2}>What Our Patients Say</h2>
+            <div className="lcv-steps">
+              {REVIEWS.map((r, i) => (
+                <div key={i} style={s.reviewCard}>
+                  <div style={s.stars}>★★★★★</div>
+                  <p style={s.reviewText}>"{r.text}"</p>
+                  <p style={s.reviewAuthor}>{r.name} <span style={s.reviewLocation}>· {r.location}</span></p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -942,6 +964,36 @@ const s = {
     fontSize: 16,
     flexShrink: 0,
     marginTop: 2,
+  },
+
+  /* Reviews */
+  reviewCard: {
+    background: SURFACE,
+    border: `1px solid ${BORDER}`,
+    borderRadius: 12,
+    padding: '24px',
+  },
+  stars: {
+    fontSize: 18,
+    color: '#f59e0b',
+    letterSpacing: 2,
+    marginBottom: 12,
+  },
+  reviewText: {
+    fontSize: 15,
+    color: TEXT,
+    lineHeight: 1.6,
+    fontStyle: 'italic',
+    marginBottom: 12,
+  },
+  reviewAuthor: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: TEXT,
+  },
+  reviewLocation: {
+    fontWeight: 400,
+    color: TEXT_MUTED,
   },
 
   /* Location */

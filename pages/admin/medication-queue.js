@@ -6,6 +6,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
+import { useAuth } from '../../components/AuthProvider';
 import SMSComposeModal from '../../components/SMSComposeModal';
 import EmailComposeModal from '../../components/EmailComposeModal';
 
@@ -131,6 +132,7 @@ function getRowBg(status, isSelected) {
 const STATUS_LABEL = { completed: 'Completed', inactive: 'Inactive', cancelled: 'Cancelled', paused: 'Paused' };
 
 function PatientDrawer({ patientId, allRows, onClose, onNoteAdded }) {
+  const { session } = useAuth();
   const [noteText, setNoteText] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState(null);
@@ -244,6 +246,7 @@ function PatientDrawer({ patientId, allRows, onClose, onNoteAdded }) {
         recipientName={patient.name}
         patientId={patientId}
         patientName={patient.name}
+        session={session}
       />
 
       {/* Scrollable content */}

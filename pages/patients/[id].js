@@ -2832,7 +2832,7 @@ export default function PatientProfile() {
           hrtType: isHRT ? (assignForm.hrtGender === 'female' ? 'hrt_female' : 'hrt_male') : undefined,
           injectionMethod: isHRT ? assignForm.injectionMethod : undefined,
           dosePerInjection: isHRT && assignForm.selectedDose !== 'custom' ? assignForm.selectedDose : (isHRT ? assignForm.dosePerInjection : undefined),
-          injectionsPerWeek: isHRT ? parseInt(assignForm.injectionsPerWeek || (assignForm.injectionMethod === 'subq' ? '7' : '2')) : undefined,
+          injectionsPerWeek: isHRT ? parseInt(assignForm.injectionsPerWeek || '2') : undefined,
           supplyType: (isHRT || isWeightLoss) ? (assignForm.supplyType || null) : undefined,
           hrtInitialQuantity: isHRT && assignForm.supplyType ? (() => {
             if (assignForm.supplyType.includes('day')) {
@@ -2841,7 +2841,7 @@ export default function PatientProfile() {
             }
             const match = assignForm.supplyType.match(/(\d+)/);
             if (!match) return undefined;
-            const perWeek = assignForm.injectionMethod === 'subq' ? 7 : 2;
+            const perWeek = parseInt(assignForm.injectionsPerWeek || '2');
             return parseInt(match[1]) * perWeek;
           })() : undefined,
         })
@@ -14080,8 +14080,8 @@ export default function PatientProfile() {
                                   onClick={() => setAssignForm({
                                     ...assignForm,
                                     injectionMethod: m.value,
-                                    frequency: m.value === 'subq' ? '7 days a week' : 'every 3.5 days',
-                                    injectionsPerWeek: m.value === 'subq' ? '7' : '2'
+                                    frequency: m.value === 'im' ? 'every 3.5 days' : '',
+                                    injectionsPerWeek: m.value === 'im' ? '2' : ''
                                   })}
                                   style={{
                                     flex: 1, padding: '10px 16px', border: '1px solid #d1d5db', borderRadius: 0,
@@ -14094,9 +14094,47 @@ export default function PatientProfile() {
                                 </button>
                               ))}
                             </div>
-                            {assignForm.injectionMethod && (
+                            {assignForm.injectionMethod === 'im' && (
                               <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280' }}>
-                                {assignForm.injectionMethod === 'im' ? 'Every 3.5 days (IM)' : '7 days a week (SubQ)'}
+                                Every 3.5 days (IM)
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Frequency — shown for SubQ to choose Daily vs Every 3.5 days */}
+                        {assignForm.injectionMethod === 'subq' && (
+                          <div className="form-group">
+                            <label>Frequency *</label>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              {[
+                                { value: 'Daily', ipw: '7', label: 'Daily' },
+                                { value: 'every 3.5 days', ipw: '2', label: 'Every 3.5 days' },
+                              ].map(f => (
+                                <button
+                                  key={f.value}
+                                  type="button"
+                                  onClick={() => setAssignForm({
+                                    ...assignForm,
+                                    frequency: f.value,
+                                    injectionsPerWeek: f.ipw
+                                  })}
+                                  style={{
+                                    flex: 1, padding: '10px 16px', border: '1px solid #d1d5db', borderRadius: 0,
+                                    background: assignForm.frequency === f.value ? '#0a0a0a' : '#fff',
+                                    color: assignForm.frequency === f.value ? '#fff' : '#374151',
+                                    fontWeight: 600, fontSize: 14, cursor: 'pointer'
+                                  }}
+                                >
+                                  {f.label}
+                                </button>
+                              ))}
+                            </div>
+                            {assignForm.frequency && (
+                              <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280' }}>
+                                {assignForm.frequency === 'Daily'
+                                  ? 'SIG: Administer subcutaneously daily'
+                                  : 'SIG: Administer subcutaneously every 3.5 days'}
                               </div>
                             )}
                           </div>

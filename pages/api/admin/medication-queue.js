@@ -124,7 +124,10 @@ function computePeptideDispense(protocol, todayISO) {
 }
 
 // --- Unified payment status ---
-function computePaymentStatus(lastPurchase) {
+function computePaymentStatus(lastPurchase, protocolComp) {
+  if (protocolComp) {
+    return { status: 'comp', label: 'Comp', last_payment_date: lastPurchase?.purchase_date || null, amount_paid: 0, total_spent: 0, purchase_count: 0 };
+  }
   if (!lastPurchase) {
     return { status: 'unknown', label: 'No purchases', last_payment_date: null, amount_paid: null, total_spent: 0, purchase_count: 0 };
   }
@@ -262,7 +265,7 @@ export default async function handler(req, res) {
       const lastPurchase = categoryPurchases[0] || null;
 
       // Payment
-      const payment = computePaymentStatus(lastPurchase);
+      const payment = computePaymentStatus(lastPurchase, proto.comp);
       if (categoryPurchases.length > 0) {
         payment.total_spent = categoryPurchases.reduce((sum, p) => sum + (Number(p.amount_paid) || 0), 0);
         payment.purchase_count = categoryPurchases.length;

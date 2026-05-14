@@ -55,7 +55,11 @@ function getInitials(name) {
 }
 
 // Payment status — same logic as WL tracker
-function computePaymentStatus(purchases) {
+function computePaymentStatus(purchases, protocolComp) {
+  if (protocolComp) {
+    const last = purchases?.[0];
+    return { state: 'comp', label: 'Comp', last_purchase_date: last?.purchase_date || null, amount_paid: 0 };
+  }
   if (!purchases || purchases.length === 0) {
     return { state: 'unknown', label: 'No purchases', last_purchase_date: null, amount_paid: null };
   }
@@ -234,7 +238,7 @@ async function handleGet(req, res) {
         frequency, start_date, end_date, status, delivery_method,
         total_sessions, sessions_used, first_followup_weeks,
         supply_type, injection_method, injection_frequency,
-        last_refill_date, next_expected_date, pickup_frequency,
+        last_refill_date, next_expected_date, pickup_frequency, comp,
         patients!inner ( id, name, first_name, last_name, phone, ghl_contact_id )
       `)
       .eq('status', 'active')
@@ -472,7 +476,7 @@ async function handleGet(req, res) {
       );
 
       const labStatus = computeLabStatus(labSchedule, todayISO);
-      const paymentStatus = computePaymentStatus(purchases);
+      const paymentStatus = computePaymentStatus(purchases, protocol.comp);
 
       // Pickup logs scoped to this protocol (preferred); fall back to all
       // patient pickups if the protocol_id link wasn't set on older rows.

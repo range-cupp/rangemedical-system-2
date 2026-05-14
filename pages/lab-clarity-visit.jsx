@@ -56,7 +56,7 @@ function getSlotsForDate(dateStr) {
 /* ── Static content ── */
 
 const STEPS = [
-  { num: 1, title: 'Share your symptoms and goals', desc: 'Tell us what you’re experiencing — low energy, weight gain, brain fog, or something else.' },
+  { num: 1, title: 'Share your symptoms and goals', desc: 'Tell us what you're experiencing — low energy, weight gain, brain fog, or something else.' },
   { num: 2, title: 'We review how you feel and your labs', desc: 'Your provider connects your symptoms to what the data shows (or what we need to test).' },
   { num: 3, title: 'You leave with a written plan and lab recommendation', desc: 'A clear next step — no guesswork, no pressure.' },
 ];
@@ -72,14 +72,14 @@ const FAQS = [
   },
   {
     q: 'What if I need to reschedule?',
-    a: 'Email us at info@range-medical.com at least 24 hours before your time and we’ll help you move it.',
+    a: 'Email us at info@range-medical.com at least 24 hours before your time and we'll help you move it.',
   },
 ];
 
 const REVIEWS = [
-  { name: ‘Sarah M.’, location: ‘Newport Beach’, text: "I was skeptical, but after the Assessment I finally understood why I’d been so tired. Six weeks later I feel like myself again." },
-  { name: ‘David L.’, location: ‘Costa Mesa’, text: "I kept telling my doctor I was tired and foggy. They said everything was normal. Range ran deeper labs and found the problem in two weeks." },
-  { name: ‘Jennifer K.’, location: ‘Irvine’, text: "Clear communication, no pressure, and a plan that actually made sense. This is what healthcare should be." },
+  { name: "Sarah M.", location: "Newport Beach", text: "I was skeptical, but after the Assessment I finally understood why I'd been so tired. Six weeks later I feel like myself again." },
+  { name: "David L.", location: "Costa Mesa", text: "I kept telling my doctor I was tired and foggy. They said everything was normal. Range ran deeper labs and found the problem in two weeks." },
+  { name: "Jennifer K.", location: "Irvine", text: "Clear communication, no pressure, and a plan that actually made sense. This is what healthcare should be." },
 ];
 
 const WHY_BULLETS = [

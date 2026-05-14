@@ -249,14 +249,13 @@ const MOBILE_TABS = [
   { href: '#more', label: 'More', icon: 'menu' },
 ];
 
-export default function AdminLayout({ children, title = 'Admin', actions, hideHeader = false, viewMode = null }) {
+export default function AdminLayout({ children, title = 'Admin', actions, hideHeader = false }) {
   const router = useRouter();
   const currentPath = router.pathname;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [editNav, setEditNav] = useState(false);
   const [hiddenNav, setHiddenNav] = useState([]);
-  const [globalViewMode, setGlobalViewMode] = useState('both'); // 'medical' | 'business' | 'both'
   const [expandedSections, setExpandedSections] = useState({});
   const { employee, loading: authLoading, signOut, hasPermission, isAuthenticated } = useAuth();
   const { unreadCount, taskCount, overdueCount, purchaseCount } = useAdminNotifications();
@@ -277,16 +276,6 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
       if (raw) setHiddenNav(JSON.parse(raw));
     } catch {}
   }, [hiddenStorageKey]);
-
-  // Global view mode — persisted per user in localStorage
-  const viewModeStorageKey = employee?.id ? `sidebar_viewmode_${employee.id}` : null;
-  useEffect(() => {
-    if (!viewModeStorageKey) return;
-    try {
-      const saved = localStorage.getItem(viewModeStorageKey);
-      if (saved && ['medical', 'business', 'both'].includes(saved)) setGlobalViewMode(saved);
-    } catch {}
-  }, [viewModeStorageKey]);
 
   // Expanded sidebar sections — persisted per user in localStorage
   const expandedStorageKey = employee?.id ? `sidebar_expanded_${employee.id}` : null;
@@ -353,13 +342,6 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
     }
   }, [currentPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const setAndPersistViewMode = (mode) => {
-    setGlobalViewMode(mode);
-    if (viewModeStorageKey) {
-      try { localStorage.setItem(viewModeStorageKey, mode); } catch {}
-    }
-  };
-
   // Show nothing while checking auth
   if (authLoading || !isAuthenticated) {
     return (
@@ -376,12 +358,6 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
     return hasPermission(item.permission);
   });
 
-  // Filter by viewMode: page-level viewMode (patient profile) takes priority, else use global
-  const effectiveViewMode = viewMode || (globalViewMode !== 'both' ? globalViewMode : null);
-  const contextFilteredItems = effectiveViewMode
-    ? permittedNavItems.filter(item => !item.group || item.group === effectiveViewMode)
-    : permittedNavItems;
-
   const persistHidden = (next) => {
     setHiddenNav(next);
     if (hiddenStorageKey) {
@@ -392,14 +368,13 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
   const unhideItem = (href) => persistHidden(hiddenNav.filter(h => h !== href));
 
   const visibleNavItems = editNav
-    ? contextFilteredItems
-    : contextFilteredItems.filter(item => !hiddenNav.includes(item.href));
+    ? permittedNavItems
+    : permittedNavItems.filter(item => !hiddenNav.includes(item.href));
   const hiddenNavList = permittedNavItems.filter(item => hiddenNav.includes(item.href));
 
   const filterItem = (item) => {
     if (item.adminOnly && !employee?.is_admin) return false;
     if (item.permission && !hasPermission(item.permission)) return false;
-    if (effectiveViewMode && item.group && item.group !== effectiveViewMode) return false;
     if (!editNav && hiddenNav.includes(item.href)) return false;
     return true;
   };
@@ -544,40 +519,6 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
           </nav>
 
           <div style={styles.sidebarFooter}>
-            {/* Global View Mode Toggle */}
-            <div style={{
-              display: 'flex',
-              gap: 0,
-              marginBottom: '8px',
-              borderRadius: '6px',
-              overflow: 'hidden',
-              border: '1px solid rgba(255,255,255,0.2)',
-            }}>
-              {[
-                { key: 'medical', label: '🏥', title: 'Medical' },
-                { key: 'both', label: 'All', title: 'All' },
-                { key: 'business', label: '💼', title: 'Business' },
-              ].map(opt => (
-                <button
-                  key={opt.key}
-                  onClick={() => setAndPersistViewMode(opt.key)}
-                  title={opt.title}
-                  style={{
-                    flex: 1,
-                    padding: '5px 0',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: globalViewMode === opt.key ? 'rgba(255,255,255,0.25)' : 'transparent',
-                    color: globalViewMode === opt.key ? '#fff' : 'rgba(255,255,255,0.5)',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
             <button
               onClick={() => setEditNav(v => !v)}
               style={{

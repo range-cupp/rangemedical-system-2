@@ -4951,7 +4951,7 @@ export default function PatientProfile() {
   };
 
   return (
-    <AdminLayout title="Patient Profile" hideHeader viewMode={viewMode}>
+    <AdminLayout title="Patient Profile" hideHeader>
       <Head>
         <title>{getPatientDisplayName()} | Range Medical</title>
       </Head>

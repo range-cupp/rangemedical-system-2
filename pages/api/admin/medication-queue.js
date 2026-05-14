@@ -176,10 +176,14 @@ export default async function handler(req, res) {
 
     if (protoErr) throw protoErr;
 
-    // Filter to the three medication categories
+    // Filter to the three medication categories, exclude in-clinic patients.
+    // In-clinic fulfillment is handled by the appointment schedule — this
+    // queue is strictly "who needs medication sent out."
     const protocols = (allProtocols || []).filter(p => {
       const t = (p.program_type || '').toLowerCase();
-      return isHRTType(t) || isWeightLossType(t) || isPeptideType(t);
+      if (!(isHRTType(t) || isWeightLossType(t) || isPeptideType(t))) return false;
+      const ft = normalizeFulfillmentType(p.delivery_method, isHRTType(t) ? 'hrt' : isWeightLossType(t) ? 'weight_loss' : 'peptide');
+      return ft !== 'in_clinic';
     });
 
     if (protocols.length === 0) {
@@ -285,7 +289,6 @@ export default async function handler(req, res) {
         dose: proto.selected_dose || '',
         frequency: proto.frequency || '',
         delivery_method: proto.delivery_method || '',
-        fulfillment_type: normalizeFulfillmentType(proto.delivery_method, category),
         start_date: proto.start_date,
         end_date: proto.end_date,
         days_on_protocol: proto.start_date ? daysBetween(proto.start_date, todayISO) : null,
@@ -316,10 +319,6 @@ export default async function handler(req, res) {
         hrt: rows.filter(r => r.category === 'hrt').length,
         weight_loss: rows.filter(r => r.category === 'weight_loss').length,
         peptide: rows.filter(r => r.category === 'peptide').length,
-      },
-      by_fulfillment: {
-        take_home: rows.filter(r => r.fulfillment_type === 'take_home').length,
-        in_clinic: rows.filter(r => r.fulfillment_type === 'in_clinic').length,
       },
     };
 

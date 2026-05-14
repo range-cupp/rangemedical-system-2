@@ -77,9 +77,9 @@ const FAQS = [
 ];
 
 const REVIEWS = [
-  { name: 'Sarah M.', location: 'Newport Beach', text: 'I was skeptical, but after the Assessment I finally understood why I’d been so tired. Six weeks later I feel like myself again.' },
-  { name: 'David L.', location: 'Costa Mesa', text: 'I kept telling my doctor I was tired and foggy. They said everything was normal. Range ran deeper labs and found the problem in two weeks.' },
-  { name: 'Jennifer K.', location: 'Irvine', text: 'Clear communication, no pressure, and a plan that actually made sense. This is what healthcare should be.' },
+  { name: ‘Sarah M.’, location: ‘Newport Beach’, text: "I was skeptical, but after the Assessment I finally understood why I’d been so tired. Six weeks later I feel like myself again." },
+  { name: ‘David L.’, location: ‘Costa Mesa’, text: "I kept telling my doctor I was tired and foggy. They said everything was normal. Range ran deeper labs and found the problem in two weeks." },
+  { name: ‘Jennifer K.’, location: ‘Irvine’, text: "Clear communication, no pressure, and a plan that actually made sense. This is what healthcare should be." },
 ];
 
 const WHY_BULLETS = [

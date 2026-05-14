@@ -21,6 +21,9 @@ function getAvailableDates() {
     d.setDate(today.getDate() + i);
     const dow = d.getDay();
     if (dow === 0 || dow === 6) continue;
+    const isToday = i === 0;
+    const isMonWedToday = isToday && dow >= 1 && dow <= 3;
+    if (isMonWedToday) continue;
     const dateStr = [
       d.getFullYear(),
       String(d.getMonth() + 1).padStart(2, '0'),

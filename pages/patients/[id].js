@@ -9596,12 +9596,15 @@ export default function PatientProfile() {
                                                     <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Upcoming</span>
                                                   ) : (
                                                     <span>
-                                                      {week.weekPickups.length > 0 && (
-                                                        <span style={{ color: '#7c3aed', fontWeight: 600, marginRight: week.weekLogs.length > 0 ? 6 : 0 }}>
-                                                          📦 Pickup
-                                                        </span>
-                                                      )}
-                                                      {week.weekLogs.length > 0 ? (
+                                                      {week.weekPickups.length > 0 && (() => {
+                                                        const pickupQty = week.weekPickups.reduce((sum, l) => sum + (parseInt(l.quantity) || 0), 0);
+                                                        return (
+                                                          <span style={{ color: '#7c3aed', fontWeight: 600 }}>
+                                                            📦 Pickup{pickupQty > 0 ? ` · ${pickupQty} dispensed` : ''}
+                                                          </span>
+                                                        );
+                                                      })()}
+                                                      {week.weekLogs.length > 0 && week.weekPickups.length === 0 ? (
                                                         <span style={{ color: '#16a34a' }}>{'\u2713'} {week.weekLogs.length} inj</span>
                                                       ) : week.weekPickups.length === 0 ? (
                                                         <span style={{ color: '#d1d5db' }}>{'\u2014'}</span>

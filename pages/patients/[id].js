@@ -3844,19 +3844,26 @@ export default function PatientProfile() {
     try {
       const errors = [];
       for (const file of uploadForm.files) {
-        const reader = new FileReader();
-        const fileData = await new Promise((resolve, reject) => {
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
+        const timestamp = Date.now();
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filePath = `${id}/${timestamp}-${safeName}`;
+
+        const { error: storageError } = await supabase.storage
+          .from('lab-documents')
+          .upload(filePath, file, { contentType: 'application/pdf', upsert: false });
+
+        if (storageError) {
+          errors.push(`${file.name}: ${storageError.message}`);
+          continue;
+        }
 
         const res = await fetch(`/api/patients/${id}/upload-lab`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            fileData,
+            filePath,
             fileName: file.name,
+            fileSize: file.size,
             labType: uploadForm.labType,
             panelType: uploadForm.panelType,
             collectionDate: uploadForm.collectionDate,

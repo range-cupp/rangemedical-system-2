@@ -452,8 +452,35 @@ function LabClarityContent() {
           </div>
         </section>
 
-        {/* ── FAQ ── */}
+        {/* ── Location ── */}
         <section style={s.section}>
+          <div style={s.container}>
+            <div style={s.locationBox}>
+              <p style={s.locationEyebrow}>Where to Find Us</p>
+              <h3 style={s.locationName}>Range Medical · Newport Beach</h3>
+              <p style={s.locationAddress}>
+                <a
+                  href="https://maps.google.com/?q=1901+Westcliff+Drive,+Suite+10,+Newport+Beach,+CA+92660"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={s.locationLink}
+                >
+                  1901 Westcliff Drive, Suite 10<br />Newport Beach, CA 92660
+                </a>
+              </p>
+              <iframe
+                title="Range Medical location map"
+                style={s.mapFrame}
+                src="https://maps.google.com/maps?q=1901+Westcliff+Drive,+Suite+10,+Newport+Beach,+CA+92660&output=embed"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* ── FAQ ── */}
+        <section style={s.sectionAlt}>
           <div style={s.container}>
             <h2 style={s.h2}>Frequently Asked Questions</h2>
             <div style={s.faqList}>
@@ -915,6 +942,45 @@ const s = {
     fontSize: 16,
     flexShrink: 0,
     marginTop: 2,
+  },
+
+  /* Location */
+  locationBox: {
+    maxWidth: 680,
+    margin: '0 auto',
+  },
+  locationEyebrow: {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: '0.18em',
+    textTransform: 'uppercase',
+    color: ACCENT,
+    marginBottom: 10,
+  },
+  locationName: {
+    fontFamily: "'Fraunces', serif",
+    fontSize: 20,
+    fontWeight: 700,
+    color: TEXT,
+    marginBottom: 6,
+  },
+  locationAddress: {
+    fontSize: 15,
+    color: TEXT_MUTED,
+    lineHeight: 1.55,
+    marginBottom: 16,
+  },
+  locationLink: {
+    color: TEXT_MUTED,
+    textDecoration: 'none',
+    borderBottom: `1px solid ${BORDER}`,
+  },
+  mapFrame: {
+    width: '100%',
+    height: 280,
+    border: `1px solid ${BORDER}`,
+    borderRadius: 8,
+    display: 'block',
   },
 
   /* FAQ */

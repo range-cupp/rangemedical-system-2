@@ -18,7 +18,7 @@ function providerLabel(createdBy) {
   if (!createdBy) return 'Provider';
   const lower = createdBy.toLowerCase();
   if (lower.includes('burgess')) return 'Dr. Damien Burgess';
-  if (lower.includes('brendyn') || lower.includes('reed')) return 'Brendyn Reed, PA-C';
+  if (lower.includes('brendyn') || lower.includes('reed')) return 'Brendyn Reed, FNP';
   return createdBy;
 }
 
@@ -58,7 +58,7 @@ function matchSupplementPrice(itemName, catalog) {
 
 const SENDER_OPTIONS = [
   { key: 'burgess', label: 'Damien Burgess, FNP' },
-  { key: 'reed', label: 'Brendyn Reed, NP' },
+  { key: 'reed', label: 'Brendyn Reed, FNP' },
 ];
 
 function guessSender(createdBy) {
@@ -750,7 +750,7 @@ export default function PlanSummariesPage() {
                     <option value="">Select staff member...</option>
                     <option value="cupp@range-medical.com">Chris Cupp</option>
                     <option value="burgess@range-medical.com">Damien Burgess FNP</option>
-                    <option value="brendyn@range-medical.com">Brendyn Reed NP</option>
+                    <option value="brendyn@range-medical.com">Brendyn Reed FNP</option>
                     <option value="lily@range-medical.com">Lily Diaz RN</option>
                     <option value="evan@range-medical.com">Evan Riederich</option>
                     <option value="damon@range-medical.com">Damon Durante</option>

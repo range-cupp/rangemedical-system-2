@@ -649,7 +649,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentProt
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>Locked to active protocol</div>
               </div>
               <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280', lineHeight: 1.4 }}>
-                To change the dose, open the patient's <strong>Meds</strong> tab and click <strong>Change Dose</strong> — that sends an approval request to Dr. Burgess (or Brendyn Reed NP). The encounter form documents the dose given, not changes to it.
+                To change the dose, open the patient's <strong>Meds</strong> tab and click <strong>Change Dose</strong> — that sends an approval request to Dr. Burgess (or Brendyn Reed FNP). The encounter form documents the dose given, not changes to it.
               </div>
             </div>
           );
@@ -737,7 +737,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentProt
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>Locked to active protocol</div>
               </div>
               <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280', lineHeight: 1.4 }}>
-                To change the dose, open the patient's <strong>Meds</strong> tab and click <strong>Change Dose</strong> — that sends an approval request to Dr. Burgess (or Brendyn Reed NP). The encounter form documents the dose given, not changes to it.
+                To change the dose, open the patient's <strong>Meds</strong> tab and click <strong>Change Dose</strong> — that sends an approval request to Dr. Burgess (or Brendyn Reed FNP). The encounter form documents the dose given, not changes to it.
               </div>
             </div>
           );

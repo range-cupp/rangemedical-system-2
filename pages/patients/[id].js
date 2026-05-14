@@ -11583,7 +11583,7 @@ export default function PatientProfile() {
               if (!createdBy) return 'Provider';
               const lower = createdBy.toLowerCase();
               if (lower.includes('burgess')) return 'Dr. Damien Burgess';
-              if (lower.includes('brendyn') || lower.includes('reed')) return 'Brendyn Reed, PA-C';
+              if (lower.includes('brendyn') || lower.includes('reed')) return 'Brendyn Reed, FNP';
               return createdBy;
             };
 

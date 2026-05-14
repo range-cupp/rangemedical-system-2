@@ -31,7 +31,8 @@ const PAYMENT_STYLES = {
 
 function fmtDate(iso) {
   if (!iso) return '—';
-  const d = new Date(iso + 'T12:00:00');
+  const d = iso.length <= 10 ? new Date(iso + 'T12:00:00') : new Date(iso);
+  if (isNaN(d)) return '—';
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
@@ -404,7 +405,7 @@ function PatientDrawer({ patientId, allRows, onClose, onNoteAdded }) {
                   <div style={{ fontSize: '11px', color: '#999', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
                     {note.created_by && <span style={{ fontWeight: '500' }}>{note.created_by}</span>}
                     {note.created_by && ' • '}
-                    {fmtDate(note.note_date)}
+                    {fmtDate(note.note_date || note.created_at)}
                     {note.note_category && note.note_category !== 'medication_queue' && (
                       <span style={{ background: '#f3f4f6', padding: '1px 6px', fontSize: '10px', color: '#888', marginLeft: '4px' }}>
                         {note.note_category === 'internal' ? 'Staff Note' : note.note_category}

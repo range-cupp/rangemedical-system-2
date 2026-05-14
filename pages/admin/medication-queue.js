@@ -126,10 +126,13 @@ function getRowBg(status, isSelected) {
 // =====================================================================
 // Patient Drawer — shows ALL medications for one patient + notes
 // =====================================================================
+const STATUS_LABEL = { completed: 'Completed', inactive: 'Inactive', cancelled: 'Cancelled', paused: 'Paused' };
+
 function PatientDrawer({ patientId, allRows, onClose, onNoteAdded }) {
   const [noteText, setNoteText] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState(null);
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const patientRows = allRows.filter(r => r.patient_id === patientId);
   if (patientRows.length === 0) return null;
@@ -142,6 +145,7 @@ function PatientDrawer({ patientId, allRows, onClose, onNoteAdded }) {
 
   const needsAction = sorted.filter(r => r.dispense.status === 'overdue' || r.dispense.status === 'due_now' || r.dispense.status === 'due_soon');
   const notes = patient.notes || [];
+  const completedProtocols = patient.completed_protocols || [];
 
   async function saveNote() {
     if (!noteText.trim()) return;
@@ -268,6 +272,51 @@ function PatientDrawer({ patientId, allRows, onClose, onNoteAdded }) {
             );
           })}
         </div>
+
+        {/* Completed Protocols */}
+        {completedProtocols.length > 0 && (
+          <div style={{ padding: '0 24px 20px' }}>
+            <button
+              onClick={() => setShowCompleted(!showCompleted)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
+                letterSpacing: '0.8px', color: '#999', marginBottom: showCompleted ? '12px' : 0,
+                display: 'flex', alignItems: 'center', gap: '6px', width: '100%',
+              }}
+            >
+              <span style={{ fontSize: '10px', transition: 'transform 0.15s', transform: showCompleted ? 'rotate(90deg)' : 'rotate(0deg)' }}>{'▶'}</span>
+              Completed Protocols ({completedProtocols.length})
+            </button>
+
+            {showCompleted && completedProtocols.map(cp => {
+              const cs = CATEGORY_STYLES[cp.category] || CATEGORY_STYLES.peptide;
+              return (
+                <div key={cp.protocol_id} style={{
+                  border: '1px solid #e5e5e5', marginBottom: '8px', background: '#fafafa', opacity: 0.85,
+                }}>
+                  <div style={{ padding: '12px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <Badge style={{ background: cs.bg, color: cs.text, fontSize: '11px', padding: '2px 8px' }}>{cs.label}</Badge>
+                      <span style={{ fontWeight: '500', fontSize: '14px', color: '#555' }}>{cp.medication}</span>
+                      <Badge style={{ background: '#f3f4f6', color: '#6b7280', fontSize: '10px', padding: '2px 6px', marginLeft: 'auto' }}>
+                        {STATUS_LABEL[cp.status] || cp.status}
+                      </Badge>
+                    </div>
+                    {(cp.dose || cp.frequency) && (
+                      <div style={{ fontSize: '12px', color: '#999' }}>{[cp.dose, cp.frequency].filter(Boolean).join(' • ')}</div>
+                    )}
+                    <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                      {cp.start_date && <span>{fmtDate(cp.start_date)}</span>}
+                      {cp.start_date && cp.end_date && <span>{' — '}</span>}
+                      {cp.end_date && <span>{fmtDate(cp.end_date)}</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Notes */}
         <div style={{ padding: '0 24px 20px' }}>

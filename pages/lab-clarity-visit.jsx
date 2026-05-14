@@ -149,8 +149,31 @@ function LabClarityContent() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState(null);
   const [openFaq, setOpenFaq] = useState(null);
+  const [formStarted, setFormStarted] = useState(false);
   const calendarRef = useRef(null);
   const utmRef = useRef({});
+  const sessionIdRef = useRef(null);
+
+  function getSessionId() {
+    if (!sessionIdRef.current) {
+      sessionIdRef.current = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    }
+    return sessionIdRef.current;
+  }
+
+  function trackEvent(event, metadata = {}) {
+    fetch('/api/analytics/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        page: 'lab-clarity-visit',
+        event,
+        sessionId: getSessionId(),
+        metadata,
+        referrer: typeof document !== 'undefined' ? document.referrer : null,
+      }),
+    }).catch(() => {});
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -160,6 +183,7 @@ function LabClarityContent() {
       if (val) utm[key] = val;
     }
     utmRef.current = utm;
+    trackEvent('page_view', { ...utm, url: window.location.href });
   }, []);
 
   const dates = useMemo(() => getAvailableDates(), []);
@@ -184,6 +208,7 @@ function LabClarityContent() {
 
   function scrollToCalendar() {
     calendarRef.current?.scrollIntoView({ behavior: 'smooth' });
+    trackEvent('cta_click');
   }
 
   function handleDateSelect(dateStr) {
@@ -191,16 +216,23 @@ function LabClarityContent() {
     setSelectedTime(null);
     setError(null);
     fetchSlots(dateStr);
+    const d = dates.find(dt => dt.dateStr === dateStr);
+    trackEvent('date_select', { date: dateStr, price: d?.price });
   }
 
   function handleSlotSelect(time) {
     setSelectedTime(time);
     setError(null);
+    trackEvent('slot_select', { date: selectedDate, time });
   }
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
     setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    if (!formStarted && name !== 'agreed') {
+      setFormStarted(true);
+      trackEvent('form_start');
+    }
   }
 
   async function handleSubmit(e) {
@@ -208,6 +240,8 @@ function LabClarityContent() {
     if (!selectedDate || !selectedTime || !form.agreed || !stripe || !elements) return;
     setSubmitting(true);
     setError(null);
+
+    trackEvent('payment_attempt', { price });
 
     try {
       const piRes = await fetch('/api/lab-clarity/create-payment', {
@@ -253,6 +287,7 @@ function LabClarityContent() {
       if (!bookRes.ok) throw new Error(bookData.error || 'Booking failed.');
 
       setSubmitted(true);
+      trackEvent('booking_complete', { price, date: selectedDate, time: selectedTime });
       if (typeof window.fbq === 'function') {
         window.fbq('track', 'Schedule', {
           content_name: 'Lab Clarity Visit',

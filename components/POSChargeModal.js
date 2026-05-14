@@ -696,8 +696,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           ...(!isComp && itemDiscountAmt > 0 ? {
             discount_type: item.itemDiscountType,
             discount_amount: parseFloat(item.itemDiscountValue),
-            original_amount: itemBase,
           } : {}),
+          original_amount: itemBase,
           ...restFields,
         }),
       });
@@ -804,8 +804,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           ...(itemDiscountAmt > 0 && !amount_override ? {
             discount_type: item.itemDiscountType,
             discount_amount: parseFloat(item.itemDiscountValue),
-            original_amount: itemBase,
           } : {}),
+          original_amount: itemBase,
           ...restFields,
         }),
       });
@@ -2108,6 +2108,21 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                 <span>Original: {formatPrice(baseAmount)}</span>
                 <span>Discount: −{formatPrice(discountCents)}</span>
                 <span style={{ fontWeight: 600 }}>Charging: {formatPrice(finalAmount)}</span>
+              </div>
+            )}
+
+            {/* Full-price warning for non-Stripe payments — catches missing discounts */}
+            {discountCents === 0 && finalAmount > 0 && ['gift_card', 'account_credit', 'cash'].includes(selectedCard) && (
+              <div
+                onClick={() => setEditingCharge(true)}
+                style={{
+                  fontSize: '13px', color: '#92400e', padding: '10px 16px', background: '#fffbeb',
+                  border: '1px solid #fde68a', marginBottom: '16px', cursor: 'pointer',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                }}
+              >
+                <span>⚠️ No discount applied — charging full list price</span>
+                <span style={{ fontWeight: 600, textDecoration: 'underline' }}>Tap to adjust</span>
               </div>
             )}
 

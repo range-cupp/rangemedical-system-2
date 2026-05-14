@@ -1075,8 +1075,10 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       if (!giftCardLookup || giftCardLookup.error) return;
       setStep('processing');
       try {
-        // Record the purchase first
-        const purchaseData = await recordPurchasesWithReturn({ payment_method: 'gift_card' });
+        // Record the purchase — pass the actual charge amount so the purchase
+        // record matches what's deducted from the gift card, even if cart-item
+        // discount state drifted from getChargeAmount().
+        const purchaseData = await recordPurchasesWithReturn({ payment_method: 'gift_card', stripe_charged_amount: amount });
         // Redeem from the gift card
         const redeemRes = await fetch('/api/gift-cards/redeem', {
           method: 'POST',
@@ -1113,7 +1115,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       if (creditBalanceCents < amount) return;
       setStep('processing');
       try {
-        const purchaseData = await recordPurchasesWithReturn({ payment_method: 'account_credit' });
+        const purchaseData = await recordPurchasesWithReturn({ payment_method: 'account_credit', stripe_charged_amount: amount });
         const applyRes = await fetch('/api/credits/apply', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

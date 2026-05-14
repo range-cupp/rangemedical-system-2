@@ -16,7 +16,7 @@ function getAvailableDates() {
   const today = new Date(pacific.getFullYear(), pacific.getMonth(), pacific.getDate());
 
   const dates = [];
-  for (let i = 0; i <= 28; i++) {
+  for (let i = 0; i <= 21; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
     const dow = d.getDay();

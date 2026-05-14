@@ -56,9 +56,9 @@ function getSlotsForDate(dateStr) {
 /* ── Static content ── */
 
 const STEPS = [
-  { num: 1, title: 'Share your symptoms and goals', desc: 'Tell us what you're experiencing — low energy, weight gain, brain fog, or something else.' },
-  { num: 2, title: 'We review how you feel and your labs', desc: 'Your provider connects your symptoms to what the data shows (or what we need to test).' },
-  { num: 3, title: 'You leave with a written plan and lab recommendation', desc: 'A clear next step — no guesswork, no pressure.' },
+  { num: 1, title: "Share your symptoms and goals", desc: "Tell us what you're experiencing — low energy, weight gain, brain fog, or something else." },
+  { num: 2, title: "We review how you feel and your labs", desc: "Your provider connects your symptoms to what the data shows (or what we need to test)." },
+  { num: 3, title: "You leave with a written plan and lab recommendation", desc: "A clear next step — no guesswork, no pressure." },
 ];
 
 const FAQS = [
@@ -72,7 +72,7 @@ const FAQS = [
   },
   {
     q: 'What if I need to reschedule?',
-    a: 'Email us at info@range-medical.com at least 24 hours before your time and we'll help you move it.',
+    a: "Email us at info@range-medical.com at least 24 hours before your time and we'll help you move it.",
   },
 ];
 

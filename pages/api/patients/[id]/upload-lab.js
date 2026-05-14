@@ -8,7 +8,7 @@ import { HRT_PROGRAM_TYPES } from '../../../../lib/protocol-config';
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '10mb',
+      sizeLimit: '1mb',
     },
   },
 };
@@ -30,42 +30,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { fileData, fileName, labType, panelType, collectionDate, notes, uploaded_by } = req.body;
+    const { filePath, fileName, fileSize, labType, panelType, collectionDate, notes, uploaded_by } = req.body;
 
-    if (!fileData || !fileName) {
-      return res.status(400).json({ error: 'File data and name are required' });
+    if (!filePath || !fileName) {
+      return res.status(400).json({ error: 'File path and name are required' });
     }
 
-    // Convert base64 to buffer
-    const base64Data = fileData.replace(/^data:application\/pdf;base64,/, '');
-    const fileBuffer = Buffer.from(base64Data, 'base64');
-
-    // Generate unique filename
-    const timestamp = Date.now();
-    const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = `${patientId}/${timestamp}-${safeName}`;
-
-    // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('lab-documents')
-      .upload(filePath, fileBuffer, {
-        contentType: 'application/pdf',
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error('Storage upload error:', uploadError);
-      return res.status(500).json({ error: 'Failed to upload file', details: uploadError.message });
-    }
-
-    // Create database record
+    // Create database record (file already uploaded directly to storage by the client)
     const { data: docRecord, error: dbError } = await supabase
       .from('lab_documents')
       .insert({
         patient_id: patientId,
         file_name: fileName,
         file_path: filePath,
-        file_size: fileBuffer.length,
+        file_size: fileSize || 0,
         lab_type: labType || 'Baseline',
         panel_type: panelType || null,
         collection_date: collectionDate || null,

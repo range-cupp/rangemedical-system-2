@@ -242,7 +242,35 @@ export default async function handler(req, res) {
       pickupsByProtocol[key].push(p);
     }
 
-    // 4. Build unified rows
+    // 5. Completed/inactive protocols for drawer context
+    const { data: completedProtos } = await supabase
+      .from('protocols')
+      .select('id, patient_id, program_type, program_name, medication, selected_dose, frequency, start_date, end_date, status')
+      .in('patient_id', patientIds)
+      .in('status', ['completed', 'inactive', 'cancelled', 'paused']);
+
+    const completedByPatient = {};
+    for (const cp of (completedProtos || [])) {
+      const t = (cp.program_type || '').toLowerCase();
+      if (!(isHRTType(t) || isWeightLossType(t) || isPeptideType(t))) continue;
+      if (!completedByPatient[cp.patient_id]) completedByPatient[cp.patient_id] = [];
+      let category;
+      if (isHRTType(t)) category = 'hrt';
+      else if (isWeightLossType(t)) category = 'weight_loss';
+      else category = 'peptide';
+      completedByPatient[cp.patient_id].push({
+        protocol_id: cp.id,
+        medication: cp.medication || cp.program_name || 'Unknown',
+        dose: cp.selected_dose || '',
+        frequency: cp.frequency || '',
+        category,
+        status: cp.status,
+        start_date: cp.start_date,
+        end_date: cp.end_date,
+      });
+    }
+
+    // 6. Build unified rows
     const rows = [];
 
     for (const proto of protocols) {
@@ -315,34 +343,6 @@ export default async function handler(req, res) {
         payment,
         notes: notesByPatient[proto.patient_id] || [],
         completed_protocols: completedByPatient[proto.patient_id] || [],
-      });
-    }
-
-    // 5. Completed/inactive protocols for drawer context
-    const { data: completedProtos } = await supabase
-      .from('protocols')
-      .select('id, patient_id, program_type, program_name, medication, selected_dose, frequency, start_date, end_date, status')
-      .in('patient_id', patientIds)
-      .in('status', ['completed', 'inactive', 'cancelled', 'paused']);
-
-    const completedByPatient = {};
-    for (const cp of (completedProtos || [])) {
-      const t = (cp.program_type || '').toLowerCase();
-      if (!(isHRTType(t) || isWeightLossType(t) || isPeptideType(t))) continue;
-      if (!completedByPatient[cp.patient_id]) completedByPatient[cp.patient_id] = [];
-      let category;
-      if (isHRTType(t)) category = 'hrt';
-      else if (isWeightLossType(t)) category = 'weight_loss';
-      else category = 'peptide';
-      completedByPatient[cp.patient_id].push({
-        protocol_id: cp.id,
-        medication: cp.medication || cp.program_name || 'Unknown',
-        dose: cp.selected_dose || '',
-        frequency: cp.frequency || '',
-        category,
-        status: cp.status,
-        start_date: cp.start_date,
-        end_date: cp.end_date,
       });
     }
 

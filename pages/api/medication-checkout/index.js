@@ -20,6 +20,22 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+function parseInjectionFrequency(...args) {
+  for (const val of args) {
+    if (!val) continue;
+    const n = parseInt(val);
+    if (n > 0) return n;
+    const s = String(val).toLowerCase().trim();
+    if (s === 'daily' || s === '7 days a week') return 7;
+    if (s === 'every 3.5 days' || s === 'every_3_5_days') return 2;
+    if (s === 'every other day' || s === 'eod') return 4;
+    if (s === '3x per week') return 3;
+    if (s === '2x per week' || s === 'twice weekly') return 2;
+    if (s === 'weekly') return 1;
+  }
+  return 0;
+}
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req, res) {
@@ -220,10 +236,10 @@ export default async function handler(req, res) {
         const injectionDose = atMatch ? atMatch[1].trim() : pickupDosage;
 
         // Get injection frequency from request, or look it up from the protocol
-        let freq = injection_frequency ? parseInt(injection_frequency) : 0;
+        let freq = parseInjectionFrequency(injection_frequency, frequency);
         if (!freq && protocol_id) {
-          const { data: proto } = await supabase.from('protocols').select('injection_frequency').eq('id', protocol_id).single();
-          freq = proto?.injection_frequency ? parseInt(proto.injection_frequency) : 2;
+          const { data: proto } = await supabase.from('protocols').select('injection_frequency, frequency').eq('id', protocol_id).single();
+          freq = parseInjectionFrequency(proto?.injection_frequency, proto?.frequency) || 2;
         }
         if (!freq) freq = 2; // default 2x/week
 
@@ -535,6 +551,22 @@ async function updateProtocol(protocolId, opts) {
     // ── TAKE-HOME / SINGLE INJECTION PATH (existing behavior) ──
     updates.last_visit_date = logDate;
 
+    // Persist injection method + frequency if provided
+    if (injection_method) updates.injection_method = injection_method;
+    if (injection_frequency) {
+      const parsedFreq = parseInjectionFrequency(injection_frequency, frequency);
+      if (parsedFreq) {
+        updates.injection_frequency = parsedFreq;
+        updates.injections_per_week = parsedFreq;
+      }
+    } else if (frequency) {
+      const parsedFreq = parseInjectionFrequency(frequency);
+      if (parsedFreq) {
+        updates.injection_frequency = parsedFreq;
+        updates.injections_per_week = parsedFreq;
+      }
+    }
+
     // For session/injection-based protocols, calculate next expected date
     // sessions_used will be recounted from service_logs after the update
     if ((entryType === 'injection' || entryType === 'session') && protocol.total_sessions && categoryMatchesProtocol) {
@@ -571,10 +603,13 @@ async function updateProtocol(protocolId, opts) {
           prefilled_8week: 56,
         };
 
+        // Resolve effective injections-per-week: prefer incoming request, fall back to protocol
+        const effectiveIpw = parseInjectionFrequency(injection_frequency, frequency, protocol.injection_frequency) || 2;
+
         // Vials: calculate from actual dosage + injection frequency
         if (supply_type.startsWith('vial')) {
           const vialMl = supply_type === 'vial_5ml' ? 5 : 10;
-          const ipw = parseInt(protocol.injection_frequency) || 2;
+          const ipw = effectiveIpw;
           const mlMatch = (dosage || '').match(/([\d.]+)ml/);
           const doseMl = mlMatch ? parseFloat(mlMatch[1]) : 0;
           if (doseMl > 0) {
@@ -590,7 +625,7 @@ async function updateProtocol(protocolId, opts) {
         // Walk the injection schedule to find when the NEXT injection falls after the last dispensed syringe
         if ((supply_type === 'prefilled' || supply_type.match(/^prefilled_(\d+)$/)) && quantity && parseInt(quantity) > 0) {
           const injCount = parseInt(quantity);
-          const ipw = parseInt(protocol.injection_frequency) || 2;
+          const ipw = effectiveIpw;
           let dayOffset = 0;
           let useShortGap = true;
           for (let i = 0; i < injCount + 1; i++) { // +1 to get NEXT injection date
@@ -673,15 +708,21 @@ async function updateProtocol(protocolId, opts) {
         }
       }
 
+      // Persist supply tracking fields so the protocol page shows dispensing details
+      if (supply_type) updates.supply_type = supply_type;
+      if (quantity) updates.supply_quantity = parseInt(quantity);
+      if (updates.next_expected_date && logDate) {
+        const dispDate = new Date(logDate + 'T12:00:00');
+        const nextDate = new Date(updates.next_expected_date + 'T12:00:00');
+        updates.supply_days = Math.round((nextDate - dispDate) / (1000 * 60 * 60 * 24));
+      }
+      updates.supply_dispensed_date = logDate;
+
       // Extend end_date if protocol is at or past its end_date (e.g., HRT refill a day late)
       if (protocol.end_date && protocol.end_date <= logDate && updates.next_expected_date) {
         updates.end_date = updates.next_expected_date;
       }
     }
-
-    // Update injection method/frequency if provided
-    if (injection_method) updates.injection_method = injection_method;
-    if (injection_frequency) updates.injection_frequency = parseInt(injection_frequency);
 
     const { error: updateError } = await supabase
       .from('protocols')

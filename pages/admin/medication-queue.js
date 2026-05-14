@@ -3,7 +3,7 @@
 // Single view across HRT, Weight Loss, and Peptide protocols.
 // Range Medical
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 
@@ -33,10 +33,17 @@ function fmtDate(iso) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function fmtDateFull(iso) {
-  if (!iso) return '—';
-  const d = new Date(iso + 'T12:00:00');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+function fmtPhone(phone) {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 10) return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  if (digits.length === 11 && digits[0] === '1') return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+  return phone;
+}
+
+function cleanPhone(phone) {
+  if (!phone) return '';
+  return phone.replace(/\D/g, '');
 }
 
 // --- Stat Card ---
@@ -109,12 +116,188 @@ function Badge({ style: customStyle, children }) {
 }
 
 // --- Row urgency background ---
-function getRowBg(status) {
+function getRowBg(status, isSelected) {
+  if (isSelected) return '#f0f4ff';
   if (status === 'overdue') return '#fef2f2';
   if (status === 'due_now') return '#fffbeb';
   return 'transparent';
 }
 
+// =====================================================================
+// Patient Drawer — shows ALL medications for one patient
+// =====================================================================
+function PatientDrawer({ patientId, allRows, onClose }) {
+  const patientRows = allRows.filter(r => r.patient_id === patientId);
+  if (patientRows.length === 0) return null;
+
+  const patient = patientRows[0];
+  const DISPENSE_ORDER = { overdue: 0, due_now: 1, due_soon: 2, never: 3, active: 4 };
+  const sorted = [...patientRows].sort((a, b) =>
+    (DISPENSE_ORDER[a.dispense.status] ?? 5) - (DISPENSE_ORDER[b.dispense.status] ?? 5)
+  );
+
+  const needsAction = sorted.filter(r => r.dispense.status === 'overdue' || r.dispense.status === 'due_now' || r.dispense.status === 'due_soon');
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, right: 0, bottom: 0, width: '440px',
+      background: '#fff', borderLeft: '1px solid #e5e5e5',
+      boxShadow: '-4px 0 20px rgba(0,0,0,0.08)',
+      zIndex: 900, display: 'flex', flexDirection: 'column',
+      overflowY: 'auto',
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: '20px 24px', borderBottom: '1px solid #e5e5e5',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+        position: 'sticky', top: 0, background: '#fff', zIndex: 1,
+      }}>
+        <div>
+          <div style={{ fontSize: '20px', fontWeight: '700' }}>{patient.name}</div>
+          <div style={{ fontSize: '13px', color: '#888', marginTop: '2px' }}>
+            {sorted.length} active medication{sorted.length !== 1 ? 's' : ''}
+            {needsAction.length > 0 && (
+              <span style={{ color: '#dc2626', fontWeight: '600' }}>
+                {' • '}{needsAction.length} need{needsAction.length !== 1 ? '' : 's'} action
+              </span>
+            )}
+          </div>
+        </div>
+        <button onClick={onClose} style={sharedStyles.modalClose}>{'×'}</button>
+      </div>
+
+      {/* Contact */}
+      <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        {patient.phone && (
+          <>
+            <a
+              href={`tel:${cleanPhone(patient.phone)}`}
+              style={{
+                ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall,
+                textDecoration: 'none', fontSize: '13px', padding: '6px 12px',
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+              }}
+            >
+              <span style={{ fontSize: '15px' }}>{'📞'}</span> {fmtPhone(patient.phone)}
+            </a>
+            <a
+              href={`sms:${cleanPhone(patient.phone)}`}
+              style={{
+                ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall,
+                textDecoration: 'none', fontSize: '13px', padding: '6px 12px',
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+              }}
+            >
+              <span style={{ fontSize: '15px' }}>{'💬'}</span> Text
+            </a>
+          </>
+        )}
+        {patient.email && (
+          <a
+            href={`mailto:${patient.email}`}
+            style={{
+              ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall,
+              textDecoration: 'none', fontSize: '13px', padding: '6px 12px',
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+            }}
+          >
+            <span style={{ fontSize: '15px' }}>{'✉️'}</span> Email
+          </a>
+        )}
+      </div>
+
+      {/* Medications */}
+      <div style={{ padding: '20px 24px', flex: 1 }}>
+        <div style={{
+          fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
+          letterSpacing: '0.8px', color: '#999', marginBottom: '14px',
+        }}>
+          Active Medications
+        </div>
+
+        {sorted.map(row => {
+          const cs = CATEGORY_STYLES[row.category];
+          const ds = DISPENSE_STYLES[row.dispense.status];
+          const ps = PAYMENT_STYLES[row.payment.status];
+          return (
+            <div key={row.protocol_id} style={{
+              border: '1px solid #e5e5e5', marginBottom: '12px',
+              background: row.dispense.status === 'overdue' ? '#fef2f2' : row.dispense.status === 'due_now' ? '#fffbeb' : '#fff',
+            }}>
+              {/* Medication header */}
+              <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <Badge style={{ background: cs.bg, color: cs.text, fontSize: '11px', padding: '2px 8px' }}>{cs.label}</Badge>
+                  <span style={{ fontWeight: '600', fontSize: '15px' }}>{row.medication}</span>
+                </div>
+                {(row.dose || row.frequency) && (
+                  <div style={{ fontSize: '13px', color: '#888' }}>
+                    {[row.dose, row.frequency].filter(Boolean).join(' • ')}
+                  </div>
+                )}
+              </div>
+
+              {/* Status rows */}
+              <div style={{ padding: '12px 16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', color: '#666' }}>Supply</span>
+                  <Badge style={{ background: ds.bg, color: ds.text, border: `1px solid ${ds.border}` }}>
+                    {row.dispense.label}
+                  </Badge>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', color: '#666' }}>Payment</span>
+                  <Badge style={{ background: ps.bg, color: ps.text }}>
+                    {row.payment.status === 'paid' ? `Paid ${row.payment.label}` : row.payment.status === 'comp' ? 'Comp' : 'No Purchases'}
+                  </Badge>
+                </div>
+                {row.dispense.last_dispensed_date && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '13px', color: '#666' }}>Last Dispensed</span>
+                    <span style={{ fontSize: '13px', fontWeight: '500' }}>{fmtDate(row.dispense.last_dispensed_date)}</span>
+                  </div>
+                )}
+                {row.dispense.next_due_date && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '13px', color: '#666' }}>Next Due</span>
+                    <span style={{
+                      fontSize: '13px', fontWeight: '600',
+                      color: row.dispense.status === 'overdue' ? '#dc2626' : row.dispense.status === 'due_now' ? '#c2410c' : '#374151',
+                    }}>
+                      {fmtDate(row.dispense.next_due_date)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        padding: '16px 24px', borderTop: '1px solid #e5e5e5',
+        display: 'flex', gap: '10px',
+        position: 'sticky', bottom: 0, background: '#fff',
+      }}>
+        <Link
+          href={`/admin/patient/${patientId}`}
+          style={{
+            ...sharedStyles.btnPrimary, flex: 1,
+            textDecoration: 'none', justifyContent: 'center',
+            fontSize: '14px', padding: '10px 16px',
+          }}
+        >
+          Open Full Chart
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// =====================================================================
+// Main Page
+// =====================================================================
 export default function MedicationQueuePage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -124,6 +307,10 @@ export default function MedicationQueuePage() {
   const [search, setSearch] = useState('');
   const [sortField, setSortField] = useState(null);
   const [sortDir, setSortDir] = useState('asc');
+  const [drawerPatientId, setDrawerPatientId] = useState(null);
+
+  const openDrawer = useCallback((patientId) => setDrawerPatientId(patientId), []);
+  const closeDrawer = useCallback(() => setDrawerPatientId(null), []);
 
   async function loadData() {
     setLoading(true);
@@ -143,6 +330,14 @@ export default function MedicationQueuePage() {
 
   useEffect(() => { loadData(); }, []);
 
+  // Close drawer on Escape
+  useEffect(() => {
+    if (!drawerPatientId) return;
+    const handler = (e) => { if (e.key === 'Escape') closeDrawer(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [drawerPatientId, closeDrawer]);
+
   // Filter + search
   const filtered = useMemo(() => {
     if (!data?.patients) return [];
@@ -157,19 +352,16 @@ export default function MedicationQueuePage() {
         (r.medication || '').toLowerCase().includes(q)
       );
     }
-    // For payment tab, sort by payment urgency instead of dispense urgency
     if (tab === 'payment') {
       const PAYMENT_PRIORITY = { unknown: 0, comp: 1, paid: 2 };
       rows = [...rows].sort((a, b) => {
         const pa = PAYMENT_PRIORITY[a.payment.status] ?? 3;
         const pb = PAYMENT_PRIORITY[b.payment.status] ?? 3;
         if (pa !== pb) return pa - pb;
-        // Within same payment priority, sort by dispense urgency
         const DISP = { overdue: 0, due_now: 1, due_soon: 2, never: 3, active: 4 };
         return (DISP[a.dispense.status] ?? 5) - (DISP[b.dispense.status] ?? 5);
       });
     }
-    // Column sort override
     if (sortField) {
       rows = [...rows].sort((a, b) => {
         let va, vb;
@@ -291,33 +483,10 @@ export default function MedicationQueuePage() {
 
       {/* Category Filters + Search */}
       <div style={{ ...sharedStyles.filterBar, marginBottom: '20px' }}>
-        <FilterPill
-          label="All"
-          active={categoryFilter === 'all'}
-          color="#000"
-          onClick={() => setCategoryFilter('all')}
-        />
-        <FilterPill
-          label="HRT"
-          active={categoryFilter === 'hrt'}
-          color="#7c3aed"
-          count={stats.by_category.hrt || 0}
-          onClick={() => setCategoryFilter('hrt')}
-        />
-        <FilterPill
-          label="Weight Loss"
-          active={categoryFilter === 'weight_loss'}
-          color="#1e40af"
-          count={stats.by_category.weight_loss || 0}
-          onClick={() => setCategoryFilter('weight_loss')}
-        />
-        <FilterPill
-          label="Peptide"
-          active={categoryFilter === 'peptide'}
-          color="#166534"
-          count={stats.by_category.peptide || 0}
-          onClick={() => setCategoryFilter('peptide')}
-        />
+        <FilterPill label="All" active={categoryFilter === 'all'} color="#000" onClick={() => setCategoryFilter('all')} />
+        <FilterPill label="HRT" active={categoryFilter === 'hrt'} color="#7c3aed" count={stats.by_category.hrt || 0} onClick={() => setCategoryFilter('hrt')} />
+        <FilterPill label="Weight Loss" active={categoryFilter === 'weight_loss'} color="#1e40af" count={stats.by_category.weight_loss || 0} onClick={() => setCategoryFilter('weight_loss')} />
+        <FilterPill label="Peptide" active={categoryFilter === 'peptide'} color="#166534" count={stats.by_category.peptide || 0} onClick={() => setCategoryFilter('peptide')} />
         <div style={{ flex: 1 }} />
         <input
           type="text"
@@ -332,15 +501,9 @@ export default function MedicationQueuePage() {
       <div style={sharedStyles.card}>
         <div style={{ overflowX: 'auto' }}>
           {tab === 'fulfillment' ? (
-            <FulfillmentTable
-              rows={filtered}
-              SortHeader={SortHeader}
-            />
+            <FulfillmentTable rows={filtered} SortHeader={SortHeader} onPatientClick={openDrawer} selectedPatientId={drawerPatientId} />
           ) : (
-            <PaymentTable
-              rows={filtered}
-              SortHeader={SortHeader}
-            />
+            <PaymentTable rows={filtered} SortHeader={SortHeader} onPatientClick={openDrawer} selectedPatientId={drawerPatientId} />
           )}
         </div>
         {filtered.length === 0 && (
@@ -352,12 +515,30 @@ export default function MedicationQueuePage() {
           </div>
         )}
       </div>
+
+      {/* Drawer overlay (click to close) */}
+      {drawerPatientId && (
+        <div
+          onClick={closeDrawer}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.15)', zIndex: 899,
+          }}
+        />
+      )}
+
+      {/* Patient Drawer */}
+      {drawerPatientId && data?.patients && (
+        <PatientDrawer patientId={drawerPatientId} allRows={data.patients} onClose={closeDrawer} />
+      )}
     </AdminLayout>
   );
 }
 
-// --- Fulfillment Table ---
-function FulfillmentTable({ rows, SortHeader }) {
+// =====================================================================
+// Fulfillment Table
+// =====================================================================
+function FulfillmentTable({ rows, SortHeader, onPatientClick, selectedPatientId }) {
   return (
     <table style={sharedStyles.table}>
       <thead>
@@ -374,23 +555,26 @@ function FulfillmentTable({ rows, SortHeader }) {
       </thead>
       <tbody>
         {rows.map(row => (
-          <FulfillmentRow key={row.protocol_id} row={row} />
+          <FulfillmentRow key={row.protocol_id} row={row} onPatientClick={onPatientClick} isSelected={row.patient_id === selectedPatientId} />
         ))}
       </tbody>
     </table>
   );
 }
 
-function FulfillmentRow({ row }) {
+function FulfillmentRow({ row, onPatientClick, isSelected }) {
   const ds = DISPENSE_STYLES[row.dispense.status] || DISPENSE_STYLES.active;
   const ps = PAYMENT_STYLES[row.payment.status] || PAYMENT_STYLES.unknown;
   const cs = CATEGORY_STYLES[row.category] || CATEGORY_STYLES.peptide;
 
   return (
-    <tr style={{ background: getRowBg(row.dispense.status), transition: 'background 0.15s' }}>
-      {/* Patient */}
+    <tr style={{ background: getRowBg(row.dispense.status, isSelected), transition: 'background 0.15s' }}>
+      {/* Patient — clickable */}
       <td style={sharedStyles.td}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div
+          onClick={() => onPatientClick(row.patient_id)}
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+        >
           <div style={{
             width: '34px', height: '34px', borderRadius: '50%',
             background: cs.bg, color: cs.text,
@@ -400,7 +584,9 @@ function FulfillmentRow({ row }) {
             {row.initials}
           </div>
           <div>
-            <div style={{ fontWeight: '600', fontSize: '14px' }}>{row.name}</div>
+            <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a56db', textDecoration: 'underline', textDecorationColor: '#cbd5e1' }}>
+              {row.name}
+            </div>
             {row.frequency && (
               <div style={{ fontSize: '12px', color: '#888' }}>{row.frequency}</div>
             )}
@@ -446,9 +632,7 @@ function FulfillmentRow({ row }) {
 
       {/* Last Dispensed */}
       <td style={sharedStyles.td}>
-        <span style={{ fontSize: '14px', color: '#555' }}>
-          {fmtDate(row.dispense.last_dispensed_date)}
-        </span>
+        <span style={{ fontSize: '14px', color: '#555' }}>{fmtDate(row.dispense.last_dispensed_date)}</span>
       </td>
 
       {/* Payment */}
@@ -464,11 +648,8 @@ function FulfillmentRow({ row }) {
           <Link
             href={`/admin/patient/${row.patient_id}`}
             style={{
-              ...sharedStyles.btnSecondary,
-              ...sharedStyles.btnSmall,
-              padding: '5px 10px',
-              fontSize: '12px',
-              textDecoration: 'none',
+              ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall,
+              padding: '5px 10px', fontSize: '12px', textDecoration: 'none',
             }}
           >
             Chart
@@ -476,11 +657,8 @@ function FulfillmentRow({ row }) {
           <Link
             href={`/admin/${row.category === 'hrt' ? 'hrt-tracker' : row.category === 'weight_loss' ? 'wl-tracker' : 'peptide-tracker'}`}
             style={{
-              ...sharedStyles.btnSecondary,
-              ...sharedStyles.btnSmall,
-              padding: '5px 10px',
-              fontSize: '12px',
-              textDecoration: 'none',
+              ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall,
+              padding: '5px 10px', fontSize: '12px', textDecoration: 'none',
             }}
           >
             Tracker
@@ -491,8 +669,10 @@ function FulfillmentRow({ row }) {
   );
 }
 
-// --- Payment Table ---
-function PaymentTable({ rows, SortHeader }) {
+// =====================================================================
+// Payment Table
+// =====================================================================
+function PaymentTable({ rows, SortHeader, onPatientClick, selectedPatientId }) {
   return (
     <table style={sharedStyles.table}>
       <thead>
@@ -509,24 +689,26 @@ function PaymentTable({ rows, SortHeader }) {
       </thead>
       <tbody>
         {rows.map(row => (
-          <PaymentRow key={row.protocol_id} row={row} />
+          <PaymentRow key={row.protocol_id} row={row} onPatientClick={onPatientClick} isSelected={row.patient_id === selectedPatientId} />
         ))}
       </tbody>
     </table>
   );
 }
 
-function PaymentRow({ row }) {
+function PaymentRow({ row, onPatientClick, isSelected }) {
   const ds = DISPENSE_STYLES[row.dispense.status] || DISPENSE_STYLES.active;
   const cs = CATEGORY_STYLES[row.category] || CATEGORY_STYLES.peptide;
-
-  const paymentBg = row.payment.status === 'unknown' ? '#fef2f2' : 'transparent';
+  const paymentBg = isSelected ? '#f0f4ff' : row.payment.status === 'unknown' ? '#fef2f2' : 'transparent';
 
   return (
     <tr style={{ background: paymentBg, transition: 'background 0.15s' }}>
-      {/* Patient */}
+      {/* Patient — clickable */}
       <td style={sharedStyles.td}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div
+          onClick={() => onPatientClick(row.patient_id)}
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+        >
           <div style={{
             width: '34px', height: '34px', borderRadius: '50%',
             background: cs.bg, color: cs.text,
@@ -535,7 +717,9 @@ function PaymentRow({ row }) {
           }}>
             {row.initials}
           </div>
-          <div style={{ fontWeight: '600', fontSize: '14px' }}>{row.name}</div>
+          <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a56db', textDecoration: 'underline', textDecorationColor: '#cbd5e1' }}>
+            {row.name}
+          </div>
         </div>
       </td>
 
@@ -553,39 +737,29 @@ function PaymentRow({ row }) {
       {/* Payment Status */}
       <td style={sharedStyles.td}>
         {row.payment.status === 'unknown' ? (
-          <Badge style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
-            No Purchases
-          </Badge>
+          <Badge style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>No Purchases</Badge>
         ) : row.payment.status === 'comp' ? (
-          <Badge style={{ background: '#eef2ff', color: '#4338ca' }}>
-            Comp
-          </Badge>
+          <Badge style={{ background: '#eef2ff', color: '#4338ca' }}>Comp</Badge>
         ) : (
-          <Badge style={{ background: '#f0fdf4', color: '#166534' }}>
-            Paid {row.payment.label}
-          </Badge>
+          <Badge style={{ background: '#f0fdf4', color: '#166534' }}>Paid {row.payment.label}</Badge>
         )}
       </td>
 
       {/* Last Payment */}
       <td style={sharedStyles.td}>
-        <span style={{ fontSize: '14px', color: '#555' }}>
-          {fmtDate(row.payment.last_payment_date)}
-        </span>
+        <span style={{ fontSize: '14px', color: '#555' }}>{fmtDate(row.payment.last_payment_date)}</span>
       </td>
 
       {/* Total Spent */}
       <td style={{ ...sharedStyles.td, textAlign: 'right' }}>
         {row.payment.total_spent > 0 ? (
-          <span style={{ fontWeight: '600', fontSize: '14px' }}>
-            ${row.payment.total_spent.toLocaleString()}
-          </span>
+          <span style={{ fontWeight: '600', fontSize: '14px' }}>${row.payment.total_spent.toLocaleString()}</span>
         ) : (
           <span style={{ color: '#999' }}>{'—'}</span>
         )}
       </td>
 
-      {/* Supply Status (inline) */}
+      {/* Supply Status */}
       <td style={sharedStyles.td}>
         <Badge style={{ background: ds.bg, color: ds.text, border: `1px solid ${ds.border}` }}>
           {row.dispense.label}
@@ -597,11 +771,8 @@ function PaymentRow({ row }) {
         <Link
           href={`/admin/patient/${row.patient_id}`}
           style={{
-            ...sharedStyles.btnSecondary,
-            ...sharedStyles.btnSmall,
-            padding: '5px 10px',
-            fontSize: '12px',
-            textDecoration: 'none',
+            ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall,
+            padding: '5px 10px', fontSize: '12px', textDecoration: 'none',
           }}
         >
           Chart

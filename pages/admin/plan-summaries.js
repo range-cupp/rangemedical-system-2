@@ -57,7 +57,7 @@ function matchSupplementPrice(itemName, catalog) {
 }
 
 const SENDER_OPTIONS = [
-  { key: 'burgess', label: 'Damien Burgess, FNP' },
+  { key: 'burgess', label: 'Dr. Damien Burgess' },
   { key: 'reed', label: 'Brendyn Reed, FNP' },
 ];
 

@@ -13,7 +13,7 @@ const supabase = createClient(
 );
 
 const SENDER_MAP = {
-  burgess: { name: 'Damien Burgess, FNP', fromName: 'Damien Burgess — Range Medical' },
+  burgess: { name: 'Dr. Damien Burgess', fromName: 'Dr. Damien Burgess — Range Medical' },
   reed:    { name: 'Brendyn Reed, FNP',    fromName: 'Brendyn Reed — Range Medical' },
 };
 

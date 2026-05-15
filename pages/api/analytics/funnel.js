@@ -35,7 +35,7 @@ export default async function handler(req, res) {
 
       if (e.session_id) uniqueSessions.add(e.session_id);
 
-      const day = e.created_at.split('T')[0];
+      const day = new Date(e.created_at).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
       if (!dailyCounts[day]) dailyCounts[day] = {};
       dailyCounts[day][e.event] = (dailyCounts[day][e.event] || 0) + 1;
 

@@ -440,7 +440,7 @@ async function updateProtocol(protocolId, opts) {
             supabase,
             protocol,
             { selected_dose: dosage },
-            { mode: 'strip' }
+            { mode: 'strip', userEmail: req.body.editor_email }
           );
           if (guard.blocked && guard.blocked.length > 0) {
             doseChangeBlocked = true;
@@ -613,7 +613,7 @@ async function updateProtocol(protocolId, opts) {
               supabase,
               protocol,
               { selected_dose: dosage },
-              { mode: 'strip' }
+              { mode: 'strip', userEmail: req.body.editor_email }
             );
             if (guard.blocked && guard.blocked.length > 0) {
               doseChangeBlocked = true;

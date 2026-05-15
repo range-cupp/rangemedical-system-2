@@ -2035,6 +2035,7 @@ export default function PatientProfile() {
   // (Peptides and other categories never hit this modal — they edit freely.)
   const requiresProviderApproval = (() => {
     if (!doseChangeProtocol || !doseChangeForm.dose) return false;
+    if (canApproveDoseChange(currentUserEmail)) return false;
     const isWL = doseChangeProtocol.category === 'weight_loss' || isWeightLossType(doseChangeProtocol.program_type);
     const isHRT = doseChangeProtocol.category === 'hrt' || (doseChangeProtocol.program_type || '').includes('hrt');
     return isWL || isHRT;
@@ -2115,6 +2116,7 @@ export default function PatientProfile() {
           selected_dose: doseChangeForm.dose,
           injections_per_week: parseInt(doseChangeForm.injectionsPerWeek) || 2,
           reason: doseChangeForm.notes || '',
+          editor_email: currentUserEmail,
         }),
       });
       const data = await res.json();
@@ -13461,6 +13463,7 @@ export default function PatientProfile() {
                             frequency: (medEditForm.quick_frequency || '').trim() || null,
                             sig: (medEditForm.sig || '').trim() || null,
                             injection_method: injectionMethod,
+                            editor_email: currentUserEmail,
                           };
                           // Drop fields the user didn't touch so we don't accidentally clobber existing values
                           if (!medEditForm.quick_frequency) delete protocolPayload.frequency;
@@ -15907,6 +15910,7 @@ export default function PatientProfile() {
                         const body = {
                           extensionDays: extendWLDays,
                           pickupFrequency: extendWLDays,
+                          editor_email: currentUserEmail,
                         };
                         if (extendWLDose && extendWLDose !== extendWLProtocol.selected_dose) {
                           body.newDose = extendWLDose;

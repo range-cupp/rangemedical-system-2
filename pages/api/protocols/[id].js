@@ -292,6 +292,7 @@ async function updateProtocol(id, updates, res, req) {
         {
           mode: 'reject',
           approvedRequestId: req?.body?.approved_dose_change_request_id,
+          userEmail: req?.body?.editor_email,
         }
       );
       if (!guard.allowed) {
@@ -300,6 +301,20 @@ async function updateProtocol(id, updates, res, req) {
           requires_approval: true,
           category: guard.category,
         });
+      }
+      if (guard.providerBypass && updateData.selected_dose && updateData.selected_dose !== current.selected_dose) {
+        const oldHistory = Array.isArray(current.dose_history) ? [...current.dose_history] : [];
+        if (oldHistory.length === 0 && current.selected_dose && current.start_date) {
+          oldHistory.push({ date: current.start_date, dose: current.selected_dose, notes: 'Starting dose' });
+        }
+        const { getStaffDisplayName } = await import('../../../lib/staff-config');
+        oldHistory.push({
+          date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
+          dose: updateData.selected_dose,
+          changed_by: getStaffDisplayName(guard.providerEmail),
+          notes: 'Provider direct edit',
+        });
+        updateData.dose_history = oldHistory;
       }
     }
   }
@@ -360,12 +375,8 @@ async function updateProtocol(id, updates, res, req) {
     }
   }
 
-  // NOTE: PATCH is for tracking corrections only. A clinical dose change
-  // (provider switching the patient to a new dose) must go through
-  // POST /api/protocols/[id]/dose-change, which updates this protocol in
-  // place — appending to dose_history and carrying forward the remaining
-  // supply — so the protocol stays one continuous record on the business side.
-  // We intentionally do NOT auto-append to dose_history here.
+  // A clinical dose change normally goes through POST /api/protocols/[id]/dose-change.
+  // Provider bypasses (Burgess/Reed editing directly) auto-append to dose_history above.
 
   // If dose_history is being set directly (manual adjustment), allow it through
   if (updateData.dose_history && typeof updateData.dose_history === 'string') {

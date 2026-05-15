@@ -1795,6 +1795,7 @@ export default function CommandCenter() {
         total_sessions: editingProtocol.total_sessions ? parseInt(editingProtocol.total_sessions) : null,
         sessions_used: parseInt(editingProtocol.sessions_used) || 0,
         selected_dose: editingProtocol.selected_dose === 'Custom' ? editingProtocol.customDose : editingProtocol.selected_dose || null,
+        editor_email: session?.user?.email?.toLowerCase() || '',
         delivery_method: editingProtocol.delivery_method || null,
         status: editingProtocol.status,
         notes: editingProtocol.notes || null,

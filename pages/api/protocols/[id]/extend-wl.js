@@ -108,6 +108,7 @@ export default async function handler(req, res) {
           {
             mode: 'reject',
             approvedRequestId: req.body.approved_dose_change_request_id,
+            userEmail: req.body.editor_email,
           }
         );
         if (!guard.allowed) {

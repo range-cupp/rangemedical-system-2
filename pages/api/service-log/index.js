@@ -1100,7 +1100,7 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
         supabase,
         protocol,
         { selected_dose: dosage },
-        { mode: 'strip' }
+        { mode: 'strip', userEmail: req.body.editor_email }
       );
       if (guard.blocked && guard.blocked.length > 0) {
         console.warn(`[dose-guard] service-log pickup: stripped dose write on protocol ${protocol.id} (${protocol.selected_dose || protocol.dose} → ${dosage})`);
@@ -1331,7 +1331,7 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
         supabase,
         protocol,
         { selected_dose: dosage },
-        { mode: 'strip' }
+        { mode: 'strip', userEmail: req.body.editor_email }
       );
       if (guard.blocked && guard.blocked.length > 0) {
         console.warn(`[dose-guard] service-log session: stripped dose write on protocol ${protocol.id} (${protocol.selected_dose || protocol.dose} → ${dosage})`);

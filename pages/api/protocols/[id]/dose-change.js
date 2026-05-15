@@ -18,6 +18,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { isWeightLossType, isHRTType } from '../../../../lib/protocol-config';
+import { canApproveDoseChange } from '../../../../lib/staff-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -57,6 +58,7 @@ export default async function handler(req, res) {
     dose_per_injection,
     reason,
     approved_dose_change_request_id,  // id of an approved dose_change_requests row
+    editor_email,
   } = req.body || {};
 
   if (!selected_dose || !injections_per_week) {
@@ -92,6 +94,8 @@ export default async function handler(req, res) {
     const isHRT = isHRTType(current.program_type);
     const isWL = isWeightLossType(current.program_type);
     if (isHRT || isWL) {
+      const providerBypass = editor_email && canApproveDoseChange(editor_email);
+
       const oldMl = parseMlFromDose(current.selected_dose);
       const newMl = parseMlFromDose(selected_dose);
       const oldIpw = current.injections_per_week || 2;
@@ -103,7 +107,7 @@ export default async function handler(req, res) {
 
       const needsApproval = isWL || (isHRT && isDoseIncrease);
 
-      if (needsApproval) {
+      if (needsApproval && !providerBypass) {
         if (!approved_dose_change_request_id) {
           return res.status(400).json({
             error: isWL
@@ -181,15 +185,17 @@ export default async function handler(req, res) {
         notes: 'Starting dose',
       });
     }
-    const newHistory = [
-      ...oldHistory,
-      {
-        date: effDate,
-        dose: selected_dose,
-        injections_per_week: newIpw,
-        notes: reason || 'Dose change',
-      },
-    ];
+    const historyEntry = {
+      date: effDate,
+      dose: selected_dose,
+      injections_per_week: newIpw,
+      notes: reason || 'Dose change',
+    };
+    if (editor_email && canApproveDoseChange(editor_email)) {
+      const { getStaffDisplayName } = await import('../../../../lib/staff-config');
+      historyEntry.changed_by = getStaffDisplayName(editor_email);
+    }
+    const newHistory = [...oldHistory, historyEntry];
 
     // 4. Recalculate next_expected_date based on remaining supply + new dose.
     let nextExpectedDate = current.next_expected_date || null;

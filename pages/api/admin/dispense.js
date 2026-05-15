@@ -191,7 +191,7 @@ export default async function handler(req, res) {
         supabase,
         protocol,
         { selected_dose: dosage_override },
-        { mode: 'reject' }
+        { mode: 'reject', userEmail: req.body.editor_email }
       );
       if (!guard.allowed) {
         return res.status(400).json({
@@ -209,7 +209,7 @@ export default async function handler(req, res) {
         supabase,
         protocol,
         { selected_dose: dosing_notes },
-        { mode: 'reject' }
+        { mode: 'reject', userEmail: req.body.editor_email }
       );
       if (!guard.allowed) {
         return res.status(400).json({

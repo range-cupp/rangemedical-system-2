@@ -958,7 +958,8 @@ export default function ProtocolDetail() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...saveData
+          ...saveData,
+          editor_email: currentUserEmail,
         })
       });
 

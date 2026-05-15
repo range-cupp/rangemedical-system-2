@@ -26,7 +26,7 @@ function patientKey(c) {
   return c.patient_id || (c.ghl_contact_id ? `ghl_${c.ghl_contact_id}` : (c.recipient ? `phone_${c.recipient}` : null));
 }
 
-export default function usePatientMessaging(employee) {
+export default function usePatientMessaging(employee, session) {
   const [conversations, setConversations] = useState([]);
   const [activePatient, setActivePatient] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -61,7 +61,7 @@ export default function usePatientMessaging(employee) {
     if (!patient) return;
     setLoadingMessages(true);
     try {
-      const params = new URLSearchParams({ channel: 'sms', limit: '100' });
+      const params = new URLSearchParams({ limit: '100' });
       if (patient.recipient) params.set('phone', patient.recipient);
       const id = patient.patient_id || '_';
       const res = await fetch(`/api/patients/${id}/comms?${params.toString()}`);
@@ -149,6 +149,55 @@ export default function usePatientMessaging(employee) {
     }
   }, []);
 
+  const sendEmail = useCallback(async (patient, { to, subject, body }) => {
+    if (!to || !subject || !body?.trim()) return { success: false, error: 'Missing required fields' };
+    const tempId = 'temp-email-' + Date.now();
+    const optimistic = {
+      id: tempId,
+      channel: 'email',
+      direction: 'outbound',
+      message: body,
+      subject,
+      recipient: to,
+      created_at: new Date().toISOString(),
+      status: 'sending',
+      message_type: 'staff_email',
+    };
+    setMessages(prev => [...prev, optimistic]);
+
+    try {
+      const token = session?.access_token;
+      if (!token) {
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'error', error_message: 'Not authenticated' } : m));
+        return { success: false, error: 'Not authenticated' };
+      }
+      const res = await fetch('/api/email/send', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to,
+          subject,
+          body,
+          patientId: patient.patient_id || null,
+          patientName: patient.patient_name || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'error', error_message: data.error || 'Send failed' } : m));
+        return { success: false, error: data.error || 'Send failed' };
+      }
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'sent' } : m));
+      return { success: true };
+    } catch (err) {
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'error', error_message: err.message } : m));
+      return { success: false, error: err.message };
+    }
+  }, [session?.access_token]);
+
   const dismissNeedsResponse = useCallback(async (patient) => {
     try {
       await fetch('/api/admin/clear-needs-response', {
@@ -183,7 +232,7 @@ export default function usePatientMessaging(employee) {
         { event: 'INSERT', schema: 'public', table: 'comms_log' },
         (payload) => {
           const row = payload.new;
-          if (!row || row.channel !== 'sms') return;
+          if (!row || (row.channel !== 'sms' && row.channel !== 'email')) return;
 
           // Only react to real inbound patient messages — skip staff bot pings,
           // auto-replies, etc.
@@ -258,6 +307,7 @@ export default function usePatientMessaging(employee) {
     openPatient,
     closePatient,
     sendMessage,
+    sendEmail,
     dismissNeedsResponse,
     setMessages,
   };

@@ -57,7 +57,7 @@ export default async function handler(req, res) {
           .eq('needs_response', true),
         supabase
           .from('patients')
-          .select('id, phone, first_name, last_name')
+          .select('id, phone, email, first_name, last_name')
           .in('id', patientIds),
       ]);
       for (const row of unreadRows || []) {
@@ -66,8 +66,10 @@ export default async function handler(req, res) {
       for (const row of needsResponseRows || []) {
         needsResponseMap[row.patient_id] = (needsResponseMap[row.patient_id] || 0) + 1;
       }
+      const emailMap = {};
       for (const row of patientRows || []) {
         if (row.phone) phoneMap[row.id] = row.phone;
+        if (row.email) emailMap[row.id] = row.email;
         const fullName = [row.first_name, row.last_name].filter(Boolean).join(' ').trim();
         if (fullName) nameMap[row.id] = fullName;
       }
@@ -79,6 +81,7 @@ export default async function handler(req, res) {
       // comms_log row may have null/stale name (e.g. internal staff notifications)
       patient_name: (r.patient_id && nameMap[r.patient_id]) || r.patient_name,
       recipient: (r.patient_id && phoneMap[r.patient_id]) || r.recipient,
+      patient_email: (r.patient_id && emailMap[r.patient_id]) || null,
       unread_count: unreadMap[r.patient_id] || 0,
       needs_response_count: needsResponseMap[r.patient_id] || 0,
     }));
@@ -202,12 +205,14 @@ async function fallbackConversations(req, res, daysNum, limitNum, since, supabas
   if (fallbackPatientIds.length > 0) {
     const { data: patientRows } = await supabase
       .from('patients')
-      .select('id, phone, first_name, last_name')
+      .select('id, phone, email, first_name, last_name')
       .in('id', fallbackPatientIds);
     const phoneMap = {};
     const nameMap = {};
+    const emailFallbackMap = {};
     for (const row of patientRows || []) {
       if (row.phone) phoneMap[row.id] = row.phone;
+      if (row.email) emailFallbackMap[row.id] = row.email;
       const fullName = [row.first_name, row.last_name].filter(Boolean).join(' ').trim();
       if (fullName) nameMap[row.id] = fullName;
     }
@@ -217,6 +222,9 @@ async function fallbackConversations(req, res, daysNum, limitNum, since, supabas
       }
       if (conv.patient_id && nameMap[conv.patient_id]) {
         conv.patient_name = nameMap[conv.patient_id];
+      }
+      if (conv.patient_id && emailFallbackMap[conv.patient_id]) {
+        conv.patient_email = emailFallbackMap[conv.patient_id];
       }
     }
   }

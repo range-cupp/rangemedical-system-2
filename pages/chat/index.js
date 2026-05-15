@@ -90,6 +90,20 @@ function CalendarIcon({ size = 16 }) {
     </svg>
   );
 }
+function MailIcon({ size = 16, color = 'currentColor' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="2" /><polyline points="22,7 12,13 2,7" />
+    </svg>
+  );
+}
+function MessageSquareIcon({ size = 16, color = 'currentColor' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
 function ShareIosIcon({ size = 14 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -362,7 +376,8 @@ export default function ChatApp() {
     openPatient,
     closePatient,
     sendMessage: sendPatientSms,
-  } = usePatientMessaging(employee);
+    sendEmail: sendPatientEmail,
+  } = usePatientMessaging(employee, session);
 
   // 'channels' | 'chat' | 'new' | 'patients' | 'patient-chat' | 'calls' | 'schedule'
   const [view, setView] = useState('channels');
@@ -377,9 +392,11 @@ export default function ChatApp() {
   const [groupName, setGroupName] = useState('');
   const [empSearch, setEmpSearch] = useState('');
 
-  // Patient SMS compose
+  // Patient SMS / Email compose
   const [patientInput, setPatientInput] = useState('');
   const [patientSending, setPatientSending] = useState(false);
+  const [composeMode, setComposeMode] = useState('sms'); // 'sms' | 'email'
+  const [emailSubject, setEmailSubject] = useState('');
 
   // New patient conversation search
   const [patientSearchQ, setPatientSearchQ] = useState('');
@@ -680,8 +697,37 @@ export default function ChatApp() {
     setTimeout(() => patientInputRef.current?.focus(), 80);
   }, [patientInput, patientSending, activePatient, sendPatientSms]);
 
+  const handleSendPatientEmail = useCallback(async () => {
+    const text = patientInput.trim();
+    const subj = emailSubject.trim();
+    if (!text || !subj || patientSending || !activePatient) return;
+    const toEmail = activePatient.patient_email;
+    if (!toEmail) {
+      alert('No email address on file for this patient.');
+      return;
+    }
+    setPatientSending(true);
+    setPatientInput('');
+    setEmailSubject('');
+    const result = await sendPatientEmail(activePatient, { to: toEmail, subject: subj, body: text });
+    setPatientSending(false);
+    if (!result?.success) {
+      setPatientInput(text);
+      setEmailSubject(subj);
+      alert('Failed to send email: ' + (result?.error || 'unknown error'));
+    } else {
+      setComposeMode('sms');
+    }
+    setTimeout(() => patientInputRef.current?.focus(), 80);
+  }, [patientInput, emailSubject, patientSending, activePatient, sendPatientEmail]);
+
   const handlePatientKey = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendPatientSms(); }
+    if (composeMode === 'email') {
+      // In email mode, Enter doesn't send (allow multi-line). Cmd/Ctrl+Enter sends.
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); handleSendPatientEmail(); }
+    } else {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendPatientSms(); }
+    }
   };
 
   // Debounced patient name search for the "new patient SMS" view
@@ -832,6 +878,7 @@ export default function ChatApp() {
 
   const activePatientName = activePatient?.patient_name || activePatient?.recipient || 'Patient';
   const activePatientPhone = activePatient?.recipient || '';
+  const activePatientEmail = activePatient?.patient_email || '';
 
   return (
     <>
@@ -1241,7 +1288,7 @@ export default function ChatApp() {
           </>
         )}
 
-        {/* ─── PATIENT SMS CHAT VIEW ─────────────────────────────────────── */}
+        {/* ─── PATIENT CHAT VIEW (SMS + EMAIL) ─────────────────────────── */}
         {view === 'patient-chat' && activePatient && (
           <>
             <div style={{
@@ -1251,7 +1298,7 @@ export default function ChatApp() {
               display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
             }}>
               <button
-                onClick={() => { closePatient(); setView('patients'); fetchPatientConvos(); }}
+                onClick={() => { closePatient(); setView('patients'); fetchPatientConvos(); setComposeMode('sms'); setEmailSubject(''); }}
                 aria-label="Back"
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: '#0f172a', display: 'flex' }}
               ><ArrowLeft /></button>
@@ -1260,7 +1307,7 @@ export default function ChatApp() {
                   {activePatientName}
                 </div>
                 {activePatientPhone && (
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>{activePatientPhone}</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>{activePatientPhone}{activePatientEmail ? ` · ${activePatientEmail}` : ''}</div>
                 )}
               </div>
               {activePatientPhone && (
@@ -1322,21 +1369,41 @@ export default function ChatApp() {
                 const isOutbound = m.direction === 'outbound';
                 const isError = m.status === 'error';
                 const isSending = m.status === 'sending';
+                const isEmail = m.channel === 'email';
                 const showTime = idx === patientMessages.length - 1 ||
-                  patientMessages[idx + 1]?.direction !== m.direction;
+                  patientMessages[idx + 1]?.direction !== m.direction ||
+                  patientMessages[idx + 1]?.channel !== m.channel;
                 return (
                   <div key={m.id} style={{ marginBottom: 4 }}>
+                    {isEmail && (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        justifyContent: isOutbound ? 'flex-end' : 'flex-start',
+                        marginBottom: 2,
+                      }}>
+                        <MailIcon size={11} color="#8b5cf6" />
+                        <span style={{ fontSize: 10, color: '#8b5cf6', fontWeight: 600 }}>Email</span>
+                      </div>
+                    )}
                     <div style={{ display: 'flex', justifyContent: isOutbound ? 'flex-end' : 'flex-start' }}>
                       <div style={{
-                        maxWidth: '78%',
-                        background: isError ? '#fee2e2' : (isOutbound ? '#0f172a' : '#f1f5f9'),
-                        color: isError ? '#991b1b' : (isOutbound ? '#fff' : '#0f172a'),
-                        padding: '8px 13px',
+                        maxWidth: '85%',
+                        background: isError ? '#fee2e2' : isEmail
+                          ? (isOutbound ? '#4c1d95' : '#f5f3ff')
+                          : (isOutbound ? '#0f172a' : '#f1f5f9'),
+                        color: isError ? '#991b1b' : isEmail
+                          ? (isOutbound ? '#fff' : '#1e1b4b')
+                          : (isOutbound ? '#fff' : '#0f172a'),
+                        padding: isEmail ? '10px 13px' : '8px 13px',
                         fontSize: 15, lineHeight: 1.45,
                         whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                        borderRadius: 18,
+                        borderRadius: isEmail ? 12 : 18,
                         opacity: isSending ? 0.6 : 1,
+                        borderLeft: isEmail ? '3px solid #8b5cf6' : 'none',
                       }}>
+                        {isEmail && m.subject && (
+                          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{m.subject}</div>
+                        )}
                         {m.message}
                       </div>
                     </div>
@@ -1355,46 +1422,134 @@ export default function ChatApp() {
               <div ref={patientBottomRef} />
             </div>
 
+            {/* ── Compose area ── */}
             <div style={{
               borderTop: '1px solid #e2e8f0',
-              padding: '10px 12px',
+              padding: '0 12px',
               paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)',
-              display: 'flex', gap: 8, alignItems: 'flex-end',
               flexShrink: 0,
             }}>
-              <textarea
-                ref={patientInputRef}
-                value={patientInput}
-                onChange={(e) => setPatientInput(e.target.value)}
-                onKeyDown={handlePatientKey}
-                placeholder={activePatientPhone ? `Text ${activePatientName.split(' ')[0]}…` : 'No phone on file'}
-                rows={1}
-                disabled={!activePatientPhone}
-                style={{
-                  flex: 1, border: '1.5px solid #e2e8f0', borderRadius: 18,
-                  padding: '10px 14px', fontSize: 15, lineHeight: 1.4,
-                  background: '#f8fafc', color: '#0f172a', resize: 'none',
-                  fontFamily: 'inherit', maxHeight: 120, overflowY: 'auto',
-                }}
-                onInput={(e) => {
-                  e.target.style.height = 'auto';
-                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-                }}
-              />
-              <button
-                onClick={handleSendPatientSms}
-                disabled={!patientInput.trim() || patientSending || !activePatientPhone}
-                style={{
-                  width: 40, height: 40, borderRadius: '50%',
-                  background: patientInput.trim() && !patientSending && activePatientPhone ? '#0f172a' : '#e2e8f0',
-                  border: 'none',
-                  cursor: patientInput.trim() && !patientSending && activePatientPhone ? 'pointer' : 'default',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <SendIcon color={patientInput.trim() && !patientSending && activePatientPhone ? '#fff' : '#94a3b8'} />
-              </button>
+              {/* SMS / Email toggle */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 4, padding: '8px 0 6px',
+              }}>
+                <button
+                  onClick={() => setComposeMode('sms')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '4px 10px', fontSize: 12, fontWeight: 600,
+                    background: composeMode === 'sms' ? '#0f172a' : '#f1f5f9',
+                    color: composeMode === 'sms' ? '#fff' : '#64748b',
+                    border: 'none', borderRadius: 14, cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  <MessageSquareIcon size={12} color={composeMode === 'sms' ? '#fff' : '#64748b'} />
+                  Text
+                </button>
+                <button
+                  onClick={() => {
+                    if (!activePatientEmail) {
+                      alert('No email address on file for this patient.');
+                      return;
+                    }
+                    setComposeMode('email');
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '4px 10px', fontSize: 12, fontWeight: 600,
+                    background: composeMode === 'email' ? '#4c1d95' : '#f1f5f9',
+                    color: composeMode === 'email' ? '#fff' : '#64748b',
+                    border: 'none', borderRadius: 14, cursor: 'pointer',
+                    opacity: activePatientEmail ? 1 : 0.4,
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  <MailIcon size={12} color={composeMode === 'email' ? '#fff' : '#64748b'} />
+                  Email
+                </button>
+                {composeMode === 'email' && activePatientEmail && (
+                  <span style={{ fontSize: 11, color: '#8b5cf6', marginLeft: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    to {activePatientEmail}
+                  </span>
+                )}
+              </div>
+
+              {/* Subject line (email mode only) */}
+              {composeMode === 'email' && (
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  placeholder="Subject"
+                  style={{
+                    width: '100%', border: '1.5px solid #ddd6fe', borderRadius: 10,
+                    padding: '8px 14px', fontSize: 14, lineHeight: 1.4,
+                    background: '#faf5ff', color: '#1e1b4b', resize: 'none',
+                    fontFamily: 'inherit', marginBottom: 6,
+                    boxSizing: 'border-box', outline: 'none',
+                  }}
+                />
+              )}
+
+              {/* Message input + send */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                <textarea
+                  ref={patientInputRef}
+                  value={patientInput}
+                  onChange={(e) => setPatientInput(e.target.value)}
+                  onKeyDown={handlePatientKey}
+                  placeholder={composeMode === 'email'
+                    ? `Email ${activePatientName.split(' ')[0]}…`
+                    : (activePatientPhone ? `Text ${activePatientName.split(' ')[0]}…` : 'No phone on file')
+                  }
+                  rows={composeMode === 'email' ? 3 : 1}
+                  disabled={composeMode === 'sms' ? !activePatientPhone : !activePatientEmail}
+                  style={{
+                    flex: 1,
+                    border: composeMode === 'email' ? '1.5px solid #ddd6fe' : '1.5px solid #e2e8f0',
+                    borderRadius: composeMode === 'email' ? 10 : 18,
+                    padding: '10px 14px', fontSize: 15, lineHeight: 1.4,
+                    background: composeMode === 'email' ? '#faf5ff' : '#f8fafc',
+                    color: '#0f172a', resize: 'none',
+                    fontFamily: 'inherit', maxHeight: composeMode === 'email' ? 200 : 120, overflowY: 'auto',
+                    boxSizing: 'border-box', outline: 'none',
+                  }}
+                  onInput={(e) => {
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, composeMode === 'email' ? 200 : 120) + 'px';
+                  }}
+                />
+                <button
+                  onClick={composeMode === 'email' ? handleSendPatientEmail : handleSendPatientSms}
+                  disabled={composeMode === 'email'
+                    ? (!patientInput.trim() || !emailSubject.trim() || patientSending || !activePatientEmail)
+                    : (!patientInput.trim() || patientSending || !activePatientPhone)
+                  }
+                  style={{
+                    width: 40, height: 40, borderRadius: '50%',
+                    background: (composeMode === 'email'
+                      ? (patientInput.trim() && emailSubject.trim() && !patientSending && activePatientEmail)
+                      : (patientInput.trim() && !patientSending && activePatientPhone))
+                      ? (composeMode === 'email' ? '#4c1d95' : '#0f172a')
+                      : '#e2e8f0',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  {composeMode === 'email'
+                    ? <MailIcon size={16} color={(patientInput.trim() && emailSubject.trim() && !patientSending && activePatientEmail) ? '#fff' : '#94a3b8'} />
+                    : <SendIcon color={(patientInput.trim() && !patientSending && activePatientPhone) ? '#fff' : '#94a3b8'} />
+                  }
+                </button>
+              </div>
+              {composeMode === 'email' && (
+                <div style={{ fontSize: 11, color: '#8b5cf6', marginTop: 4, paddingLeft: 2 }}>
+                  Includes your signature. Replies go to your email.
+                </div>
+              )}
             </div>
 
 

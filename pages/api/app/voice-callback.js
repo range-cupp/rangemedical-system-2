@@ -69,7 +69,6 @@ export default async function handler(req, res) {
       statusCallback: statusUrl,
       statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
       statusCallbackMethod: 'POST',
-      machineDetection: 'Enable',
       timeout: 30,
     });
 

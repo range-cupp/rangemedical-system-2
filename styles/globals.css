@@ -538,8 +538,8 @@ p {
   --color-surface: #ffffff;
   --color-text: #1a1a1a;
   --color-text-muted: #737373;
-  --color-accent: #2E5D3A;
-  --color-accent-hover: #234A2E;
+  --color-accent: #1a1a1a;
+  --color-accent-hover: #404040;
   --color-border: #e0e0e0;
   --transition: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }

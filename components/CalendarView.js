@@ -164,7 +164,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [isWalkIn, setIsWalkIn] = useState(false);
   const [walkInName, setWalkInName] = useState('');
   const [walkInPhone, setWalkInPhone] = useState('');
-  const [selectedService, setSelectedService] = useState(null);     // primary service (drives Cal.com/location/provider)
+  const [selectedService, setSelectedService] = useState(null);     // primary service (drives location/provider)
   const [selectedServices, setSelectedServices] = useState([]);      // all selected services for multi-service appointments
   const [selectedServiceGroup, setSelectedServiceGroup] = useState(null);
   const [serviceSearch, setServiceSearch] = useState('');            // search filter for Step 1
@@ -245,17 +245,17 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [sendNotification, setSendNotification] = useState(true);
   const [creating, setCreating] = useState(false);
   const [panelType, setPanelType] = useState(null); // 'essential' | 'elite' for New Patient Blood Draw
-  const [useCustomTime, setUseCustomTime] = useState(false); // Override Cal.com availability
+  const [useCustomTime, setUseCustomTime] = useState(false); // Override scheduled availability
   const [bookingConfirmed, setBookingConfirmed] = useState(null); // { patientName, services, provider, date, time, location } after success
 
-  // Cal.com availability state
+  // Slot availability state
   const [eventTypesMap, setEventTypesMap] = useState({}); // slug → { id, hosts }
   const [providerSchedules, setProviderSchedules] = useState({}); // username → { newport: { monday: [{start,end}], ... } }
   const [availableSlots, setAvailableSlots] = useState(null); // null = not loaded, [] = no slots, [...] = available
   const [slotsByProvider, setSlotsByProvider] = useState({}); // { employeeId: [{ start, end, providerName, providerFirstName }] } from /api/bookings/slots-v2
   const [loadingSlots, setLoadingSlots] = useState(false);
-  const [slotsError, setSlotsError] = useState(false); // true when Cal.com API fails
-  // Multi-service availability: fetched per-service slots (null = no cal.com, [] = none available, [...] = slots)
+  const [slotsError, setSlotsError] = useState(false); // true when slots API fails
+  // Multi-service availability: fetched per-service slots (null = no scheduling, [] = none available, [...] = slots)
   const [multiServiceSlots, setMultiServiceSlots] = useState({}); // { svcName: string[] | null }
   const [loadingMultiSlots, setLoadingMultiSlots] = useState(false);
 
@@ -673,7 +673,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     setPrepNotesTimer(setTimeout(() => savePrepNotes(text), 1000));
   };
 
-  // Fetch Cal.com event types + provider schedules once on mount
+  // Fetch service catalog + provider schedules once on mount
   useEffect(() => {
     fetch('/api/bookings/event-types')
       .then(r => r.json())
@@ -709,7 +709,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
           if (Object.keys(grouped).length > 0) setServicesCatalog(grouped);
         }
       })
-      .catch(err => console.error('Failed to load Cal.com event types:', err));
+      .catch(err => console.error('Failed to load service catalog:', err));
 
     fetch('/api/bookings/provider-schedules')
       .then(r => r.json())
@@ -775,7 +775,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     return availableSlots.filter(time => isSlotInSchedule(time, dayOfWeek, provUsername, locationId));
   }, [availableSlots, slotsByProvider, apptDate, isSlotInSchedule]);
 
-  // Fetch available slots from Cal.com when date/service/location change
+  // Fetch available slots when date/service/location change
   // Stores COMBINED team slots — per-provider filtering happens in the render
   useEffect(() => {
     if (!apptDate || !selectedService?.calcomSlug) {
@@ -793,12 +793,10 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     setLoadingSlots(true);
     setAvailableSlots(null);
     setSlotsError(false);
-    setApptTime(''); // Reset selected time when date changes
-    setSelectedProvider(null); // Reset provider when date changes
+    setApptTime('');
+    setSelectedProvider(null);
 
-    // Native scheduling engine (replaces Cal.com slot fetch). Falls back to
-    // serviceSlug lookup; eventTypeId still works for backward compat.
-    const url = `/api/bookings/slots-v2?eventTypeId=${eventType.id}&date=${apptDate}`;
+    const url = `/api/bookings/slots-v2?serviceSlug=${encodeURIComponent(selectedService.calcomSlug)}&date=${apptDate}`;
 
     fetch(url)
       .then(r => r.json())
@@ -814,8 +812,6 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
           return;
         }
 
-        // Parse slot data — Cal.com returns { slots: { "YYYY-MM-DD": [{ start, end }] } }
-        // Only use slots for the requested date (Cal.com sometimes returns nearby dates).
         const daySlots = data.slots || {};
         const slotTimes = [];
         const requestedDaySlots = daySlots[apptDate] || [];
@@ -831,7 +827,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             }
           });
         }
-        // De-duplicate (Cal.com can return overlapping slots for multiple hosts)
+        // De-duplicate (multiple providers can return overlapping slots)
         const unique = [...new Set(slotTimes)].sort();
         setAvailableSlots(unique);
         setSlotsByProvider(data.byProvider || {});
@@ -866,7 +862,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       if (!et) return [svc.name, null];
       try {
         const provUsername = selectedProviders[svc.name]?.calcomUsername || '';
-        const params = new URLSearchParams({ eventTypeId: et.id, date: apptDate });
+        const params = new URLSearchParams({ serviceSlug: svc.calcomSlug, date: apptDate });
         if (provUsername) params.set('providerUsername', provUsername);
         const r = await fetch(`/api/bookings/slots-v2?${params}`);
         const data = await r.json();
@@ -895,7 +891,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       selectedServices.map(s => selectedProviders[s.name]?.calcomUsername || '').join(',')]); // intentional non-standard deps
 
   // Compute valid start times for multi-service: times where every service's provider is available
-  // at its staggered start (T + sum of preceding durations). Services without calcomSlug are unconstrained.
+  // at its staggered start (T + sum of preceding durations). Services without a slug are unconstrained.
   const getValidMultiServiceTimes = useCallback(() => {
     if (selectedServices.length <= 1 || Object.keys(multiServiceSlots).length === 0) return [];
     const firstSvc = selectedServices[0];
@@ -909,7 +905,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         const svc = selectedServices[i];
         const svcSlots = multiServiceSlots[svc.name];
         if (svcSlots === undefined) return false; // still loading
-        if (svcSlots !== null && svcSlots.length >= 0) { // has Cal.com constraint
+        if (svcSlots !== null && svcSlots.length >= 0) { // has scheduling constraint
           const totalMins = sh * 60 + sm + offsetMins;
           const svcTime = `${String(Math.floor(totalMins / 60)).padStart(2,'0')}:${String(totalMins % 60).padStart(2,'0')}`;
           if (svcSlots.length > 0 && !svcSlots.includes(svcTime)) return false;
@@ -1044,11 +1040,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         let res;
 
         // Single creation path for ALL admin bookings: write directly to the
-        // appointments table via /api/appointments/create. Cal.com is no
-        // longer in the loop — the new scheduling engine owns slot validity,
-        // and notifications + automations + audit log all run inline.
-        // /api/appointments/create also writes a shadow calcom_bookings row
-        // so consumers that haven't been migrated yet keep working.
+        // appointments table via /api/appointments/create.
         if (allServices.length > 1) {
           const detailedServices = [];
           let offsetMins = 0;
@@ -1971,13 +1963,12 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     const now = new Date();
     const showTimeLine = isToday(currentDate);
 
-    // Build columns — one per employee with calcom_user_id
     const cols = employees.length > 0 ? employees : [];
 
     if (cols.length === 0) {
       return (
         <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>
-          No employees with Cal.com integration found.
+          No active employees found.
         </div>
       );
     }
@@ -4433,7 +4424,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </div>
             )}
 
-            {/* Per-provider availability columns (Cal.com services) */}
+            {/* Per-provider availability columns */}
             {!loadingSlots && hasCalcom && apptDate && availableSlots && !useCustomTime && (
               <div>
                 <label style={styles.fieldLabel}>
@@ -4516,7 +4507,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             {/* Slots API error — show retry */}
             {!loadingSlots && hasCalcom && apptDate && slotsError && !useCustomTime && (
               <div style={{ padding: '16px', background: '#fee2e2', borderRadius: '0', color: '#991b1b', fontSize: '13px', textAlign: 'center' }}>
-                Failed to load availability from Cal.com.{' '}
+                Failed to load availability.{' '}
                 <button
                   onClick={() => {
                     setSlotsError(false);
@@ -4542,7 +4533,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </div>
             )}
 
-            {/* Custom time toggle link — always visible for Cal.com services when date is selected */}
+            {/* Custom time toggle link — always visible when date is selected */}
             {hasCalcom && apptDate && !useCustomTime && !loadingSlots && (
               <div style={{ textAlign: 'center', marginTop: '8px' }}>
                 <button
@@ -4554,7 +4545,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </div>
             )}
 
-            {/* Custom time entry (bypasses Cal.com availability) */}
+            {/* Custom time entry (bypasses scheduled availability) */}
             {hasCalcom && useCustomTime && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -4604,14 +4595,14 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </div>
             )}
 
-            {/* Prompt to select date first (Cal.com services) */}
+            {/* Prompt to select date first */}
             {hasCalcom && !apptDate && !loadingSlots && (
               <div style={{ padding: '16px 0', color: '#888', fontSize: '13px', textAlign: 'center' }}>
                 Select a date to see provider availability
               </div>
             )}
 
-            {/* Static fallback (no Cal.com slug — e.g., telemedicine, phone) */}
+            {/* Static fallback (no scheduling slug — e.g., telemedicine, phone) */}
             {!hasCalcom && (
               <div>
                 {providers.length > 1 && (

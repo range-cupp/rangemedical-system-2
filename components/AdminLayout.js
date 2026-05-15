@@ -27,6 +27,7 @@ const NAV_SECTIONS = [
       { href: '/admin/medication-queue', label: 'Medication Queue', icon: 'pill', group: 'medical' },
       { href: '/admin/send-forms', label: 'Send Forms', icon: 'file-text', group: 'medical' },
       { href: '/admin/plan-summaries', label: 'Plan Summaries', icon: 'file-text', group: 'medical' },
+      { href: '/admin/peptide-guide', label: 'Peptide Guide', icon: 'flask', group: 'medical' },
     ],
   },
   {
@@ -67,7 +68,6 @@ const NAV_SECTIONS = [
       { href: '/admin/page-analytics', label: 'Page Analytics', icon: 'bar-chart', adminOnly: true, group: 'business' },
       { href: '/admin/snippets', label: 'Snippets', icon: 'file-text', group: 'business' },
       { href: '/staff-chat', label: 'Assistant', icon: 'message', group: 'business' },
-      { href: '/admin/peptide-guide', label: 'Peptide Guide', icon: 'flask', group: 'business' },
     ],
   },
   { href: '/admin/settings', label: 'Settings', icon: 'settings' },

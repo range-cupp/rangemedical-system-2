@@ -170,7 +170,7 @@ export default function Layout({ children, title, description, logoOnly }) {
               src="/brand/range_wordmark.svg"
               alt="Range Medical"
               className="rm-footer-wordmark"
-              style={{ height: '24px' }}
+              style={{ height: '15px' }}
             />
             <p className="rm-footer-tagline">Feel like yourself again.</p>
             <a href="tel:9499973988" className="rm-footer-contact">(949) 997-3988</a>

@@ -124,13 +124,13 @@ p {
 }
 
 .rm-logo-img {
-  height: 38px;
+  height: 18px;
   width: auto;
 }
 
 @media (max-width: 1024px) {
   .rm-logo-img {
-    height: 32px;
+    height: 16px;
   }
 }
 

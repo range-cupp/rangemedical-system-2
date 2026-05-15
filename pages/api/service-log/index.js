@@ -399,72 +399,10 @@ async function handlePost(req, res) {
     // Patients receive a weekly check-in SMS on their injection day so they
     // can log weight + side effects themselves; that creates the real row.
 
-    // ── HRT pickup: auto-create injection entries for each prefilled syringe ──
-    // When an HRT medication pickup is logged (e.g. 3 prefilled syringes), create individual
-    // injection entries dated to the patient's actual injection schedule (2x/week = Mon/Thu pattern).
+    // HRT pickups: log one pickup row (already created above). No individual
+    // injection rows — the pickup quantity tracks how many syringes were dispensed.
     const isHRTPickup = category === 'testosterone' && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0;
     const hrtPickupQty = isHRTPickup ? parseInt(quantity) : 0;
-    const hrtInjectionLogs = [];
-
-    if (hrtPickupQty > 0) {
-      // Extract per-injection dose from pickup dosage (e.g. "3 prefilled @ 0.35ml/70mg" → "0.35ml/70mg")
-      const pickupDosage = dosage || '';
-      const atMatch = pickupDosage.match(/@\s*(.+)/);
-      const injectionDose = atMatch ? atMatch[1].trim() : pickupDosage;
-
-      // Calculate injection dates based on frequency
-      // 2x/week: alternating 3-day and 4-day gaps (Mon→Thu→Mon→Thu...)
-      // 3x/week: 2, 2, 3 pattern (MWF)
-      // daily: every day
-      const freq = injection_frequency ? parseInt(injection_frequency) : 2;
-
-      let dayOffset = 0;
-      let useShortGap = true; // Start with short gap (3 days for 2x/week)
-
-      for (let i = 0; i < hrtPickupQty; i++) {
-        if (freq >= 7) {
-          dayOffset += 1; // daily
-        } else if (freq === 3) {
-          const gaps = [2, 2, 3]; // MWF pattern
-          dayOffset += gaps[i % 3];
-        } else {
-          // 2x/week: 3, 4 alternating (Mon→Thu = 3 days, Thu→Mon = 4 days)
-          dayOffset += useShortGap ? 3 : 4;
-          useShortGap = !useShortGap;
-        }
-
-        const injDate = new Date(logDate + 'T12:00:00');
-        injDate.setDate(injDate.getDate() + dayOffset);
-        const injDateStr = injDate.toISOString().split('T')[0];
-
-        const injLogData = {
-          patient_id,
-          category,
-          entry_type: 'injection',
-          entry_date: injDateStr,
-          medication: medication || null,
-          dosage: injectionDose || null,
-          quantity: 1,
-          notes: `Take-home injection (dispensed ${logDate}, ${hrtPickupQty}-syringe pickup, ${i + 1} of ${hrtPickupQty})`,
-          protocol_id: protocol_id || null,
-          injection_method: injection_method || null,
-          fulfillment_method: 'take_home',
-        };
-
-        const { data: injLog, error: injErr } = await supabase
-          .from('service_logs')
-          .insert([injLogData])
-          .select()
-          .single();
-
-        if (!injErr && injLog) {
-          hrtInjectionLogs.push(injLog);
-        } else {
-          console.error(`[service-log] Failed to create HRT injection entry for ${injDateStr}:`, injErr);
-        }
-      }
-      console.log(`[service-log] Created ${hrtInjectionLogs.length} injection entries from HRT pickup (qty ${hrtPickupQty})`);
-    }
 
     // 1b. Auto-decrement recovery enrollment if patient has one for this category
     let recoveryUpdate = null;
@@ -652,43 +590,25 @@ async function handlePost(req, res) {
       console.log(`[service-log] Count-based sync: sessions_used=${recount?.sessions_used} for protocol ${targetProtocolId}`);
     }
 
-    // HRT pickup: sync sessions_used and link auto-created injection entries to the protocol
-    // The pickup itself doesn't increment sessions_used, but the auto-created injection entries should count.
-    if (hrtPickupQty > 0 && hrtInjectionLogs.length > 0) {
+    // HRT pickup: set next_expected_date based on supply duration
+    if (hrtPickupQty > 0) {
       const hrtProtocolId = targetProtocolId || protocolUpdate?.protocol_id;
       if (hrtProtocolId) {
-        // Link auto-created injection entries to the protocol (in case protocol_id wasn't known at creation)
-        const injLogIds = hrtInjectionLogs.map(l => l.id);
-        await supabase
-          .from('service_logs')
-          .update({ protocol_id: hrtProtocolId })
-          .in('id', injLogIds);
-
-        // Recount all injection/session entries for this protocol
-        const { count: hrtCount } = await supabase
-          .from('service_logs')
-          .select('*', { count: 'exact', head: true })
-          .eq('protocol_id', hrtProtocolId)
-          .in('entry_type', ['injection', 'session']);
-
-        await supabase
-          .from('protocols')
-          .update({ sessions_used: hrtCount || 0, updated_at: new Date().toISOString() })
-          .eq('id', hrtProtocolId);
-
-        // Update next_expected_date to after the last auto-created injection
-        const lastHrtInjDate = hrtInjectionLogs[hrtInjectionLogs.length - 1].entry_date;
         const freq = injection_frequency ? parseInt(injection_frequency) : 2;
-        const nextGapDays = freq >= 7 ? 1 : freq === 3 ? 2 : (hrtPickupQty % 2 === 1 ? 4 : 3);
-        const nextAfterLast = new Date(lastHrtInjDate + 'T12:00:00');
-        nextAfterLast.setDate(nextAfterLast.getDate() + nextGapDays);
+        const supplyDays = Math.round(hrtPickupQty * (7 / freq));
+        const nextPickup = new Date(logDate + 'T12:00:00');
+        nextPickup.setDate(nextPickup.getDate() + supplyDays);
 
         await supabase
           .from('protocols')
-          .update({ next_expected_date: nextAfterLast.toISOString().split('T')[0] })
+          .update({
+            next_expected_date: nextPickup.toISOString().split('T')[0],
+            last_refill_date: logDate,
+            updated_at: new Date().toISOString(),
+          })
           .eq('id', hrtProtocolId);
 
-        console.log(`[service-log] HRT pickup sync: sessions_used=${hrtCount}, next_expected=${nextAfterLast.toISOString().split('T')[0]} for protocol ${hrtProtocolId}`);
+        console.log(`[service-log] HRT pickup: ${hrtPickupQty} syringes at ${freq}x/wk = ${supplyDays}d supply, next_expected=${nextPickup.toISOString().split('T')[0]}`);
       }
     }
 

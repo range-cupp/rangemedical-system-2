@@ -265,6 +265,28 @@ export default async function handler(req, res) {
       });
     }
 
+    // 6. Upcoming appointments
+    const { data: upcomingAppts } = await supabase
+      .from('appointments')
+      .select('patient_id, service_name, provider, start_time, status')
+      .in('patient_id', patientIds)
+      .gte('start_time', new Date().toISOString())
+      .in('status', ['scheduled', 'confirmed', 'checked_in'])
+      .order('start_time', { ascending: true })
+      .limit(500);
+
+    const nextApptByPatient = {};
+    for (const a of (upcomingAppts || [])) {
+      if (!nextApptByPatient[a.patient_id]) {
+        nextApptByPatient[a.patient_id] = {
+          service_name: a.service_name,
+          provider: a.provider,
+          start_time: a.start_time,
+          status: a.status,
+        };
+      }
+    }
+
     // Index purchases by patient+category
     const purchasesByPatient = {};
     for (const p of (allPurchases || [])) {
@@ -391,6 +413,7 @@ export default async function handler(req, res) {
         payment,
         notes: notesByPatient[proto.patient_id] || [],
         emails: emailsByPatient[proto.patient_id] || [],
+        next_appointment: nextApptByPatient[proto.patient_id] || null,
         completed_protocols: completedByPatient[proto.patient_id] || [],
       });
     }

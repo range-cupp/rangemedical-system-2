@@ -277,6 +277,43 @@ function PatientDrawer({ patientId, allRows, onClose, onNoteAdded, onRefresh }) 
           )}
         </div>
 
+        {/* Next Appointment */}
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>
+          <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#999', marginBottom: '10px' }}>
+            Next Appointment
+          </div>
+          {patient.next_appointment ? (() => {
+            const appt = patient.next_appointment;
+            const apptDate = new Date(appt.start_time);
+            const now = new Date();
+            const daysUntil = Math.ceil((apptDate - now) / 86400000);
+            const dateStr = apptDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            const timeStr = apptDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
+            return (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '10px 14px', background: '#f0f7ff', border: '1px solid #dbeafe',
+                fontSize: '13px',
+              }}>
+                <span style={{ fontSize: '18px', flexShrink: 0 }}>{'📅'}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: '600', color: '#1e40af' }}>{dateStr} at {timeStr}</div>
+                  <div style={{ color: '#666', marginTop: '2px' }}>
+                    {appt.service_name}{appt.provider ? ` — ${appt.provider}` : ''}
+                  </div>
+                </div>
+                {daysUntil <= 3 && (
+                  <Badge style={{ background: '#dbeafe', color: '#1e40af', fontSize: '11px' }}>
+                    {daysUntil <= 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : `${daysUntil}d`}
+                  </Badge>
+                )}
+              </div>
+            );
+          })() : (
+            <div style={{ fontSize: '13px', color: '#ccc', fontStyle: 'italic' }}>No upcoming appointments</div>
+          )}
+        </div>
+
         {/* Medications */}
         <div style={{ padding: '20px 24px' }}>
           <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#999', marginBottom: '14px' }}>
@@ -297,9 +334,12 @@ function PatientDrawer({ patientId, allRows, onClose, onNoteAdded, onRefresh }) 
                     <Badge style={{ background: cs.bg, color: cs.text, fontSize: '11px', padding: '2px 8px' }}>{cs.label}</Badge>
                     <span style={{ fontWeight: '600', fontSize: '15px' }}>{row.medication}</span>
                   </div>
-                  {(row.dose || row.frequency) && (
-                    <div style={{ fontSize: '13px', color: '#888' }}>{[row.dose, row.frequency].filter(Boolean).join(' • ')}</div>
-                  )}
+                  <div style={{ fontSize: '13px', color: '#888' }}>
+                    {[row.dose, row.frequency].filter(Boolean).join(' • ')}
+                    {row.days_on_protocol != null && row.days_on_protocol > 0 && (
+                      <span style={{ color: '#bbb' }}>{' • '}{row.days_on_protocol < 30 ? `${row.days_on_protocol}d` : `${Math.round(row.days_on_protocol / 30)}mo`} on protocol</span>
+                    )}
+                  </div>
                 </div>
                 <div style={{ padding: '12px 16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -782,10 +822,18 @@ function FulfillmentRow({ row, onPatientClick, isSelected }) {
               {row.emails && row.emails.length > 0 && (
                 <span title={`Emailed ${new Date(row.emails[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`} style={{ fontSize: '13px', color: '#6b7280', flexShrink: 0 }}>{'✉️'}</span>
               )}
+              {row.next_appointment && (
+                <span title={`Appt ${new Date(row.next_appointment.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — ${row.next_appointment.service_name}`} style={{ fontSize: '13px', color: '#6b7280', flexShrink: 0 }}>{'📅'}</span>
+              )}
             </div>
-            {row.frequency && (
-              <div style={{ fontSize: '12px', color: '#888' }}>{row.frequency}</div>
-            )}
+            <div style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {row.frequency && <span>{row.frequency}</span>}
+              {row.emails && row.emails.length > 0 && (
+                <span style={{ color: '#aaa' }}>
+                  {row.frequency ? '• ' : ''}Emailed {new Date(row.emails[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </td>
@@ -913,13 +961,23 @@ function PaymentRow({ row, onPatientClick, isSelected }) {
           }}>
             {row.initials}
           </div>
-          <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a56db', textDecoration: 'underline', textDecorationColor: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {row.name}
-            {row.notes && row.notes.length > 0 && (
-              <span title={`${row.notes.length} note${row.notes.length !== 1 ? 's' : ''}`} style={{ fontSize: '13px', color: '#6b7280', flexShrink: 0 }}>{'💬'}</span>
-            )}
+          <div>
+            <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a56db', textDecoration: 'underline', textDecorationColor: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {row.name}
+              {row.notes && row.notes.length > 0 && (
+                <span title={`${row.notes.length} note${row.notes.length !== 1 ? 's' : ''}`} style={{ fontSize: '13px', color: '#6b7280', flexShrink: 0 }}>{'💬'}</span>
+              )}
+              {row.emails && row.emails.length > 0 && (
+                <span title={`Emailed ${new Date(row.emails[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`} style={{ fontSize: '13px', color: '#6b7280', flexShrink: 0 }}>{'✉️'}</span>
+              )}
+              {row.next_appointment && (
+                <span title={`Appt ${new Date(row.next_appointment.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — ${row.next_appointment.service_name}`} style={{ fontSize: '13px', color: '#6b7280', flexShrink: 0 }}>{'📅'}</span>
+              )}
+            </div>
             {row.emails && row.emails.length > 0 && (
-              <span title={`Emailed ${new Date(row.emails[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`} style={{ fontSize: '13px', color: '#6b7280', flexShrink: 0 }}>{'✉️'}</span>
+              <div style={{ fontSize: '12px', color: '#aaa' }}>
+                Emailed {new Date(row.emails[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </div>
             )}
           </div>
         </div>

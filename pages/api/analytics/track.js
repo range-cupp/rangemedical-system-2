@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { page, event, sessionId, metadata, referrer } = req.body;
+    const { page, event, sessionId, metadata, referrer, path, deviceType, screenWidth } = req.body;
 
     if (!page || !event) {
       return res.status(400).json({ error: 'page and event are required.' });
@@ -23,6 +23,9 @@ export default async function handler(req, res) {
       session_id: sessionId || null,
       metadata: metadata || {},
       referrer: referrer || null,
+      path: path || null,
+      device_type: deviceType || null,
+      screen_width: screenWidth || null,
     });
 
     return res.status(200).json({ ok: true });

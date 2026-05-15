@@ -3,6 +3,7 @@ import { AuthProvider } from '../components/AuthProvider';
 import AdminVoiceManager from '../components/AdminVoiceManager';
 import { AdminNotificationsProvider } from '../components/AdminNotificationsProvider';
 import { Analytics } from '@vercel/analytics/react';
+import PageTracker from '../components/PageTracker';
 import { Inter, Fraunces } from 'next/font/google';
 
 const inter = Inter({
@@ -30,6 +31,7 @@ function MyApp({ Component, pageProps }) {
           </AdminVoiceManager>
         </AdminNotificationsProvider>
         <Analytics />
+        <PageTracker />
       </AuthProvider>
     </div>
   );

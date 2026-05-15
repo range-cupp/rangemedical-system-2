@@ -31,7 +31,7 @@ export default function Layout({ children, title, description, logoOnly }) {
           {logoOnly ? (
             <span className="rm-wordmark" style={{ cursor: 'default' }}>
               <img
-                src="https://www.range-medical.com/brand/range_logo_transparent_black.png"
+                src="/brand/range_wordmark.svg"
                 alt="Range Medical"
                 className="rm-logo-img"
               />
@@ -39,7 +39,7 @@ export default function Layout({ children, title, description, logoOnly }) {
           ) : (
             <Link href="/" className="rm-wordmark">
               <img
-                src="https://www.range-medical.com/brand/range_logo_transparent_black.png"
+                src="/brand/range_wordmark.svg"
                 alt="Range Medical"
                 className="rm-logo-img"
               />
@@ -167,7 +167,7 @@ export default function Layout({ children, title, description, logoOnly }) {
         <div className="rm-footer-inner">
           <div className="rm-footer-brand">
             <img
-              src="https://www.range-medical.com/brand/range_logo_transparent_black.png"
+              src="/brand/range_wordmark.svg"
               alt="Range Medical"
               className="rm-footer-wordmark"
               style={{ height: '24px' }}

@@ -590,8 +590,11 @@ async function handlePost(req, res) {
       console.log(`[service-log] Count-based sync: sessions_used=${recount?.sessions_used} for protocol ${targetProtocolId}`);
     }
 
-    // HRT pickup: set next_expected_date based on supply duration
-    if (hrtPickupQty > 0) {
+    // HRT prefilled-syringe pickup: set next_expected_date based on syringe count.
+    // Vial pickups are handled correctly by syncPickupWithProtocol (which calculates
+    // duration from vial size / dose / frequency), so skip them here.
+    const isVialPickup = supply_type && (supply_type === 'vial_5ml' || supply_type === 'vial_10ml' || supply_type === 'vial');
+    if (hrtPickupQty > 0 && !isVialPickup) {
       const hrtProtocolId = targetProtocolId || protocolUpdate?.protocol_id;
       if (hrtProtocolId) {
         const freq = injection_frequency ? parseInt(injection_frequency) : 2;

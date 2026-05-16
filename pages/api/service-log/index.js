@@ -580,7 +580,11 @@ async function handlePost(req, res) {
     if (targetProtocolId && (injection_method || injection_frequency)) {
       const protoUpdate = {};
       if (injection_method) protoUpdate.injection_method = injection_method;
-      if (injection_frequency) protoUpdate.injection_frequency = parseInt(injection_frequency);
+      if (injection_frequency) {
+        const freq = parseInt(injection_frequency);
+        protoUpdate.injection_frequency = freq;
+        protoUpdate.injections_per_week = freq;
+      }
       await supabase.from('protocols').update(protoUpdate).eq('id', targetProtocolId);
     }
 
@@ -1059,7 +1063,7 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
     // Find active protocol
     const { data: protocols, error: findError } = await supabase
       .from('protocols')
-      .select('id, last_refill_date, supply_type, end_date, dose_per_injection, injections_per_week, program_type, selected_dose, dose')
+      .select('id, last_refill_date, supply_type, end_date, dose_per_injection, injections_per_week, injection_frequency, injection_method, program_type, selected_dose, dose')
       .eq('patient_id', patient_id)
       .eq('program_type', programType)
       .eq('status', 'active')
@@ -1109,6 +1113,11 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
         console.warn(`[dose-guard] service-log pickup: stripped dose write on protocol ${protocol.id} (${protocol.selected_dose || protocol.dose} → ${dosage})`);
       } else if (!isWeightLossType(category)) {
         updateData.selected_dose = dosage;
+        // Auto-derive dose_per_injection (ml) so vial duration calc is always accurate
+        const mlMatch = dosage.match(/^(\d+\.?\d*)\s*ml/i);
+        if (mlMatch) {
+          updateData.dose_per_injection = parseFloat(mlMatch[1]);
+        }
       }
     }
 
@@ -1147,24 +1156,23 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
           else { dayOff += shortGap ? 3 : 4; shortGap = !shortGap; }
         }
         daysUntilNext = dayOff;
-      } else if (supply_type === 'vial_5ml') {
-        // Calculate from actual dose if available, otherwise default
-        const dpi = parseFloat(protocol.dose_per_injection);
-        const ipw = parseInt(protocol.injections_per_week);
-        if (dpi > 0 && ipw > 0) {
-          daysUntilNext = Math.round(5.0 / (dpi * ipw) * 7);
-        } else {
-          daysUntilNext = 70; // ~10 weeks default for 5ml vial
+      } else if (supply_type === 'vial_5ml' || supply_type === 'vial_10ml' || supply_type === 'vial') {
+        const vialMl = supply_type === 'vial_5ml' ? 5 : 10;
+        // dose_per_injection (ml) — fall back to parsing selected_dose ("0.5ml/100mg" → 0.5)
+        let dpi = parseFloat(protocol.dose_per_injection);
+        if (!(dpi > 0)) {
+          const doseStr = dosage || protocol.selected_dose || protocol.dose || '';
+          const mlMatch = doseStr.match(/(\d+\.?\d*)\s*ml/i);
+          if (mlMatch) dpi = parseFloat(mlMatch[1]);
         }
-      } else if (supply_type === 'vial_10ml' || supply_type === 'vial') {
-        // Calculate from actual dose if available, otherwise default
-        const dpi = parseFloat(protocol.dose_per_injection);
-        const ipw = parseInt(protocol.injections_per_week);
+        const isSubQ = (protocol.injection_method || delivery_method || '').toLowerCase() === 'subq';
+        const ipw = isSubQ ? 7 : (parseInt(protocol.injections_per_week) || parseInt(protocol.injection_frequency) || 2);
         if (dpi > 0 && ipw > 0) {
-          daysUntilNext = Math.round(10.0 / (dpi * ipw) * 7);
+          daysUntilNext = Math.round(vialMl / (dpi * ipw) * 7);
         } else {
-          daysUntilNext = 70; // ~10 weeks default for 10ml vial
+          daysUntilNext = supply_type === 'vial_5ml' ? 42 : 70;
         }
+        console.log(`[syncPickup] Vial calc: ${vialMl}ml / (${dpi}ml × ${ipw}/wk) × 7 = ${daysUntilNext}d`);
       }
 
       const nextDate = new Date(pickupDate);

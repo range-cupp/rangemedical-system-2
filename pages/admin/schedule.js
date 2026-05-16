@@ -2,11 +2,13 @@
 // Schedule page - Full calendar with booking, today view, and list view
 // Range Medical System V2
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { Sparkles, Paperclip, X, FileText } from 'lucide-react';
 import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
+import TemplateMessages from '../../components/TemplateMessages';
 import EncounterModal from '../../components/EncounterModal';
 import { useAuth } from '../../components/AuthProvider';
 import { formatPhone } from '../../lib/format-utils';
@@ -44,6 +46,14 @@ export default function SchedulePage() {
   const [drawerSmsText, setDrawerSmsText] = useState('');
   const [drawerSmsSending, setDrawerSmsSending] = useState(false);
   const [drawerSmsStatus, setDrawerSmsStatus] = useState(null);
+  const [drawerEmailSubject, setDrawerEmailSubject] = useState('');
+  const [drawerEmailBody, setDrawerEmailBody] = useState('');
+  const [drawerEmailSending, setDrawerEmailSending] = useState(false);
+  const [drawerEmailFormatting, setDrawerEmailFormatting] = useState(false);
+  const [drawerEmailStatus, setDrawerEmailStatus] = useState(null);
+  const [drawerEmailAttachments, setDrawerEmailAttachments] = useState([]);
+  const [drawerEmailShowSnippets, setDrawerEmailShowSnippets] = useState(false);
+  const drawerEmailFileRef = useRef(null);
   const router = useRouter();
 
   const today = toPacificDateStr(new Date());
@@ -98,7 +108,7 @@ export default function SchedulePage() {
       .catch(() => setDrawerLoading(false));
   };
 
-  const closeDrawer = () => { setDrawerData(null); setDrawerLoading(false); setDrawerSmsText(''); setDrawerSmsStatus(null); };
+  const closeDrawer = () => { setDrawerData(null); setDrawerLoading(false); setDrawerSmsText(''); setDrawerSmsStatus(null); resetDrawerEmail(); };
 
   const sendDrawerSms = async () => {
     const pt = drawerData?.patient;
@@ -129,6 +139,120 @@ export default function SchedulePage() {
     } finally {
       setDrawerSmsSending(false);
     }
+  };
+
+  const resetDrawerEmail = () => {
+    setDrawerEmailSubject('');
+    setDrawerEmailBody('');
+    setDrawerEmailSending(false);
+    setDrawerEmailFormatting(false);
+    setDrawerEmailStatus(null);
+    setDrawerEmailAttachments([]);
+    setDrawerEmailShowSnippets(false);
+  };
+
+  const handleDrawerEmailFormat = async () => {
+    const pt = drawerData?.patient;
+    if (!drawerEmailBody.trim()) return;
+    setDrawerEmailFormatting(true);
+    setDrawerEmailStatus(null);
+    try {
+      const res = await fetch('/api/email/format', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          raw_text: drawerEmailBody,
+          recipientName: pt ? `${pt.first_name} ${pt.last_name}` : null,
+          subject: drawerEmailSubject || null,
+        }),
+      });
+      const data = await res.json();
+      if (data.formatted) {
+        setDrawerEmailBody(data.formatted);
+      } else {
+        setDrawerEmailStatus({ ok: false, msg: data.error || 'Failed to format' });
+      }
+    } catch (e) {
+      setDrawerEmailStatus({ ok: false, msg: 'Failed to format' });
+    } finally {
+      setDrawerEmailFormatting(false);
+    }
+  };
+
+  const handleDrawerEmailFileSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    for (const file of files) {
+      if (file.size > 10 * 1024 * 1024) {
+        setDrawerEmailStatus({ ok: false, msg: `"${file.name}" is too large (max 10MB)` });
+        continue;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result.split(',')[1];
+        setDrawerEmailAttachments(prev => [...prev, { name: file.name, size: file.size, base64, type: file.type }]);
+      };
+      reader.readAsDataURL(file);
+    }
+    if (drawerEmailFileRef.current) drawerEmailFileRef.current.value = '';
+  };
+
+  const sendDrawerEmail = async () => {
+    const pt = drawerData?.patient;
+    if (!pt?.email || !drawerEmailSubject.trim() || !drawerEmailBody.trim()) return;
+    setDrawerEmailSending(true);
+    setDrawerEmailStatus(null);
+    try {
+      const res = await fetch('/api/email/send', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: pt.email,
+          subject: drawerEmailSubject.trim(),
+          body: drawerEmailBody.trim(),
+          patientId: pt.id || null,
+          patientName: `${pt.first_name} ${pt.last_name}`,
+          attachments: drawerEmailAttachments.length > 0 ? drawerEmailAttachments.map(a => ({
+            filename: a.name,
+            content: a.base64,
+            type: a.type,
+          })) : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setDrawerEmailStatus({ ok: true, msg: 'Email sent ✓' });
+        setDrawerEmailSubject('');
+        setDrawerEmailBody('');
+        setDrawerEmailAttachments([]);
+      } else {
+        setDrawerEmailStatus({ ok: false, msg: data.error || 'Failed to send' });
+      }
+    } catch (e) {
+      setDrawerEmailStatus({ ok: false, msg: e.message });
+    } finally {
+      setDrawerEmailSending(false);
+    }
+  };
+
+  const handleDrawerEmailSnippet = (templateText) => {
+    const pt = drawerData?.patient;
+    const firstName = pt?.first_name || 'there';
+    const lastName = pt?.last_name || '';
+    const populated = templateText
+      .replace(/\{\{name\}\}/g, firstName)
+      .replace(/\{\{first_name\}\}/g, firstName)
+      .replace(/\{\{last_name\}\}/g, lastName);
+    setDrawerEmailBody(populated);
+    setDrawerEmailShowSnippets(false);
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
   // Service filter categories — match against service_name (case-insensitive)
@@ -668,6 +792,149 @@ export default function SchedulePage() {
                               }}
                             >
                               {drawerSmsSending ? 'Sending…' : 'Send Text'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Email composer */}
+                      {pt.email && (
+                        <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
+                          <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', marginBottom: '6px' }}>
+                            Send Email
+                          </div>
+                          {drawerEmailStatus && (
+                            <div style={{
+                              fontSize: '12px', padding: '6px 10px', marginBottom: '8px',
+                              background: drawerEmailStatus.ok ? '#dcfce7' : '#fef2f2',
+                              color: drawerEmailStatus.ok ? '#16a34a' : '#dc2626',
+                            }}>
+                              {drawerEmailStatus.msg}
+                            </div>
+                          )}
+                          <input
+                            type="text"
+                            value={drawerEmailSubject}
+                            onChange={e => setDrawerEmailSubject(e.target.value)}
+                            placeholder="Subject line"
+                            style={{
+                              width: '100%', boxSizing: 'border-box', padding: '8px 10px',
+                              border: '1px solid #d1d5db', borderRadius: 0, fontSize: '13px',
+                              fontFamily: 'inherit', background: '#fff', marginBottom: '6px',
+                            }}
+                          />
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginBottom: '4px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setDrawerEmailShowSnippets(!drawerEmailShowSnippets)}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                padding: '3px 8px', fontSize: '11px', fontWeight: 600,
+                                color: drawerEmailShowSnippets ? '#1d4ed8' : '#374151',
+                                background: drawerEmailShowSnippets ? '#dbeafe' : '#f3f4f6',
+                                border: '1px solid', borderColor: drawerEmailShowSnippets ? '#93c5fd' : '#d1d5db',
+                                borderRadius: 0, cursor: 'pointer',
+                              }}
+                            >
+                              <FileText size={11} />
+                              Snippets
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleDrawerEmailFormat}
+                              disabled={drawerEmailFormatting || !drawerEmailBody.trim()}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                padding: '3px 8px', fontSize: '11px', fontWeight: 600,
+                                color: drawerEmailFormatting ? '#9ca3af' : '#7c3aed',
+                                background: drawerEmailFormatting ? '#f3f4f6' : '#f5f3ff',
+                                border: '1px solid', borderColor: drawerEmailFormatting ? '#e5e7eb' : '#ddd6fe',
+                                borderRadius: 0,
+                                cursor: drawerEmailFormatting || !drawerEmailBody.trim() ? 'not-allowed' : 'pointer',
+                                opacity: !drawerEmailBody.trim() ? 0.5 : 1,
+                              }}
+                            >
+                              <Sparkles size={11} />
+                              {drawerEmailFormatting ? 'Formatting…' : 'AI Format'}
+                            </button>
+                          </div>
+                          {drawerEmailShowSnippets && (
+                            <div style={{ marginBottom: '6px', border: '1px solid #e5e7eb', overflow: 'hidden', maxHeight: '200px', overflowY: 'auto' }}>
+                              <TemplateMessages
+                                onSelect={handleDrawerEmailSnippet}
+                                onClose={() => setDrawerEmailShowSnippets(false)}
+                              />
+                            </div>
+                          )}
+                          <textarea
+                            value={drawerEmailBody}
+                            onChange={e => setDrawerEmailBody(e.target.value)}
+                            placeholder={`Type or dictate your message, then click AI Format…`}
+                            rows={4}
+                            style={{
+                              width: '100%', boxSizing: 'border-box', padding: '8px 10px',
+                              border: '1px solid #d1d5db', borderRadius: 0, fontSize: '13px',
+                              fontFamily: 'inherit', resize: 'vertical', background: '#fff',
+                              lineHeight: '1.5', minHeight: '80px',
+                            }}
+                          />
+                          {/* Attachments */}
+                          <div style={{ marginTop: '6px' }}>
+                            <input
+                              ref={drawerEmailFileRef}
+                              type="file"
+                              multiple
+                              onChange={handleDrawerEmailFileSelect}
+                              style={{ display: 'none' }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => drawerEmailFileRef.current?.click()}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                padding: '4px 8px', fontSize: '11px', color: '#374151',
+                                background: '#f9fafb', border: '1px solid #d1d5db',
+                                borderRadius: 0, cursor: 'pointer',
+                              }}
+                            >
+                              <Paperclip size={11} />
+                              Attach File
+                            </button>
+                            {drawerEmailAttachments.length > 0 && (
+                              <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                {drawerEmailAttachments.map((file, i) => (
+                                  <div key={i} style={{
+                                    display: 'flex', alignItems: 'center', gap: '6px',
+                                    padding: '4px 8px', background: '#f3f4f6', fontSize: '11px',
+                                  }}>
+                                    <Paperclip size={10} style={{ color: '#6b7280', flexShrink: 0 }} />
+                                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
+                                    <span style={{ color: '#9ca3af', flexShrink: 0 }}>{formatFileSize(file.size)}</span>
+                                    <button type="button" onClick={() => setDrawerEmailAttachments(prev => prev.filter((_, idx) => idx !== i))} style={{
+                                      background: 'none', border: 'none', cursor: 'pointer', padding: '1px', color: '#9ca3af', flexShrink: 0,
+                                    }}>
+                                      <X size={12} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', gap: '8px' }}>
+                            <span style={{ fontSize: '11px', color: '#aaa' }}>
+                              Sent via Range Medical
+                            </span>
+                            <button
+                              onClick={sendDrawerEmail}
+                              disabled={!drawerEmailSubject.trim() || !drawerEmailBody.trim() || drawerEmailSending}
+                              style={{
+                                padding: '6px 14px', fontSize: '12px', fontWeight: '600',
+                                background: !drawerEmailSubject.trim() || !drawerEmailBody.trim() || drawerEmailSending ? '#9ca3af' : '#000',
+                                color: '#fff', border: 'none', borderRadius: 0,
+                                cursor: !drawerEmailSubject.trim() || !drawerEmailBody.trim() || drawerEmailSending ? 'not-allowed' : 'pointer',
+                              }}
+                            >
+                              {drawerEmailSending ? 'Sending…' : 'Send Email'}
                             </button>
                           </div>
                         </div>

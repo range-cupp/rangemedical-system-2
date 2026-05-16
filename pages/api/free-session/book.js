@@ -23,7 +23,7 @@ const supabase = createClient(
 );
 
 const TYPE_LABELS = {
-  hbot: { label: 'Hyperbaric Oxygen', shortLabel: 'HBOT', duration: 60, slug: 'hbot', category: 'hbot', requiresCard: false },
+  hbot: { label: 'Hyperbaric Oxygen', shortLabel: 'HBOT', duration: 60, slug: 'hbot', category: 'hbot', requiresCard: true },
   rlt:  { label: 'Red Light',         shortLabel: 'RLT',  duration: 20, slug: 'red-light-therapy', category: 'rlt', requiresCard: false },
 };
 

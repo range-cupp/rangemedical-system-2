@@ -30,7 +30,7 @@ export default async function handler(req, res) {
   try {
     const { data, error } = await supabase
       .from('consents')
-      .select('id, consent_type, consent_date, consent_given, submitted_at')
+      .select('id, consent_type, consent_date, consent_given, submitted_at, additional_data')
       .eq('patient_id', patient_id)
       .order('submitted_at', { ascending: false });
 
@@ -39,10 +39,23 @@ export default async function handler(req, res) {
     const signed = (data || []).filter(c => c.consent_given);
     const signedTypes = [...new Set(signed.map(c => c.consent_type))];
 
-    const forms = signed.map(c => ({
-      type: c.consent_type,
-      signed_date: c.consent_date || c.submitted_at,
-    }));
+    const forms = signed.map(c => {
+      const entry = {
+        type: c.consent_type,
+        signed_date: c.consent_date || c.submitted_at,
+      };
+      if (c.additional_data) {
+        const ad = c.additional_data;
+        if (ad.healthAnswers && Object.keys(ad.healthAnswers).length > 0) {
+          entry.health_screening = ad.healthAnswers;
+        }
+        if (ad.acknowledgments && ad.acknowledgments.length > 0) {
+          entry.acknowledgments_count = ad.acknowledgments.length;
+          entry.all_acknowledged = ad.acknowledgments.every(a => a.checked);
+        }
+      }
+      return entry;
+    });
 
     const missing = {};
     for (const [service, required] of Object.entries(REQUIRED_BY_SERVICE)) {

@@ -457,6 +457,17 @@ export default function AssistantPage() {
       } catch { return { error: 'Failed to fetch consent status' }; }
     }
 
+    if (name === 'lookup_intake_data') {
+      try {
+        const pid = args.patient_id || patient?.id;
+        if (!pid) return { error: 'No patient selected. Search for a patient first.' };
+        const res = await fetch(`/api/ai/intake-data?patient_id=${pid}`);
+        const data = await res.json();
+        if (!res.ok) return { error: data.error || 'Failed to fetch intake data' };
+        return data;
+      } catch { return { error: 'Failed to fetch intake data' }; }
+    }
+
     if (name === 'lookup_payments') {
       try {
         const pid = args.patient_id || patient?.id;
@@ -592,7 +603,9 @@ export default function AssistantPage() {
           if (tr.tool === 'cancel_appointment' && tr.result.success) return `Cancelled ${tr.result.patient_name}'s ${tr.result.service} at ${tr.result.time}`;
           if (tr.tool === 'lookup_lab_results' && tr.result.labs) return `${tr.result.summary.total} lab records (${tr.result.summary.completed} completed, ${tr.result.summary.pending} pending). Next lab: ${tr.result.summary.next_lab || 'not scheduled'}`;
           if (tr.tool === 'lookup_membership' && tr.result.memberships) return `${tr.result.summary.active_count} active membership(s): ${tr.result.summary.active_names}`;
-          if (tr.tool === 'lookup_consent_forms' && tr.result.forms) return `${tr.result.summary.total_signed} consent forms signed. Intake: ${tr.result.summary.has_intake ? 'yes' : 'NO'}, HIPAA: ${tr.result.summary.has_hipaa ? 'yes' : 'NO'}`;
+          if (tr.tool === 'lookup_consent_forms' && tr.result.forms) return `${tr.result.summary.total_signed} consent forms signed. Intake: ${tr.result.summary.has_intake ? 'yes' : 'NO'}, HIPAA: ${tr.result.summary.has_hipaa ? 'yes' : 'NO'}. Health screening data included for forms that have it.`;
+          if (tr.tool === 'lookup_intake_data' && tr.result.has_intake) return `Intake form found (submitted ${tr.result.submitted_at}). Allergies: ${tr.result.allergies.has_allergies}${tr.result.allergies.list ? ' — ' + tr.result.allergies.list : ''}. Medications: ${tr.result.medications.on_medications}${tr.result.medications.current_list ? ' — ' + tr.result.medications.current_list : ''}. HRT: ${tr.result.medications.on_hrt}.`;
+          if (tr.tool === 'lookup_intake_data' && !tr.result.has_intake) return 'No intake form found for this patient.';
           if (tr.tool === 'lookup_payments' && tr.result.summary) return `Credit balance: ${tr.result.summary.credit_balance}. Total spent: ${tr.result.summary.total_spent}. ${tr.result.summary.pending_invoices} pending invoice(s). Last payment: ${tr.result.summary.last_payment || 'none'}`;
           if (tr.tool === 'program_due_list' && tr.result.patients) return `${tr.result.summary.due_count} ${tr.result.program.replace(/_/g, ' ')} patients due (${tr.result.summary.overdue} overdue, ${tr.result.summary.due_now} due now, ${tr.result.summary.due_soon} due soon) out of ${tr.result.summary.total_active} active. The list card is shown — do NOT list all patients in text. Just summarize the numbers.`;
           if (tr.tool === 'send_consent_forms' && tr.result.all_complete) return `${tr.result.patient_name} has all forms complete for ${tr.result.service} — nothing to send.`;

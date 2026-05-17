@@ -181,7 +181,18 @@ const tools = [
   },
   {
     name: 'lookup_consent_forms',
-    description: 'Check a patient\'s consent form status — which forms they\'ve signed and which are missing. Use when staff asks "have they signed their forms?", "are their consents complete?", "do they need to sign anything?".',
+    description: 'Check a patient\'s consent form status — which forms they\'ve signed, which are missing, and health screening answers from each consent. Use when staff asks "have they signed their forms?", "are their consents complete?", "do they need to sign anything?", or health screening questions specific to a treatment consent (e.g. "did they flag anything on the HBOT consent?").',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_id: { type: 'string', description: 'Patient UUID' },
+      },
+      required: ['patient_id'],
+    },
+  },
+  {
+    name: 'lookup_intake_data',
+    description: 'Look up a patient\'s medical intake form data — allergies, current medications, medical conditions, HRT status, health history, PCP info, symptoms, and notes. Use when staff asks "does this patient have allergies?", "what medications are they on?", "any medical conditions?", "do they have a PCP?", "what did they put on their intake?", or any question about patient health history.',
     input_schema: {
       type: 'object',
       properties: {
@@ -262,7 +273,8 @@ You can help with:
 - PAYMENTS: Check payment history, balances, outstanding invoices, spending
 - LABS: Check lab results, pending bloodwork, next lab date
 - MEMBERSHIPS: Check active subscriptions, renewal dates, membership status
-- CONSENTS: Check which consent forms are signed or missing
+- CONSENTS: Check which consent forms are signed or missing, view health screening answers from each consent
+- INTAKE DATA: Look up patient allergies, medications, medical conditions, health history from their intake form
 - SEND FORMS: Send missing consent forms to patients via email
 - PROGRAM DUE: List patients due for their next payment round on any program (WL, HRT, peptide, HBOT, etc.)
 - GENERAL: Answer questions about services, pricing, protocols
@@ -278,7 +290,8 @@ When staff asks about communications, messages, or last contact with a patient �
 When staff asks to cancel an appointment — first look up the patient's records or schedule to find the appointment_id, confirm with staff, then use cancel_appointment.
 When staff asks about labs, bloodwork, or test results — use lookup_lab_results.
 When staff asks about memberships, subscriptions, or renewals — use lookup_membership.
-When staff asks about consent forms, whether forms are signed, or what's missing — use lookup_consent_forms.
+When staff asks about consent forms, whether forms are signed, or what's missing — use lookup_consent_forms. This also returns health screening answers from each consent form.
+When staff asks about allergies, medications, medical conditions, health history, PCP, or anything from the patient's intake form — use lookup_intake_data. This is the primary source for "does this patient have allergies?", "what meds are they on?", "any medical history?".
 When staff asks about payments, balance, invoices, spending, or whether someone owes anything — use lookup_payments.
 When staff asks which patients are due for their next payment, round, pack, or renewal on any program — use program_due_list. Pick the matching program (weight_loss, hrt, peptide, hbot, etc.).
 When staff asks to send forms, consent forms, or paperwork to a patient — use send_consent_forms. Pick the service_category that matches their service (e.g. "hbot" for HBOT patients). If no specific service is mentioned, use "general" to send intake + HIPAA.

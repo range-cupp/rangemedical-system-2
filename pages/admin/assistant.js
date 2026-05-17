@@ -230,6 +230,17 @@ export default function AssistantPage() {
         return { error: data.error || 'Booking failed' };
       } catch { return { error: 'Failed to create booking' }; }
     }
+    if (name === 'lookup_patient_records') {
+      try {
+        const pid = args.patient_id || patient?.id;
+        if (!pid) return { error: 'No patient selected. Search for a patient first.' };
+        const res = await fetch(`/api/ai/patient-records?patient_id=${pid}`);
+        const data = await res.json();
+        if (!res.ok) return { error: data.error || 'Failed to fetch records' };
+        return data;
+      } catch { return { error: 'Failed to fetch patient records' }; }
+    }
+
     return { error: `Unknown action: ${name}` };
   }
 
@@ -334,6 +345,53 @@ export default function AssistantPage() {
     }
     if (tr.tool === 'book_appointment') {
       return (<div style={{ ...st.toolCard, borderColor: tr.result.success ? '#86efac' : '#fca5a5' }}><div style={st.toolCardHeader}>{tr.result.success ? <Check size={14} /> : <X size={14} />} {tr.result.success ? 'Booked' : 'Booking Failed'}</div><div style={st.toolCardBody}>{tr.result.message || tr.result.error}</div></div>);
+    }
+    if (tr.tool === 'lookup_patient_records' && tr.result.protocols) {
+      const { protocols, appointments, recentVisits, prescriptions } = tr.result;
+      return (
+        <div style={st.toolCard}>
+          <div style={st.toolCardHeader}><User size={14} /> Patient Records</div>
+          <div style={{ padding: '8px 12px', fontSize: '13px' }}>
+            {protocols.length > 0 && (
+              <div style={{ marginBottom: '10px' }}>
+                <div style={{ fontWeight: 600, fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Active Protocols</div>
+                {protocols.map((p, i) => (
+                  <div key={i} style={{ padding: '4px 0', borderBottom: '1px solid #f3f4f6' }}>
+                    <span style={{ fontWeight: 600 }}>{p.medication || p.program}</span>
+                    {p.dose && <span style={{ color: '#6b7280' }}> — {p.dose}</span>}
+                    {p.frequency && <span style={{ color: '#6b7280' }}>, {p.frequency}</span>}
+                    {p.next_date && <div style={{ fontSize: '12px', color: '#4f46e5' }}>Next: {new Date(p.next_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>}
+                    {p.last_refill && <div style={{ fontSize: '12px', color: '#6b7280' }}>Last refill: {new Date(p.last_refill + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+            {appointments.length > 0 && (
+              <div style={{ marginBottom: '10px' }}>
+                <div style={{ fontWeight: 600, fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Upcoming Appointments</div>
+                {appointments.slice(0, 5).map((a, i) => (
+                  <div key={i} style={{ padding: '4px 0', fontSize: '12px' }}>
+                    <span style={{ fontWeight: 600 }}>{a.service}</span> — {new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })}
+                  </div>
+                ))}
+              </div>
+            )}
+            {recentVisits.length > 0 && (
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Recent Visits</div>
+                {recentVisits.slice(0, 5).map((v, i) => (
+                  <div key={i} style={{ padding: '4px 0', fontSize: '12px', color: '#4b5563' }}>
+                    {new Date(v.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — {v.medication || v.category || v.type}{v.dosage ? ` (${v.dosage})` : ''}
+                  </div>
+                ))}
+              </div>
+            )}
+            {protocols.length === 0 && appointments.length === 0 && recentVisits.length === 0 && (
+              <div style={{ color: '#9ca3af' }}>No active records found for this patient.</div>
+            )}
+          </div>
+        </div>
+      );
     }
     return null;
   }

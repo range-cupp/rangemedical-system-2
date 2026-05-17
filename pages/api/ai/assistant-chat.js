@@ -67,6 +67,17 @@ const tools = [
       required: ['service', 'service_slug', 'start_iso', 'duration_minutes', 'patient_name', 'patient_id'],
     },
   },
+  {
+    name: 'lookup_patient_records',
+    description: 'Look up a patient\'s medical records — active protocols, medications, upcoming appointments, recent visits, prescriptions. Use when staff asks about a patient\'s treatment, next pickup, medication schedule, visit history, or anything clinical.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_id: { type: 'string', description: 'Patient UUID — use the patient currently selected in context, or from a search_patient result' },
+      },
+      required: ['patient_id'],
+    },
+  },
 ];
 
 export default async function handler(req, res) {
@@ -90,9 +101,11 @@ export default async function handler(req, res) {
 You can help with:
 - CHECKOUT: Add items to the cart (services, injections, IVs, peptides, packs)
 - SCHEDULING: Search patients, check available slots, book appointments
+- PATIENT RECORDS: Look up a patient's protocols, medications, next pickup dates, upcoming appointments, visit history, prescriptions
 - DISPENSING: Log what was dispensed to a patient
 - GENERAL: Answer questions about services, pricing, protocols
 
+When staff asks about a patient's meds, next pickup, treatment plan, visit history, or anything clinical — use the lookup_patient_records tool. If a patient is already selected in context, use their patient_id directly. If not, search for them first.
 When staff mentions a product, walk through the decision tree one question at a time. Once confirmed, use the add_to_cart tool.
 When staff wants to book, search the patient, check slots, confirm, and book.
 

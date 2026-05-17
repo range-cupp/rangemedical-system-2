@@ -225,7 +225,7 @@ const tools = [
   },
   {
     name: 'send_consent_forms',
-    description: 'Send missing consent forms to a patient via email. Use when staff says "send them their forms", "email the HBOT consent", "send missing forms to [patient]", "send forms for their appointment", etc. This checks which forms the patient has already signed and only sends the ones they\'re missing for the given service.',
+    description: 'Send missing consent forms to a single patient via email. Use when staff says "send them their forms", "email the HBOT consent", "send missing forms to [patient]", "send forms for their appointment", etc. This checks which forms the patient has already signed and only sends the ones they\'re missing for the given service. For sending to MULTIPLE patients at once, use batch_send_forms instead.',
     input_schema: {
       type: 'object',
       properties: {
@@ -233,6 +233,18 @@ const tools = [
         service_category: { type: 'string', enum: ['general', 'hrt', 'weight_loss', 'iv', 'peptide', 'hbot', 'rlt', 'prp', 'injection'], description: 'Service category to determine which forms are required. E.g. "hbot" sends HBOT consent + intake + HIPAA if missing. Default: general (intake + HIPAA only).' },
       },
       required: ['patient_id'],
+    },
+  },
+  {
+    name: 'batch_send_forms',
+    description: 'Send missing consent forms to ALL patients with appointments on a given date, in one batch. Use when staff says "send forms to all Monday HBOT patients", "send intake forms to everyone scheduled tomorrow", "send HBOT forms to all patients on Monday who haven\'t done them", "blast out forms for Friday\'s appointments", or any request to send forms to multiple patients at once based on a schedule date. This checks each patient\'s signed forms and only sends what\'s missing. Always previews first — staff confirms before sending.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: 'The date to check appointments for, as YYYY-MM-DD. Calculate from "Monday", "tomorrow", "next Friday", etc.' },
+        service_category: { type: 'string', enum: ['hrt', 'weight_loss', 'iv', 'peptide', 'hbot', 'rlt', 'prp', 'injection'], description: 'Filter to appointments in this service category. E.g. "hbot" for HBOT appointments only. Omit to include ALL appointments on that date.' },
+      },
+      required: ['date'],
     },
   },
 ];
@@ -275,7 +287,8 @@ You can help with:
 - MEMBERSHIPS: Check active subscriptions, renewal dates, membership status
 - CONSENTS: Check which consent forms are signed or missing, view health screening answers from each consent
 - INTAKE DATA: Look up patient allergies, medications, medical conditions, health history from their intake form
-- SEND FORMS: Send missing consent forms to patients via email
+- SEND FORMS: Send missing consent forms to a single patient via email
+- BATCH SEND FORMS: Send missing forms to ALL patients on a date at once (e.g. "send HBOT forms to everyone on Monday")
 - PROGRAM DUE: List patients due for their next payment round on any program (WL, HRT, peptide, HBOT, etc.)
 - GENERAL: Answer questions about services, pricing, protocols
 
@@ -294,7 +307,8 @@ When staff asks about consent forms, whether forms are signed, or what's missing
 When staff asks about allergies, medications, medical conditions, health history, PCP, or anything from the patient's intake form — use lookup_intake_data. This is the primary source for "does this patient have allergies?", "what meds are they on?", "any medical history?".
 When staff asks about payments, balance, invoices, spending, or whether someone owes anything — use lookup_payments.
 When staff asks which patients are due for their next payment, round, pack, or renewal on any program — use program_due_list. Pick the matching program (weight_loss, hrt, peptide, hbot, etc.).
-When staff asks to send forms, consent forms, or paperwork to a patient — use send_consent_forms. Pick the service_category that matches their service (e.g. "hbot" for HBOT patients). If no specific service is mentioned, use "general" to send intake + HIPAA.
+When staff asks to send forms to a specific patient — use send_consent_forms. Pick the service_category that matches their service (e.g. "hbot" for HBOT patients). If no specific service is mentioned, use "general" to send intake + HIPAA.
+When staff asks to send forms to multiple patients at once, everyone on a date, or all patients for a service — use batch_send_forms. E.g. "send HBOT forms to all Monday patients" → batch_send_forms with date=Monday and service_category=hbot. This previews the list first — staff clicks Send All to confirm. NEVER loop through patients one by one with send_consent_forms when batch_send_forms can do it in one call.
 When staff mentions a product, walk through the decision tree one question at a time. Once confirmed, use the add_to_cart tool.
 When staff wants to book, search the patient, check slots, confirm, and book.
 

@@ -3,7 +3,7 @@ import { Send, ShoppingCart, Calendar, User, X, Check, Plus, MessageSquare, Tras
 import AdminLayout from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
 
-const WELCOME_MSG = { role: 'assistant', content: 'Hey! What can I help with? I can check out patients, book appointments, look up records, add notes, create tasks, send emails, send consent forms, or answer questions about services and pricing.' };
+const WELCOME_MSG = { role: 'assistant', content: 'Hey! What can I help with? I can check out patients, book appointments, look up records, add notes, create tasks, send emails, send consent forms (one patient or batch-send to a whole day\'s schedule), or answer questions about services and pricing.' };
 
 function renderMarkdown(text) {
   if (!text) return text;
@@ -502,6 +502,25 @@ export default function AssistantPage() {
       } catch { return { error: 'Failed to check missing forms' }; }
     }
 
+    if (name === 'batch_send_forms') {
+      try {
+        const res = await fetch('/api/ai/batch-send-forms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: args.date, service_category: args.service_category, send: false }),
+        });
+        const data = await res.json();
+        if (!res.ok) return { error: data.error || 'Failed to check batch forms' };
+        if (data.summary.needing_forms === 0 && data.total_appointments > 0) {
+          return { all_complete: true, date: data.date, service_category: data.service_category, total_appointments: data.total_appointments, patients_complete: data.patients_complete };
+        }
+        if (data.total_appointments === 0) {
+          return { no_appointments: true, date: data.date, service_category: data.service_category };
+        }
+        return { preview: true, ...data };
+      } catch { return { error: 'Failed to check batch forms' }; }
+    }
+
     return { error: `Unknown action: ${name}` };
   }
 
@@ -567,6 +586,29 @@ export default function AssistantPage() {
     } catch { return false; }
   }
 
+  async function sendBatchForms(data) {
+    try {
+      const res = await fetch('/api/ai/batch-send-forms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: data.date, service_category: data.service_category !== 'all' ? data.service_category : undefined, send: true }),
+      });
+      const result = await res.json();
+      if (result.summary) {
+        setMessages(prev => prev.map(m => {
+          if (!m.toolResults) return m;
+          return { ...m, toolResults: m.toolResults.map(tr =>
+            tr.tool === 'batch_send_forms' && tr.result.preview && tr.result.date === data.date
+              ? { ...tr, result: { ...tr.result, sent: true, send_results: result } }
+              : tr
+          )};
+        }));
+        return true;
+      }
+      return false;
+    } catch { return false; }
+  }
+
   async function sendMessage(text) {
     if (!text.trim() || loading) return;
     const userMsg = { role: 'user', content: text.trim(), ts: Date.now() };
@@ -611,6 +653,10 @@ export default function AssistantPage() {
           if (tr.tool === 'send_consent_forms' && tr.result.all_complete) return `${tr.result.patient_name} has all forms complete for ${tr.result.service} — nothing to send.`;
           if (tr.tool === 'send_consent_forms' && tr.result.preview) return `Ready to send ${tr.result.forms_to_send.length} form(s) to ${tr.result.patient_name} at ${tr.result.patient_email}: ${tr.result.forms_to_send.map(f => f.name).join(', ')}. The send card is shown — staff will click Send to confirm.`;
           if (tr.tool === 'send_consent_forms' && tr.result.error) return tr.result.error;
+          if (tr.tool === 'batch_send_forms' && tr.result.preview) return `${tr.result.summary.needing_forms} patient(s) on ${tr.result.date} (${tr.result.service_category}) need forms sent. ${tr.result.summary.already_complete} already complete, ${tr.result.summary.no_email} missing email. The batch send card is shown — staff will click Send All to confirm. Do NOT list individual patients in text.`;
+          if (tr.tool === 'batch_send_forms' && tr.result.all_complete) return `All ${tr.result.total_appointments} patients on ${tr.result.date} (${tr.result.service_category}) have their forms complete — nothing to send.`;
+          if (tr.tool === 'batch_send_forms' && tr.result.no_appointments) return `No ${tr.result.service_category !== 'all' ? tr.result.service_category.toUpperCase() + ' ' : ''}appointments found on ${tr.result.date}.`;
+          if (tr.tool === 'batch_send_forms' && tr.result.error) return tr.result.error;
           return JSON.stringify(tr.result);
         }).join('\n');
 
@@ -1022,6 +1068,86 @@ export default function AssistantPage() {
           <div style={st.toolCardHeader}><Shield size={14} /> All Forms Complete</div>
           <div style={{ padding: '8px 12px', fontSize: '13px', color: '#16a34a', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Check size={14} /> {tr.result.patient_name} has all required forms signed for {tr.result.service.replace(/_/g, ' ')}.
+          </div>
+        </div>
+      );
+    }
+    if (tr.tool === 'batch_send_forms' && tr.result.preview) {
+      const d = tr.result;
+      const sent = d.sent;
+      const results = d.send_results;
+      const dateLabel = new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      const svcLabel = d.service_category !== 'all' ? d.service_category.toUpperCase() : 'All Services';
+      return (
+        <div style={{ ...st.toolCard, borderColor: sent ? '#86efac' : '#c7d2fe' }}>
+          <div style={st.toolCardHeader}>
+            <Mail size={14} /> {sent ? 'Batch Forms Sent' : 'Batch Send Forms'} — {svcLabel}, {dateLabel}
+          </div>
+          <div style={{ padding: '10px 12px', fontSize: '13px' }}>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '10px', fontSize: '12px' }}>
+              <span style={{ padding: '3px 8px', background: '#fef3c7', color: '#92400e', borderRadius: '10px', fontWeight: 600 }}>{d.summary.needing_forms} need forms</span>
+              <span style={{ padding: '3px 8px', background: '#dcfce7', color: '#166534', borderRadius: '10px', fontWeight: 600 }}>{d.summary.already_complete} complete</span>
+              {d.summary.no_email > 0 && <span style={{ padding: '3px 8px', background: '#fee2e2', color: '#dc2626', borderRadius: '10px', fontWeight: 600 }}>{d.summary.no_email} no email</span>}
+            </div>
+            {!sent && d.patients_needing_forms.length > 0 && (
+              <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '6px', marginBottom: '10px' }}>
+                {d.patients_needing_forms.map((p, i) => (
+                  <div key={p.patient_id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', borderBottom: i < d.patients_needing_forms.length - 1 ? '1px solid #f3f4f6' : 'none', fontSize: '12px' }}>
+                    <div style={{ width: '55px', fontWeight: 600, color: '#4338ca', flexShrink: 0 }}>{p.appointment_time}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ fontWeight: 600, color: '#111827' }}>{p.patient_name}</span>
+                      <span style={{ color: '#9ca3af', marginLeft: '6px' }}>{p.patient_email}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      {p.missing_form_names.map(f => (
+                        <span key={f} style={{ padding: '1px 6px', background: '#fef3c7', color: '#92400e', borderRadius: '8px', fontSize: '10px', fontWeight: 500, whiteSpace: 'nowrap' }}>{f}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {d.no_email.length > 0 && !sent && (
+              <div style={{ fontSize: '11px', color: '#dc2626', marginBottom: '6px' }}>
+                <AlertTriangle size={11} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                No email on file: {d.no_email.map(p => p.patient_name).join(', ')}
+              </div>
+            )}
+            {!sent && d.patients_needing_forms.length > 0 && (
+              <button
+                onClick={() => sendBatchForms(d)}
+                style={{ padding: '8px 20px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Send size={13} /> Send All ({d.patients_needing_forms.length})
+              </button>
+            )}
+            {sent && results && (
+              <div style={{ padding: '8px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#16a34a', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
+                  <Check size={14} /> Sent to {results.summary.sent_count} patient{results.summary.sent_count !== 1 ? 's' : ''}
+                </div>
+                {results.summary.failed_count > 0 && (
+                  <div style={{ color: '#dc2626', fontSize: '12px' }}>
+                    {results.summary.failed_count} failed: {results.failed.map(f => f.patient_name).join(', ')}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    if (tr.tool === 'batch_send_forms' && (tr.result.all_complete || tr.result.no_appointments)) {
+      const dateLabel = new Date(tr.result.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      const svcLabel = tr.result.service_category !== 'all' ? tr.result.service_category.toUpperCase() : 'All Services';
+      return (
+        <div style={{ ...st.toolCard, borderColor: '#86efac' }}>
+          <div style={st.toolCardHeader}><Shield size={14} /> {tr.result.no_appointments ? 'No Appointments' : 'All Forms Complete'} — {svcLabel}, {dateLabel}</div>
+          <div style={{ padding: '8px 12px', fontSize: '13px', color: tr.result.no_appointments ? '#6b7280' : '#16a34a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {tr.result.no_appointments
+              ? <>{`No ${tr.result.service_category !== 'all' ? tr.result.service_category.toUpperCase() + ' ' : ''}appointments found on ${dateLabel}.`}</>
+              : <><Check size={14} /> All {tr.result.total_appointments} patients have their forms complete.</>
+            }
           </div>
         </div>
       );

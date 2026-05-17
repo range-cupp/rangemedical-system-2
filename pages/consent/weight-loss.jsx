@@ -231,41 +231,6 @@ export default function WeightLossConsent() {
                 <div className="health-detail" id="hq4-details"><textarea placeholder="Please describe..."></textarea></div>
               </div>
 
-              <div className="health-question" id="hq5">
-                <div className="health-question-text">Do you have diabetes (Type 1 or Type 2)?</div>
-                <div className="radio-group">
-                  <div className="radio-item"><input type="radio" id="hq5-yes" name="hq5" value="yes" required /><label htmlFor="hq5-yes">Yes</label></div>
-                  <div className="radio-item"><input type="radio" id="hq5-no" name="hq5" value="no" /><label htmlFor="hq5-no">No</label></div>
-                </div>
-                <div className="health-detail" id="hq5-details"><textarea placeholder="Please describe type and current management..."></textarea></div>
-              </div>
-
-              <div className="health-question" id="hq6">
-                <div className="health-question-text">Do you have kidney disease or liver disease?</div>
-                <div className="radio-group">
-                  <div className="radio-item"><input type="radio" id="hq6-yes" name="hq6" value="yes" required /><label htmlFor="hq6-yes">Yes</label></div>
-                  <div className="radio-item"><input type="radio" id="hq6-no" name="hq6" value="no" /><label htmlFor="hq6-no">No</label></div>
-                </div>
-                <div className="health-detail" id="hq6-details"><textarea placeholder="Please describe..."></textarea></div>
-              </div>
-
-              <div className="health-question" id="hq7">
-                <div className="health-question-text">Are you currently taking any prescription medications or supplements?</div>
-                <div className="radio-group">
-                  <div className="radio-item"><input type="radio" id="hq7-yes" name="hq7" value="yes" required /><label htmlFor="hq7-yes">Yes</label></div>
-                  <div className="radio-item"><input type="radio" id="hq7-no" name="hq7" value="no" /><label htmlFor="hq7-no">No</label></div>
-                </div>
-                <div className="health-detail" id="hq7-details"><textarea placeholder="Please list all medications and supplements..."></textarea></div>
-              </div>
-
-              <div className="health-question" id="hq8">
-                <div className="health-question-text">Do you have a history of eating disorders?</div>
-                <div className="radio-group">
-                  <div className="radio-item"><input type="radio" id="hq8-yes" name="hq8" value="yes" required /><label htmlFor="hq8-yes">Yes</label></div>
-                  <div className="radio-item"><input type="radio" id="hq8-no" name="hq8" value="no" /><label htmlFor="hq8-no">No</label></div>
-                </div>
-                <div className="health-detail" id="hq8-details"><textarea placeholder="Please describe..."></textarea></div>
-              </div>
             </div>
 
             {/* Program Information & Consent */}
@@ -483,7 +448,7 @@ function initializeForm() {
   // HEALTH SCREENING LOGIC
   // ============================================
   function checkHealthQuestions() {
-    const warningQuestions = ['hq1', 'hq2', 'hq3', 'hq4', 'hq5', 'hq6', 'hq7', 'hq8'];
+    const warningQuestions = ['hq1', 'hq2', 'hq3', 'hq4'];
     let showWarning = false;
     warningQuestions.forEach(q => {
       const yesRadio = document.getElementById(q + '-yes');
@@ -499,7 +464,7 @@ function initializeForm() {
     else warningAlert.classList.remove('visible');
   }
 
-  ['hq1', 'hq3', 'hq4', 'hq5', 'hq6', 'hq7', 'hq8'].forEach(q => {
+  ['hq1', 'hq3', 'hq4'].forEach(q => {
     document.querySelectorAll('input[name="' + q + '"]').forEach(radio => {
       radio.addEventListener('change', function() {
         const details = document.getElementById(q + '-details');
@@ -613,9 +578,9 @@ function initializeForm() {
 
     // Validate health screening
     document.querySelectorAll('.health-question.has-error').forEach(el => el.classList.remove('has-error'));
-    const hqLabels = { hq1: 'Weight loss medications', hq2: 'Pregnancy', hq3: 'Pancreatitis/gallbladder', hq4: 'Thyroid cancer/MEN2', hq5: 'Diabetes', hq6: 'Kidney/liver disease', hq7: 'Current medications', hq8: 'Eating disorders' };
+    const hqLabels = { hq1: 'Weight loss medications', hq2: 'Pregnancy', hq3: 'Pancreatitis/gallbladder', hq4: 'Thyroid cancer/MEN2' };
     const unanswered = [];
-    for (let i = 1; i <= 8; i++) {
+    for (let i = 1; i <= 4; i++) {
       const name = 'hq' + i;
       const radios = document.querySelectorAll('input[name="' + name + '"]');
       const anyChecked = Array.from(radios).some(r => r.checked);
@@ -672,7 +637,7 @@ function initializeForm() {
 
     // Collect health screening
     const healthAnswers = {};
-    for (let i = 1; i <= 8; i++) {
+    for (let i = 1; i <= 4; i++) {
       const checked = document.querySelector('input[name="hq' + i + '"]:checked');
       healthAnswers['hq' + i] = checked ? checked.value : 'not answered';
       const details = document.querySelector('#hq' + i + '-details textarea');
@@ -689,7 +654,7 @@ function initializeForm() {
       consentGiven: true,
       acknowledgments: acknowledgments,
       healthAnswers: healthAnswers,
-      signature: signaturePad.toDataURL('image/jpeg', 0.5),
+      signature: signaturePad.toDataURL('image/png'),
       submissionDate: new Date().toLocaleString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric',
         hour: '2-digit', minute: '2-digit',
@@ -706,11 +671,11 @@ function initializeForm() {
     const blob = await response.blob();
 
     const timestamp = Date.now();
-    const fileName = `signatures/${firstName}-${lastName}-${timestamp}.jpg`;
-    
+    const fileName = `signatures/${firstName}-${lastName}-${timestamp}.png`;
+
     const { data, error } = await supabaseClient.storage
       .from('medical-documents')
-      .upload(fileName, blob, { contentType: 'image/jpeg', upsert: false });
+      .upload(fileName, blob, { contentType: 'image/png', upsert: false });
     
     if (error) throw new Error('Failed to upload signature: ' + error.message);
     
@@ -864,14 +829,10 @@ function initializeForm() {
         hq1: 'Currently taking other weight loss medications or GLP-1 receptor agonists',
         hq2: 'Currently pregnant, nursing, or planning to become pregnant',
         hq3: 'History of pancreatitis or gallbladder disease',
-        hq4: 'Diagnosed with thyroid cancer or MEN2',
-        hq5: 'Diabetes (Type 1 or Type 2)',
-        hq6: 'Kidney disease or liver disease',
-        hq7: 'Currently taking prescription medications or supplements',
-        hq8: 'History of eating disorders'
+        hq4: 'Diagnosed with thyroid cancer or MEN2'
       };
       var hasYesAnswers = false;
-      for (var qi = 1; qi <= 8; qi++) {
+      for (var qi = 1; qi <= 4; qi++) {
         var qKey = 'hq' + qi;
         if (formData.healthAnswers[qKey] === 'yes') { hasYesAnswers = true; break; }
       }
@@ -888,7 +849,7 @@ function initializeForm() {
         doc.setDrawColor(0, 0, 0);
         yPos += 10;
       }
-      for (var qj = 1; qj <= 8; qj++) {
+      for (var qj = 1; qj <= 4; qj++) {
         var qk = 'hq' + qj;
         var answer = (formData.healthAnswers[qk] || 'not answered').toUpperCase();
         var isYes = formData.healthAnswers[qk] === 'yes';
@@ -1035,7 +996,7 @@ function initializeForm() {
     if (formData.signature && formData.signature.startsWith('data:')) {
       checkPageBreak(35);
       try {
-        doc.addImage(formData.signature, 'JPEG', leftMargin, yPos, 60, 25);
+        doc.addImage(formData.signature, 'PNG', leftMargin, yPos, 60, 25);
         yPos += 28;
       } catch (e) {
         console.error('Error adding signature:', e);
@@ -1120,6 +1081,7 @@ function initializeForm() {
         await saveToDatabase(formData, signatureUrl, pdfUrl);
       } catch (dbError) {
         console.error('Database save failed:', dbError);
+        showStatus('Warning: Form submitted but database save failed. Our team has been notified. Error: ' + dbError.message, 'error');
       }
 
       showThankYouPage(formData);

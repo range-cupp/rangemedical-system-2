@@ -789,7 +789,7 @@ function initializeForm() {
         text: cb.closest('label').querySelector('.ack-text').textContent,
         checked: cb.checked
       })),
-      signature: signaturePad.toDataURL('image/jpeg', 0.5),
+      signature: signaturePad.toDataURL('image/png'),
       submissionDate: new Date().toLocaleString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric',
         hour: '2-digit', minute: '2-digit',
@@ -807,11 +807,11 @@ function initializeForm() {
 
     const timestamp = Date.now();
     const safeName = `${firstName}-${lastName}`.replace(/[^a-z0-9]/gi, '-').toLowerCase();
-    const fileName = `signatures/${safeName}-${timestamp}.jpg`;
+    const fileName = `signatures/${safeName}-${timestamp}.png`;
     
     const { data, error } = await supabaseClient.storage
       .from('medical-documents')
-      .upload(fileName, blob, { contentType: 'image/jpeg', upsert: false });
+      .upload(fileName, blob, { contentType: 'image/png', upsert: false });
     
     if (error) throw new Error('Failed to upload signature: ' + error.message);
     
@@ -1095,7 +1095,7 @@ function initializeForm() {
     if (formData.signature && formData.signature.startsWith('data:')) {
       checkPageBreak(35);
       try {
-        doc.addImage(formData.signature, 'JPEG', leftMargin, yPos, 60, 25);
+        doc.addImage(formData.signature, 'PNG', leftMargin, yPos, 60, 25);
         yPos += 28;
       } catch (e) {
         console.error('Error adding signature:', e);
@@ -1179,8 +1179,9 @@ function initializeForm() {
         await saveToDatabase(formData, signatureUrl, pdfUrl);
       } catch (dbError) {
         console.error('Database save failed:', dbError);
+        showStatus('Warning: Form submitted but database save failed. Please contact the clinic.', 'error');
       }
-      
+
       showThankYouPage(formData);
       
     } catch (error) {

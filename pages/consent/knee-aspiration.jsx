@@ -188,10 +188,10 @@ export default function KneeAspirationConsentPage() {
         const pdfBlob = await generatePDF(formData);
 
         // Upload signature
-        const sigFileName = `${formData.firstName}-${formData.lastName}-${Date.now()}.jpg`;
+        const sigFileName = `${formData.firstName}-${formData.lastName}-${Date.now()}.png`;
         const { data: sigData, error: sigError } = await supabaseClient.storage
           .from('medical-documents')
-          .upload(`signatures/${sigFileName}`, dataURLtoBlob(formData.signatureData), { contentType: 'image/jpeg' });
+          .upload(`signatures/${sigFileName}`, dataURLtoBlob(formData.signatureData), { contentType: 'image/png' });
 
         const signatureUrl = sigError ? '' :
           `${SUPABASE_URL}/storage/v1/object/public/medical-documents/signatures/${sigFileName}`;
@@ -207,7 +207,7 @@ export default function KneeAspirationConsentPage() {
 
         // Save to database via server-side API
         try {
-          await fetch('/api/consent-forms', {
+          const dbRes = await fetch('/api/consent-forms', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -241,7 +241,8 @@ export default function KneeAspirationConsentPage() {
               }
             })
           });
-        } catch (dbErr) { console.error('DB save error:', dbErr); }
+          if (!dbRes.ok) { console.error('DB save error:', dbRes.status); statusMsg.textContent = 'Warning: Form submitted but database save failed. Please contact the clinic.'; statusMsg.className = 'status-message error'; statusMsg.style.display = 'block'; }
+        } catch (dbErr) { console.error('DB save error:', dbErr); statusMsg.textContent = 'Warning: Form submitted but database save failed. Please contact the clinic.'; statusMsg.className = 'status-message error'; statusMsg.style.display = 'block'; }
 
         // Success
         showThankYouPage(formData);

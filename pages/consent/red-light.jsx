@@ -74,9 +74,13 @@ export default function RedLightConsentForm() {
       const canvas = signatureCanvasRef.current;
       if (canvas) {
         const container = canvas.parentElement;
-        canvas.width = container.offsetWidth;
-        canvas.height = 200;
-        
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = container.offsetWidth * ratio;
+        canvas.height = 200 * ratio;
+        canvas.style.width = container.offsetWidth + 'px';
+        canvas.style.height = '200px';
+        canvas.getContext('2d').scale(ratio, ratio);
+
         signaturePadRef.current = new window.SignaturePad(canvas, {
           backgroundColor: 'rgb(255, 255, 255)',
           penColor: 'rgb(0, 0, 0)'

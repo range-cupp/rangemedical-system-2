@@ -121,14 +121,17 @@ export default function PeptideConsentPage() {
         formData.acknowledgments = acknowledgments;
 
         const pdfBlob = await generatePDF(formData);
-        const sigFileName = `${formData.firstName}-${formData.lastName}-${Date.now()}.jpg`;
-        const { error: sigError } = await supabaseClient.storage.from('medical-documents').upload(`signatures/${sigFileName}`, dataURLtoBlob(formData.signatureData), { contentType: 'image/jpeg' });
+        const sigFileName = `${formData.firstName}-${formData.lastName}-${Date.now()}.png`;
+        const { error: sigError } = await supabaseClient.storage.from('medical-documents').upload(`signatures/${sigFileName}`, dataURLtoBlob(formData.signatureData), { contentType: 'image/png' });
         const signatureUrl = sigError ? '' : `${SUPABASE_URL}/storage/v1/object/public/medical-documents/signatures/${sigFileName}`;
         const pdfFileName = `peptide-consent-${formData.firstName}-${formData.lastName}-${Date.now()}.pdf`;
         const { error: pdfError } = await supabaseClient.storage.from('medical-documents').upload(`consents/${pdfFileName}`, pdfBlob, { contentType: 'application/pdf' });
         const pdfUrl = pdfError ? '' : `${SUPABASE_URL}/storage/v1/object/public/medical-documents/consents/${pdfFileName}`;
 
-        try { await fetch('/api/consent-forms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ consentType: 'peptide', firstName: formData.firstName, lastName: formData.lastName, email: formData.email, phone: formData.phone, dateOfBirth: formData.dateOfBirth, consentDate: new Date().toISOString().split('T')[0], consentGiven: true, signatureUrl, pdfUrl, additionalData: { health_screening: { allergies: formData.allergies, allergyDetails: formData.allergyDetails, pregnant: formData.pregnant, medications: formData.medications, medicationDetails: formData.medicationDetails, autoimmune: formData.autoimmune, autoimmuneDetails: formData.autoimmuneDetails, cancer: formData.cancer, cancerDetails: formData.cancerDetails, selfInjecting: formData.selfInjecting }, acknowledgments } }) }); } catch(e) { console.error('DB save error:', e); }
+        try {
+          const dbRes = await fetch('/api/consent-forms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ consentType: 'peptide', firstName: formData.firstName, lastName: formData.lastName, email: formData.email, phone: formData.phone, dateOfBirth: formData.dateOfBirth, consentDate: new Date().toISOString().split('T')[0], consentGiven: true, signatureUrl, pdfUrl, additionalData: { health_screening: { allergies: formData.allergies, allergyDetails: formData.allergyDetails, pregnant: formData.pregnant, medications: formData.medications, medicationDetails: formData.medicationDetails, autoimmune: formData.autoimmune, autoimmuneDetails: formData.autoimmuneDetails, cancer: formData.cancer, cancerDetails: formData.cancerDetails, selfInjecting: formData.selfInjecting }, acknowledgments } }) });
+          if (!dbRes.ok) { console.error('DB save error:', dbRes.status); statusMsg.textContent = 'Warning: Form submitted but database save failed. Please contact the clinic.'; statusMsg.className = 'status-message error'; statusMsg.style.display = 'block'; }
+        } catch(e) { console.error('DB save error:', e); statusMsg.textContent = 'Warning: Form submitted but database save failed. Please contact the clinic.'; statusMsg.className = 'status-message error'; statusMsg.style.display = 'block'; }
 
         showThankYouPage(formData);
       } catch (err) { console.error(err); statusMsg.textContent = 'Error submitting form. Please try again.'; statusMsg.className = 'status-message error'; statusMsg.style.display = 'block'; submitBtn.disabled = false; submitBtn.textContent = 'Submit Consent'; }

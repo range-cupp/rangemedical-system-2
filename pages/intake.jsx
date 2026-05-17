@@ -3063,8 +3063,8 @@ function initializeForm() {
         throw new Error(errorData.details || 'Failed to save form');
       }
 
-      // 6. Sync to GHL + Send email
-      showStatus('Syncing to system...', 'loading');
+      // 6. Send email notification
+      showStatus('Sending notification...', 'loading');
       await fetch('/api/intake-to-ghl', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

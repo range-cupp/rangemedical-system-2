@@ -10061,9 +10061,46 @@ export default function PatientProfile() {
                             <span>{consent.first_name} {consent.last_name}</span>
                             <span className="consent-date">{formatDate(consent.consent_date || consent.submitted_at)}</span>
                           </div>
+                          {consent.signature_url && (
+                            <div className="consent-signature-preview" onClick={e => { e.stopPropagation(); openPdfViewer(consent.signature_url, 'Signature'); }}>
+                              <img src={consent.signature_url} alt="Signature" />
+                            </div>
+                          )}
+                          {consent.additional_data && (() => {
+                            const ad = consent.additional_data;
+                            const healthAnswers = ad.healthAnswers || ad.health_screening || null;
+                            const acks = ad.acknowledgments || null;
+                            if (!healthAnswers && !acks) return null;
+                            return (
+                              <div className="consent-details">
+                                {healthAnswers && Object.keys(healthAnswers).length > 0 && (
+                                  <div className="consent-detail-section">
+                                    <div className="consent-detail-label">Health Screening</div>
+                                    <div className="consent-detail-items">
+                                      {Object.entries(healthAnswers).filter(([k]) => !k.endsWith('_details')).map(([key, val]) => {
+                                        const details = healthAnswers[key + '_details'];
+                                        const isYes = String(val).toLowerCase() === 'yes';
+                                        return (
+                                          <div key={key} className={`consent-hq-item ${isYes ? 'yes' : ''}`}>
+                                            <span className="consent-hq-badge">{String(val).toUpperCase()}</span>
+                                            <span className="consent-hq-key">{key}</span>
+                                            {details && <span className="consent-hq-detail">{details}</span>}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                                {acks && acks.length > 0 && (
+                                  <div className="consent-detail-section">
+                                    <div className="consent-detail-label">Acknowledgments ({acks.filter(a => a.checked).length}/{acks.length})</div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                           <div className="consent-actions">
                             {consent.pdf_url && <button onClick={e => { e.stopPropagation(); openPdfViewer(consent.pdf_url, `${typeName} Consent`); }} className="btn-secondary-sm">View PDF</button>}
-                            {consent.signature_url && <button onClick={e => { e.stopPropagation(); openPdfViewer(consent.signature_url, 'Signature'); }} className="btn-text">Signature</button>}
                             <button onClick={e => { e.stopPropagation(); handleDeleteConsent(consent.id); }} className="btn-secondary-sm" style={{ fontSize: 11, padding: '3px 8px', color: '#dc2626' }}>Delete</button>
                           </div>
                         </div>
@@ -18352,6 +18389,18 @@ export default function PatientProfile() {
         }
         .consent-date { color: #9ca3af; }
         .consent-actions { display: flex; gap: 8px; padding-left: 28px; }
+        .consent-signature-preview { padding: 6px 0 8px 28px; cursor: pointer; }
+        .consent-signature-preview img { height: 40px; max-width: 160px; object-fit: contain; border: 1px solid #e5e7eb; border-radius: 0; background: #fff; padding: 2px 6px; }
+        .consent-signature-preview:hover img { border-color: #9ca3af; }
+        .consent-details { padding: 8px 0 4px 28px; }
+        .consent-detail-section { margin-bottom: 6px; }
+        .consent-detail-label { font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .consent-detail-items { display: flex; flex-wrap: wrap; gap: 4px; }
+        .consent-hq-item { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 6px; background: #f3f4f6; border-radius: 0; color: #6b7280; }
+        .consent-hq-item.yes { background: #fef3c7; color: #92400e; }
+        .consent-hq-badge { font-weight: 700; font-size: 10px; }
+        .consent-hq-key { font-weight: 500; }
+        .consent-hq-detail { color: #9ca3af; font-style: italic; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         /* Document Cards */
         .document-list { padding: 16px; }

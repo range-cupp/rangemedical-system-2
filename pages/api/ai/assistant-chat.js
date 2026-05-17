@@ -78,6 +78,20 @@ const tools = [
       required: ['patient_id'],
     },
   },
+  {
+    name: 'draft_email',
+    description: 'Draft an email to send to a patient or anyone. Use when staff asks to email someone. The email will be shown as a preview for the staff to approve before sending. Always look up the patient\'s email from their records if not already known.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        to: { type: 'string', description: 'Recipient email address' },
+        to_name: { type: 'string', description: 'Recipient display name' },
+        subject: { type: 'string', description: 'Email subject line' },
+        body: { type: 'string', description: 'Email body text. Write naturally as if from a clinic staff member. Use plain text with line breaks.' },
+      },
+      required: ['to', 'subject', 'body'],
+    },
+  },
 ];
 
 export default async function handler(req, res) {
@@ -106,6 +120,7 @@ You can help with:
 - GENERAL: Answer questions about services, pricing, protocols
 
 When staff asks about a patient's meds, next pickup, treatment plan, visit history, or anything clinical — use the lookup_patient_records tool. If a patient is already selected in context, use their patient_id directly. If not, search for them first.
+When staff asks to email a patient, use draft_email. Look up the patient's email first if needed. Write the email body in a warm, professional tone from the clinic. The draft will be previewed before sending — staff must approve it.
 When staff mentions a product, walk through the decision tree one question at a time. Once confirmed, use the add_to_cart tool.
 When staff wants to book, search the patient, check slots, confirm, and book.
 

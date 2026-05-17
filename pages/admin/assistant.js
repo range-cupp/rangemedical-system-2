@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, ShoppingCart, Calendar, User, X, Check, Plus, MessageSquare, Trash2, Search, Mail, FileText, CheckSquare, Clock, CreditCard, TestTube, Shield, UserCheck, MessageCircle } from 'lucide-react';
+import { Send, ShoppingCart, Calendar, User, X, Check, Plus, MessageSquare, Trash2, Search, Mail, FileText, CheckSquare, Clock, CreditCard, TestTube, Shield, UserCheck, MessageCircle, AlertTriangle } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
 
@@ -468,6 +468,15 @@ export default function AssistantPage() {
       } catch { return { error: 'Failed to fetch payment history' }; }
     }
 
+    if (name === 'program_due_list') {
+      try {
+        const res = await fetch(`/api/ai/program-due-list?program=${encodeURIComponent(args.program)}`);
+        const data = await res.json();
+        if (!res.ok) return { error: data.error || 'Failed to fetch program due list' };
+        return data;
+      } catch { return { error: 'Failed to fetch program due list' }; }
+    }
+
     if (name === 'send_consent_forms') {
       try {
         const pid = args.patient_id || patient?.id;
@@ -585,6 +594,7 @@ export default function AssistantPage() {
           if (tr.tool === 'lookup_membership' && tr.result.memberships) return `${tr.result.summary.active_count} active membership(s): ${tr.result.summary.active_names}`;
           if (tr.tool === 'lookup_consent_forms' && tr.result.forms) return `${tr.result.summary.total_signed} consent forms signed. Intake: ${tr.result.summary.has_intake ? 'yes' : 'NO'}, HIPAA: ${tr.result.summary.has_hipaa ? 'yes' : 'NO'}`;
           if (tr.tool === 'lookup_payments' && tr.result.summary) return `Credit balance: ${tr.result.summary.credit_balance}. Total spent: ${tr.result.summary.total_spent}. ${tr.result.summary.pending_invoices} pending invoice(s). Last payment: ${tr.result.summary.last_payment || 'none'}`;
+          if (tr.tool === 'program_due_list' && tr.result.patients) return `${tr.result.summary.due_count} ${tr.result.program.replace(/_/g, ' ')} patients due (${tr.result.summary.overdue} overdue, ${tr.result.summary.due_now} due now, ${tr.result.summary.due_soon} due soon) out of ${tr.result.summary.total_active} active. The list card is shown — do NOT list all patients in text. Just summarize the numbers.`;
           if (tr.tool === 'send_consent_forms' && tr.result.all_complete) return `${tr.result.patient_name} has all forms complete for ${tr.result.service} — nothing to send.`;
           if (tr.tool === 'send_consent_forms' && tr.result.preview) return `Ready to send ${tr.result.forms_to_send.length} form(s) to ${tr.result.patient_name} at ${tr.result.patient_email}: ${tr.result.forms_to_send.map(f => f.name).join(', ')}. The send card is shown — staff will click Send to confirm.`;
           if (tr.tool === 'send_consent_forms' && tr.result.error) return tr.result.error;
@@ -890,6 +900,57 @@ export default function AssistantPage() {
               </div>
             ))}
           </div>
+        </div>
+      );
+    }
+    if (tr.tool === 'program_due_list' && tr.result.patients) {
+      const { patients: pats, summary: sum, program: prog } = tr.result;
+      const programLabel = prog.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const urgencyStyles = { overdue: { bg: '#fee2e2', text: '#dc2626' }, due_now: { bg: '#fef3c7', text: '#92400e' }, due_soon: { bg: '#dbeafe', text: '#1e40af' } };
+      return (
+        <div style={st.toolCard}>
+          <div style={st.toolCardHeader}>
+            <CreditCard size={14} /> {programLabel} — Payment Due
+            <span style={{ marginLeft: 'auto', fontWeight: 400, color: '#6b7280' }}>
+              {sum.due_count} of {sum.total_active} active
+            </span>
+          </div>
+          {sum.due_count === 0 ? (
+            <div style={{ padding: '16px', textAlign: 'center', color: '#16a34a', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <Check size={14} /> All {programLabel.toLowerCase()} patients are current on payments.
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', gap: '8px', padding: '8px 12px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb', fontSize: '11px' }}>
+                {sum.overdue > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#dc2626', fontWeight: 600 }}><AlertTriangle size={11} /> {sum.overdue} overdue</span>}
+                {sum.due_now > 0 && <span style={{ color: '#92400e', fontWeight: 600 }}>{sum.due_now} due now</span>}
+                {sum.due_soon > 0 && <span style={{ color: '#1e40af' }}>{sum.due_soon} due soon</span>}
+              </div>
+              <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                {pats.map((p, i) => {
+                  const us = urgencyStyles[p.urgency] || urgencyStyles.due_soon;
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderBottom: '1px solid #f3f4f6', fontSize: '13px' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontWeight: 600, color: '#111827' }}>{p.patient_name}</span>
+                          <span style={{ ...st.badge, background: us.bg, color: us.text }}>{p.urgency_label}</span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '1px' }}>
+                          {p.medication} {p.dose}{p.sessions_used !== undefined && p.total_sessions ? ` — ${p.sessions_used}/${p.total_sessions} used` : ''}
+                          {p.last_purchase_date ? ` — Last paid ${new Date(p.last_purchase_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ' — No purchases'}
+                        </div>
+                      </div>
+                      <button
+                        style={{ padding: '4px 8px', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '11px', color: '#4338ca', cursor: 'pointer', fontWeight: 500, flexShrink: 0 }}
+                        onClick={() => { setPatient({ id: p.patient_id, name: p.patient_name, phone: p.patient_phone }); setInput(`Look up ${p.patient_name}'s records`); inputRef.current?.focus(); }}
+                      >Records</button>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       );
     }

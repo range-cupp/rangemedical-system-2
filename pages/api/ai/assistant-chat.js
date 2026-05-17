@@ -202,6 +202,17 @@ const tools = [
     },
   },
   {
+    name: 'program_due_list',
+    description: 'Get a list of patients who are due for their next payment round on a program. Use when staff asks "who needs their next weight loss payment?", "which WL patients are due?", "who needs to renew HRT?", "HBOT patients running low?", or any question about which patients on a program need their next round/block/pack.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        program: { type: 'string', enum: ['weight_loss', 'hrt', 'peptide', 'iv', 'hbot', 'rlt', 'injection'], description: 'Program category to check. E.g. "weight_loss" for WL patients due for their next 4-pack.' },
+      },
+      required: ['program'],
+    },
+  },
+  {
     name: 'send_consent_forms',
     description: 'Send missing consent forms to a patient via email. Use when staff says "send them their forms", "email the HBOT consent", "send missing forms to [patient]", "send forms for their appointment", etc. This checks which forms the patient has already signed and only sends the ones they\'re missing for the given service.',
     input_schema: {
@@ -253,6 +264,7 @@ You can help with:
 - MEMBERSHIPS: Check active subscriptions, renewal dates, membership status
 - CONSENTS: Check which consent forms are signed or missing
 - SEND FORMS: Send missing consent forms to patients via email
+- PROGRAM DUE: List patients due for their next payment round on any program (WL, HRT, peptide, HBOT, etc.)
 - GENERAL: Answer questions about services, pricing, protocols
 
 DATE HANDLING: You know today's date. When someone says "today", "tomorrow", "Monday", "next week", "this Friday", etc., calculate the correct YYYY-MM-DD date yourself. Never ask the user for a date format — just figure it out. "Monday" means the upcoming Monday. "Last Tuesday" means the most recent past Tuesday.
@@ -268,6 +280,7 @@ When staff asks about labs, bloodwork, or test results — use lookup_lab_result
 When staff asks about memberships, subscriptions, or renewals — use lookup_membership.
 When staff asks about consent forms, whether forms are signed, or what's missing — use lookup_consent_forms.
 When staff asks about payments, balance, invoices, spending, or whether someone owes anything — use lookup_payments.
+When staff asks which patients are due for their next payment, round, pack, or renewal on any program — use program_due_list. Pick the matching program (weight_loss, hrt, peptide, hbot, etc.).
 When staff asks to send forms, consent forms, or paperwork to a patient — use send_consent_forms. Pick the service_category that matches their service (e.g. "hbot" for HBOT patients). If no specific service is mentioned, use "general" to send intake + HIPAA.
 When staff mentions a product, walk through the decision tree one question at a time. Once confirmed, use the add_to_cart tool.
 When staff wants to book, search the patient, check slots, confirm, and book.

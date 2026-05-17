@@ -161,7 +161,7 @@ All prices + $2/vial California surcharge.
 
 | Service | Compound COGS | Supplies | Total COGS | Patient Price | Margin % |
 |---------|--------------|----------|-----------|--------------|----------|
-| Range IV (PlenishIV base) | $47.00 | $11.54 | $58.54 | $199 | 70.6% |
+| Range IV (PlenishIV base) | $47.00 | $11.54 | $58.54 | $225 | 74.0% |
 | Range IV + Vitamin C (5g) | $59.50 | $11.54 | $71.04 | $249 | 71.5% |
 | Range IV + Vitamin C (25g) | $77.00 | $11.54 | $88.54 | $299 | 70.4% |
 | NAD+ IV (500mg) | $101.00 | $9.72 | $110.72 | $399 | 72.2% |

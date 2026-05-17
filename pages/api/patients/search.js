@@ -31,11 +31,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Query must be at least 2 characters' });
     }
 
-    // Search by name (case insensitive)
     const { data: patients, error } = await supabase
       .from('patients')
-      .select('id, name, email, phone, ghl_contact_id, address, city, state, zip_code, profile_photo_url, gender, date_of_birth')
-      .ilike('name', `%${q}%`)
+      .select('id, first_name, last_name, name, email, phone, ghl_contact_id, address, city, state, zip_code, profile_photo_url, gender, date_of_birth')
+      .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,name.ilike.%${q}%,email.ilike.%${q}%,phone.ilike.%${q}%`)
       .order('name')
       .limit(20);
 

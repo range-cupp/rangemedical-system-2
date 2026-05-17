@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, ShoppingCart, Calendar, User, X, Check, Plus, MessageSquare, Trash2, Search, Mail, FileText, CheckSquare, Clock } from 'lucide-react';
+import { Send, ShoppingCart, Calendar, User, X, Check, Plus, MessageSquare, Trash2, Search, Mail, FileText, CheckSquare, Clock, CreditCard, TestTube, Shield, UserCheck, MessageCircle } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
 
@@ -299,6 +299,79 @@ export default function AssistantPage() {
       } catch { return { error: 'Failed to create task' }; }
     }
 
+    if (name === 'lookup_comms_history') {
+      try {
+        const pid = args.patient_id || patient?.id;
+        if (!pid) return { error: 'No patient selected. Search for a patient first.' };
+        const channelParam = args.channel ? `&channel=${args.channel}` : '';
+        const res = await fetch(`/api/ai/comms-history?patient_id=${pid}${channelParam}`);
+        const data = await res.json();
+        if (!res.ok) return { error: data.error || 'Failed to fetch comms' };
+        return data;
+      } catch { return { error: 'Failed to fetch comms history' }; }
+    }
+
+    if (name === 'cancel_appointment') {
+      try {
+        const res = await fetch('/api/ai/cancel-appointment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            appointment_id: args.appointment_id,
+            reason: args.reason || null,
+            cancelled_by: employee?.name || 'AI Assistant',
+          }),
+        });
+        const data = await res.json();
+        if (data.success) return data;
+        return { error: data.error || 'Failed to cancel' };
+      } catch { return { error: 'Failed to cancel appointment' }; }
+    }
+
+    if (name === 'lookup_lab_results') {
+      try {
+        const pid = args.patient_id || patient?.id;
+        if (!pid) return { error: 'No patient selected. Search for a patient first.' };
+        const res = await fetch(`/api/ai/lab-results?patient_id=${pid}`);
+        const data = await res.json();
+        if (!res.ok) return { error: data.error || 'Failed to fetch labs' };
+        return data;
+      } catch { return { error: 'Failed to fetch lab results' }; }
+    }
+
+    if (name === 'lookup_membership') {
+      try {
+        const pid = args.patient_id || patient?.id;
+        if (!pid) return { error: 'No patient selected. Search for a patient first.' };
+        const res = await fetch(`/api/ai/membership-status?patient_id=${pid}`);
+        const data = await res.json();
+        if (!res.ok) return { error: data.error || 'Failed to fetch memberships' };
+        return data;
+      } catch { return { error: 'Failed to fetch membership status' }; }
+    }
+
+    if (name === 'lookup_consent_forms') {
+      try {
+        const pid = args.patient_id || patient?.id;
+        if (!pid) return { error: 'No patient selected. Search for a patient first.' };
+        const res = await fetch(`/api/ai/consent-status?patient_id=${pid}`);
+        const data = await res.json();
+        if (!res.ok) return { error: data.error || 'Failed to fetch consents' };
+        return data;
+      } catch { return { error: 'Failed to fetch consent status' }; }
+    }
+
+    if (name === 'lookup_payments') {
+      try {
+        const pid = args.patient_id || patient?.id;
+        if (!pid) return { error: 'No patient selected. Search for a patient first.' };
+        const res = await fetch(`/api/ai/payment-history?patient_id=${pid}`);
+        const data = await res.json();
+        if (!res.ok) return { error: data.error || 'Failed to fetch payments' };
+        return data;
+      } catch { return { error: 'Failed to fetch payment history' }; }
+    }
+
     return { error: `Unknown action: ${name}` };
   }
 
@@ -365,6 +438,12 @@ export default function AssistantPage() {
           if (tr.tool === 'add_note') return tr.result.success ? `Note added to ${tr.result.patient_name}'s chart` : tr.result.error;
           if (tr.tool === 'create_task') return tr.result.success ? `Task "${tr.result.task.title}" created, assigned to ${tr.result.assigned_to_name}` : tr.result.error;
           if (tr.tool === 'today_schedule' && tr.result.appointments) return `${tr.result.summary.total} appointments on ${tr.result.date}: ${tr.result.appointments.map(a => `${a.time} ${a.patient_name} (${a.service})`).join(', ')}`;
+          if (tr.tool === 'lookup_comms_history' && tr.result.comms) return `${tr.result.summary.total} recent communications (${tr.result.summary.inbound} inbound, ${tr.result.summary.outbound} outbound)`;
+          if (tr.tool === 'cancel_appointment' && tr.result.success) return `Cancelled ${tr.result.patient_name}'s ${tr.result.service} at ${tr.result.time}`;
+          if (tr.tool === 'lookup_lab_results' && tr.result.labs) return `${tr.result.summary.total} lab records (${tr.result.summary.completed} completed, ${tr.result.summary.pending} pending). Next lab: ${tr.result.summary.next_lab || 'not scheduled'}`;
+          if (tr.tool === 'lookup_membership' && tr.result.memberships) return `${tr.result.summary.active_count} active membership(s): ${tr.result.summary.active_names}`;
+          if (tr.tool === 'lookup_consent_forms' && tr.result.forms) return `${tr.result.summary.total_signed} consent forms signed. Intake: ${tr.result.summary.has_intake ? 'yes' : 'NO'}, HIPAA: ${tr.result.summary.has_hipaa ? 'yes' : 'NO'}`;
+          if (tr.tool === 'lookup_payments' && tr.result.summary) return `Credit balance: ${tr.result.summary.credit_balance}. Total spent: ${tr.result.summary.total_spent}. ${tr.result.summary.pending_invoices} pending invoice(s). Last payment: ${tr.result.summary.last_payment || 'none'}`;
           return JSON.stringify(tr.result);
         }).join('\n');
 
@@ -623,6 +702,161 @@ export default function AssistantPage() {
             {protocols.length === 0 && appointments.length === 0 && recentVisits.length === 0 && (
               <div style={{ color: '#9ca3af' }}>No active records found for this patient.</div>
             )}
+          </div>
+        </div>
+      );
+    }
+    if (tr.tool === 'lookup_comms_history' && tr.result.comms) {
+      const comms = tr.result.comms;
+      return (
+        <div style={st.toolCard}>
+          <div style={st.toolCardHeader}><MessageCircle size={14} /> Recent Communications</div>
+          {comms.length === 0 ? (
+            <div style={{ padding: '12px', color: '#9ca3af', fontSize: '13px', textAlign: 'center' }}>No communications found</div>
+          ) : (
+            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              {comms.map((c, i) => (
+                <div key={i} style={{ padding: '6px 12px', borderBottom: '1px solid #f3f4f6', fontSize: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                    <span style={{ ...st.badge, background: c.direction === 'inbound' ? '#dbeafe' : '#f3f4f6', color: c.direction === 'inbound' ? '#1e40af' : '#6b7280' }}>{c.direction === 'inbound' ? '← In' : '→ Out'}</span>
+                    <span style={{ ...st.badge, background: c.channel === 'email' ? '#fef3c7' : '#dcfce7', color: c.channel === 'email' ? '#92400e' : '#166534' }}>{c.channel}</span>
+                    <span style={{ color: '#9ca3af', fontSize: '11px', marginLeft: 'auto' }}>{new Date(c.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })}</span>
+                  </div>
+                  {c.subject && <div style={{ fontWeight: 600, fontSize: '12px', color: '#374151' }}>{c.subject}</div>}
+                  <div style={{ color: '#6b7280', lineHeight: '1.4' }}>{c.message}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+    if (tr.tool === 'cancel_appointment') {
+      const ok = tr.result.success;
+      return (
+        <div style={{ ...st.toolCard, borderColor: ok ? '#fca5a5' : '#e5e7eb' }}>
+          <div style={st.toolCardHeader}>{ok ? <Check size={14} /> : <X size={14} />} {ok ? 'Appointment Cancelled' : 'Cancel Failed'}</div>
+          <div style={st.toolCardBody}>{ok ? `${tr.result.patient_name}'s ${tr.result.service} at ${tr.result.time} has been cancelled.` : tr.result.error}</div>
+        </div>
+      );
+    }
+    if (tr.tool === 'lookup_lab_results' && tr.result.labs) {
+      const { labs, summary } = tr.result;
+      const statusColors = { completed: '#16a34a', provider_reviewed: '#16a34a', pending: '#d97706', awaiting_results: '#d97706', draw_scheduled: '#6366f1', draw_complete: '#6366f1' };
+      return (
+        <div style={st.toolCard}>
+          <div style={st.toolCardHeader}><TestTube size={14} /> Lab Results</div>
+          <div style={{ padding: '8px 12px', fontSize: '13px' }}>
+            {labs.length === 0 ? (
+              <div style={{ color: '#9ca3af' }}>No lab records found.</div>
+            ) : (
+              <>
+                {labs.slice(0, 5).map((l, i) => (
+                  <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid #f3f4f6' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontWeight: 600 }}>{l.panel}</span>
+                      <span style={{ fontSize: '11px', color: statusColors[l.status] || '#6b7280', fontWeight: 600 }}>{l.status?.replace(/_/g, ' ')}</span>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                      {l.test_date && <span>{new Date(l.test_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
+                      {l.provider && <span> · {l.provider}</span>}
+                      {l.biomarker_count > 0 && <span> · {l.biomarker_count} biomarkers</span>}
+                    </div>
+                    {l.synopsis && <div style={{ fontSize: '12px', color: '#4b5563', marginTop: '4px', fontStyle: 'italic' }}>{l.synopsis}</div>}
+                  </div>
+                ))}
+                {summary.next_lab && <div style={{ fontSize: '12px', color: '#4f46e5', marginTop: '6px' }}>Next lab: {new Date(summary.next_lab + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>}
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+    if (tr.tool === 'lookup_membership' && tr.result.memberships) {
+      const { memberships, summary } = tr.result;
+      const statusColors = { active: '#16a34a', past_due: '#dc2626', canceled: '#6b7280', paused: '#d97706' };
+      return (
+        <div style={st.toolCard}>
+          <div style={st.toolCardHeader}><UserCheck size={14} /> Memberships</div>
+          <div style={{ padding: '8px 12px', fontSize: '13px' }}>
+            {memberships.length === 0 ? (
+              <div style={{ color: '#9ca3af' }}>No memberships found.</div>
+            ) : memberships.map((m, i) => (
+              <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid #f3f4f6' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontWeight: 600 }}>{m.name}</span>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: statusColors[m.status] || '#6b7280' }}>{m.status}</span>
+                </div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                  {m.price && <span>{m.price} {m.billing_cycle}</span>}
+                  {m.current_period_end && <span> · Renews {new Date(m.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
+                  {m.cancels_at_period_end && <span style={{ color: '#dc2626' }}> · Cancels at period end</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    if (tr.tool === 'lookup_consent_forms' && tr.result.forms !== undefined) {
+      const { signed_types, has_basics, missing_by_service } = tr.result;
+      return (
+        <div style={st.toolCard}>
+          <div style={st.toolCardHeader}><Shield size={14} /> Consent Forms</div>
+          <div style={{ padding: '8px 12px', fontSize: '13px' }}>
+            <div style={{ marginBottom: '8px' }}>
+              <div style={{ fontWeight: 600, fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Signed</div>
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                {signed_types.length > 0 ? signed_types.map(t => (
+                  <span key={t} style={{ ...st.badge, background: '#dcfce7', color: '#166534' }}>{t}</span>
+                )) : <span style={{ color: '#9ca3af' }}>None</span>}
+              </div>
+            </div>
+            {!has_basics && (
+              <div style={{ padding: '6px 8px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '6px', fontSize: '12px', color: '#dc2626', marginBottom: '6px' }}>
+                Missing required forms: {!signed_types.includes('intake') && 'Intake'}{!signed_types.includes('intake') && !signed_types.includes('hipaa') && ', '}{!signed_types.includes('hipaa') && 'HIPAA'}
+              </div>
+            )}
+            {Object.keys(missing_by_service).length > 0 && (
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Missing by Service</div>
+                {Object.entries(missing_by_service).filter(([k]) => k !== 'general').map(([svc, forms]) => (
+                  <div key={svc} style={{ fontSize: '12px', color: '#6b7280', padding: '2px 0' }}>
+                    <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>{svc.replace(/_/g, ' ')}</span>: {forms.join(', ')}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    if (tr.tool === 'lookup_payments' && tr.result.summary) {
+      const { purchases, invoices, summary } = tr.result;
+      return (
+        <div style={st.toolCard}>
+          <div style={st.toolCardHeader}><CreditCard size={14} /> Payment History</div>
+          <div style={{ padding: '8px 12px', fontSize: '13px' }}>
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '10px', padding: '8px 10px', background: '#f9fafb', borderRadius: '6px' }}>
+              <div><div style={{ fontSize: '11px', color: '#6b7280' }}>Credit Balance</div><div style={{ fontWeight: 700, color: summary.credit_balance_cents > 0 ? '#16a34a' : '#111827' }}>{summary.credit_balance}</div></div>
+              <div><div style={{ fontSize: '11px', color: '#6b7280' }}>Total Spent</div><div style={{ fontWeight: 700 }}>{summary.total_spent}</div></div>
+              {summary.pending_invoices > 0 && <div><div style={{ fontSize: '11px', color: '#dc2626' }}>Pending Invoices</div><div style={{ fontWeight: 700, color: '#dc2626' }}>{summary.pending_invoices}</div></div>}
+            </div>
+            {purchases.length > 0 && (
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Recent Purchases</div>
+                {purchases.slice(0, 8).map((p, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f3f4f6', fontSize: '12px' }}>
+                    <span style={{ color: '#374151' }}>{p.item}{p.quantity > 1 ? ` (×${p.quantity})` : ''}</span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 600 }}>{p.amount}</span>
+                      <span style={{ color: '#9ca3af', fontSize: '11px' }}>{p.date ? new Date(p.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {purchases.length === 0 && <div style={{ color: '#9ca3af' }}>No purchase history found.</div>}
           </div>
         </div>
       );

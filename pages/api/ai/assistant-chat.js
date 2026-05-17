@@ -133,6 +133,74 @@ const tools = [
       required: [],
     },
   },
+  {
+    name: 'lookup_comms_history',
+    description: 'Look up recent communications with a patient — emails, texts, and messages. Use when staff asks "when did we last contact them?", "what did we email them?", "any messages from this patient?", or anything about communication history.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_id: { type: 'string', description: 'Patient UUID' },
+        channel: { type: 'string', enum: ['sms', 'email'], description: 'Filter by channel. Omit for all.' },
+      },
+      required: ['patient_id'],
+    },
+  },
+  {
+    name: 'cancel_appointment',
+    description: 'Cancel a patient\'s appointment. Use when staff says "cancel their appointment", "cancel the 2pm", etc. Always confirm with staff before cancelling. Show the appointment details and ask for confirmation first.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        appointment_id: { type: 'string', description: 'Appointment UUID to cancel' },
+        reason: { type: 'string', description: 'Cancellation reason' },
+      },
+      required: ['appointment_id'],
+    },
+  },
+  {
+    name: 'lookup_lab_results',
+    description: 'Look up a patient\'s lab results and bloodwork. Use when staff asks "are their labs back?", "what were their levels?", "when is their next lab?", or anything about labs or bloodwork.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_id: { type: 'string', description: 'Patient UUID' },
+      },
+      required: ['patient_id'],
+    },
+  },
+  {
+    name: 'lookup_membership',
+    description: 'Check a patient\'s membership/subscription status. Use when staff asks "are they on a membership?", "when does it renew?", "is their membership active?", or anything about subscriptions.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_id: { type: 'string', description: 'Patient UUID' },
+      },
+      required: ['patient_id'],
+    },
+  },
+  {
+    name: 'lookup_consent_forms',
+    description: 'Check a patient\'s consent form status — which forms they\'ve signed and which are missing. Use when staff asks "have they signed their forms?", "are their consents complete?", "do they need to sign anything?".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_id: { type: 'string', description: 'Patient UUID' },
+      },
+      required: ['patient_id'],
+    },
+  },
+  {
+    name: 'lookup_payments',
+    description: 'Look up a patient\'s payment history, balance, and invoices. Use when staff asks "does she owe anything?", "when was their last payment?", "how much have they spent?", "any outstanding invoices?", or anything about payments and billing.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_id: { type: 'string', description: 'Patient UUID' },
+      },
+      required: ['patient_id'],
+    },
+  },
 ];
 
 export default async function handler(req, res) {
@@ -161,12 +229,17 @@ TODAY: ${dayOfWeek}, ${today}
 
 You can help with:
 - CHECKOUT: Add items to the cart (services, injections, IVs, peptides, packs)
-- SCHEDULING: Search patients, check available slots, book appointments
-- PATIENT RECORDS: Look up a patient's protocols, medications, next pickup dates, upcoming appointments, visit history, prescriptions
+- SCHEDULING: Search patients, check available slots, book appointments, cancel appointments
+- PATIENT RECORDS: Look up protocols, medications, next pickup dates, visit history, prescriptions
 - NOTES: Add notes to a patient's chart (clinical observations, follow-ups, staff notes)
 - TASKS: Create tasks for staff (to-dos, reminders, follow-ups)
 - EMAIL: Draft and send emails to patients
 - SCHEDULE: Check today's appointments, see who's coming in, view any date's schedule
+- COMMS: Look up recent emails and texts with a patient
+- PAYMENTS: Check payment history, balances, outstanding invoices, spending
+- LABS: Check lab results, pending bloodwork, next lab date
+- MEMBERSHIPS: Check active subscriptions, renewal dates, membership status
+- CONSENTS: Check which consent forms are signed or missing
 - GENERAL: Answer questions about services, pricing, protocols
 
 DATE HANDLING: You know today's date. When someone says "today", "tomorrow", "Monday", "next week", "this Friday", etc., calculate the correct YYYY-MM-DD date yourself. Never ask the user for a date format — just figure it out. "Monday" means the upcoming Monday. "Last Tuesday" means the most recent past Tuesday.
@@ -176,6 +249,12 @@ When staff asks to email a patient, use draft_email. Look up the patient's email
 When staff asks to add a note about a patient — use add_note. Write the note clearly and professionally, capturing what the staff said. Use the patient_id from context.
 When staff asks to create a task, to-do, or reminder — use create_task. If no specific assignee is mentioned, ask who to assign it to. Available staff: Chris, Damien, Evan, Damon, Lily, Brendyn, Tara.
 When staff asks about today's schedule, who's coming in, or appointments for any date — use today_schedule. Summarize the schedule briefly after showing it.
+When staff asks about communications, messages, or last contact with a patient — use lookup_comms_history.
+When staff asks to cancel an appointment — first look up the patient's records or schedule to find the appointment_id, confirm with staff, then use cancel_appointment.
+When staff asks about labs, bloodwork, or test results — use lookup_lab_results.
+When staff asks about memberships, subscriptions, or renewals — use lookup_membership.
+When staff asks about consent forms, whether forms are signed, or what's missing — use lookup_consent_forms.
+When staff asks about payments, balance, invoices, spending, or whether someone owes anything — use lookup_payments.
 When staff mentions a product, walk through the decision tree one question at a time. Once confirmed, use the add_to_cart tool.
 When staff wants to book, search the patient, check slots, confirm, and book.
 

@@ -3,7 +3,7 @@ import { Send, ShoppingCart, Calendar, User, X, Check, Plus, MessageSquare, Tras
 import AdminLayout from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
 
-const WELCOME_MSG = { role: 'assistant', content: 'Hey! What can I help with? I can check out patients, book appointments, look up records, add notes, create tasks, send emails, or answer questions about services and pricing.' };
+const WELCOME_MSG = { role: 'assistant', content: 'Hey! What can I help with? I can check out patients, book appointments, look up records, add notes, create tasks, send emails, send consent forms, or answer questions about services and pricing.' };
 
 function renderMarkdown(text) {
   if (!text) return text;
@@ -468,6 +468,20 @@ export default function AssistantPage() {
       } catch { return { error: 'Failed to fetch payment history' }; }
     }
 
+    if (name === 'send_consent_forms') {
+      try {
+        const pid = args.patient_id || patient?.id;
+        if (!pid) return { error: 'No patient selected. Search for a patient first.' };
+        const svc = args.service_category || 'general';
+        const res = await fetch(`/api/ai/check-missing-forms?patient_id=${pid}&service=${svc}`);
+        const data = await res.json();
+        if (!res.ok) return { error: data.error || 'Failed to check forms' };
+        if (!data.patient_email) return { error: `No email on file for ${data.patient_name}. Add their email first.` };
+        if (data.all_complete) return { all_complete: true, patient_name: data.patient_name, service: svc, signed_types: data.signed_types };
+        return { preview: true, ...data };
+      } catch { return { error: 'Failed to check missing forms' }; }
+    }
+
     return { error: `Unknown action: ${name}` };
   }
 
@@ -493,6 +507,37 @@ export default function AssistantPage() {
           return { ...m, toolResults: m.toolResults.map(tr =>
             tr.tool === 'draft_email' && tr.result.to === draft.to && tr.result.subject === draft.subject
               ? { ...tr, result: { ...tr.result, sent: true } }
+              : tr
+          )};
+        }));
+        return true;
+      }
+      return false;
+    } catch { return false; }
+  }
+
+  async function sendConsentForms(data) {
+    try {
+      const res = await fetch('/api/admin/send-forms-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: data.patient_email,
+          firstName: data.first_name,
+          formIds: data.forms_to_send.map(f => f.id),
+          patientId: data.patient_id,
+          patientName: data.patient_name,
+          patientPhone: data.patient_phone,
+          metadata: { source: 'ai-assistant', sent_by: employee?.name },
+        }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setMessages(prev => prev.map(m => {
+          if (!m.toolResults) return m;
+          return { ...m, toolResults: m.toolResults.map(tr =>
+            tr.tool === 'send_consent_forms' && tr.result.patient_id === data.patient_id && tr.result.preview
+              ? { ...tr, result: { ...tr.result, sent: true, bundle_url: result.bundleUrl } }
               : tr
           )};
         }));
@@ -540,6 +585,9 @@ export default function AssistantPage() {
           if (tr.tool === 'lookup_membership' && tr.result.memberships) return `${tr.result.summary.active_count} active membership(s): ${tr.result.summary.active_names}`;
           if (tr.tool === 'lookup_consent_forms' && tr.result.forms) return `${tr.result.summary.total_signed} consent forms signed. Intake: ${tr.result.summary.has_intake ? 'yes' : 'NO'}, HIPAA: ${tr.result.summary.has_hipaa ? 'yes' : 'NO'}`;
           if (tr.tool === 'lookup_payments' && tr.result.summary) return `Credit balance: ${tr.result.summary.credit_balance}. Total spent: ${tr.result.summary.total_spent}. ${tr.result.summary.pending_invoices} pending invoice(s). Last payment: ${tr.result.summary.last_payment || 'none'}`;
+          if (tr.tool === 'send_consent_forms' && tr.result.all_complete) return `${tr.result.patient_name} has all forms complete for ${tr.result.service} — nothing to send.`;
+          if (tr.tool === 'send_consent_forms' && tr.result.preview) return `Ready to send ${tr.result.forms_to_send.length} form(s) to ${tr.result.patient_name} at ${tr.result.patient_email}: ${tr.result.forms_to_send.map(f => f.name).join(', ')}. The send card is shown — staff will click Send to confirm.`;
+          if (tr.tool === 'send_consent_forms' && tr.result.error) return tr.result.error;
           return JSON.stringify(tr.result);
         }).join('\n');
 
@@ -841,6 +889,65 @@ export default function AssistantPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      );
+    }
+    if (tr.tool === 'send_consent_forms' && tr.result.preview) {
+      const d = tr.result;
+      return (
+        <div style={{ ...st.toolCard, borderColor: d.sent ? '#86efac' : '#c7d2fe' }}>
+          <div style={st.toolCardHeader}>
+            <Mail size={14} /> {d.sent ? 'Forms Sent' : 'Send Consent Forms'}
+          </div>
+          <div style={{ padding: '10px 12px', fontSize: '13px' }}>
+            <div style={{ marginBottom: '6px' }}>
+              <span style={{ color: '#6b7280', fontSize: '12px' }}>To: </span>
+              <span style={{ fontWeight: 500 }}>{d.patient_name} &lt;{d.patient_email}&gt;</span>
+            </div>
+            <div style={{ marginBottom: '8px' }}>
+              <span style={{ color: '#6b7280', fontSize: '12px' }}>Service: </span>
+              <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>{d.service.replace(/_/g, ' ')}</span>
+            </div>
+            <div style={{ padding: '8px 10px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+              <div style={{ fontWeight: 600, fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '6px' }}>Forms to Send</div>
+              {d.forms_to_send.map(f => (
+                <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid #f3f4f6', fontSize: '12px' }}>
+                  <span style={{ color: '#374151', fontWeight: 500 }}>{f.name}</span>
+                  <span style={{ color: '#9ca3af', fontSize: '11px' }}>{f.time}</span>
+                </div>
+              ))}
+            </div>
+            {d.signed_types.length > 0 && (
+              <div style={{ marginTop: '6px', fontSize: '11px', color: '#6b7280' }}>
+                Already signed: {d.signed_types.join(', ')}
+              </div>
+            )}
+            {!d.sent && (
+              <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                <button
+                  onClick={() => sendConsentForms(d)}
+                  style={{ padding: '7px 16px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Send size={13} /> Send Forms
+                </button>
+              </div>
+            )}
+            {d.sent && (
+              <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px', color: '#16a34a', fontSize: '12px', fontWeight: 600 }}>
+                <Check size={14} /> Sent to {d.patient_email}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    if (tr.tool === 'send_consent_forms' && tr.result.all_complete) {
+      return (
+        <div style={{ ...st.toolCard, borderColor: '#86efac' }}>
+          <div style={st.toolCardHeader}><Shield size={14} /> All Forms Complete</div>
+          <div style={{ padding: '8px 12px', fontSize: '13px', color: '#16a34a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Check size={14} /> {tr.result.patient_name} has all required forms signed for {tr.result.service.replace(/_/g, ' ')}.
           </div>
         </div>
       );

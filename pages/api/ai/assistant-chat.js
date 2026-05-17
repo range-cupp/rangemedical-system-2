@@ -201,6 +201,18 @@ const tools = [
       required: ['patient_id'],
     },
   },
+  {
+    name: 'send_consent_forms',
+    description: 'Send missing consent forms to a patient via email. Use when staff says "send them their forms", "email the HBOT consent", "send missing forms to [patient]", "send forms for their appointment", etc. This checks which forms the patient has already signed and only sends the ones they\'re missing for the given service.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_id: { type: 'string', description: 'Patient UUID' },
+        service_category: { type: 'string', enum: ['general', 'hrt', 'weight_loss', 'iv', 'peptide', 'hbot', 'rlt', 'prp', 'injection'], description: 'Service category to determine which forms are required. E.g. "hbot" sends HBOT consent + intake + HIPAA if missing. Default: general (intake + HIPAA only).' },
+      },
+      required: ['patient_id'],
+    },
+  },
 ];
 
 export default async function handler(req, res) {
@@ -240,6 +252,7 @@ You can help with:
 - LABS: Check lab results, pending bloodwork, next lab date
 - MEMBERSHIPS: Check active subscriptions, renewal dates, membership status
 - CONSENTS: Check which consent forms are signed or missing
+- SEND FORMS: Send missing consent forms to patients via email
 - GENERAL: Answer questions about services, pricing, protocols
 
 DATE HANDLING: You know today's date. When someone says "today", "tomorrow", "Monday", "next week", "this Friday", etc., calculate the correct YYYY-MM-DD date yourself. Never ask the user for a date format — just figure it out. "Monday" means the upcoming Monday. "Last Tuesday" means the most recent past Tuesday.
@@ -255,6 +268,7 @@ When staff asks about labs, bloodwork, or test results — use lookup_lab_result
 When staff asks about memberships, subscriptions, or renewals — use lookup_membership.
 When staff asks about consent forms, whether forms are signed, or what's missing — use lookup_consent_forms.
 When staff asks about payments, balance, invoices, spending, or whether someone owes anything — use lookup_payments.
+When staff asks to send forms, consent forms, or paperwork to a patient — use send_consent_forms. Pick the service_category that matches their service (e.g. "hbot" for HBOT patients). If no specific service is mentioned, use "general" to send intake + HIPAA.
 When staff mentions a product, walk through the decision tree one question at a time. Once confirmed, use the add_to_cart tool.
 When staff wants to book, search the patient, check slots, confirm, and book.
 

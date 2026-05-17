@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout, { sharedStyles as s } from '../../../components/AdminLayout';
+import VoiceAssistant from '../../../components/VoiceAssistant';
 
 const blankItem = () => ({ name: '', description: '', price: '', qty: 1 });
 const blankOption = (name) => ({ name: name || 'Option A', items: [blankItem()], discount: '' });
@@ -202,6 +203,11 @@ export default function NewQuote() {
 
   return (
     <AdminLayout title="New Quote">
+      <VoiceAssistant
+        context="quotes"
+        data={{ patientName: recipient.name || '' }}
+        onAction={(action, args) => { console.log('Voice action:', action, args); }}
+      />
       <div style={s.pageHeader}>
         <h1 style={s.pageTitle}>New Custom Pricing Quote</h1>
         <p style={s.pageSubtitle}>Build a tailored pricing page and send a unique link.</p>

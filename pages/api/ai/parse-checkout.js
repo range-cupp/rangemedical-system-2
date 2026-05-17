@@ -25,6 +25,8 @@ ${catalog}
 RULES:
 - Match input to catalog items by name, abbreviation, or description
 - Common abbreviations: "tirz" = Tirzepatide, "sema" = Semaglutide, "reta" = Retatrutide, "test" or "test cyp" = Testosterone Cypionate, "myers" = Myers Cocktail, "NAD" = NAD+ IV or injection, "BPC" = BPC-157, "TB4" or "TB-4" = TB-500/Thymosin Beta-4, "HBOT" = Hyperbaric Oxygen, "RLT" = Red Light Therapy, "HRT" = Hormone Replacement Therapy, "GH" = Growth Hormone blend
+- IMPORTANT: When staff mention a duration like "10-day", "20-day", "30-day", "supply", "program", "injections", or "sessions", ALWAYS prefer POS services (injection programs) over vials. Vials are only for take-home self-injection purchases — staff will say "vial" explicitly when they mean a vial.
+- POS services are the default match target. Only match to vials when the input explicitly says "vial".
 - If quantity specified (e.g. "x3", "3 sessions", "three"), set quantity accordingly
 - If you can't match an item, include it with matched=false and your best guess
 - Return ONLY valid JSON, no markdown fencing`,

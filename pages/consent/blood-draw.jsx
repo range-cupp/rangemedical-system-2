@@ -156,15 +156,18 @@ export default function BloodDrawConsentPage() {
         formData.acknowledgments = acknowledgments;
 
         const pdfBlob = await generatePDF(formData);
-        const sigFileName = `${formData.firstName}-${formData.lastName}-${Date.now()}.jpg`;
-        const { error: sigError } = await supabaseClient.storage.from('medical-documents').upload(`signatures/${sigFileName}`, dataURLtoBlob(formData.signatureData), { contentType: 'image/jpeg' });
+        const sigFileName = `${formData.firstName}-${formData.lastName}-${Date.now()}.png`;
+        const { error: sigError } = await supabaseClient.storage.from('medical-documents').upload(`signatures/${sigFileName}`, dataURLtoBlob(formData.signatureData), { contentType: 'image/png' });
         const signatureUrl = sigError ? '' : `${SUPABASE_URL}/storage/v1/object/public/medical-documents/signatures/${sigFileName}`;
 
         const pdfFileName = `blood-draw-consent-${formData.firstName}-${formData.lastName}-${Date.now()}.pdf`;
         const { error: pdfError } = await supabaseClient.storage.from('medical-documents').upload(`consents/${pdfFileName}`, pdfBlob, { contentType: 'application/pdf' });
         const pdfUrl = pdfError ? '' : `${SUPABASE_URL}/storage/v1/object/public/medical-documents/consents/${pdfFileName}`;
 
-        try { await fetch('/api/consent-forms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ consentType: 'blood_draw', firstName: formData.firstName, lastName: formData.lastName, email: formData.email, phone: formData.phone, dateOfBirth: formData.dateOfBirth, consentDate: new Date().toISOString().split('T')[0], consentGiven: true, signatureUrl, pdfUrl, additionalData: { health_screening: { bleedingDisorder: formData.bleedingDisorder, bleedingDetails: formData.bleedingDetails, bloodThinners: formData.bloodThinners, bloodThinnerDetails: formData.bloodThinnerDetails, allergiesLatex: formData.allergiesLatex, allergyDetails: formData.allergyDetails, faintingHistory: formData.faintingHistory }, acknowledgments } }) }); } catch(e) { console.error('DB save error:', e); }
+        try {
+          const dbRes = await fetch('/api/consent-forms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ consentType: 'blood_draw', firstName: formData.firstName, lastName: formData.lastName, email: formData.email, phone: formData.phone, dateOfBirth: formData.dateOfBirth, consentDate: new Date().toISOString().split('T')[0], consentGiven: true, signatureUrl, pdfUrl, additionalData: { health_screening: { bleedingDisorder: formData.bleedingDisorder, bleedingDetails: formData.bleedingDetails, bloodThinners: formData.bloodThinners, bloodThinnerDetails: formData.bloodThinnerDetails, allergiesLatex: formData.allergiesLatex, allergyDetails: formData.allergyDetails, faintingHistory: formData.faintingHistory }, acknowledgments } }) });
+          if (!dbRes.ok) { console.error('DB save error:', dbRes.status); statusMsg.textContent = 'Warning: Form submitted but database save failed. Please contact the clinic.'; statusMsg.className = 'status-message error'; statusMsg.style.display = 'block'; }
+        } catch(e) { console.error('DB save error:', e); statusMsg.textContent = 'Warning: Form submitted but database save failed. Please contact the clinic.'; statusMsg.className = 'status-message error'; statusMsg.style.display = 'block'; }
 
         showThankYouPage(formData);
       } catch (err) {

@@ -468,7 +468,7 @@ function initializeForm() {
       phone: document.getElementById('phone').value.trim(),
       consentDate: new Date().toISOString().split('T')[0],
       acknowledgments: acknowledgments,
-      signature: signaturePad.toDataURL('image/jpeg', 0.5),
+      signature: signaturePad.toDataURL('image/png'),
       submissionDate: new Date().toLocaleString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric',
         hour: '2-digit', minute: '2-digit',
@@ -676,7 +676,7 @@ function initializeForm() {
     if (formData.signature && formData.signature.startsWith('data:')) {
       checkPageBreak(35);
       try {
-        doc.addImage(formData.signature, 'JPEG', leftMargin, yPos, 60, 25);
+        doc.addImage(formData.signature, 'PNG', leftMargin, yPos, 60, 25);
         yPos += 28;
       } catch (e) {
         console.error('Error adding signature:', e);
@@ -742,7 +742,7 @@ function initializeForm() {
       showStatus('Uploading signature...', 'loading');
       let signatureUrl = null;
       if (formData.signature && formData.signature.startsWith('data:')) {
-        signatureUrl = await uploadBase64ToStorage(formData.signature, 'signatures', patientName, 'jpg');
+        signatureUrl = await uploadBase64ToStorage(formData.signature, 'signatures', patientName, 'png');
       }
 
       showStatus('Generating PDF...', 'loading');
@@ -755,24 +755,33 @@ function initializeForm() {
 
       // Save consent to database
       showStatus('Saving consent record...', 'loading');
-      await fetch('/api/consent-forms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          consentType: CONFIG.consentType,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          consentDate: formData.consentDate,
-          consentGiven: true,
-          signatureUrl: urls.signatureUrl,
-          pdfUrl: urls.pdfUrl,
-          additionalData: {
-            acknowledgments: formData.acknowledgments
-          }
-        })
-      });
+      try {
+        const dbRes = await fetch('/api/consent-forms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            consentType: CONFIG.consentType,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+            consentDate: formData.consentDate,
+            consentGiven: true,
+            signatureUrl: urls.signatureUrl,
+            pdfUrl: urls.pdfUrl,
+            additionalData: {
+              acknowledgments: formData.acknowledgments
+            }
+          })
+        });
+        if (!dbRes.ok) {
+          console.error('Database save failed:', dbRes.status);
+          showStatus('Warning: Form submitted but database save failed. Please contact the clinic.', 'error');
+        }
+      } catch (dbError) {
+        console.error('Database save failed:', dbError);
+        showStatus('Warning: Form submitted but database save failed. Please contact the clinic.', 'error');
+      }
 
       // Send patient email copy (non-blocking)
       try {

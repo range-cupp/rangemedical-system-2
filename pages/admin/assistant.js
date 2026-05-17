@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, ShoppingCart, Calendar, User, X, Check, Plus, MessageSquare, Trash2 } from 'lucide-react';
+import { Send, ShoppingCart, Calendar, User, X, Check, Plus, MessageSquare, Trash2, Search } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
 
@@ -48,6 +48,7 @@ export default function AssistantPage() {
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(true);
+  const [historyFilter, setHistoryFilter] = useState('');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const saveTimerRef = useRef(null);
@@ -406,8 +407,23 @@ export default function AssistantPage() {
               <span style={{ fontWeight: 700, fontSize: '14px' }}>Chats</span>
               <button style={st.newChatBtn} onClick={startNewChat}><Plus size={14} /> New</button>
             </div>
+            <div style={{ padding: '8px 10px 4px', borderBottom: '1px solid #e5e7eb' }}>
+              <div style={{ position: 'relative' }}>
+                <Search size={14} style={{ position: 'absolute', left: '8px', top: '7px', color: '#9ca3af' }} />
+                <input
+                  value={historyFilter}
+                  onChange={e => setHistoryFilter(e.target.value)}
+                  placeholder="Search chats..."
+                  style={{ width: '100%', padding: '6px 8px 6px 28px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', outline: 'none', background: '#fff' }}
+                />
+              </div>
+            </div>
             <div style={st.historyList}>
-              {chatList.map(c => (
+              {chatList.filter(c => {
+                if (!historyFilter) return true;
+                const q = historyFilter.toLowerCase();
+                return (c.title || '').toLowerCase().includes(q) || (c.patient_name || '').toLowerCase().includes(q);
+              }).map(c => (
                 <div key={c.id} style={{ ...st.historyItem, background: c.id === chatId ? '#eef2ff' : 'transparent' }} onClick={() => loadChat(c.id)}>
                   <MessageSquare size={14} style={{ flexShrink: 0, color: '#9ca3af' }} />
                   <div style={{ flex: 1, minWidth: 0 }}>

@@ -641,10 +641,18 @@ function CheckoutInner() {
     setAiError('');
     setAiResults(null);
     try {
+      const svcPayload = services.map(s => ({
+        id: s.id,
+        name: s.name,
+        category: s.category,
+        price_cents: s.price || s.price_cents,
+        sub_category: s.sub_category,
+        recurring: s.recurring,
+      }));
       const resp = await fetch('/api/ai/parse-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: aiInput.trim() }),
+        body: JSON.stringify({ input: aiInput.trim(), services: svcPayload }),
       });
       const data = await resp.json();
       if (data.error && !data.items) {

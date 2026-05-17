@@ -33,8 +33,8 @@ const STATUS_COLORS = {
 };
 
 export default function AssistantPage() {
-  const { session } = useAuth();
-  const userEmail = session?.user?.email || '';
+  const { session, employee } = useAuth();
+  const userEmail = employee?.email || session?.user?.email || '';
 
   const [chatId, setChatId] = useState(null);
   const [chatList, setChatList] = useState([]);
@@ -70,7 +70,7 @@ export default function AssistantPage() {
       const res = await fetch(`/api/ai/assistant-chats?user_email=${encodeURIComponent(userEmail)}`);
       const data = await res.json();
       setChatList(data.chats || []);
-    } catch {}
+    } catch (err) { console.error('loadChatList error:', err); }
   }
 
   async function saveChat(msgs, pName, pId) {
@@ -96,7 +96,7 @@ export default function AssistantPage() {
         if (data.chat?.id) setChatId(data.chat.id);
       }
       loadChatList();
-    } catch {}
+    } catch (err) { console.error('saveChat error:', err); }
   }
 
   function debouncedSave(msgs) {

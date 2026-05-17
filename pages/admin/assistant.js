@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, ShoppingCart, Calendar, User, X, Check, Plus, MessageSquare, Trash2, Search, Mail, FileText, CheckSquare } from 'lucide-react';
+import { Send, ShoppingCart, Calendar, User, X, Check, Plus, MessageSquare, Trash2, Search, Mail, FileText, CheckSquare, Clock } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
 
@@ -266,6 +266,16 @@ export default function AssistantPage() {
       } catch { return { error: 'Failed to add note' }; }
     }
 
+    if (name === 'today_schedule') {
+      try {
+        const dateParam = args.date ? `?date=${args.date}` : '';
+        const res = await fetch(`/api/ai/today-schedule${dateParam}`);
+        const data = await res.json();
+        if (!res.ok) return { error: data.error || 'Failed to fetch schedule' };
+        return data;
+      } catch { return { error: 'Failed to fetch schedule' }; }
+    }
+
     if (name === 'create_task') {
       try {
         const res = await fetch('/api/ai/create-task', {
@@ -354,6 +364,7 @@ export default function AssistantPage() {
           if (tr.tool === 'book_appointment') return tr.result.success ? tr.result.message : tr.result.error;
           if (tr.tool === 'add_note') return tr.result.success ? `Note added to ${tr.result.patient_name}'s chart` : tr.result.error;
           if (tr.tool === 'create_task') return tr.result.success ? `Task "${tr.result.task.title}" created, assigned to ${tr.result.assigned_to_name}` : tr.result.error;
+          if (tr.tool === 'today_schedule' && tr.result.appointments) return `${tr.result.summary.total} appointments on ${tr.result.date}: ${tr.result.appointments.map(a => `${a.time} ${a.patient_name} (${a.service})`).join(', ')}`;
           return JSON.stringify(tr.result);
         }).join('\n');
 
@@ -468,6 +479,65 @@ export default function AssistantPage() {
               </div>
             )}
           </div>
+        </div>
+      );
+    }
+    if (tr.tool === 'today_schedule' && tr.result.appointments) {
+      const appts = tr.result.appointments;
+      const s = tr.result.summary;
+      const statusIcon = { scheduled: '🔵', confirmed: '🟢', completed: '✅', 'no-show': '🔴' };
+      return (
+        <div style={st.toolCard}>
+          <div style={st.toolCardHeader}>
+            <Calendar size={14} /> Schedule — {new Date(tr.result.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            <span style={{ marginLeft: 'auto', fontWeight: 400, color: '#6b7280' }}>
+              {s.total} appointment{s.total !== 1 ? 's' : ''}
+            </span>
+          </div>
+          {appts.length === 0 ? (
+            <div style={{ padding: '16px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>No appointments scheduled</div>
+          ) : (
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              {appts.map((a, i) => (
+                <div
+                  key={i}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', transition: 'background 0.1s' }}
+                  onClick={() => { if (a.patient_id) setPatient({ id: a.patient_id, name: a.patient_name, phone: a.patient_phone }); }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f9fafb'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <div style={{ width: '60px', fontSize: '13px', fontWeight: 600, color: '#4338ca', flexShrink: 0 }}>{a.time}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>{a.patient_name}</span>
+                      <span style={{ fontSize: '11px' }}>{statusIcon[a.status] || ''}</span>
+                      {a.checked_in && <span style={{ ...st.badge, background: '#dcfce7', color: '#166534' }}>Checked In</span>}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '1px' }}>
+                      {a.service}
+                      {a.provider && <span> · {a.provider}</span>}
+                      {a.duration && <span> · {a.duration}min</span>}
+                    </div>
+                  </div>
+                  <div style={{ flexShrink: 0, display: 'flex', gap: '4px' }}>
+                    <button
+                      style={{ padding: '4px 8px', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '11px', color: '#4338ca', cursor: 'pointer', fontWeight: 500 }}
+                      onClick={(e) => { e.stopPropagation(); if (a.patient_id) { setPatient({ id: a.patient_id, name: a.patient_name, phone: a.patient_phone }); setInput(`Look up ${a.patient_name}'s records`); inputRef.current?.focus(); } }}
+                    >
+                      Records
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {s.total > 0 && (
+            <div style={{ display: 'flex', gap: '12px', padding: '8px 12px', background: '#f9fafb', borderTop: '1px solid #e5e7eb', fontSize: '11px', color: '#6b7280' }}>
+              {s.confirmed > 0 && <span>🟢 {s.confirmed} confirmed</span>}
+              {s.scheduled > 0 && <span>🔵 {s.scheduled} scheduled</span>}
+              {s.completed > 0 && <span>✅ {s.completed} completed</span>}
+            </div>
+          )}
         </div>
       );
     }

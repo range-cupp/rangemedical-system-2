@@ -114,12 +114,13 @@ RULES:
       });
       const sessionData = await sessionRes.json();
       if (!sessionData.clientSecret) {
+        console.error('Voice session error:', sessionData);
         setStatus('error');
         return;
       }
 
       const ws = new WebSocket(
-        'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',
+        'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17',
         ['realtime', `openai-insecure-api-key.${sessionData.clientSecret}`, 'openai-beta.realtime-v1']
       );
       wsRef.current = ws;

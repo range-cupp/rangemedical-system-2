@@ -68,7 +68,6 @@ const NAV_SECTIONS = [
       { href: '/admin/data-health', label: 'Data Health', icon: 'activity', adminOnly: true, group: 'business' },
       { href: '/admin/page-analytics', label: 'Page Analytics', icon: 'bar-chart', adminOnly: true, group: 'business' },
       { href: '/admin/snippets', label: 'Snippets', icon: 'file-text', group: 'business' },
-      { href: '/staff-chat', label: 'Assistant', icon: 'message', group: 'business' },
     ],
   },
   { href: '/admin/settings', label: 'Settings', icon: 'settings' },

@@ -1,30 +1,17 @@
-import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { VIAL_CATALOG } from '../../../lib/vial-catalog';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { input } = req.body;
+  const { input, services: posServices } = req.body;
   if (!input || typeof input !== 'string') {
     return res.status(400).json({ error: 'input required' });
   }
 
   try {
-    const { data: posServices } = await supabase
-      .from('pos_services')
-      .select('id, name, category, price_cents, sub_category, delivery_method, duration_days, peptide_identifier, recurring, interval')
-      .eq('active', true)
-      .order('category')
-      .order('sort_order');
-
     const catalog = buildCatalogContext(posServices || []);
 
     const response = await anthropic.messages.create({
@@ -87,7 +74,7 @@ Return JSON array:
       }
 
       if (item.catalog_type === 'pos_service') {
-        const svc = (posServices || []).find(s => s.id === item.catalog_id);
+        const svc = (posServices || []).find(s => String(s.id) === String(item.catalog_id));
         if (svc) {
           return {
             ...item,
@@ -95,13 +82,9 @@ Return JSON array:
               id: svc.id,
               name: svc.name,
               category: svc.category,
-              price: svc.price_cents,
+              price: svc.price_cents || svc.price || 0,
               quantity: item.quantity || 1,
               recurring: svc.recurring || false,
-              interval: svc.interval || null,
-              delivery_method: svc.delivery_method || null,
-              duration_days: svc.duration_days || null,
-              peptide_identifier: svc.peptide_identifier || null,
               source: 'pos_service',
             }
           };
@@ -116,7 +99,7 @@ Return JSON array:
             id: fuzzyMatch.id,
             name: fuzzyMatch.name,
             category: fuzzyMatch.category,
-            price: fuzzyMatch.price_cents,
+            price: fuzzyMatch.price_cents || fuzzyMatch.price || 0,
             quantity: item.quantity || 1,
             recurring: fuzzyMatch.recurring || false,
             source: 'pos_service',
@@ -147,7 +130,8 @@ function buildCatalogContext(posServices) {
   for (const [cat, items] of Object.entries(grouped)) {
     sections.push(`\n### ${cat}`);
     for (const item of items) {
-      const price = item.price_cents ? `$${(item.price_cents / 100).toFixed(0)}` : 'varies';
+      const cents = item.price_cents || item.price || 0;
+      const price = cents ? `$${(cents / 100).toFixed(0)}` : 'varies';
       sections.push(`- id:"${item.id}" | "${item.name}" | ${price}${item.recurring ? ' (recurring)' : ''}`);
     }
   }

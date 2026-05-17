@@ -5,6 +5,22 @@ import { useAuth } from '../../components/AuthProvider';
 
 const WELCOME_MSG = { role: 'assistant', content: 'Hey! What can I help with? I can check out patients, book appointments, look up patient info, or answer questions about services and pricing.' };
 
+const PROGRAM_COLORS = {
+  hrt: { bg: '#f3e8ff', text: '#7c3aed', label: 'HRT' },
+  weight_loss: { bg: '#dbeafe', text: '#1e40af', label: 'Weight Loss' },
+  peptide: { bg: '#dcfce7', text: '#166534', label: 'Peptide' },
+  iv: { bg: '#ffedd5', text: '#c2410c', label: 'IV' },
+  hbot: { bg: '#e0e7ff', text: '#3730a3', label: 'HBOT' },
+  rlt: { bg: '#fee2e2', text: '#dc2626', label: 'RLT' },
+  injection: { bg: '#fef3c7', text: '#92400e', label: 'Injection' },
+};
+
+const STATUS_COLORS = {
+  active: { bg: '#dcfce7', text: '#166534', label: 'Active' },
+  inactive: { bg: '#fee2e2', text: '#991b1b', label: 'Inactive' },
+  new: { bg: '#dbeafe', text: '#1e40af', label: 'New' },
+};
+
 export default function AssistantPage() {
   const { session } = useAuth();
   const userEmail = session?.user?.email || '';
@@ -357,12 +373,31 @@ export default function AssistantPage() {
                 <input style={st.patientInput} placeholder="Search patient (optional)..." value={patientSearch} onChange={e => setPatientSearch(e.target.value)} />
                 {patientResults.length > 0 && (
                   <div style={st.patientDropdown}>
-                    {patientResults.map(p => (
-                      <div key={p.id} style={st.patientOption} onClick={() => { setPatient(p); setPatientSearch(''); setPatientResults([]); }}>
-                        <span style={{ fontWeight: 500 }}>{p.name || `${p.first_name} ${p.last_name}`}</span>
-                        <span style={{ fontSize: '11px', color: '#9ca3af' }}>{p.phone || p.email || ''}</span>
-                      </div>
-                    ))}
+                    {patientResults.map(p => {
+                      const statusStyle = STATUS_COLORS[p.patientStatus] || STATUS_COLORS.new;
+                      return (
+                        <div key={p.id} style={st.patientOption} onClick={() => { setPatient(p); setPatientSearch(''); setPatientResults([]); }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>{p.name || `${p.first_name} ${p.last_name}`}</span>
+                              <span style={{ ...st.badge, background: statusStyle.bg, color: statusStyle.text }}>{statusStyle.label}</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: '#6b7280' }}>
+                              {p.phone && <span>{p.phone}</span>}
+                              {p.email && <span>{p.email}</span>}
+                            </div>
+                            {p.activePrograms && p.activePrograms.length > 0 && (
+                              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
+                                {p.activePrograms.map(prog => {
+                                  const c = PROGRAM_COLORS[prog];
+                                  return c ? <span key={prog} style={{ ...st.badge, background: c.bg, color: c.text }}>{c.label}</span> : null;
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -439,10 +474,11 @@ const st = {
   toggleHistoryBtn: { background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', padding: '6px', cursor: 'pointer', display: 'flex', color: '#6b7280' },
   selectedPatient: { display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', background: '#eef2ff', borderRadius: '8px', fontSize: '13px', color: '#4338ca' },
   clearBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: '#9ca3af', display: 'flex' },
-  patientSearchWrap: { position: 'relative', flex: 1, maxWidth: '300px' },
+  patientSearchWrap: { position: 'relative', flex: 1, maxWidth: '400px' },
   patientInput: { width: '100%', padding: '6px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', outline: 'none' },
-  patientDropdown: { position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #d1d5db', borderRadius: '8px', marginTop: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
-  patientOption: { padding: '8px 12px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', borderBottom: '1px solid #f3f4f6' },
+  patientDropdown: { position: 'absolute', top: '100%', left: 0, width: '420px', background: '#fff', border: '1px solid #d1d5db', borderRadius: '10px', marginTop: '4px', maxHeight: '360px', overflowY: 'auto', zIndex: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)' },
+  patientOption: { padding: '10px 14px', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', fontSize: '13px', borderBottom: '1px solid #f3f4f6', transition: 'background 0.1s' },
+  badge: { display: 'inline-block', fontSize: '10px', fontWeight: 600, padding: '1px 7px', borderRadius: '4px', lineHeight: '16px', whiteSpace: 'nowrap' },
   cartToggle: { marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#166534' },
   messagesList: { flex: 1, overflowY: 'auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '12px' },
   userMsgRow: { display: 'flex', justifyContent: 'flex-end' },

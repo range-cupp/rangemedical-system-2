@@ -8,7 +8,6 @@ export default async function handler(req, res) {
       session: {
         type: 'realtime',
         model: 'gpt-4o-mini-realtime-preview',
-        modalities: ['audio', 'text'],
         instructions: instructions || '',
         tools: tools || [],
         tool_choice: 'auto',

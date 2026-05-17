@@ -27,11 +27,16 @@ export default function AiAssistant({ context, services, patientName, onCartActi
       .replace(/\$(\d)/g, '$$$1')
       .replace(/```[\s\S]*?```/g, '');
     const utt = new SpeechSynthesisUtterance(cleaned);
-    utt.rate = 1.05;
+    utt.rate = 1.0;
     utt.pitch = 1.0;
     const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(v => v.name.includes('Samantha')) ||
-      voices.find(v => v.name.includes('Karen')) ||
+    const preferred =
+      voices.find(v => v.name === 'Zoe (Premium)') ||
+      voices.find(v => v.name === 'Samantha (Premium)') ||
+      voices.find(v => v.name.includes('Premium') && v.lang.startsWith('en')) ||
+      voices.find(v => v.name === 'Samantha') ||
+      voices.find(v => v.name === 'Zoe') ||
+      voices.find(v => v.name === 'Google US English') ||
       voices.find(v => v.lang === 'en-US' && v.localService) ||
       voices[0];
     if (preferred) utt.voice = preferred;

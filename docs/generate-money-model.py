@@ -232,9 +232,9 @@ story.append(Spacer(1, 20))
 story += section_label("Key Metrics at a Glance")
 
 metrics = [
-    ["$7,080", "Year 1 Revenue\n(WL patient, Essential)"],
-    ["81.0%", "Gross Margin\n(full journey)"],
-    ["$5,734", "Year 1 Profit\n(per patient)"],
+    ["$7,080", "Year 1 Revenue\n(WL patient)"],
+    ["$3,784", "Year 1 Revenue\n(HRT patient)"],
+    ["81.0%", "WL Gross Margin\n(full journey)"],
     ["95.4%", "Continued Care\nMargin"],
 ]
 m_cells = []
@@ -560,9 +560,8 @@ story.append(totals_row_table(
     [
         ["Assessment",             "$197",   "$0",   "$197"],
         ["Essential Labs",         "$350",   "$149", "$201"],
-        ["HRT Program (Year 1)",   "$3,237", "$463", "$2,774"],
-        ["Continued Care (Yr 2)",  "$3,237", "$149", "$3,088"],
-        ["TOTAL YEAR 1 + 2",       "$7,021", "$761", "$6,260 (89.2%)"],
+        ["HRT Program (13 cycles)","$3,237", "$463", "$2,774"],
+        ["TOTAL YEAR 1",           "$3,784", "$612", "$3,172 (83.8%)"],
     ],
     col_widths=[2.2*inch, 1.2*inch, 1.2*inch, 1.6*inch]
 ))

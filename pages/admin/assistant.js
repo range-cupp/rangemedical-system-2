@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, ShoppingCart, Calendar, User, X, Check, Plus, MessageSquare, Trash2, Search, Mail } from 'lucide-react';
+import { Send, ShoppingCart, Calendar, User, X, Check, Plus, MessageSquare, Trash2, Search, Mail, FileText, CheckSquare } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
 
-const WELCOME_MSG = { role: 'assistant', content: 'Hey! What can I help with? I can check out patients, book appointments, look up patient info, or answer questions about services and pricing.' };
+const WELCOME_MSG = { role: 'assistant', content: 'Hey! What can I help with? I can check out patients, book appointments, look up records, add notes, create tasks, send emails, or answer questions about services and pricing.' };
 
 function renderMarkdown(text) {
   if (!text) return text;
@@ -246,6 +246,49 @@ export default function AssistantPage() {
       } catch { return { error: 'Failed to fetch patient records' }; }
     }
 
+    if (name === 'add_note') {
+      try {
+        const pid = args.patient_id || patient?.id;
+        if (!pid) return { error: 'No patient selected. Search for a patient first.' };
+        const res = await fetch('/api/ai/add-note', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patient_id: pid,
+            body: args.note_text,
+            created_by: employee?.name || 'AI Assistant',
+            note_category: args.note_category || 'internal',
+          }),
+        });
+        const data = await res.json();
+        if (data.success) return { success: true, note_id: data.note_id, patient_name: patient?.name || 'Patient', note_text: args.note_text, note_category: args.note_category || 'internal' };
+        return { error: data.error || 'Failed to add note' };
+      } catch { return { error: 'Failed to add note' }; }
+    }
+
+    if (name === 'create_task') {
+      try {
+        const res = await fetch('/api/ai/create-task', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: args.title,
+            description: args.description || null,
+            assigned_to_name: args.assigned_to_name,
+            patient_id: patient?.id || null,
+            patient_name: args.patient_name || patient?.name || null,
+            priority: args.priority || 'medium',
+            due_date: args.due_date || null,
+            task_category: args.task_category || 'business',
+            created_by_id: employee?.id || null,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) return { success: true, task: data.task, assigned_to_name: data.assigned_to_name };
+        return { error: data.error || 'Failed to create task' };
+      } catch { return { error: 'Failed to create task' }; }
+    }
+
     return { error: `Unknown action: ${name}` };
   }
 
@@ -309,6 +352,8 @@ export default function AssistantPage() {
           if (tr.tool === 'search_patient') return tr.result.message || 'No patients found';
           if (tr.tool === 'check_slots') return tr.result.slots ? `${tr.result.slot_count} slots available for ${tr.result.service_name}` : tr.result.error;
           if (tr.tool === 'book_appointment') return tr.result.success ? tr.result.message : tr.result.error;
+          if (tr.tool === 'add_note') return tr.result.success ? `Note added to ${tr.result.patient_name}'s chart` : tr.result.error;
+          if (tr.tool === 'create_task') return tr.result.success ? `Task "${tr.result.task.title}" created, assigned to ${tr.result.assigned_to_name}` : tr.result.error;
           return JSON.stringify(tr.result);
         }).join('\n');
 
@@ -425,6 +470,45 @@ export default function AssistantPage() {
           </div>
         </div>
       );
+    }
+    if (tr.tool === 'add_note' && tr.result.success) {
+      return (
+        <div style={{ ...st.toolCard, borderColor: '#86efac' }}>
+          <div style={st.toolCardHeader}><FileText size={14} /> Note Added</div>
+          <div style={{ padding: '8px 12px', fontSize: '13px' }}>
+            <div style={{ fontWeight: 600, fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
+              {tr.result.patient_name} — {tr.result.note_category === 'clinical' ? 'Clinical' : 'Internal'} Note
+            </div>
+            <div style={{ padding: '8px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', whiteSpace: 'pre-wrap', lineHeight: '1.5', fontSize: '13px', color: '#374151' }}>
+              {tr.result.note_text}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    if (tr.tool === 'add_note' && tr.result.error) {
+      return (<div style={{ ...st.toolCard, borderColor: '#fca5a5' }}><div style={st.toolCardHeader}><X size={14} /> Note Failed</div><div style={st.toolCardBody}>{tr.result.error}</div></div>);
+    }
+    if (tr.tool === 'create_task' && tr.result.success) {
+      const t = tr.result.task;
+      const priorityColors = { high: { bg: '#fee2e2', text: '#dc2626' }, medium: { bg: '#fef3c7', text: '#92400e' }, low: { bg: '#f3f4f6', text: '#6b7280' } };
+      const pc = priorityColors[t.priority] || priorityColors.medium;
+      return (
+        <div style={{ ...st.toolCard, borderColor: '#86efac' }}>
+          <div style={st.toolCardHeader}><CheckSquare size={14} /> Task Created</div>
+          <div style={{ padding: '8px 12px', fontSize: '13px' }}>
+            <div style={{ fontWeight: 600, marginBottom: '4px' }}>{t.title}</div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12px', color: '#6b7280' }}>
+              <span>Assigned to <span style={{ fontWeight: 600, color: '#111827' }}>{tr.result.assigned_to_name}</span></span>
+              <span style={{ ...st.badge, background: pc.bg, color: pc.text }}>{t.priority}</span>
+              {t.due_date && <span>Due {new Date(t.due_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    if (tr.tool === 'create_task' && tr.result.error) {
+      return (<div style={{ ...st.toolCard, borderColor: '#fca5a5' }}><div style={st.toolCardHeader}><X size={14} /> Task Failed</div><div style={st.toolCardBody}>{tr.result.error}</div></div>);
     }
     if (tr.tool === 'lookup_patient_records' && tr.result.protocols) {
       const { protocols, appointments, recentVisits, prescriptions } = tr.result;

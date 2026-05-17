@@ -92,6 +92,36 @@ const tools = [
       required: ['to', 'subject', 'body'],
     },
   },
+  {
+    name: 'add_note',
+    description: 'Add a note to a patient\'s chart. Use when staff dictates a note, observation, or follow-up about a patient. The note will appear on the patient\'s profile under Notes.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_id: { type: 'string', description: 'Patient UUID — use the patient in context or from a search result' },
+        note_text: { type: 'string', description: 'The note content. Write it clearly and professionally, capturing what the staff said.' },
+        note_category: { type: 'string', enum: ['clinical', 'internal'], description: 'clinical for medical observations, internal for admin/staff notes. Default: internal' },
+      },
+      required: ['patient_id', 'note_text'],
+    },
+  },
+  {
+    name: 'create_task',
+    description: 'Create a task for a staff member. Use when staff asks to add a to-do, assign work, or set a reminder. Available staff: Chris, Damien, Evan, Damon, Lily, Brendyn, Tara.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Short task title' },
+        description: { type: 'string', description: 'Detailed description of what needs to be done' },
+        assigned_to_name: { type: 'string', description: 'Name of the staff member to assign to' },
+        patient_name: { type: 'string', description: 'Patient name if task relates to a specific patient' },
+        priority: { type: 'string', enum: ['high', 'medium', 'low'], description: 'Task priority. Default: medium' },
+        due_date: { type: 'string', description: 'Due date in YYYY-MM-DD format, if mentioned' },
+        task_category: { type: 'string', enum: ['medical', 'clinical', 'business'], description: 'medical/clinical for patient care tasks, business for admin. Default: business' },
+      },
+      required: ['title', 'assigned_to_name'],
+    },
+  },
 ];
 
 export default async function handler(req, res) {
@@ -116,11 +146,15 @@ You can help with:
 - CHECKOUT: Add items to the cart (services, injections, IVs, peptides, packs)
 - SCHEDULING: Search patients, check available slots, book appointments
 - PATIENT RECORDS: Look up a patient's protocols, medications, next pickup dates, upcoming appointments, visit history, prescriptions
-- DISPENSING: Log what was dispensed to a patient
+- NOTES: Add notes to a patient's chart (clinical observations, follow-ups, staff notes)
+- TASKS: Create tasks for staff (to-dos, reminders, follow-ups)
+- EMAIL: Draft and send emails to patients
 - GENERAL: Answer questions about services, pricing, protocols
 
 When staff asks about a patient's meds, next pickup, treatment plan, visit history, or anything clinical — use the lookup_patient_records tool. If a patient is already selected in context, use their patient_id directly. If not, search for them first.
 When staff asks to email a patient, use draft_email. Look up the patient's email first if needed. Write the email body in a warm, professional tone from the clinic. The draft will be previewed before sending — staff must approve it.
+When staff asks to add a note about a patient — use add_note. Write the note clearly and professionally, capturing what the staff said. Use the patient_id from context.
+When staff asks to create a task, to-do, or reminder — use create_task. If no specific assignee is mentioned, ask who to assign it to. Available staff: Chris, Damien, Evan, Damon, Lily, Brendyn, Tara.
 When staff mentions a product, walk through the decision tree one question at a time. Once confirmed, use the add_to_cart tool.
 When staff wants to book, search the patient, check slots, confirm, and book.
 

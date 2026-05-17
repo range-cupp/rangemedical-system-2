@@ -5,7 +5,7 @@ export default async function handler(req, res) {
 
   try {
     const body = {
-      model: 'gpt-4o-realtime-preview-2024-12-17',
+      model: 'gpt-4o-mini-realtime-preview',
       voice: 'coral',
       modalities: ['audio', 'text'],
       instructions: instructions || '',

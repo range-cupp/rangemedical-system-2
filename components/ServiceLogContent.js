@@ -1434,10 +1434,11 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                   <div style={slcStyles.serviceGrid}>
                     {SERVICE_TYPES.map(st => {
                       const protocols = getProtocolsForService(st.id);
+                      const hasProtocol = protocols.length > 0;
                       return (
                         <button
                           key={st.id}
-                          style={slcStyles.serviceCard}
+                          style={{ ...slcStyles.serviceCard, ...(hasProtocol ? { borderColor: '#86efac', background: '#f0fdf4' } : {}) }}
                           onClick={() => selectServiceType(st)}
                         >
                           <span style={slcStyles.serviceIcon}>{st.icon}</span>
@@ -1471,8 +1472,31 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                       </button>
                     </div>
 
-                    {/* Protocol creation notice */}
-                    {showProtocolForm && (
+                    {/* Category mismatch warning */}
+                    {(() => {
+                      const matchingProtocols = getProtocolsForService(currentServiceType.id);
+                      if (matchingProtocols.length === 0 && patientProtocols.length > 0) {
+                        const otherProtocols = patientProtocols.filter(p => p.status === 'active');
+                        const suggestions = otherProtocols.map(p => {
+                          const match = SERVICE_TYPES.find(s => s.programType === p.program_type);
+                          return match ? `${match.label} (${p.medication || p.program_type})` : null;
+                        }).filter(Boolean);
+                        if (suggestions.length > 0) {
+                          return (
+                            <div style={{ padding: '12px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '0', fontSize: '13px', color: '#dc2626', marginBottom: '16px' }}>
+                              <strong>⚠ No active {currentServiceType.label} protocol.</strong>
+                              <div style={{ marginTop: '4px', color: '#991b1b' }}>
+                                This patient has: {suggestions.join(', ')}. Make sure you're logging under the correct service.
+                              </div>
+                            </div>
+                          );
+                        }
+                      }
+                      return null;
+                    })()}
+
+                    {/* Protocol creation notice — only when no protocols exist at all */}
+                    {showProtocolForm && !(getProtocolsForService(currentServiceType?.id).length === 0 && patientProtocols.some(p => p.status === 'active')) && (
                       <div style={slcStyles.protocolNotice}>
                         <strong>No active protocol</strong> — Fill in the protocol details below to create one.
                       </div>

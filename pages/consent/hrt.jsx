@@ -67,6 +67,27 @@ export default function HRTConsent() {
         .checkbox-consent input[type="checkbox"] { width: 18px; height: 18px; margin-top: 3px; cursor: pointer; accent-color: #000; flex-shrink: 0; }
         .checkbox-consent label { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: normal; margin-bottom: 0; cursor: pointer; color: #333; line-height: 1.55; }
         .checkbox-consent.error { border-color: #dc2626; background: #fef2f2; }
+        .health-question { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 0; padding: 16px; margin-bottom: 12px; }
+        .health-question.warning { background: #fff7ed; border-color: #f59e0b; }
+        .health-question-text { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #111; line-height: 1.5; }
+        .health-question-note { font-size: 12px; color: #666; font-style: italic; margin-bottom: 8px; }
+        .radio-group { display: flex; gap: 20px; }
+        .radio-item { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .radio-item input[type="radio"] { width: 1.25rem; height: 1.25rem; cursor: pointer; accent-color: #000; }
+        .radio-item label { font-size: 14px; font-weight: 500; text-transform: none; letter-spacing: normal; margin-bottom: 0; cursor: pointer; color: #333; }
+        .warning-alert { background: #fef3c7; border: 2px solid #f59e0b; border-radius: 0; padding: 16px; margin-bottom: 16px; display: none; }
+        .warning-alert.visible { display: block; }
+        .warning-alert h4 { font-size: 14px; font-weight: 700; color: #92400e; margin-bottom: 4px; }
+        .warning-alert p { font-size: 13px; color: #78350f; line-height: 1.5; }
+        .health-question.has-error { border-color: #dc2626; background: #fef2f2; }
+        .health-detail { margin-top: 8px; display: none; }
+        .health-detail textarea { width: 100%; padding: 8px 10px; font-size: 13px; font-family: inherit; border: 1px solid #ccc; background: #fff; min-height: 60px; resize: vertical; border-radius: 0; }
+        .ack-item { border: 1px solid #e5e7eb; border-radius: 0; padding: 14px 16px; margin-bottom: 10px; transition: border-color 0.2s; }
+        .ack-item label { display: flex; gap: 12px; cursor: pointer; align-items: flex-start; }
+        .ack-checkbox { position: absolute; opacity: 0; width: 0; height: 0; }
+        .ack-initials { width: 28px; height: 28px; min-width: 28px; border: 2px solid #d4d4d4; border-radius: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: transparent; background: #fff; cursor: pointer; transition: all 0.15s; margin-top: 1px; user-select: none; }
+        .ack-checkbox:checked + .ack-initials { background: #000; border-color: #000; color: #fff; }
+        .ack-text { font-size: 13px; line-height: 1.55; color: #333; }
         .signature-wrapper { margin-bottom: 16px; }
         .signature-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #333; display: block; text-transform: none; letter-spacing: normal; }
         .signature-pad-container { border: 2px solid #000; border-radius: 0; background: #fff; position: relative; margin-bottom: 8px; overflow: hidden; }
@@ -106,7 +127,7 @@ export default function HRTConsent() {
         .thank-you-contact a { color: #000; text-decoration: underline; }
         .thank-you-footer { padding-top: 2rem; border-top: 2px solid #e5e5e5; }
         .thank-you-footer p { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.15em; color: #000; }
-        @media (max-width: 640px) { .consent-header { padding: 20px 16px; } .form-container { padding: 0 16px 30px; } .form-row { flex-direction: column; gap: 12px; } }
+        @media (max-width: 640px) { .consent-header { padding: 20px 16px; } .form-container { padding: 0 16px 30px; } .form-row { flex-direction: column; gap: 12px; } .radio-group { flex-direction: column; gap: 10px; } }
       `}</style>
 
       <div className="consent-container" id="consentContainer">
@@ -164,32 +185,96 @@ export default function HRTConsent() {
               </div>
             </div>
             
-            {/* Consent Information */}
+            {/* Health Screening */}
             <div className="section">
-              <h3 className="section-title">Patient Acknowledgments & Consent</h3>
-              
-              <div className="consent-text">
-                <h4>Understanding of Treatment</h4>
-                <ol>
-                  <li><strong>Treatment Benefits and Risks:</strong> I understand that along with the benefits of hormone replacement therapy and any medical treatments provided by Range Medical, there are both risks and potential complications to treatment, as well as risks associated with not receiving treatment. These risks and potential complications have been clearly explained to me. I have not been promised or guaranteed any specific results from these therapies, and I agree to comply with the recommended treatment dosages and protocols.</li>
-                  
-                  <li><strong>Ongoing Monitoring and Testing:</strong> I agree to comply with ongoing testing and evaluations necessary to monitor my treatment progress and safety. These evaluations may include laboratory tests or other diagnostic procedures as recommended by my treating physician, primary care physician, or other specialists. I agree to maintain regular check-ups and preventive screenings, which may include complete physical examinations, EKGs, mammograms, pelvic and breast examinations, pap smears, prostate exams, PSA tests, colonoscopies, and any other medically appropriate examinations.</li>
-                  
-                  <li><strong>Reporting Adverse Events:</strong> I agree to immediately report any adverse reactions, side effects, or complications potentially related to my therapy to Range Medical. I acknowledge that the benefits, risks, and potential complications of treatments provided by Range Medical have been fully explained to me. I confirm that I have received all necessary information, have had all my questions answered to my satisfaction, and understand that no guarantees or promises regarding treatment outcomes have been made.</li>
-                  
-                  <li><strong>Financial Responsibility:</strong> I acknowledge that insurance providers may not cover physician evaluations, laboratory testing, medications, or therapies provided by Range Medical. I agree to assume full financial responsibility for all charges associated with these services, understanding that reimbursement from my insurance provider is not guaranteed and that payment is my sole responsibility regardless of insurance coverage.</li>
-                  
-                  <li><strong>Informed Consent Certification:</strong> I certify that I have read (or have had read to me) this entire consent form in its entirety. I have been educated about the benefits, risks, and potential complications associated with hormone replacement therapy and other treatments offered by Range Medical. All my questions have been answered to my complete satisfaction, and I freely and voluntarily consent to treatment without coercion or undue influence.</li>
-                </ol>
+              <h3 className="section-title">Health Screening</h3>
+              <p style={{ marginBottom: '1.5rem', color: '#404040' }}>Please answer these questions honestly. They help us ensure your safety.</p>
+
+              <div className="warning-alert" id="warningAlert">
+                <h4>⚠️ Important</h4>
+                <p>Based on your answers, please discuss these items with our medical team before beginning treatment.</p>
               </div>
-              
-              <div className="checkbox-consent" id="consentCheckbox">
-                <input type="checkbox" id="consentGiven" name="consentGiven" required />
-                <label htmlFor="consentGiven">
-                  <strong>I acknowledge and consent:</strong> I have read and fully understand the above patient acknowledgments. I consent to participate in hormone replacement therapy under the clinical supervision of the medical team at Range Medical. I understand my rights, responsibilities, and the nature of the treatment I am receiving.
-                </label>
+
+              <div className="health-question" id="hq1">
+                <div className="health-question-text">Do you have any known allergies to medications or hormones?</div>
+                <div className="radio-group">
+                  <div className="radio-item"><input type="radio" id="hq1-yes" name="hq1" value="yes" required /><label htmlFor="hq1-yes">Yes</label></div>
+                  <div className="radio-item"><input type="radio" id="hq1-no" name="hq1" value="no" /><label htmlFor="hq1-no">No</label></div>
+                </div>
+                <div className="health-detail" id="hq1-details"><textarea placeholder="Please describe your allergies..."></textarea></div>
               </div>
-              <div className="field-error" id="consentError">You must provide consent to continue</div>
+
+              <div className="health-question" id="hq2">
+                <div className="health-question-text">Are you currently pregnant or nursing?</div>
+                <div className="radio-group">
+                  <div className="radio-item"><input type="radio" id="hq2-yes" name="hq2" value="yes" required /><label htmlFor="hq2-yes">Yes</label></div>
+                  <div className="radio-item"><input type="radio" id="hq2-no" name="hq2" value="no" /><label htmlFor="hq2-no">No</label></div>
+                  <div className="radio-item"><input type="radio" id="hq2-na" name="hq2" value="n/a" /><label htmlFor="hq2-na">Does not apply</label></div>
+                </div>
+              </div>
+
+              <div className="health-question" id="hq3">
+                <div className="health-question-text">Are you currently taking any prescription medications or supplements?</div>
+                <div className="radio-group">
+                  <div className="radio-item"><input type="radio" id="hq3-yes" name="hq3" value="yes" required /><label htmlFor="hq3-yes">Yes</label></div>
+                  <div className="radio-item"><input type="radio" id="hq3-no" name="hq3" value="no" /><label htmlFor="hq3-no">No</label></div>
+                </div>
+                <div className="health-detail" id="hq3-details"><textarea placeholder="Please list your medications and supplements..."></textarea></div>
+              </div>
+
+              <div className="health-question" id="hq4">
+                <div className="health-question-text">Have you ever had a blood clot, stroke, or pulmonary embolism?</div>
+                <div className="radio-group">
+                  <div className="radio-item"><input type="radio" id="hq4-yes" name="hq4" value="yes" required /><label htmlFor="hq4-yes">Yes</label></div>
+                  <div className="radio-item"><input type="radio" id="hq4-no" name="hq4" value="no" /><label htmlFor="hq4-no">No</label></div>
+                </div>
+                <div className="health-detail" id="hq4-details"><textarea placeholder="Please describe..."></textarea></div>
+              </div>
+
+              <div className="health-question" id="hq5">
+                <div className="health-question-text">Do you have a history of liver disease or liver problems?</div>
+                <div className="radio-group">
+                  <div className="radio-item"><input type="radio" id="hq5-yes" name="hq5" value="yes" required /><label htmlFor="hq5-yes">Yes</label></div>
+                  <div className="radio-item"><input type="radio" id="hq5-no" name="hq5" value="no" /><label htmlFor="hq5-no">No</label></div>
+                </div>
+                <div className="health-detail" id="hq5-details"><textarea placeholder="Please describe..."></textarea></div>
+              </div>
+
+              <div className="health-question" id="hq6">
+                <div className="health-question-text">Have you been diagnosed with any hormone-sensitive cancer (breast, prostate, uterine)?</div>
+                <div className="radio-group">
+                  <div className="radio-item"><input type="radio" id="hq6-yes" name="hq6" value="yes" required /><label htmlFor="hq6-yes">Yes</label></div>
+                  <div className="radio-item"><input type="radio" id="hq6-no" name="hq6" value="no" /><label htmlFor="hq6-no">No</label></div>
+                </div>
+                <div className="health-detail" id="hq6-details"><textarea placeholder="Please describe..."></textarea></div>
+              </div>
+
+              <div className="health-question" id="hq7">
+                <div className="health-question-text">Do you have a history of heart disease or cardiovascular conditions?</div>
+                <div className="radio-group">
+                  <div className="radio-item"><input type="radio" id="hq7-yes" name="hq7" value="yes" required /><label htmlFor="hq7-yes">Yes</label></div>
+                  <div className="radio-item"><input type="radio" id="hq7-no" name="hq7" value="no" /><label htmlFor="hq7-no">No</label></div>
+                </div>
+                <div className="health-detail" id="hq7-details"><textarea placeholder="Please describe..."></textarea></div>
+              </div>
+            </div>
+
+            {/* Patient Acknowledgments & Agreement */}
+            <div className="section">
+              <h3 className="section-title">Patient Acknowledgments & Agreement</h3>
+
+              <div id="acknowledgments">
+                <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack1" required /><span className="ack-initials"></span><span className="ack-text">I understand that along with the benefits of hormone replacement therapy, there are both risks and potential complications. I have not been promised specific results and agree to comply with recommended dosages and protocols.</span></label></div>
+                <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack2" required /><span className="ack-initials"></span><span className="ack-text">I agree to comply with ongoing testing and evaluations necessary to monitor my treatment progress and safety, including laboratory tests, physical examinations, and preventive screenings as recommended by my physician.</span></label></div>
+                <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack3" required /><span className="ack-initials"></span><span className="ack-text">I agree to immediately report any adverse reactions, side effects, or complications related to my therapy to Range Medical.</span></label></div>
+                <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack4" required /><span className="ack-initials"></span><span className="ack-text">I confirm that I have disclosed all relevant medical information, including allergies, current medications, history of blood clots, liver disease, cardiovascular conditions, and hormone-sensitive cancers.</span></label></div>
+                <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack5" required /><span className="ack-initials"></span><span className="ack-text">I acknowledge that insurance may not cover services provided by Range Medical. I agree to assume full financial responsibility for all charges associated with treatment.</span></label></div>
+                <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack6" required /><span className="ack-initials"></span><span className="ack-text">I understand that HRT is not a substitute for routine medical care. I should continue to see my primary care physician and specialists for ongoing health management.</span></label></div>
+                <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack7" required /><span className="ack-initials"></span><span className="ack-text">I understand that I have the right to refuse or discontinue treatment at any time without penalty.</span></label></div>
+                <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack8" required /><span className="ack-initials"></span><span className="ack-text">I voluntarily assume full responsibility for any risks associated with HRT. I release, discharge, and hold harmless Range Medical, its medical director, physicians, nurse practitioners, staff, and affiliated entities from claims arising out of treatment, except in cases of gross negligence or willful misconduct.</span></label></div>
+                <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack9" required /><span className="ack-initials"></span><span className="ack-text">I confirm that I am at least 18 years of age, that I have read this consent form in its entirety, that I have had the opportunity to ask questions, and that I am signing voluntarily.</span></label></div>
+              </div>
+              <div className="field-error" id="consentError">Please initial all acknowledgments above</div>
             </div>
             
             {/* Signature */}
@@ -247,13 +332,7 @@ function initializeForm() {
       anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
     },
     api: {
-      consents: '/api/consent-forms',
-      ghl: '/api/consent-to-ghl'
-    },
-    ghl: {
-      customFieldKey: 'hrt_consent',
-      customFieldValue: 'Complete',
-      tags: ['hrt-consent-signed', 'consent-completed']
+      consents: '/api/consent-forms'
     },
     recipientEmail: 'cupp@range-medical.com, intake@range-medical.com'
   };
@@ -262,7 +341,6 @@ function initializeForm() {
   // SUPABASE CLIENT
   // ============================================
   const urlParams = new URLSearchParams(window.location.search);
-  const ghlContactId = urlParams.get('contactId') || urlParams.get('contact_id') || urlParams.get('cid') || '';
 
   const supabaseClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
 
@@ -344,6 +422,53 @@ function initializeForm() {
     e.target.value = value;
   });
 
+  // ============================================
+  // HEALTH SCREENING LOGIC
+  // ============================================
+  function checkHealthQuestions() {
+    const warningQuestions = ['hq1', 'hq2', 'hq3', 'hq4', 'hq5', 'hq6', 'hq7'];
+    let showWarning = false;
+    warningQuestions.forEach(q => {
+      const yesRadio = document.getElementById(q + '-yes');
+      if (yesRadio && yesRadio.checked) {
+        showWarning = true;
+        document.getElementById(q).classList.add('warning');
+      } else {
+        document.getElementById(q).classList.remove('warning');
+      }
+    });
+    const warningAlert = document.getElementById('warningAlert');
+    if (showWarning) warningAlert.classList.add('visible');
+    else warningAlert.classList.remove('visible');
+  }
+
+  // Conditional detail fields
+  ['hq1', 'hq3', 'hq4', 'hq5', 'hq6', 'hq7'].forEach(q => {
+    document.querySelectorAll('input[name="' + q + '"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        const details = document.getElementById(q + '-details');
+        if (details) details.style.display = (this.value === 'yes') ? 'block' : 'none';
+        checkHealthQuestions();
+      });
+    });
+  });
+  document.querySelectorAll('input[name="hq2"]').forEach(radio => {
+    radio.addEventListener('change', checkHealthQuestions);
+  });
+
+  // ============================================
+  // INITIALS FOR ACKNOWLEDGMENTS
+  // ============================================
+  function updateInitials() {
+    const first = (document.getElementById('firstName')?.value || '').trim();
+    const last = (document.getElementById('lastName')?.value || '').trim();
+    const initials = ((first.charAt(0) || '') + (last.charAt(0) || '')).toUpperCase();
+    document.querySelectorAll('.ack-initials').forEach(el => { el.textContent = initials; });
+  }
+  document.getElementById('firstName')?.addEventListener('input', updateInitials);
+  document.getElementById('lastName')?.addEventListener('input', updateInitials);
+  updateInitials();
+
   // Validate DOB format
   function isValidDOB(dateStr) {
     if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return false;
@@ -366,9 +491,11 @@ function initializeForm() {
     });
   });
   
-  document.getElementById('consentGiven').addEventListener('change', () => {
-    document.getElementById('consentCheckbox').classList.remove('error');
-    document.getElementById('consentError').classList.remove('visible');
+  document.querySelectorAll('.ack-checkbox').forEach(cb => {
+    cb.addEventListener('change', () => {
+      cb.closest('.ack-item').style.borderColor = '';
+      document.getElementById('consentError').classList.remove('visible');
+    });
   });
 
   // ============================================
@@ -412,12 +539,34 @@ function initializeForm() {
       if (dobError) dobError.classList.remove('visible');
     }
 
-    const consentCheckbox = document.getElementById('consentGiven');
-    if (!consentCheckbox.checked) {
-      document.getElementById('consentCheckbox').classList.add('error');
+    // Validate health screening
+    const hqLabels = { hq1: 'Medication allergies', hq2: 'Pregnancy', hq3: 'Current medications', hq4: 'Blood clot history', hq5: 'Liver disease', hq6: 'Hormone-sensitive cancer', hq7: 'Heart disease' };
+    const unanswered = [];
+    for (let i = 1; i <= 7; i++) {
+      const name = 'hq' + i;
+      const radios = document.querySelectorAll('input[name="' + name + '"]');
+      const anyChecked = Array.from(radios).some(r => r.checked);
+      if (!anyChecked) {
+        unanswered.push(hqLabels[name]);
+        const el = document.getElementById(name);
+        if (el) el.classList.add('has-error');
+      }
+    }
+    if (unanswered.length > 0) {
+      isValid = false;
+      missingFields.push('Health Questions: ' + unanswered.join(', '));
+    }
+
+    // Validate acknowledgments
+    const ackBoxes = document.querySelectorAll('.ack-checkbox');
+    const uncheckedAcks = Array.from(ackBoxes).filter(cb => !cb.checked);
+    if (uncheckedAcks.length > 0) {
+      uncheckedAcks.forEach(cb => cb.closest('.ack-item').style.borderColor = '#dc2626');
       document.getElementById('consentError').classList.add('visible');
       isValid = false;
-      missingFields.push('Consent Checkbox');
+      missingFields.push('Acknowledgments (' + uncheckedAcks.length + ' remaining)');
+    } else {
+      document.getElementById('consentError').classList.remove('visible');
     }
 
     if (signaturePad.isEmpty()) {
@@ -440,6 +589,14 @@ function initializeForm() {
   // COLLECT FORM DATA
   // ============================================
   function collectFormData() {
+    const healthAnswers = {};
+    for (let i = 1; i <= 7; i++) {
+      const checked = document.querySelector('input[name="hq' + i + '"]:checked');
+      healthAnswers['hq' + i] = checked ? checked.value : 'not answered';
+      const details = document.querySelector('#hq' + i + '-details textarea');
+      if (details && details.value.trim()) healthAnswers['hq' + i + '_details'] = details.value.trim();
+    }
+
     return {
       firstName: document.getElementById('firstName').value.trim(),
       lastName: document.getElementById('lastName').value.trim(),
@@ -447,12 +604,17 @@ function initializeForm() {
       phone: document.getElementById('phone').value.trim(),
       dateOfBirth: document.getElementById('dateOfBirth').value,
       consentDate: document.getElementById('consentDate').value,
-      consentGiven: document.getElementById('consentGiven').checked,
+      healthAnswers: healthAnswers,
+      consentGiven: Array.from(document.querySelectorAll('.ack-checkbox')).every(cb => cb.checked),
+      acknowledgments: Array.from(document.querySelectorAll('.ack-checkbox')).map((cb, i) => ({
+        id: 'ack' + (i + 1),
+        text: cb.closest('label').querySelector('.ack-text').textContent,
+        checked: cb.checked
+      })),
       signature: signaturePad.toDataURL('image/jpeg', 0.5),
       submissionDate: new Date().toLocaleString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-              timeZone: 'America/Los_Angeles',
+        hour: '2-digit', minute: '2-digit', timeZone: 'America/Los_Angeles',
       })
     };
   }
@@ -597,33 +759,84 @@ function initializeForm() {
     addLabelValue('Consent Date: ', formData.consentDate);
     yPos += 2;
 
-    // ========== UNDERSTANDING OF TREATMENT ==========
-    addSectionHeader('Understanding of Treatment');
+    // ========== HEALTH SCREENING ==========
+    addSectionHeader('Health Screening Responses');
 
-    addText('1. Treatment Benefits and Risks', 9, true);
-    addText('I understand that along with the benefits of hormone replacement therapy and any medical treatments provided by Range Medical, there are both risks and potential complications to treatment, as well as risks associated with not receiving treatment. These risks and potential complications have been clearly explained to me. I have not been promised or guaranteed any specific results from these therapies, and I agree to comply with the recommended treatment dosages and protocols.', 8.5);
+    var hqLabels = [
+      'Allergies to medications or hormones',
+      'Currently pregnant or nursing',
+      'Currently taking prescription medications or supplements',
+      'History of blood clot, stroke, or pulmonary embolism',
+      'History of liver disease',
+      'Hormone-sensitive cancer (breast, prostate, uterine)',
+      'History of heart disease or cardiovascular conditions'
+    ];
+
+    var yesAnswers = [];
+    hqLabels.forEach(function(label, i) {
+      var answer = formData.healthAnswers['hq' + (i + 1)];
+      if (answer === 'yes') yesAnswers.push(label);
+    });
+
+    if (yesAnswers.length > 0) {
+      checkPageBreak(12 + yesAnswers.length * 5);
+      doc.setFillColor(254, 243, 199);
+      var boxHeight = 10 + (yesAnswers.length * 5);
+      doc.rect(leftMargin, yPos - 3, contentWidth, boxHeight, 'F');
+      doc.setDrawColor(245, 158, 11);
+      doc.setLineWidth(0.5);
+      doc.rect(leftMargin, yPos - 3, contentWidth, boxHeight, 'S');
+      doc.setTextColor(146, 64, 14);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.text('ATTENTION: Patient answered YES to:', leftMargin + 3, yPos + 2);
+      yPos += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      yesAnswers.forEach(function(q) { doc.text('• ' + q, leftMargin + 6, yPos); yPos += 4.5; });
+      doc.setTextColor(0, 0, 0);
+      doc.setDrawColor(0);
+      yPos += 4;
+    }
+
+    hqLabels.forEach(function(label, i) {
+      var answer = formData.healthAnswers['hq' + (i + 1)];
+      addLabelValue((i + 1) + '. ' + label + ': ', (answer || 'not answered').toUpperCase());
+      var details = formData.healthAnswers['hq' + (i + 1) + '_details'];
+      if (details) { addText('   Details: ' + details, 8); }
+    });
     yPos += 2;
 
-    addText('2. Ongoing Monitoring and Testing', 9, true);
-    addText('I agree to comply with ongoing testing and evaluations necessary to monitor my treatment progress and safety. These evaluations may include laboratory tests or other diagnostic procedures as recommended by my treating physician, primary care physician, or other specialists. I agree to maintain regular check-ups and preventive screenings, which may include complete physical examinations, EKGs, mammograms, pelvic and breast examinations, pap smears, prostate exams, PSA tests, colonoscopies, and any other medically appropriate examinations.', 8.5);
+    // ========== PATIENT ACKNOWLEDGMENTS ==========
+    addSectionHeader('Patient Acknowledgments & Agreement');
+
+    var initials = ((formData.firstName.charAt(0) || '') + (formData.lastName.charAt(0) || '')).toUpperCase();
+
+    function addCheckboxLine(text, checked) {
+      checkPageBreak(12);
+      doc.setDrawColor(0);
+      doc.setLineWidth(0.5);
+      if (checked) {
+        doc.setFillColor(0, 0, 0);
+        doc.rect(leftMargin, yPos - 3.5, 7, 7, 'FD');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.text(initials, leftMargin + 3.5, yPos + 0.5, { align: 'center' });
+        doc.setTextColor(0, 0, 0);
+      } else {
+        doc.rect(leftMargin, yPos - 3.5, 7, 7, 'S');
+      }
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      var lines = doc.splitTextToSize(text, contentWidth - 12);
+      doc.text(lines, leftMargin + 10, yPos);
+      yPos += lines.length * 3.5 + 4;
+    }
+
+    var ackTexts = formData.acknowledgments || [];
+    ackTexts.forEach(function(ack) { addCheckboxLine(ack.text, ack.checked); });
     yPos += 2;
-
-    addText('3. Reporting Adverse Events', 9, true);
-    addText('I agree to immediately report any adverse reactions, side effects, or complications potentially related to my therapy to Range Medical. I acknowledge that the benefits, risks, and potential complications of treatments provided by Range Medical have been fully explained to me. I confirm that I have received all necessary information, have had all my questions answered to my satisfaction, and understand that no guarantees or promises regarding treatment outcomes have been made.', 8.5);
-    yPos += 2;
-
-    addText('4. Financial Responsibility', 9, true);
-    addText('I acknowledge that insurance providers may not cover physician evaluations, laboratory testing, medications, or therapies provided by Range Medical. I agree to assume full financial responsibility for all charges associated with these services, understanding that reimbursement from my insurance provider is not guaranteed and that payment is my sole responsibility regardless of insurance coverage.', 8.5);
-    yPos += 2;
-
-    addText('5. Informed Consent Certification', 9, true);
-    addText('I certify that I have read (or have had read to me) this entire consent form in its entirety. I have been educated about the benefits, risks, and potential complications associated with hormone replacement therapy and other treatments offered by Range Medical. All my questions have been answered to my complete satisfaction, and I freely and voluntarily consent to treatment without coercion or undue influence.', 8.5);
-    yPos += 4;
-
-    // ========== CONSENT ACKNOWLEDGMENT ==========
-    addSectionHeader('Consent Acknowledgment');
-    addText('I acknowledge and consent: I have read and fully understand the above patient acknowledgments. I consent to participate in hormone replacement therapy under the clinical supervision of the medical team at Range Medical. I understand my rights, responsibilities, and the nature of the treatment I am receiving.', 8.5, true);
-    yPos += 4;
 
     // ========== PATIENT SIGNATURE ==========
     addSectionHeader('Patient Signature');
@@ -676,42 +889,12 @@ function initializeForm() {
           consentGiven: formData.consentGiven,
           signatureUrl: urls.signatureUrl,
           pdfUrl: urls.pdfUrl,
-          ghlContactId: ghlContactId
+          additionalData: { healthAnswers: formData.healthAnswers, acknowledgments: formData.acknowledgments }
         })
       });
       return await response.json();
     } catch (error) {
       console.error('Error saving to database:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  // ============================================
-  // SEND TO GOHIGHLEVEL
-  // ============================================
-  async function sendToGoHighLevel(formData, urls) {
-    try {
-      const response = await fetch(CONFIG.api.ghl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          dateOfBirth: formData.dateOfBirth,
-          consentType: CONFIG.consentType,
-          consentDate: formData.consentDate,
-          customFieldKey: CONFIG.ghl.customFieldKey,
-          customFieldValue: CONFIG.ghl.customFieldValue,
-          tags: CONFIG.ghl.tags,
-          pdfUrl: urls.pdfUrl,
-          signatureUrl: urls.signatureUrl
-        })
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error sending to GHL:', error);
       return { success: false, error: error.message };
     }
   }
@@ -781,10 +964,7 @@ function initializeForm() {
       
       showStatus('Saving consent record...', 'loading');
       await saveToDatabase(formData, urls);
-      
-      showStatus('Updating patient record...', 'loading');
-      await sendToGoHighLevel(formData, urls);
-      
+
       showThankYouPage(formData);
       
     } catch (error) {

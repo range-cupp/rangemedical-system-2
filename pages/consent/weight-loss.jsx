@@ -58,6 +58,23 @@ export default function WeightLossConsent() {
         .consent-text ul { margin-left: 1.5rem; margin-bottom: 12px; }
         .consent-text li { margin-bottom: 6px; color: #333; font-size: 14px; line-height: 1.5; }
         .consent-text strong { font-weight: 600; }
+        .health-question { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 0; padding: 16px; margin-bottom: 12px; }
+        .health-question.warning { background: #fff7ed; border-color: #f59e0b; }
+        .health-question.critical { background: #fef2f2; border-color: #dc2626; }
+        .health-question-text { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #111; line-height: 1.5; }
+        .health-question-note { font-size: 12px; color: #666; font-style: italic; margin-bottom: 8px; }
+        .health-question-note.critical-note { color: #b91c1c; font-style: normal; font-weight: 600; }
+        .radio-group { display: flex; gap: 20px; }
+        .radio-item { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .radio-item input[type="radio"] { width: 1.25rem; height: 1.25rem; cursor: pointer; accent-color: #000; }
+        .radio-item label { font-size: 14px; font-weight: 500; text-transform: none; letter-spacing: normal; margin-bottom: 0; cursor: pointer; color: #333; }
+        .warning-alert { background: #fef3c7; border: 2px solid #f59e0b; border-radius: 0; padding: 16px; margin-bottom: 16px; display: none; }
+        .warning-alert.visible { display: block; }
+        .warning-alert h4 { font-size: 14px; font-weight: 700; color: #92400e; margin-bottom: 4px; }
+        .warning-alert p { font-size: 13px; color: #78350f; line-height: 1.5; }
+        .health-question.has-error { border-color: #dc2626; background: #fef2f2; }
+        .health-detail { margin-top: 8px; display: none; }
+        .health-detail textarea { width: 100%; padding: 8px 10px; font-size: 13px; font-family: inherit; border: 1px solid #ccc; background: #fff; min-height: 60px; resize: vertical; border-radius: 0; }
         .checkbox-consent { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; padding: 14px 16px; background: #fafafa; border: 1px solid #e5e5e5; border-radius: 0; }
         .checkbox-consent input[type="checkbox"] { width: 18px; height: 18px; margin-top: 3px; cursor: pointer; accent-color: #000; flex-shrink: 0; }
         .checkbox-consent label { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: normal; margin-bottom: 0; cursor: pointer; color: #333; line-height: 1.55; }
@@ -107,7 +124,7 @@ export default function WeightLossConsent() {
         .thank-you-contact a { color: #000; text-decoration: underline; }
         .thank-you-footer { padding-top: 2rem; border-top: 2px solid #e5e5e5; }
         .thank-you-footer p { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.15em; color: #000; }
-        @media (max-width: 640px) { .consent-header { padding: 20px 16px; } .form-container { padding: 0 16px 30px; } .form-row { flex-direction: column; gap: 12px; } }
+        @media (max-width: 640px) { .consent-header { padding: 20px 16px; } .form-container { padding: 0 16px 30px; } .form-row { flex-direction: column; gap: 12px; } .radio-group { flex-direction: column; gap: 10px; } }
       `}</style>
 
       <div className="consent-container" id="consentContainer">
@@ -164,7 +181,93 @@ export default function WeightLossConsent() {
                 </div>
               </div>
             </div>
-            
+
+            {/* Health Screening */}
+            <div className="section">
+              <h3 className="section-title">Health Screening</h3>
+              <p style={{ marginBottom: '1.5rem', color: '#404040' }}>Please answer these questions honestly. They help us ensure your safety.</p>
+
+              <div className="warning-alert" id="warningAlert">
+                <h4>&#9888;&#65039; Important</h4>
+                <p>Based on your answers, please discuss these items with our medical team before beginning treatment.</p>
+              </div>
+
+              <div className="health-question critical" id="hq1">
+                <div className="health-question-text">Are you currently taking any other weight loss medications or GLP-1 receptor agonists?</div>
+                <div className="health-question-note critical-note">Taking multiple GLP-1 medications simultaneously is contraindicated and may cause serious side effects.</div>
+                <div className="radio-group">
+                  <div className="radio-item"><input type="radio" id="hq1-yes" name="hq1" value="yes" required /><label htmlFor="hq1-yes">Yes</label></div>
+                  <div className="radio-item"><input type="radio" id="hq1-no" name="hq1" value="no" /><label htmlFor="hq1-no">No</label></div>
+                </div>
+                <div className="health-detail" id="hq1-details"><textarea placeholder="Please list all weight loss medications..."></textarea></div>
+              </div>
+
+              <div className="health-question" id="hq2">
+                <div className="health-question-text">Are you currently pregnant, nursing, or planning to become pregnant?</div>
+                <div className="health-question-note">(GLP-1 medications must be stopped at least 2 months before planned pregnancy)</div>
+                <div className="radio-group">
+                  <div className="radio-item"><input type="radio" id="hq2-yes" name="hq2" value="yes" required /><label htmlFor="hq2-yes">Yes</label></div>
+                  <div className="radio-item"><input type="radio" id="hq2-no" name="hq2" value="no" /><label htmlFor="hq2-no">No</label></div>
+                  <div className="radio-item"><input type="radio" id="hq2-na" name="hq2" value="n/a" /><label htmlFor="hq2-na">Does not apply</label></div>
+                </div>
+              </div>
+
+              <div className="health-question" id="hq3">
+                <div className="health-question-text">Do you have a history of pancreatitis or gallbladder disease?</div>
+                <div className="radio-group">
+                  <div className="radio-item"><input type="radio" id="hq3-yes" name="hq3" value="yes" required /><label htmlFor="hq3-yes">Yes</label></div>
+                  <div className="radio-item"><input type="radio" id="hq3-no" name="hq3" value="no" /><label htmlFor="hq3-no">No</label></div>
+                </div>
+                <div className="health-detail" id="hq3-details"><textarea placeholder="Please describe..."></textarea></div>
+              </div>
+
+              <div className="health-question critical" id="hq4">
+                <div className="health-question-text">Have you been diagnosed with thyroid cancer or Multiple Endocrine Neoplasia type 2 (MEN2)?</div>
+                <div className="health-question-note critical-note">GLP-1 medications are contraindicated in patients with personal or family history of medullary thyroid carcinoma or MEN2.</div>
+                <div className="radio-group">
+                  <div className="radio-item"><input type="radio" id="hq4-yes" name="hq4" value="yes" required /><label htmlFor="hq4-yes">Yes</label></div>
+                  <div className="radio-item"><input type="radio" id="hq4-no" name="hq4" value="no" /><label htmlFor="hq4-no">No</label></div>
+                </div>
+                <div className="health-detail" id="hq4-details"><textarea placeholder="Please describe..."></textarea></div>
+              </div>
+
+              <div className="health-question" id="hq5">
+                <div className="health-question-text">Do you have diabetes (Type 1 or Type 2)?</div>
+                <div className="radio-group">
+                  <div className="radio-item"><input type="radio" id="hq5-yes" name="hq5" value="yes" required /><label htmlFor="hq5-yes">Yes</label></div>
+                  <div className="radio-item"><input type="radio" id="hq5-no" name="hq5" value="no" /><label htmlFor="hq5-no">No</label></div>
+                </div>
+                <div className="health-detail" id="hq5-details"><textarea placeholder="Please describe type and current management..."></textarea></div>
+              </div>
+
+              <div className="health-question" id="hq6">
+                <div className="health-question-text">Do you have kidney disease or liver disease?</div>
+                <div className="radio-group">
+                  <div className="radio-item"><input type="radio" id="hq6-yes" name="hq6" value="yes" required /><label htmlFor="hq6-yes">Yes</label></div>
+                  <div className="radio-item"><input type="radio" id="hq6-no" name="hq6" value="no" /><label htmlFor="hq6-no">No</label></div>
+                </div>
+                <div className="health-detail" id="hq6-details"><textarea placeholder="Please describe..."></textarea></div>
+              </div>
+
+              <div className="health-question" id="hq7">
+                <div className="health-question-text">Are you currently taking any prescription medications or supplements?</div>
+                <div className="radio-group">
+                  <div className="radio-item"><input type="radio" id="hq7-yes" name="hq7" value="yes" required /><label htmlFor="hq7-yes">Yes</label></div>
+                  <div className="radio-item"><input type="radio" id="hq7-no" name="hq7" value="no" /><label htmlFor="hq7-no">No</label></div>
+                </div>
+                <div className="health-detail" id="hq7-details"><textarea placeholder="Please list all medications and supplements..."></textarea></div>
+              </div>
+
+              <div className="health-question" id="hq8">
+                <div className="health-question-text">Do you have a history of eating disorders?</div>
+                <div className="radio-group">
+                  <div className="radio-item"><input type="radio" id="hq8-yes" name="hq8" value="yes" required /><label htmlFor="hq8-yes">Yes</label></div>
+                  <div className="radio-item"><input type="radio" id="hq8-no" name="hq8" value="no" /><label htmlFor="hq8-no">No</label></div>
+                </div>
+                <div className="health-detail" id="hq8-details"><textarea placeholder="Please describe..."></textarea></div>
+              </div>
+            </div>
+
             {/* Program Information & Consent */}
             <div className="section">
               <h3 className="section-title">Program Information & Consent</h3>
@@ -312,19 +415,13 @@ function initializeForm() {
       anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
     },
     api: {
-      consents: '/api/consent-forms',
-      ghl: '/api/consent-to-ghl'
-    },
-    ghl: {
-      customFieldKey: 'weight_loss_consent',
-      tags: ['weight-loss-consent-signed', 'consent-completed']
+      consents: '/api/consent-forms'
     },
     consentType: 'weight-loss',
     recipientEmail: 'cupp@range-medical.com, intake@range-medical.com'
   };
 
   const urlParams = new URLSearchParams(window.location.search);
-  const ghlContactId = urlParams.get('contactId') || urlParams.get('contact_id') || urlParams.get('cid') || '';
 
   const supabaseClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
 
@@ -381,6 +478,39 @@ function initializeForm() {
   }
 
   initSignaturePad();
+
+  // ============================================
+  // HEALTH SCREENING LOGIC
+  // ============================================
+  function checkHealthQuestions() {
+    const warningQuestions = ['hq1', 'hq2', 'hq3', 'hq4', 'hq5', 'hq6', 'hq7', 'hq8'];
+    let showWarning = false;
+    warningQuestions.forEach(q => {
+      const yesRadio = document.getElementById(q + '-yes');
+      if (yesRadio && yesRadio.checked) {
+        showWarning = true;
+        document.getElementById(q).classList.add('warning');
+      } else {
+        document.getElementById(q).classList.remove('warning');
+      }
+    });
+    const warningAlert = document.getElementById('warningAlert');
+    if (showWarning) warningAlert.classList.add('visible');
+    else warningAlert.classList.remove('visible');
+  }
+
+  ['hq1', 'hq3', 'hq4', 'hq5', 'hq6', 'hq7', 'hq8'].forEach(q => {
+    document.querySelectorAll('input[name="' + q + '"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        const details = document.getElementById(q + '-details');
+        if (details) details.style.display = (this.value === 'yes') ? 'block' : 'none';
+        checkHealthQuestions();
+      });
+    });
+  });
+  document.querySelectorAll('input[name="hq2"]').forEach(radio => {
+    radio.addEventListener('change', checkHealthQuestions);
+  });
 
   // ============================================
   // DATE OF BIRTH AUTO-FORMATTING
@@ -481,6 +611,25 @@ function initializeForm() {
       if (dobError) dobError.classList.remove('visible');
     }
 
+    // Validate health screening
+    document.querySelectorAll('.health-question.has-error').forEach(el => el.classList.remove('has-error'));
+    const hqLabels = { hq1: 'Weight loss medications', hq2: 'Pregnancy', hq3: 'Pancreatitis/gallbladder', hq4: 'Thyroid cancer/MEN2', hq5: 'Diabetes', hq6: 'Kidney/liver disease', hq7: 'Current medications', hq8: 'Eating disorders' };
+    const unanswered = [];
+    for (let i = 1; i <= 8; i++) {
+      const name = 'hq' + i;
+      const radios = document.querySelectorAll('input[name="' + name + '"]');
+      const anyChecked = Array.from(radios).some(r => r.checked);
+      if (!anyChecked) {
+        unanswered.push(hqLabels[name]);
+        const el = document.getElementById(name);
+        if (el) el.classList.add('has-error');
+      }
+    }
+    if (unanswered.length > 0) {
+      isValid = false;
+      missingFields.push('Health Questions: ' + unanswered.join(', '));
+    }
+
     const ackBoxes = document.querySelectorAll('.ack-checkbox');
     let allAcked = true;
     ackBoxes.forEach(cb => {
@@ -520,6 +669,16 @@ function initializeForm() {
         checked: cb.checked
       });
     });
+
+    // Collect health screening
+    const healthAnswers = {};
+    for (let i = 1; i <= 8; i++) {
+      const checked = document.querySelector('input[name="hq' + i + '"]:checked');
+      healthAnswers['hq' + i] = checked ? checked.value : 'not answered';
+      const details = document.querySelector('#hq' + i + '-details textarea');
+      if (details && details.value.trim()) healthAnswers['hq' + i + '_details'] = details.value.trim();
+    }
+
     return {
       firstName: document.getElementById('firstName').value.trim(),
       lastName: document.getElementById('lastName').value.trim(),
@@ -529,6 +688,7 @@ function initializeForm() {
       consentDate: document.getElementById('consentDate').value,
       consentGiven: true,
       acknowledgments: acknowledgments,
+      healthAnswers: healthAnswers,
       signature: signaturePad.toDataURL('image/jpeg', 0.5),
       submissionDate: new Date().toLocaleString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric',
@@ -593,9 +753,9 @@ function initializeForm() {
       signatureUrl: signatureUrl,
       pdfUrl: pdfUrl,
       consentGiven: formData.consentGiven,
-      ghlContactId: ghlContactId,
       additionalData: {
-        acknowledgments: formData.acknowledgments
+        acknowledgments: formData.acknowledgments,
+        healthAnswers: formData.healthAnswers
       }
     };
 
@@ -605,34 +765,6 @@ function initializeForm() {
       body: JSON.stringify(payload)
     });
 
-    return await response.json();
-  }
-
-  // ============================================
-  // SEND TO GHL
-  // ============================================
-  async function sendToGHL(formData, signatureUrl, pdfUrl) {
-    const payload = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      phone: formData.phone,
-      dateOfBirth: formData.dateOfBirth,
-      consentType: CONFIG.consentType,
-      consentDate: formData.consentDate,
-      customFieldKey: CONFIG.ghl.customFieldKey,
-      customFieldValue: 'Complete',
-      tags: CONFIG.ghl.tags,
-      signatureUrl: signatureUrl,
-      pdfUrl: pdfUrl
-    };
-    
-    const response = await fetch(CONFIG.api.ghl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    
     return await response.json();
   }
 
@@ -723,6 +855,72 @@ function initializeForm() {
     addLabelValue('Email: ', formData.email);
     addLabelValue('Phone: ', formData.phone);
     addLabelValue('Consent Date: ', formData.consentDate);
+    yPos += 2;
+
+    // ========== HEALTH SCREENING ==========
+    addSectionHeader('Health Screening');
+    if (formData.healthAnswers) {
+      var hqLabels = {
+        hq1: 'Currently taking other weight loss medications or GLP-1 receptor agonists',
+        hq2: 'Currently pregnant, nursing, or planning to become pregnant',
+        hq3: 'History of pancreatitis or gallbladder disease',
+        hq4: 'Diagnosed with thyroid cancer or MEN2',
+        hq5: 'Diabetes (Type 1 or Type 2)',
+        hq6: 'Kidney disease or liver disease',
+        hq7: 'Currently taking prescription medications or supplements',
+        hq8: 'History of eating disorders'
+      };
+      var hasYesAnswers = false;
+      for (var qi = 1; qi <= 8; qi++) {
+        var qKey = 'hq' + qi;
+        if (formData.healthAnswers[qKey] === 'yes') { hasYesAnswers = true; break; }
+      }
+      if (hasYesAnswers) {
+        checkPageBreak(12);
+        doc.setFillColor(254, 243, 199);
+        doc.setDrawColor(245, 158, 11);
+        doc.rect(leftMargin, yPos - 3, contentWidth, 9, 'FD');
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(146, 64, 14);
+        doc.text('WARNING: Patient answered YES to one or more health screening questions — review with provider before treatment.', leftMargin + 3, yPos + 2);
+        doc.setTextColor(0, 0, 0);
+        doc.setDrawColor(0, 0, 0);
+        yPos += 10;
+      }
+      for (var qj = 1; qj <= 8; qj++) {
+        var qk = 'hq' + qj;
+        var answer = (formData.healthAnswers[qk] || 'not answered').toUpperCase();
+        var isYes = formData.healthAnswers[qk] === 'yes';
+        checkPageBreak(10);
+        doc.setFontSize(8);
+        if (isYes) {
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(185, 28, 28);
+          doc.text('YES', leftMargin, yPos);
+          doc.setTextColor(0, 0, 0);
+        } else {
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(0, 0, 0);
+          doc.text(answer, leftMargin, yPos);
+        }
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(51, 51, 51);
+        var hqLines = doc.splitTextToSize(hqLabels[qk], contentWidth - 20);
+        doc.text(hqLines, leftMargin + 18, yPos);
+        yPos += hqLines.length * 3.8 + 2;
+        var detailKey = qk + '_details';
+        if (formData.healthAnswers[detailKey]) {
+          doc.setFontSize(7.5);
+          doc.setFont('helvetica', 'italic');
+          doc.setTextColor(100, 100, 100);
+          var detailLines = doc.splitTextToSize('Details: ' + formData.healthAnswers[detailKey], contentWidth - 25);
+          checkPageBreak(detailLines.length * 3.5 + 2);
+          doc.text(detailLines, leftMargin + 18, yPos);
+          yPos += detailLines.length * 3.5 + 2;
+        }
+      }
+    }
     yPos += 2;
 
     // ========== PURPOSE OF TREATMENT ==========
@@ -923,14 +1121,7 @@ function initializeForm() {
       } catch (dbError) {
         console.error('Database save failed:', dbError);
       }
-      
-      showStatus('Updating patient record...', 'loading');
-      try {
-        await sendToGHL(formData, signatureUrl, pdfUrl);
-      } catch (ghlError) {
-        console.error('GHL update failed:', ghlError);
-      }
-      
+
       showThankYouPage(formData);
       
     } catch (error) {

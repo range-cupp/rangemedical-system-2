@@ -9,9 +9,7 @@ export default function BloodDrawConsentPage() {
   useEffect(() => {
     const SUPABASE_URL = 'https://teivfptpozltpqwahgdl.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc';
-    const CONSENT_API = '/api/consent-to-ghl';
     const urlParams = new URLSearchParams(window.location.search);
-    const ghlContactId = urlParams.get('contactId') || urlParams.get('contact_id') || urlParams.get('cid') || '';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Pre-fill from bundle query params
@@ -166,9 +164,7 @@ export default function BloodDrawConsentPage() {
         const { error: pdfError } = await supabaseClient.storage.from('medical-documents').upload(`consents/${pdfFileName}`, pdfBlob, { contentType: 'application/pdf' });
         const pdfUrl = pdfError ? '' : `${SUPABASE_URL}/storage/v1/object/public/medical-documents/consents/${pdfFileName}`;
 
-        try { await fetch('/api/consent-forms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ consentType: 'blood_draw', firstName: formData.firstName, lastName: formData.lastName, email: formData.email, phone: formData.phone, dateOfBirth: formData.dateOfBirth, consentDate: new Date().toISOString().split('T')[0], consentGiven: true, signatureUrl, pdfUrl, ghlContactId, additionalData: { health_screening: { bleedingDisorder: formData.bleedingDisorder, bleedingDetails: formData.bleedingDetails, bloodThinners: formData.bloodThinners, bloodThinnerDetails: formData.bloodThinnerDetails, allergiesLatex: formData.allergiesLatex, allergyDetails: formData.allergyDetails, faintingHistory: formData.faintingHistory }, acknowledgments } }) }); } catch(e) { console.error('DB save error:', e); }
-
-        try { await fetch(CONSENT_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ consentType: 'blood-draw', firstName: formData.firstName, lastName: formData.lastName, email: formData.email, phone: formData.phone, dateOfBirth: formData.dateOfBirth, consentDate: formData.consentDate, pdfUrl, signatureUrl, ghlContactId }) }); } catch(e) { console.error('GHL sync error:', e); }
+        try { await fetch('/api/consent-forms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ consentType: 'blood_draw', firstName: formData.firstName, lastName: formData.lastName, email: formData.email, phone: formData.phone, dateOfBirth: formData.dateOfBirth, consentDate: new Date().toISOString().split('T')[0], consentGiven: true, signatureUrl, pdfUrl, additionalData: { health_screening: { bleedingDisorder: formData.bleedingDisorder, bleedingDetails: formData.bleedingDetails, bloodThinners: formData.bloodThinners, bloodThinnerDetails: formData.bloodThinnerDetails, allergiesLatex: formData.allergiesLatex, allergyDetails: formData.allergyDetails, faintingHistory: formData.faintingHistory }, acknowledgments } }) }); } catch(e) { console.error('DB save error:', e); }
 
         showThankYouPage(formData);
       } catch (err) {
@@ -283,7 +279,7 @@ export default function BloodDrawConsentPage() {
         <title>Blood Draw Consent | Range Medical</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-        <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
       </Head>
       <div id="consentContainer" className="consent-page">

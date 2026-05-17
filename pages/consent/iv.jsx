@@ -13,10 +13,7 @@ export default function IVConsentPage() {
     // ============================================
     const SUPABASE_URL = 'https://teivfptpozltpqwahgdl.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc';
-    const CONSENT_API = '/api/consent-to-ghl';
-
     const urlParams = new URLSearchParams(window.location.search);
-    const ghlContactId = urlParams.get('contactId') || urlParams.get('contact_id') || urlParams.get('cid') || '';
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -230,7 +227,6 @@ export default function IVConsentPage() {
               consentGiven: true,
               signatureUrl: signatureUrl,
               pdfUrl: pdfUrl,
-              ghlContactId: ghlContactId,
               additionalData: {
                 health_screening: {
                   g6pd: formData.g6pd,
@@ -257,33 +253,6 @@ export default function IVConsentPage() {
             })
           });
         } catch (dbErr) { console.error('DB save error:', dbErr); }
-
-        // Sync to GHL
-        try {
-          await fetch(CONSENT_API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              consentType: 'iv',
-              firstName: formData.firstName,
-              lastName: formData.lastName,
-              email: formData.email,
-              phone: formData.phone,
-              dateOfBirth: formData.dateOfBirth,
-              consentDate: formData.consentDate,
-              pdfUrl: pdfUrl,
-              signatureUrl: signatureUrl,
-              ghlContactId: ghlContactId,
-              healthScreening: {
-                g6pd: formData.g6pd,
-                g6pdDetails: formData.g6pdDetails,
-                g6pdCritical: formData.g6pd === 'Yes' || formData.g6pd === 'Unsure'
-              }
-            })
-          });
-        } catch (ghlErr) {
-          console.error('GHL sync error:', ghlErr);
-        }
 
         // Success
         showThankYouPage(formData);
@@ -589,7 +558,7 @@ export default function IVConsentPage() {
         <title>IV & Injection Therapy Consent | Range Medical</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-        <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
       </Head>
 

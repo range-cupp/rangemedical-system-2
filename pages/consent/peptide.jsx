@@ -9,9 +9,7 @@ export default function PeptideConsentPage() {
   useEffect(() => {
     const SUPABASE_URL = 'https://teivfptpozltpqwahgdl.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc';
-    const CONSENT_API = '/api/consent-to-ghl';
     const urlParams = new URLSearchParams(window.location.search);
-    const ghlContactId = urlParams.get('contactId') || urlParams.get('contact_id') || urlParams.get('cid') || '';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Pre-fill from bundle query params
@@ -130,8 +128,7 @@ export default function PeptideConsentPage() {
         const { error: pdfError } = await supabaseClient.storage.from('medical-documents').upload(`consents/${pdfFileName}`, pdfBlob, { contentType: 'application/pdf' });
         const pdfUrl = pdfError ? '' : `${SUPABASE_URL}/storage/v1/object/public/medical-documents/consents/${pdfFileName}`;
 
-        try { await fetch('/api/consent-forms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ consentType: 'peptide', firstName: formData.firstName, lastName: formData.lastName, email: formData.email, phone: formData.phone, dateOfBirth: formData.dateOfBirth, consentDate: new Date().toISOString().split('T')[0], consentGiven: true, signatureUrl, pdfUrl, ghlContactId, additionalData: { health_screening: { allergies: formData.allergies, allergyDetails: formData.allergyDetails, pregnant: formData.pregnant, medications: formData.medications, medicationDetails: formData.medicationDetails, autoimmune: formData.autoimmune, autoimmuneDetails: formData.autoimmuneDetails, cancer: formData.cancer, cancerDetails: formData.cancerDetails, selfInjecting: formData.selfInjecting }, acknowledgments } }) }); } catch(e) { console.error('DB save error:', e); }
-        try { await fetch(CONSENT_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ consentType: 'peptide', firstName: formData.firstName, lastName: formData.lastName, email: formData.email, phone: formData.phone, dateOfBirth: formData.dateOfBirth, consentDate: formData.consentDate, pdfUrl, signatureUrl, ghlContactId }) }); } catch(e) {}
+        try { await fetch('/api/consent-forms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ consentType: 'peptide', firstName: formData.firstName, lastName: formData.lastName, email: formData.email, phone: formData.phone, dateOfBirth: formData.dateOfBirth, consentDate: new Date().toISOString().split('T')[0], consentGiven: true, signatureUrl, pdfUrl, additionalData: { health_screening: { allergies: formData.allergies, allergyDetails: formData.allergyDetails, pregnant: formData.pregnant, medications: formData.medications, medicationDetails: formData.medicationDetails, autoimmune: formData.autoimmune, autoimmuneDetails: formData.autoimmuneDetails, cancer: formData.cancer, cancerDetails: formData.cancerDetails, selfInjecting: formData.selfInjecting }, acknowledgments } }) }); } catch(e) { console.error('DB save error:', e); }
 
         showThankYouPage(formData);
       } catch (err) { console.error(err); statusMsg.textContent = 'Error submitting form. Please try again.'; statusMsg.className = 'status-message error'; statusMsg.style.display = 'block'; submitBtn.disabled = false; submitBtn.textContent = 'Submit Consent'; }
@@ -207,7 +204,7 @@ export default function PeptideConsentPage() {
 
   return (
     <>
-      <Head><title>Peptide Therapy Consent | Range Medical</title><meta name="viewport" content="width=device-width, initial-scale=1" /><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script></Head>
+      <Head><title>Peptide Therapy Consent | Range Medical</title><meta name="viewport" content="width=device-width, initial-scale=1" /><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script></Head>
       <div id="consentContainer" className="consent-page">
         <header className="consent-header"><div className="header-inner"><h1>RANGE MEDICAL</h1><p>Peptide Therapy — Informed Consent</p></div></header>
         <form id="consentForm" className="consent-form">

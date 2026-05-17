@@ -59,10 +59,13 @@ export default function HIPAANotice() {
         .consent-text ul { margin-left: 1.25rem; margin-bottom: 8px; }
         .consent-text li { margin-bottom: 6px; color: #404040; font-size: 14px; line-height: 1.6; }
         .consent-text strong { font-weight: 600; }
-        .checkbox-consent { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; padding: 14px 16px; background: #fafafa; border: 1px solid #e5e5e5; border-radius: 0; }
-        .checkbox-consent input[type="checkbox"] { width: 18px; height: 18px; margin-top: 3px; cursor: pointer; accent-color: #000; flex-shrink: 0; }
-        .checkbox-consent label { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: normal; margin-bottom: 0; cursor: pointer; color: #333; line-height: 1.55; }
-        .checkbox-consent.error { border-color: #dc2626; background: #fef2f2; }
+        .ack-item { border: 1px solid #e5e7eb; border-radius: 0; padding: 14px 16px; margin-bottom: 10px; transition: border-color 0.2s; }
+        .ack-item:hover { border-color: #999; }
+        .ack-item label { display: flex; gap: 12px; cursor: pointer; align-items: flex-start; }
+        .ack-checkbox { position: absolute; opacity: 0; width: 0; height: 0; }
+        .ack-initials { width: 28px; height: 28px; min-width: 28px; border: 2px solid #d4d4d4; border-radius: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: transparent; background: #fff; cursor: pointer; transition: all 0.15s; margin-top: 1px; user-select: none; }
+        .ack-checkbox:checked + .ack-initials { background: #000; border-color: #000; color: #fff; }
+        .ack-text { font-size: 13px; line-height: 1.55; color: #333; }
         .signature-wrapper { margin-bottom: 16px; }
         .signature-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #333; display: block; text-transform: none; letter-spacing: normal; }
         .signature-pad-container { border: 2px solid #000; border-radius: 0; background: #fff; position: relative; margin-bottom: 8px; overflow: hidden; }
@@ -174,14 +177,64 @@ export default function HIPAANotice() {
                   <p>(949) 997-3988 | privacy@range-medical.com</p>
                 </div>
               </div>
+            </div>
 
-              <div className="checkbox-consent" id="consentCheckbox">
-                <input type="checkbox" id="consentGiven" name="consentGiven" required />
-                <label htmlFor="consentGiven">
-                  I acknowledge that I have received and reviewed the Notice of Privacy Practices for Range Medical.
+            {/* Acknowledgments */}
+            <div className="section">
+              <h3 className="section-title">Patient Acknowledgments</h3>
+              <p style={{ fontSize: '13px', color: '#525252', marginBottom: '16px' }}>Please initial each statement by clicking the box to confirm you have read and understand the following:</p>
+
+              <div className="ack-item">
+                <label>
+                  <input type="checkbox" id="ack1" className="ack-checkbox" required />
+                  <span className="ack-initials"></span>
+                  <span className="ack-text">I acknowledge that I have received the Notice of Privacy Practices for Range Medical.</span>
                 </label>
               </div>
-              <div className="field-error" id="consentError">You must acknowledge receipt to continue</div>
+              <div className="ack-item">
+                <label>
+                  <input type="checkbox" id="ack2" className="ack-checkbox" required />
+                  <span className="ack-initials"></span>
+                  <span className="ack-text">I understand my health information may be used for treatment, payment, and healthcare operations as described in this notice.</span>
+                </label>
+              </div>
+              <div className="ack-item">
+                <label>
+                  <input type="checkbox" id="ack3" className="ack-checkbox" required />
+                  <span className="ack-initials"></span>
+                  <span className="ack-text">I understand I may request restrictions on how my health information is used or disclosed, and that Range Medical is not required to agree to such restrictions.</span>
+                </label>
+              </div>
+              <div className="ack-item">
+                <label>
+                  <input type="checkbox" id="ack4" className="ack-checkbox" required />
+                  <span className="ack-initials"></span>
+                  <span className="ack-text">I understand I have the right to access and obtain a copy of my health records.</span>
+                </label>
+              </div>
+              <div className="ack-item">
+                <label>
+                  <input type="checkbox" id="ack5" className="ack-checkbox" required />
+                  <span className="ack-initials"></span>
+                  <span className="ack-text">I understand I have the right to request amendments to my health information.</span>
+                </label>
+              </div>
+              <div className="ack-item">
+                <label>
+                  <input type="checkbox" id="ack6" className="ack-checkbox" required />
+                  <span className="ack-initials"></span>
+                  <span className="ack-text">I understand I have the right to an accounting of disclosures of my health information.</span>
+                </label>
+              </div>
+              <div className="ack-item">
+                <label>
+                  <input type="checkbox" id="ack7" className="ack-checkbox" required />
+                  <span className="ack-initials"></span>
+                  <span className="ack-text">I understand I may revoke this acknowledgment in writing at any time, except to the extent that Range Medical has already taken action in reliance on it.</span>
+                </label>
+              </div>
+
+              <div className="field-error" id="ackError">Please initial all acknowledgments above to continue</div>
             </div>
 
             {/* Signature */}
@@ -236,7 +289,6 @@ function initializeForm() {
   };
 
   const urlParams = new URLSearchParams(window.location.search);
-  const ghlContactId = urlParams.get('contactId') || urlParams.get('contact_id') || urlParams.get('cid') || '';
   const supabaseClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
 
   // Pre-fill from URL params (bundle passes fn, ln, em, ph, email, phone)
@@ -251,6 +303,19 @@ function initializeForm() {
   // Phone: check both 'phone' and 'ph' params
   const phoneParam = urlParams.get('phone') || urlParams.get('ph');
   if (phoneParam) { const el = document.getElementById('phone'); if (el) el.value = phoneParam; }
+
+  // ============================================
+  // INITIALS FOR ACKNOWLEDGMENTS
+  // ============================================
+  function updateInitials() {
+    const first = (document.getElementById('firstName')?.value || '').trim();
+    const last = (document.getElementById('lastName')?.value || '').trim();
+    const initials = ((first.charAt(0) || '') + (last.charAt(0) || '')).toUpperCase();
+    document.querySelectorAll('.ack-initials').forEach(el => { el.textContent = initials; });
+  }
+  document.getElementById('firstName')?.addEventListener('input', updateInitials);
+  document.getElementById('lastName')?.addEventListener('input', updateInitials);
+  updateInitials();
 
   // ============================================
   // SIGNATURE PAD SETUP
@@ -300,7 +365,7 @@ function initializeForm() {
   initSignaturePad();
 
   // Clear errors on input
-  document.querySelectorAll('input[required]').forEach(input => {
+  document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"]').forEach(input => {
     input.addEventListener('input', () => {
       input.classList.remove('error');
       const errorEl = document.getElementById(input.id + 'Error');
@@ -308,9 +373,18 @@ function initializeForm() {
     });
   });
 
-  document.getElementById('consentGiven').addEventListener('change', () => {
-    document.getElementById('consentCheckbox').classList.remove('error');
-    document.getElementById('consentError').classList.remove('visible');
+  // Clear ack errors on check
+  document.querySelectorAll('.ack-checkbox').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) {
+        cb.closest('.ack-item').style.borderColor = '#e5e7eb';
+      }
+      // Hide ack error if all checked
+      const allChecked = Array.from(document.querySelectorAll('.ack-checkbox')).every(c => c.checked);
+      if (allChecked) {
+        document.getElementById('ackError').classList.remove('visible');
+      }
+    });
   });
 
   // ============================================
@@ -339,12 +413,21 @@ function initializeForm() {
       }
     });
 
-    const consentCheckbox = document.getElementById('consentGiven');
-    if (!consentCheckbox.checked) {
-      document.getElementById('consentCheckbox').classList.add('error');
-      document.getElementById('consentError').classList.add('visible');
+    // Acknowledgments - all must be checked
+    const ackBoxes = document.querySelectorAll('.ack-checkbox');
+    let allChecked = true;
+    ackBoxes.forEach(cb => {
+      if (!cb.checked) {
+        allChecked = false;
+        cb.closest('.ack-item').style.borderColor = '#dc2626';
+      } else {
+        cb.closest('.ack-item').style.borderColor = '#e5e7eb';
+      }
+    });
+    if (!allChecked) {
+      document.getElementById('ackError').classList.add('visible');
       isValid = false;
-      missingFields.push('Acknowledgment Checkbox');
+      missingFields.push('All acknowledgment initials');
     }
 
     if (signaturePad.isEmpty()) {
@@ -367,18 +450,29 @@ function initializeForm() {
   // COLLECT FORM DATA
   // ============================================
   function collectFormData() {
+    // Collect acknowledgments
+    const ackBoxes = document.querySelectorAll('.ack-checkbox');
+    const acknowledgments = [];
+    ackBoxes.forEach(cb => {
+      acknowledgments.push({
+        id: cb.id,
+        text: cb.closest('.ack-item').querySelector('.ack-text').textContent.trim(),
+        checked: cb.checked
+      });
+    });
+
     return {
       firstName: document.getElementById('firstName').value.trim(),
       lastName: document.getElementById('lastName').value.trim(),
       email: document.getElementById('email').value.trim(),
       phone: document.getElementById('phone').value.trim(),
       consentDate: new Date().toISOString().split('T')[0],
-      consentGiven: document.getElementById('consentGiven').checked,
+      acknowledgments: acknowledgments,
       signature: signaturePad.toDataURL('image/jpeg', 0.5),
       submissionDate: new Date().toLocaleString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric',
         hour: '2-digit', minute: '2-digit',
-              timeZone: 'America/Los_Angeles',
+        timeZone: 'America/Los_Angeles',
       })
     };
   }
@@ -446,6 +540,8 @@ function initializeForm() {
     const contentWidth = pageWidth - 30;
     let yPos = 15;
 
+    const initials = ((formData.firstName || '').charAt(0) + (formData.lastName || '').charAt(0)).toUpperCase();
+
     function checkPageBreak(needed) {
       if (yPos + needed > pageHeight - 25) { doc.addPage(); yPos = 15; }
     }
@@ -483,6 +579,28 @@ function initializeForm() {
       doc.setFont('helvetica', 'normal');
       doc.text(value || 'N/A', leftMargin + doc.getTextWidth(label) + 2, yPos);
       yPos += 5;
+    }
+
+    function addCheckboxLine(text, checked) {
+      var lines = doc.splitTextToSize(text, contentWidth - 12);
+      checkPageBreak(lines.length * 4.5 + 3);
+      doc.setDrawColor(0);
+      doc.setLineWidth(0.5);
+      if (checked) {
+        doc.setFillColor(0, 0, 0);
+        doc.rect(leftMargin, yPos - 3.5, 7, 7, 'FD');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.text(initials, leftMargin + 3.5, yPos + 0.5, { align: 'center' });
+        doc.setTextColor(0, 0, 0);
+      } else {
+        doc.rect(leftMargin, yPos - 3.5, 7, 7, 'S');
+      }
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(lines, leftMargin + 10, yPos);
+      yPos += lines.length * 3.5 + 4;
     }
 
     // Header bar
@@ -537,9 +655,16 @@ function initializeForm() {
     addText('Range Medical | 1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660 | (949) 997-3988 | privacy@range-medical.com', 8, false, [100, 100, 100]);
     yPos += 4;
 
-    // Acknowledgment
-    addSectionHeader('Patient Acknowledgment');
-    addText('I acknowledge that I have received and reviewed the Notice of Privacy Practices for Range Medical.', 9, true);
+    // Acknowledgments
+    addSectionHeader('Patient Acknowledgments');
+    addText('By initialing below, the patient affirms that each of the following statements has been read, understood, and individually acknowledged:', 8.5);
+    yPos += 3;
+
+    if (formData.acknowledgments && formData.acknowledgments.length > 0) {
+      formData.acknowledgments.forEach(function(ack) {
+        addCheckboxLine(ack.text, ack.checked);
+      });
+    }
     yPos += 4;
 
     // Signature
@@ -628,24 +753,6 @@ function initializeForm() {
 
       const urls = { signatureUrl, pdfUrl };
 
-      // Sync to GHL
-      showStatus('Recording acknowledgment...', 'loading');
-      try {
-        await fetch('/api/hipaa-acknowledge', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phone: formData.phone || null,
-            contactId: ghlContactId || null,
-            acknowledgedAt: new Date().toISOString(),
-            signatureUrl: urls.signatureUrl,
-            pdfUrl: urls.pdfUrl,
-          })
-        });
-      } catch (ghlErr) {
-        console.error('GHL sync error (non-critical):', ghlErr);
-      }
-
       // Save consent to database
       showStatus('Saving consent record...', 'loading');
       await fetch('/api/consent-forms', {
@@ -658,10 +765,12 @@ function initializeForm() {
           email: formData.email,
           phone: formData.phone,
           consentDate: formData.consentDate,
-          consentGiven: formData.consentGiven,
+          consentGiven: true,
           signatureUrl: urls.signatureUrl,
           pdfUrl: urls.pdfUrl,
-          ghlContactId: ghlContactId,
+          additionalData: {
+            acknowledgments: formData.acknowledgments
+          }
         })
       });
 

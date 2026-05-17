@@ -7,10 +7,6 @@ const CONFIG = {
     url: 'https://teivfptpozltpqwahgdl.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
   },
-  ghl: {
-    customFieldKey: 'red_light_therapy_consent',
-    tags: ['red-light-consent-signed', 'consent-completed']
-  },
   consentType: 'red-light',
   recipientEmail: 'cupp@range-medical.com'
 };
@@ -29,8 +25,11 @@ export default function RedLightConsentForm() {
   const [scriptsLoaded, setScriptsLoaded] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', phone: '', dateOfBirth: '', consentDate: '',
-    q1: '', q2: '', q3: '', q4: '', q5: '', q6: '', q7: '',
-    consentGiven: false
+    q1: '', q2: '', q3: '', q4: '', q5: '', q6: '', q7: ''
+  });
+  const [acknowledgments, setAcknowledgments] = useState({
+    ack1: false, ack2: false, ack3: false, ack4: false, ack5: false,
+    ack6: false, ack7: false, ack8: false, ack9: false, ack10: false, ack11: false
   });
   const [errors, setErrors] = useState({});
   const [validationMessages, setValidationMessages] = useState([]);
@@ -39,7 +38,6 @@ export default function RedLightConsentForm() {
   const [showThankYou, setShowThankYou] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   
-  const [ghlContactId, setGhlContactId] = useState('');
   const signaturePadRef = useRef(null);
   const signatureCanvasRef = useRef(null);
   const supabaseRef = useRef(null);
@@ -48,7 +46,6 @@ export default function RedLightConsentForm() {
     const today = new Date().toISOString().split('T')[0];
     setFormData(prev => ({ ...prev, consentDate: today }));
     const urlParams = new URLSearchParams(window.location.search);
-    setGhlContactId(urlParams.get('contactId') || urlParams.get('contact_id') || urlParams.get('cid') || '');
     // Pre-fill from bundle query params
     const fn = urlParams.get('fn'), ln = urlParams.get('ln'), em = urlParams.get('em'), ph = urlParams.get('ph'), dob = urlParams.get('dob');
     if (fn || ln || em || ph || dob) {
@@ -67,6 +64,8 @@ export default function RedLightConsentForm() {
     const hasYes = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7'].some(q => formData[q] === 'yes');
     setShowWarning(hasYes);
   }, [formData.q1, formData.q2, formData.q3, formData.q4, formData.q5, formData.q6, formData.q7]);
+
+  const initials = ((formData.firstName?.charAt(0) || '') + (formData.lastName?.charAt(0) || '')).toUpperCase();
 
   const initializeForm = () => {
     if (typeof window !== 'undefined' && window.supabase && window.SignaturePad) {
@@ -119,6 +118,11 @@ export default function RedLightConsentForm() {
     }
   };
 
+  const handleAckChange = (id) => {
+    setAcknowledgments(prev => ({ ...prev, [id]: !prev[id] }));
+    if (errors[id]) setErrors(prev => ({ ...prev, [id]: false }));
+  };
+
   const validateForm = () => {
     const newErrors = {};
     const missing = [];
@@ -135,7 +139,11 @@ export default function RedLightConsentForm() {
     });
     if (unanswered.length > 0) missing.push('Health Questions: ' + unanswered.join(', '));
 
-    if (!formData.consentGiven) { newErrors.consentGiven = true; missing.push('Consent Checkbox'); }
+    const uncheckedAcks = Object.entries(acknowledgments).filter(([, v]) => !v);
+    if (uncheckedAcks.length > 0) {
+      uncheckedAcks.forEach(([id]) => { newErrors[id] = true; });
+      missing.push('Acknowledgments (' + uncheckedAcks.length + ' remaining)');
+    }
     if (signaturePadRef.current?.isEmpty()) { newErrors.signature = true; missing.push('Signature'); }
 
     setErrors(newErrors);
@@ -340,10 +348,51 @@ export default function RedLightConsentForm() {
     addText('How Long Treatment Takes: Each treatment takes about 10 to 20 minutes. Your doctor will tell you how many treatments you need. You can do normal things right after treatment.', 8.5);
     yPos += 4;
 
-    // ========== CONSENT ACKNOWLEDGMENT ==========
-    addSectionHeader('Consent Acknowledgment');
-    addText('I understand and agree: I have read this form (or someone read it to me). I understand what Red Light Therapy is and what might happen. I know it might not work for me. I can ask questions if I want. I agree to get Red Light Therapy at Range Medical. I will not blame Range Medical if something goes wrong, unless they did something very bad on purpose.', 8.5, true);
-    yPos += 4;
+    // ========== PATIENT ACKNOWLEDGMENTS ==========
+    addSectionHeader('Patient Acknowledgments & Agreement');
+
+    const pdfInitials = ((formData.firstName?.charAt(0) || '') + (formData.lastName?.charAt(0) || '')).toUpperCase();
+
+    function addCheckboxLine(text, checked) {
+      checkPageBreak(12);
+      doc.setDrawColor(0);
+      doc.setLineWidth(0.5);
+      if (checked) {
+        doc.setFillColor(0, 0, 0);
+        doc.rect(leftMargin, yPos - 3.5, 7, 7, 'FD');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.text(pdfInitials, leftMargin + 3.5, yPos + 0.5, { align: 'center' });
+        doc.setTextColor(0, 0, 0);
+      } else {
+        doc.rect(leftMargin, yPos - 3.5, 7, 7, 'S');
+      }
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize(text, contentWidth - 12);
+      doc.text(lines, leftMargin + 10, yPos);
+      yPos += lines.length * 3.5 + 4;
+    }
+
+    const ackList = [
+      'I understand that Red Light Therapy is an elective wellness service provided by Range Medical. It is not intended to diagnose, treat, cure, or prevent any disease.',
+      'I understand that individual results from Red Light Therapy vary and are not guaranteed.',
+      'I have been informed of the risks and potential side effects associated with Red Light Therapy. I accept these risks voluntarily.',
+      'I confirm that I have disclosed all relevant medical information, including medications, skin conditions, light sensitivities, and recent cosmetic procedures.',
+      'I understand that I must wear the provided eye protection during treatment and follow all safety instructions.',
+      'I acknowledge that Red Light Therapy is not a substitute for routine medical care.',
+      'I agree to immediately notify Range Medical staff if I experience any adverse reaction during or after treatment.',
+      'I understand that I have the right to refuse or discontinue treatment at any time without penalty.',
+      'I voluntarily assume full responsibility for any risks. I release Range Medical and its staff from claims arising out of treatment, except in cases of gross negligence or willful misconduct.',
+      'I acknowledge that I am financially responsible for all services rendered.',
+      'I confirm that I am at least 18 years of age, that I have read this consent form, and that I am signing voluntarily.'
+    ];
+
+    ackList.forEach((text, i) => {
+      addCheckboxLine(text, acknowledgments['ack' + (i + 1)]);
+    });
+    yPos += 2;
 
     // ========== PATIENT SIGNATURE ==========
     addSectionHeader('Patient Signature');
@@ -389,41 +438,14 @@ export default function RedLightConsentForm() {
       consentDate: formData.consentDate,
       signatureUrl,
       pdfUrl,
-      consentGiven: formData.consentGiven,
-      ghlContactId,
-      healthAnswers: {
-        q1: formData.q1, q2: formData.q2, q3: formData.q3, q4: formData.q4,
-        q5: formData.q5, q6: formData.q6, q7: formData.q7
+      consentGiven: Object.values(acknowledgments).every(v => v),
+      additionalData: {
+        healthAnswers: { q1: formData.q1, q2: formData.q2, q3: formData.q3, q4: formData.q4, q5: formData.q5, q6: formData.q6, q7: formData.q7 },
+        acknowledgments: Object.entries(acknowledgments).map(([id, checked]) => ({ id, checked }))
       }
     };
 
     await fetch('/api/consent-forms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-  };
-
-  const sendToGHL = async (signatureUrl, pdfUrl) => {
-    const yesAnswers = HEALTH_QUESTIONS.filter(q => formData[q.id] === 'yes').map(q => q.label);
-
-    const payload = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      phone: formData.phone,
-      dateOfBirth: formData.dateOfBirth,
-      consentType: CONFIG.consentType,
-      consentDate: formData.consentDate,
-      customFieldKey: CONFIG.ghl.customFieldKey,
-      customFieldValue: 'Complete',
-      tags: CONFIG.ghl.tags,
-      signatureUrl,
-      pdfUrl,
-      healthScreening: { yesAnswers }
-    };
-
-    await fetch('/api/consent-to-ghl', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -458,9 +480,6 @@ export default function RedLightConsentForm() {
 
       setStatus({ type: 'loading', message: 'Saving to database...' });
       await saveToDatabase(signatureUrl, pdfUrl);
-
-      setStatus({ type: 'loading', message: 'Updating patient record...' });
-      await sendToGHL(signatureUrl, pdfUrl);
 
       // Bundle redirect — go to next form
       const bundleToken = new URLSearchParams(window.location.search).get('bundle');
@@ -648,11 +667,28 @@ export default function RedLightConsentForm() {
                 <p>Each treatment takes about 10 to 20 minutes. Your doctor will tell you how many treatments you need. You can do normal things right after treatment.</p>
               </div>
 
-              <div className={`checkbox-consent ${errors.consentGiven ? 'error' : ''}`}>
-                <input type="checkbox" id="consentGiven" name="consentGiven" checked={formData.consentGiven} onChange={handleInputChange} />
-                <label htmlFor="consentGiven">
-                  <strong>I understand and agree:</strong> I have read this form (or someone read it to me). I understand what Red Light Therapy is and what might happen. I know it might not work for me. I can ask questions if I want. I agree to get Red Light Therapy at Range Medical. I will not blame Range Medical if something goes wrong, unless they did something very bad on purpose.
-                </label>
+              <div id="acknowledgments">
+                {[
+                  { id: 'ack1', text: 'I understand that Red Light Therapy is an elective wellness service provided by Range Medical. It is not intended to diagnose, treat, cure, or prevent any disease.' },
+                  { id: 'ack2', text: 'I understand that individual results from Red Light Therapy vary and are not guaranteed. Results depend on many factors including my overall health and treatment compliance.' },
+                  { id: 'ack3', text: 'I have been informed of the risks and potential side effects associated with Red Light Therapy, including skin warmth or redness, fatigue, light sensitivity, and in rare cases mild headache. I accept these risks voluntarily.' },
+                  { id: 'ack4', text: 'I confirm that I have disclosed all relevant medical information, including current medications, skin conditions, light sensitivities, and any recent cosmetic procedures (Botox, fillers, microneedling).' },
+                  { id: 'ack5', text: 'I understand that I must wear the provided eye protection during treatment and avoid applying lotion, oil, or makeup to the treatment area beforehand.' },
+                  { id: 'ack6', text: 'I acknowledge that Red Light Therapy is not a substitute for routine medical care. I should continue to see my primary care physician and specialists for existing health conditions.' },
+                  { id: 'ack7', text: 'I agree to immediately notify Range Medical staff if I experience any adverse reaction during or after treatment, including unusual skin changes, persistent redness, or discomfort.' },
+                  { id: 'ack8', text: 'I understand that I have the right to refuse or discontinue treatment at any time without penalty.' },
+                  { id: 'ack9', text: 'I voluntarily assume full responsibility for any risks associated with Red Light Therapy. I release, discharge, and hold harmless Range Medical, its staff, and affiliated entities from any claims arising out of treatment, except in cases of gross negligence or willful misconduct.' },
+                  { id: 'ack10', text: 'I acknowledge that I am financially responsible for all services rendered. Red Light Therapy services are generally not covered by health insurance.' },
+                  { id: 'ack11', text: 'I confirm that I am at least 18 years of age, that I have read this consent form in its entirety, that I have had the opportunity to ask questions, and that I am signing voluntarily.' }
+                ].map(ack => (
+                  <div key={ack.id} className="ack-item" style={errors[ack.id] ? { borderColor: '#dc2626' } : {}}>
+                    <label>
+                      <input type="checkbox" className="ack-checkbox" checked={acknowledgments[ack.id]} onChange={() => handleAckChange(ack.id)} />
+                      <span className="ack-initials" style={acknowledgments[ack.id] ? { background: '#000', borderColor: '#000', color: '#fff' } : {}}>{initials}</span>
+                      <span className="ack-text">{ack.text}</span>
+                    </label>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -745,6 +781,11 @@ const styles = `
   .checkbox-consent input[type="checkbox"] { width: 18px; height: 18px; margin-top: 3px; cursor: pointer; accent-color: #000; flex-shrink: 0; }
   .checkbox-consent label { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: normal; margin-bottom: 0; cursor: pointer; color: #333; line-height: 1.55; }
   .checkbox-consent.error { border-color: #dc2626; background: #fef2f2; }
+  .ack-item { border: 1px solid #e5e7eb; border-radius: 0; padding: 14px 16px; margin-bottom: 10px; transition: border-color 0.2s; }
+  .ack-item label { display: flex; gap: 12px; cursor: pointer; align-items: flex-start; }
+  .ack-checkbox { position: absolute; opacity: 0; width: 0; height: 0; }
+  .ack-initials { width: 28px; height: 28px; min-width: 28px; border: 2px solid #d4d4d4; border-radius: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: transparent; background: #fff; cursor: pointer; transition: all 0.15s; margin-top: 1px; user-select: none; }
+  .ack-text { font-size: 13px; line-height: 1.55; color: #333; }
   .signature-wrapper { margin-bottom: 16px; }
   .signature-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #333; display: block; text-transform: none; letter-spacing: normal; }
   .signature-pad-container { border: 2px solid #000; border-radius: 0; background: #fff; margin-bottom: 8px; overflow: hidden; }

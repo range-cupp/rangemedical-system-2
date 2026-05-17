@@ -65,6 +65,12 @@ export default function HBOTConsent() {
         .checkbox-consent input[type="checkbox"] { width: 18px; height: 18px; margin-top: 3px; cursor: pointer; accent-color: #000; flex-shrink: 0; }
         .checkbox-consent label { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: normal; margin-bottom: 0; cursor: pointer; color: #333; line-height: 1.55; }
         .checkbox-consent.error { border-color: #dc2626; background: #fef2f2; }
+        .ack-item { border: 1px solid #e5e7eb; border-radius: 0; padding: 14px 16px; margin-bottom: 10px; transition: border-color 0.2s; }
+        .ack-item label { display: flex; gap: 12px; cursor: pointer; align-items: flex-start; }
+        .ack-checkbox { position: absolute; opacity: 0; width: 0; height: 0; }
+        .ack-initials { width: 28px; height: 28px; min-width: 28px; border: 2px solid #d4d4d4; border-radius: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: transparent; background: #fff; cursor: pointer; transition: all 0.15s; margin-top: 1px; user-select: none; }
+        .ack-checkbox:checked + .ack-initials { background: #000; border-color: #000; color: #fff; }
+        .ack-text { font-size: 13px; line-height: 1.55; color: #333; }
         .signature-wrapper { margin-bottom: 16px; }
         .signature-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #333; display: block; text-transform: none; letter-spacing: normal; }
         .signature-pad-container { border: 2px solid #000; border-radius: 0; background: #fff; position: relative; margin-bottom: 8px; overflow: hidden; }
@@ -349,6 +355,22 @@ export default function HBOTConsent() {
                   </div>
                 </div>
               </div>
+
+              {/* Question 12 */}
+              <div className="health-question" id="q12">
+                <div className="health-question-text">Do you have dental implants, crowns, braces, or recent dental work?</div>
+                <div className="health-question-note">(Pressure changes may cause discomfort in dental work or trapped air pockets)</div>
+                <div className="radio-group">
+                  <div className="radio-item">
+                    <input type="radio" id="q12-yes" name="q12" value="yes" required />
+                    <label htmlFor="q12-yes">Yes</label>
+                  </div>
+                  <div className="radio-item">
+                    <input type="radio" id="q12-no" name="q12" value="no" />
+                    <label htmlFor="q12-no">No</label>
+                  </div>
+                </div>
+              </div>
             </div>
             
             {/* Consent Information */}
@@ -388,7 +410,6 @@ export default function HBOTConsent() {
                 <ul>
                   <li>Come on time for your appointments</li>
                   <li>Take off anything that could catch fire (no oils, lotions, or hair products)</li>
-                  <li>Do not bring phones or electronics into the chamber</li>
                   <li>Tell us if something feels wrong during treatment</li>
                   <li>Follow all safety rules</li>
                 </ul>
@@ -397,13 +418,42 @@ export default function HBOTConsent() {
                 <p>Each treatment takes about 60 to 90 minutes. Your doctor will tell you how many treatments you need. You can do normal things after treatment unless your doctor says not to.</p>
               </div>
               
-              <div className="checkbox-consent" id="consentCheckbox">
-                <input type="checkbox" id="consentGiven" name="consentGiven" required />
-                <label htmlFor="consentGiven">
-                  <strong>I understand and agree:</strong> I have read this form (or someone read it to me). I understand what HBOT is and what might happen. I know it might not work for me. I can ask questions if I want. I agree to get HBOT treatment at Range Medical. I will not blame Range Medical if something goes wrong, unless they did something very bad on purpose.
-                </label>
+              <div id="acknowledgments">
+                <div className="ack-item">
+                  <label><input type="checkbox" className="ack-checkbox" name="ack1" required /><span className="ack-initials"></span><span className="ack-text">I understand that Hyperbaric Oxygen Therapy (HBOT) is an elective wellness service provided by Range Medical. It is not intended to diagnose, treat, cure, or prevent any disease.</span></label>
+                </div>
+                <div className="ack-item">
+                  <label><input type="checkbox" className="ack-checkbox" name="ack2" required /><span className="ack-initials"></span><span className="ack-text">I understand that individual results from HBOT vary and are not guaranteed. Results depend on many factors including my overall health and compliance with treatment protocols.</span></label>
+                </div>
+                <div className="ack-item">
+                  <label><input type="checkbox" className="ack-checkbox" name="ack3" required /><span className="ack-initials"></span><span className="ack-text">I have been informed of the risks and potential complications associated with HBOT, including ear pain, temporary vision changes, claustrophobia, fatigue, and in rare cases lung problems or seizures. I accept these risks voluntarily.</span></label>
+                </div>
+                <div className="ack-item">
+                  <label><input type="checkbox" className="ack-checkbox" name="ack4" required /><span className="ack-initials"></span><span className="ack-text">I confirm that I have disclosed all relevant medical information, including current medications, medical conditions, implanted devices, dental work, and any history of claustrophobia, seizures, or lung problems.</span></label>
+                </div>
+                <div className="ack-item">
+                  <label><input type="checkbox" className="ack-checkbox" name="ack5" required /><span className="ack-initials"></span><span className="ack-text">I understand that I must remove all flammable materials (oils, lotions, hair products) before entering the chamber and follow all safety instructions provided by staff.</span></label>
+                </div>
+                <div className="ack-item">
+                  <label><input type="checkbox" className="ack-checkbox" name="ack6" required /><span className="ack-initials"></span><span className="ack-text">I acknowledge that HBOT is not a substitute for routine medical care. I understand that I should continue to see my primary care physician and any specialists for existing health conditions.</span></label>
+                </div>
+                <div className="ack-item">
+                  <label><input type="checkbox" className="ack-checkbox" name="ack7" required /><span className="ack-initials"></span><span className="ack-text">I agree to immediately notify Range Medical staff if I experience any adverse reaction or discomfort during or after treatment, including ear pain, vision changes, difficulty breathing, or anxiety.</span></label>
+                </div>
+                <div className="ack-item">
+                  <label><input type="checkbox" className="ack-checkbox" name="ack8" required /><span className="ack-initials"></span><span className="ack-text">I understand that I have the right to refuse or discontinue treatment at any time without penalty.</span></label>
+                </div>
+                <div className="ack-item">
+                  <label><input type="checkbox" className="ack-checkbox" name="ack9" required /><span className="ack-initials"></span><span className="ack-text">I voluntarily assume full responsibility for any risks associated with HBOT. I release, discharge, and hold harmless Range Medical, its medical director, physicians, nurse practitioners, staff, and affiliated entities from any and all claims, liabilities, damages, or causes of action arising out of or related to HBOT, except in cases of gross negligence or willful misconduct.</span></label>
+                </div>
+                <div className="ack-item">
+                  <label><input type="checkbox" className="ack-checkbox" name="ack10" required /><span className="ack-initials"></span><span className="ack-text">I acknowledge that I am financially responsible for all services rendered. HBOT services are generally not covered by health insurance.</span></label>
+                </div>
+                <div className="ack-item">
+                  <label><input type="checkbox" className="ack-checkbox" name="ack11" required /><span className="ack-initials"></span><span className="ack-text">I confirm that I am at least 18 years of age, that I have read this consent form in its entirety, that I have had the opportunity to ask questions, and that I am signing voluntarily.</span></label>
+                </div>
               </div>
-              <div className="field-error" id="consentError">You must agree to continue</div>
+              <div className="field-error" id="consentError">Please initial all acknowledgments above</div>
             </div>
             
             {/* Signature */}
@@ -459,19 +509,13 @@ function initializeForm() {
       anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXZmcHRwb3psdHBxd2FoZ2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MTMxNDksImV4cCI6MjA4MDI4OTE0OX0.NrI1AykMBOh91mM9BFvpSH0JwzGrkv5ADDkZinh0elc'
     },
     api: {
-      consents: '/api/consent-forms',
-      ghl: '/api/consent-to-ghl'
-    },
-    ghl: {
-      customFieldKey: 'hbot_consent',
-      tags: ['hbot-consent-signed', 'consent-completed']
+      consents: '/api/consent-forms'
     },
     consentType: 'hbot',
     recipientEmail: 'cupp@range-medical.com, intake@range-medical.com'
   };
 
   const urlParams = new URLSearchParams(window.location.search);
-  const ghlContactId = urlParams.get('contactId') || urlParams.get('contact_id') || urlParams.get('cid') || '';
 
   const supabaseClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
 
@@ -530,6 +574,19 @@ function initializeForm() {
   initSignaturePad();
 
   // ============================================
+  // INITIALS FOR ACKNOWLEDGMENTS
+  // ============================================
+  function updateInitials() {
+    const first = (document.getElementById('firstName')?.value || '').trim();
+    const last = (document.getElementById('lastName')?.value || '').trim();
+    const initials = ((first.charAt(0) || '') + (last.charAt(0) || '')).toUpperCase();
+    document.querySelectorAll('.ack-initials').forEach(el => { el.textContent = initials; });
+  }
+  document.getElementById('firstName')?.addEventListener('input', updateInitials);
+  document.getElementById('lastName')?.addEventListener('input', updateInitials);
+  updateInitials();
+
+  // ============================================
   // DATE OF BIRTH AUTO-FORMATTING
   // ============================================
   const dobInput = document.getElementById('dateOfBirth');
@@ -569,7 +626,7 @@ function initializeForm() {
   // HEALTH SCREENING LOGIC
   // ============================================
   function checkHealthQuestions() {
-    const warningQuestions = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10'];
+    const warningQuestions = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10', 'q12'];
     let showWarning = false;
     
     warningQuestions.forEach(questionName => {
@@ -591,7 +648,7 @@ function initializeForm() {
   }
 
   // Add listeners to health questions
-  for (let i = 1; i <= 11; i++) {
+  for (let i = 1; i <= 12; i++) {
     const radios = document.querySelectorAll(`input[name="q${i}"]`);
     radios.forEach(radio => {
       radio.addEventListener('change', checkHealthQuestions);
@@ -607,9 +664,11 @@ function initializeForm() {
     });
   });
 
-  document.getElementById('consentGiven').addEventListener('change', () => {
-    document.getElementById('consentCheckbox').classList.remove('error');
-    document.getElementById('consentError').classList.remove('visible');
+  document.querySelectorAll('.ack-checkbox').forEach(cb => {
+    cb.addEventListener('change', () => {
+      cb.closest('.ack-item').style.borderColor = '';
+      document.getElementById('consentError').classList.remove('visible');
+    });
   });
 
   // ============================================
@@ -659,10 +718,10 @@ function initializeForm() {
       q1: 'Collapsed lung', q2: 'Cold/flu/sinus infection', q3: 'Lung problems',
       q4: 'High fever', q5: 'Seizures', q6: 'Recent ear surgery',
       q7: 'Pregnant', q8: 'Medical device', q9: 'Chemotherapy',
-      q10: 'Antabuse/disulfiram', q11: 'Claustrophobia'
+      q10: 'Antabuse/disulfiram', q11: 'Claustrophobia', q12: 'Dental work/implants'
     };
     const unanswered = [];
-    for (let i = 1; i <= 11; i++) {
+    for (let i = 1; i <= 12; i++) {
       const name = 'q' + i;
       const radios = document.querySelectorAll(`input[name="${name}"]`);
       const anyChecked = Array.from(radios).some(radio => radio.checked);
@@ -677,13 +736,16 @@ function initializeForm() {
       missingFields.push('Health Questions: ' + unanswered.join(', '));
     }
 
-    // Validate consent
-    const consentCheckbox = document.getElementById('consentGiven');
-    if (!consentCheckbox.checked) {
-      document.getElementById('consentCheckbox').classList.add('error');
+    // Validate acknowledgments
+    const ackBoxes = document.querySelectorAll('.ack-checkbox');
+    const uncheckedAcks = Array.from(ackBoxes).filter(cb => !cb.checked);
+    if (uncheckedAcks.length > 0) {
+      uncheckedAcks.forEach(cb => cb.closest('.ack-item').style.borderColor = '#dc2626');
       document.getElementById('consentError').classList.add('visible');
       isValid = false;
-      missingFields.push('Consent Checkbox');
+      missingFields.push('Acknowledgments (' + uncheckedAcks.length + ' remaining)');
+    } else {
+      document.getElementById('consentError').classList.remove('visible');
     }
 
     // Validate signature
@@ -708,7 +770,7 @@ function initializeForm() {
   // ============================================
   function collectFormData() {
     const healthAnswers = {};
-    for (let i = 1; i <= 11; i++) {
+    for (let i = 1; i <= 12; i++) {
       const checked = document.querySelector(`input[name="q${i}"]:checked`);
       healthAnswers[`q${i}`] = checked ? checked.value : 'not answered';
     }
@@ -721,7 +783,12 @@ function initializeForm() {
       dateOfBirth: document.getElementById('dateOfBirth').value,
       consentDate: document.getElementById('consentDate').value,
       healthAnswers: healthAnswers,
-      consentGiven: document.getElementById('consentGiven').checked,
+      consentGiven: Array.from(document.querySelectorAll('.ack-checkbox')).every(cb => cb.checked),
+      acknowledgments: Array.from(document.querySelectorAll('.ack-checkbox')).map((cb, i) => ({
+        id: 'ack' + (i + 1),
+        text: cb.closest('label').querySelector('.ack-text').textContent,
+        checked: cb.checked
+      })),
       signature: signaturePad.toDataURL('image/jpeg', 0.5),
       submissionDate: new Date().toLocaleString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric',
@@ -788,8 +855,7 @@ function initializeForm() {
       signatureUrl: signatureUrl,
       pdfUrl: pdfUrl,
       consentGiven: formData.consentGiven,
-      additionalData: { healthAnswers: formData.healthAnswers },
-      ghlContactId: ghlContactId
+      additionalData: { healthAnswers: formData.healthAnswers, acknowledgments: formData.acknowledgments }
     };
 
     const response = await fetch(CONFIG.api.consents, {
@@ -798,48 +864,6 @@ function initializeForm() {
       body: JSON.stringify(payload)
     });
 
-    return await response.json();
-  }
-
-  // ============================================
-  // SEND TO GHL
-  // ============================================
-  async function sendToGHL(formData, signatureUrl, pdfUrl) {
-    const questions = [
-      'Collapsed lung', 'Cold/flu/sinus infection', 'Severe lung problems',
-      'High fever', 'Uncontrolled seizures', 'Recent ear surgery',
-      'Pregnancy', 'Implanted medical device', 'Chemotherapy medication',
-      'Taking Antabuse', 'Claustrophobia'
-    ];
-    
-    const yesAnswers = [];
-    questions.forEach((question, index) => {
-      const answer = formData.healthAnswers[`q${index + 1}`];
-      if (answer === 'yes') yesAnswers.push(question);
-    });
-    
-    const payload = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      phone: formData.phone,
-      dateOfBirth: formData.dateOfBirth,
-      consentType: CONFIG.consentType,
-      consentDate: formData.consentDate,
-      customFieldKey: CONFIG.ghl.customFieldKey,
-      customFieldValue: 'Complete',
-      tags: CONFIG.ghl.tags,
-      signatureUrl: signatureUrl,
-      pdfUrl: pdfUrl,
-      healthScreening: { yesAnswers: yesAnswers }
-    };
-    
-    const response = await fetch(CONFIG.api.ghl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    
     return await response.json();
   }
 
@@ -963,7 +987,8 @@ function initializeForm() {
       'Implanted medical device (pacemaker, insulin pump, etc.)',
       'Taking chemotherapy medication',
       'Taking Antabuse (disulfiram)',
-      'Claustrophobia'
+      'Claustrophobia',
+      'Dental implants, crowns, braces, or recent dental work'
     ];
 
     var yesAnswers = [];
@@ -1018,17 +1043,46 @@ function initializeForm() {
     addSectionHeader('What You Need To Do');
     addBullet('Come on time for your appointments');
     addBullet('Take off anything that could catch fire (no oils, lotions, or hair products)');
-    addBullet('Do not bring phones or electronics into the chamber');
     addBullet('Tell us if something feels wrong during treatment');
     addBullet('Follow all safety rules');
     yPos += 1;
     addText('How Long Treatment Takes: Each treatment takes about 60 to 90 minutes. Your doctor will tell you how many treatments you need. You can do normal things after treatment unless your doctor says not to.', 8.5);
     yPos += 4;
 
-    // ========== CONSENT ACKNOWLEDGMENT ==========
-    addSectionHeader('Consent Acknowledgment');
-    addText('I understand and agree: I have read this form (or someone read it to me). I understand what HBOT is and what might happen. I know it might not work for me. I can ask questions if I want. I agree to get HBOT treatment at Range Medical. I will not blame Range Medical if something goes wrong, unless they did something very bad on purpose.', 8.5, true);
-    yPos += 4;
+    // ========== PATIENT ACKNOWLEDGMENTS ==========
+    addSectionHeader('Patient Acknowledgments & Agreement');
+
+    var initials = ((formData.firstName.charAt(0) || '') + (formData.lastName.charAt(0) || '')).toUpperCase();
+
+    function addCheckboxLine(text, checked) {
+      checkPageBreak(12);
+      // Draw checkbox
+      doc.setDrawColor(0);
+      doc.setLineWidth(0.5);
+      if (checked) {
+        doc.setFillColor(0, 0, 0);
+        doc.rect(leftMargin, yPos - 3.5, 7, 7, 'FD');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.text(initials, leftMargin + 3.5, yPos + 0.5, { align: 'center' });
+        doc.setTextColor(0, 0, 0);
+      } else {
+        doc.rect(leftMargin, yPos - 3.5, 7, 7, 'S');
+      }
+      // Text
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      var lines = doc.splitTextToSize(text, contentWidth - 12);
+      doc.text(lines, leftMargin + 10, yPos);
+      yPos += lines.length * 3.5 + 4;
+    }
+
+    var ackTexts = formData.acknowledgments || [];
+    ackTexts.forEach(function(ack) {
+      addCheckboxLine(ack.text, ack.checked);
+    });
+    yPos += 2;
 
     // ========== PATIENT SIGNATURE ==========
     addSectionHeader('Patient Signature');
@@ -1125,13 +1179,6 @@ function initializeForm() {
         await saveToDatabase(formData, signatureUrl, pdfUrl);
       } catch (dbError) {
         console.error('Database save failed:', dbError);
-      }
-      
-      showStatus('Updating patient record...', 'loading');
-      try {
-        await sendToGHL(formData, signatureUrl, pdfUrl);
-      } catch (ghlError) {
-        console.error('GHL update failed:', ghlError);
       }
       
       showThankYouPage(formData);

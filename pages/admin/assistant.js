@@ -797,9 +797,12 @@ export default function AssistantPage() {
             {recentVisits.length > 0 && (
               <div>
                 <div style={{ fontWeight: 600, fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Recent Visits</div>
-                {recentVisits.slice(0, 5).map((v, i) => (
-                  <div key={i} style={{ padding: '4px 0', fontSize: '12px', color: '#4b5563' }}>
-                    {new Date(v.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — {v.medication || v.category || v.type}{v.dosage ? ` (${v.dosage})` : ''}
+                {recentVisits.slice(0, 8).map((v, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', fontSize: '12px', color: '#4b5563', borderBottom: '1px solid #f3f4f6' }}>
+                    <span style={{ width: '55px', flexShrink: 0, color: '#6b7280' }}>{new Date(v.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    <span style={{ fontWeight: 500, color: '#111827' }}>{v.medication || v.category || v.type}</span>
+                    {v.dosage && <span style={{ color: '#6b7280' }}>({v.dosage})</span>}
+                    {v.administered_by && <span style={{ color: '#9ca3af', fontSize: '11px', marginLeft: 'auto' }}>{v.administered_by}</span>}
                   </div>
                 ))}
               </div>

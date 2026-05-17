@@ -47,6 +47,9 @@ export default function AiAssistant({ context, services, patientName, onCartActi
         price_cents: s.price || s.price_cents,
         sub_category: s.sub_category,
         recurring: s.recurring,
+        description: s.description,
+        duration_days: s.duration_days,
+        delivery_method: s.delivery_method,
       }));
       const resp = await fetch('/api/ai/checkout-chat', {
         method: 'POST',

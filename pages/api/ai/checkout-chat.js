@@ -80,7 +80,12 @@ MATCHING RULES:
 - Common abbreviations: "tirz" = Tirzepatide, "sema" = Semaglutide, "reta" = Retatrutide, "test"/"test cyp" = Testosterone Cypionate, "myers" = Myers Cocktail, "NAD" = NAD+ IV or injection, "BPC" = BPC-157, "TB4"/"TB-4" = TB-500/Thymosin Beta-4, "HBOT" = Hyperbaric Oxygen, "RLT" = Red Light Therapy, "HRT" = Hormone Replacement Therapy, "GH" = Growth Hormone blend
 - When staff mention a duration like "10-day", "20-day", "supply", "program", "injections", or "sessions", ALWAYS prefer POS services over vials. Only match vials when they explicitly say "vial".
 - POS services are the default. Vials are only for explicit vial requests.
-- When you have enough info, find the EXACT matching POS service from the catalog by name. Don't guess IDs — match by name.
+- When you have enough info, find the EXACT matching POS service from the catalog by name/description/sub_category/duration. Use the catalog fields (sub_category, duration_days, delivery_method, description) to disambiguate similar items.
+- For weight loss: match by medication name + dose in the service name or description. Set quantity = number of injections (usually 4).
+- For peptides: match by program name + duration in service name. Look at sub_category and duration_days fields.
+- For injections: match the specific injection type. If quantity >= 10, look for "Buy 10 Get 12" variant if it exists in catalog.
+- For IV/HBOT/RLT: match the exact session type or pack size.
+- Use the catalog_id from the catalog listing. The id in quotes is the exact ID to use.
 
 RESPONSE FORMAT:
 - Be conversational and brief. Sound like a helpful coworker, not a robot.
@@ -173,7 +178,13 @@ function buildCatalogContext(posServices) {
     for (const item of items) {
       const cents = item.price_cents || item.price || 0;
       const price = cents ? `$${(cents / 100).toFixed(0)}` : 'varies';
-      sections.push(`- id:"${item.id}" | "${item.name}" | ${price}${item.recurring ? ' (recurring)' : ''}`);
+      const extras = [];
+      if (item.sub_category) extras.push(`sub: ${item.sub_category}`);
+      if (item.duration_days) extras.push(`${item.duration_days}d`);
+      if (item.delivery_method) extras.push(item.delivery_method);
+      if (item.description) extras.push(item.description.slice(0, 80));
+      const suffix = extras.length ? ` | ${extras.join(' | ')}` : '';
+      sections.push(`- id:"${item.id}" | "${item.name}" | ${price}${item.recurring ? ' (recurring)' : ''}${suffix}`);
     }
   }
 

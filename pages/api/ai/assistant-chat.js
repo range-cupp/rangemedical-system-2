@@ -235,6 +235,18 @@ const tools = [
       required: ['patient_id'],
     },
   },
+  {
+    name: 'request_protocol_change',
+    description: 'Request a protocol or medication change that requires provider approval. Use when staff wants to change a dose, frequency, delivery method, medication, or any clinical detail on a patient\'s protocol. This does NOT make the change — it sends a request to the provider (Damien or Evan) for review. Use for things like "change his testosterone to daily sub-Q", "increase her tirz to 5mg", "switch frequency to weekly", etc.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_id: { type: 'string', description: 'Patient UUID' },
+        change_description: { type: 'string', description: 'Clear description of the requested change. Include current values and proposed new values when known. E.g. "Change testosterone cypionate from 0.35ml every 3.5 days IM to daily sub-Q injection"' },
+      },
+      required: ['patient_id', 'change_description'],
+    },
+  },
 ];
 
 export default async function handler(req, res) {
@@ -277,6 +289,7 @@ You can help with:
 - INTAKE DATA: Look up patient allergies, medications, medical conditions, health history from their intake form
 - SEND FORMS: Send missing consent forms to patients via email
 - PROGRAM DUE: List patients due for their next payment round on any program (WL, HRT, peptide, HBOT, etc.)
+- PROTOCOL CHANGES: Request dose, medication, or delivery method changes — sends to provider for approval
 - GENERAL: Answer questions about services, pricing, protocols
 
 DATE HANDLING: You know today's date. When someone says "today", "tomorrow", "Monday", "next week", "this Friday", etc., calculate the correct YYYY-MM-DD date yourself. Never ask the user for a date format — just figure it out. "Monday" means the upcoming Monday. "Last Tuesday" means the most recent past Tuesday.
@@ -295,6 +308,7 @@ When staff asks about allergies, medications, medical conditions, health history
 When staff asks about payments, balance, invoices, spending, or whether someone owes anything — use lookup_payments.
 When staff asks which patients are due for their next payment, round, pack, or renewal on any program — use program_due_list. Pick the matching program (weight_loss, hrt, peptide, hbot, etc.).
 When staff asks to send forms, consent forms, or paperwork to a patient — use send_consent_forms. Pick the service_category that matches their service (e.g. "hbot" for HBOT patients). If no specific service is mentioned, use "general" to send intake + HIPAA.
+When staff asks to change a dose, medication, frequency, delivery method, or any protocol detail — use request_protocol_change. You CANNOT make protocol changes directly. Always route through the provider approval flow. Describe the change clearly with current and proposed values.
 When staff mentions a product, walk through the decision tree one question at a time. Once confirmed, use the add_to_cart tool.
 When staff wants to book, search the patient, check slots, confirm, and book.
 

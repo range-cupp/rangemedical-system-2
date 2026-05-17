@@ -502,6 +502,25 @@ export default function AssistantPage() {
       } catch { return { error: 'Failed to check missing forms' }; }
     }
 
+    if (name === 'request_protocol_change') {
+      try {
+        const pid = args.patient_id || patient?.id;
+        if (!pid) return { error: 'No patient selected. Search for a patient first.' };
+        const protoRes = await fetch(`/api/ai/patient-records?patient_id=${pid}`);
+        const protoData = await protoRes.json();
+        const protocols = protoData.protocols || [];
+        return {
+          preview: true,
+          patient_id: pid,
+          patient_name: patient?.name || protoData.patient_name || 'Patient',
+          change_description: args.change_description,
+          current_protocols: protocols,
+          requested_by_name: employee?.name || null,
+          requested_by_email: employee?.email || session?.user?.email || null,
+        };
+      } catch { return { error: 'Failed to prepare change request' }; }
+    }
+
     return { error: `Unknown action: ${name}` };
   }
 
@@ -567,6 +586,37 @@ export default function AssistantPage() {
     } catch { return false; }
   }
 
+  async function sendProtocolChangeRequest(data, providerId) {
+    try {
+      const res = await fetch('/api/ai/request-protocol-change', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: data.patient_id,
+          patient_name: data.patient_name,
+          change_description: data.change_description,
+          current_protocols: data.current_protocols,
+          provider_id: providerId,
+          requested_by_name: data.requested_by_name || employee?.name || null,
+          requested_by_email: data.requested_by_email || employee?.email || session?.user?.email || null,
+        }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setMessages(prev => prev.map(m => {
+          if (!m.toolResults) return m;
+          return { ...m, toolResults: m.toolResults.map(tr =>
+            tr.tool === 'request_protocol_change' && tr.result.patient_id === data.patient_id && tr.result.preview
+              ? { ...tr, result: { ...tr.result, sent: true, provider_name: result.provider_name, requester_notified: result.requester_notified } }
+              : tr
+          )};
+        }));
+        return true;
+      }
+      return false;
+    } catch { return false; }
+  }
+
   async function sendMessage(text) {
     if (!text.trim() || loading) return;
     const userMsg = { role: 'user', content: text.trim(), ts: Date.now() };
@@ -611,6 +661,8 @@ export default function AssistantPage() {
           if (tr.tool === 'send_consent_forms' && tr.result.all_complete) return `${tr.result.patient_name} has all forms complete for ${tr.result.service} — nothing to send.`;
           if (tr.tool === 'send_consent_forms' && tr.result.preview) return `Ready to send ${tr.result.forms_to_send.length} form(s) to ${tr.result.patient_name} at ${tr.result.patient_email}: ${tr.result.forms_to_send.map(f => f.name).join(', ')}. The send card is shown — staff will click Send to confirm.`;
           if (tr.tool === 'send_consent_forms' && tr.result.error) return tr.result.error;
+          if (tr.tool === 'request_protocol_change' && tr.result.preview) return `Protocol change request ready for ${tr.result.patient_name}: "${tr.result.change_description}". The request card is shown — staff will select a provider and click Send Request.`;
+          if (tr.tool === 'request_protocol_change' && tr.result.error) return tr.result.error;
           return JSON.stringify(tr.result);
         }).join('\n');
 
@@ -1028,6 +1080,79 @@ export default function AssistantPage() {
           </div>
         </div>
       );
+    }
+    if (tr.tool === 'request_protocol_change' && tr.result.preview) {
+      const d = tr.result;
+      return (
+        <div style={{ ...st.toolCard, borderColor: d.sent ? '#86efac' : '#fcd34d' }}>
+          <div style={{ ...st.toolCardHeader, background: d.sent ? undefined : '#fffbeb' }}>
+            <AlertTriangle size={14} /> {d.sent ? 'Change Request Sent' : 'Protocol Change Request'}
+          </div>
+          <div style={{ padding: '10px 12px', fontSize: '13px' }}>
+            <div style={{ marginBottom: '6px' }}>
+              <span style={{ color: '#6b7280', fontSize: '12px' }}>Patient: </span>
+              <span style={{ fontWeight: 600 }}>{d.patient_name}</span>
+            </div>
+            {d.current_protocols && d.current_protocols.length > 0 && (
+              <div style={{ marginBottom: '8px' }}>
+                <div style={{ fontWeight: 600, fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Current Protocols</div>
+                {d.current_protocols.map((p, i) => (
+                  <div key={i} style={{ padding: '3px 0', fontSize: '12px', borderBottom: '1px solid #f3f4f6' }}>
+                    <span style={{ fontWeight: 500 }}>{p.medication || p.program}</span>
+                    {p.dose && <span style={{ color: '#6b7280' }}> — {p.dose}</span>}
+                    {p.frequency && <span style={{ color: '#6b7280' }}>, {p.frequency}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ padding: '10px 12px', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '6px', marginBottom: '8px' }}>
+              <div style={{ fontWeight: 600, fontSize: '11px', color: '#92400e', textTransform: 'uppercase', marginBottom: '4px' }}>Requested Change</div>
+              <div style={{ color: '#78350f', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>{d.change_description}</div>
+            </div>
+            {d.requested_by_name && (
+              <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>
+                Requested by: {d.requested_by_name}
+              </div>
+            )}
+            {!d.sent && (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                <select
+                  id={`provider-select-${d.patient_id}`}
+                  defaultValue="damien"
+                  style={{ padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', background: '#fff' }}
+                >
+                  <option value="damien">Dr. Damien</option>
+                  <option value="evan">Evan</option>
+                </select>
+                <button
+                  onClick={() => {
+                    const sel = document.getElementById(`provider-select-${d.patient_id}`);
+                    sendProtocolChangeRequest(d, sel?.value || 'damien');
+                  }}
+                  style={{ padding: '7px 16px', background: '#d97706', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Send size={13} /> Send Request
+                </button>
+              </div>
+            )}
+            {d.sent && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#16a34a', fontSize: '12px', fontWeight: 600 }}>
+                  <Check size={14} /> Sent to {d.provider_name} for approval
+                </div>
+                {d.requester_notified && (
+                  <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                    Confirmation email sent to you
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    if (tr.tool === 'request_protocol_change' && tr.result.error) {
+      return (<div style={{ ...st.toolCard, borderColor: '#fca5a5' }}><div style={st.toolCardHeader}><X size={14} /> Request Failed</div><div style={st.toolCardBody}>{tr.result.error}</div></div>);
     }
     if (tr.tool === 'lookup_consent_forms' && tr.result.forms !== undefined) {
       const { signed_types, has_basics, missing_by_service } = tr.result;

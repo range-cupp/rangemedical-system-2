@@ -209,6 +209,7 @@ RULES:
 
   function handleServerEvent(event) {
     switch (event.type) {
+      // Speech detection (both beta and GA names)
       case 'input_audio_buffer.speech_started':
         setStatus('listening');
         stopPlayback();
@@ -218,24 +219,47 @@ RULES:
         setStatus('processing');
         break;
 
+      // User transcript (beta + GA)
       case 'conversation.item.input_audio_transcription.completed':
         setTranscript(event.transcript || '');
         break;
 
+      // AI text transcript (beta names)
       case 'response.audio_transcript.delta':
         setAiTranscript(prev => prev + (event.delta || ''));
         break;
 
+      // AI text transcript (GA names)
+      case 'response.output_audio_transcript.delta':
+        setAiTranscript(prev => prev + (event.delta || ''));
+        break;
+
       case 'response.audio_transcript.done':
+      case 'response.output_audio_transcript.done':
         setStatus('listening');
         break;
 
+      // AI audio (beta name)
       case 'response.audio.delta':
         if (event.delta) {
           const audioData = base64ToInt16(event.delta);
           queuePlayback(audioData);
         }
         setStatus('speaking');
+        break;
+
+      // AI audio (GA name)
+      case 'response.output_audio.delta':
+        if (event.delta) {
+          const audioData = base64ToInt16(event.delta);
+          queuePlayback(audioData);
+        }
+        setStatus('speaking');
+        break;
+
+      // AI text output (GA)
+      case 'response.output_text.delta':
+        setAiTranscript(prev => prev + (event.delta || ''));
         break;
 
       case 'response.function_call_arguments.done':

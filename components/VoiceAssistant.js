@@ -124,7 +124,7 @@ RULES:
       setErrorDetail('');
 
       const ws = new WebSocket(
-        'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17',
+        'wss://api.openai.com/v1/realtime?model=gpt-4o-mini-realtime-preview',
         ['realtime', `openai-insecure-api-key.${sessionData.clientSecret}`, 'openai-beta.realtime-v1']
       );
       wsRef.current = ws;

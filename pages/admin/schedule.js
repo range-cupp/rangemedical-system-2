@@ -631,6 +631,7 @@ export default function SchedulePage() {
                   start_time: startISO,
                   end_time: endISO,
                   duration_minutes: durationMin,
+                  visit_reason: args.service,
                   source: 'voice',
                   created_by: 'Voice Assistant',
                   send_notification: true,

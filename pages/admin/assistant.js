@@ -68,12 +68,7 @@ function ScheduleCard({ data, onSelectPatient, onLookupRecords, styles }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>{a.patient_name}</span>
                       <span style={{ ...styles.badge, background: ss.bg, color: ss.text }}>{ss.label}</span>
-                      {a.forms_complete === true && (
-                        <span title="All forms complete" style={{ ...styles.badge, background: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                          <Shield size={10} /> Forms
-                        </span>
-                      )}
-                      {a.forms_complete === false && a.forms_missing && a.forms_missing.length > 0 && (
+                      {a.forms_missing && a.forms_missing.length > 0 && (
                         <span title={`Missing: ${a.forms_missing.join(', ')}`} style={{ ...styles.badge, background: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '3px' }}>
                           <AlertTriangle size={10} /> {a.forms_missing.length} form{a.forms_missing.length > 1 ? 's' : ''}
                         </span>

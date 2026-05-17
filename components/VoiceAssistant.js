@@ -208,7 +208,16 @@ RULES:
   }
 
   function handleServerEvent(event) {
+    // Log all events for debugging (remove later)
+    if (!event.type?.includes('audio.delta')) {
+      console.log('[Voice]', event.type, event.error ? event.error : '');
+    }
+
     switch (event.type) {
+      case 'error':
+        console.error('[Voice] Server error:', event.error);
+        break;
+
       // Speech detection (both beta and GA names)
       case 'input_audio_buffer.speech_started':
         setStatus('listening');

@@ -14,7 +14,12 @@ export default async function handler(req, res) {
         audio: {
           input: {
             format: { type: 'audio/pcm', rate: 24000 },
-            turn_detection: { type: 'server_vad' },
+            turn_detection: {
+              type: 'server_vad',
+              threshold: 0.8,
+              prefix_padding_ms: 500,
+              silence_duration_ms: 1000,
+            },
             transcription: { model: 'gpt-4o-mini-transcribe' },
           },
           output: {

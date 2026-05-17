@@ -24,7 +24,7 @@ function isAuthorized(req) {
   return false;
 }
 
-function buildEmailHtml(firstName, rebookUrl) {
+function buildEmailHtml(firstName, rebookUrl, unsubscribeUrl) {
   return `
 <!DOCTYPE html>
 <html>
@@ -69,8 +69,11 @@ function buildEmailHtml(firstName, rebookUrl) {
         </td></tr>
 
         <tr><td style="border-top:1px solid #e5e7eb;padding:20px 32px;background:#f9fafb;">
-          <p style="font-size:12px;color:#9ca3af;margin:0;text-align:center;">
+          <p style="font-size:12px;color:#9ca3af;margin:0 0 8px;text-align:center;">
             Range Medical · 1901 Westcliff Drive, Suite 10 · Newport Beach, CA 92660
+          </p>
+          <p style="font-size:11px;color:#9ca3af;margin:0;text-align:center;">
+            <a href="${unsubscribeUrl}" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
           </p>
         </td></tr>
 
@@ -112,6 +115,18 @@ export default async function handler(req, res) {
 
     for (const appt of filtered) {
       try {
+        // Check patient opt-out status
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('id, first_name, email, marketing_opt_out, email_opt_out')
+          .eq('id', appt.patient_id)
+          .single();
+
+        if (patient?.marketing_opt_out || patient?.email_opt_out) {
+          results.push({ name: appt.patient_name, status: 'skipped_opted_out' });
+          continue;
+        }
+
         // Get trial pass for this patient
         const { data: trialPass } = await supabase
           .from('trial_passes')
@@ -122,28 +137,18 @@ export default async function handler(req, res) {
           .limit(1)
           .single();
 
-        if (!trialPass || !trialPass.email) {
-          // Fall back to patients table
-          const { data: patient } = await supabase
-            .from('patients')
-            .select('id, first_name, email')
-            .eq('id', appt.patient_id)
-            .single();
+        if (!trialPass) {
+          errors.push({ name: appt.patient_name, reason: 'No trial pass found' });
+          continue;
+        }
 
-          if (!patient?.email) {
-            errors.push({ name: appt.patient_name, reason: 'No email found' });
-            continue;
-          }
-
-          // No trial pass found — skip (can't generate rebook link without it)
-          if (!trialPass) {
-            errors.push({ name: appt.patient_name, reason: 'No trial pass found' });
-            continue;
-          }
+        const email = trialPass.email || patient?.email;
+        if (!email) {
+          errors.push({ name: appt.patient_name, reason: 'No email found' });
+          continue;
         }
 
         const firstName = trialPass.first_name || appt.patient_name.split(' ')[0];
-        const email = trialPass.email;
         const rebookUrl = `${BASE_URL}/hbot-trial/rebook?token=${trialPass.id}`;
 
         // Check if we already sent a rebook email to this person
@@ -160,12 +165,14 @@ export default async function handler(req, res) {
         }
 
         // Send email
+        const unsubscribeUrl = `${BASE_URL}/api/unsubscribe?email=${encodeURIComponent(email)}`;
         const { data: emailResult, error: emailError } = await resend.emails.send({
-          from: 'Chris Cupp - Range Medical <chris@range-medical.com>',
+          from: 'Chris Cupp - Range Medical <cupp@range-medical.com>',
           to: email,
           subject: `${firstName}, your free HBOT session is still available`,
-          html: buildEmailHtml(firstName, rebookUrl),
-          reply_to: 'chris@range-medical.com',
+          html: buildEmailHtml(firstName, rebookUrl, unsubscribeUrl),
+          reply_to: 'cupp@range-medical.com',
+          headers: { 'List-Unsubscribe': `<${unsubscribeUrl}>` },
         });
 
         if (emailError) {
@@ -196,7 +203,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       total: filtered.length,
       sent: results.filter((r) => r.status === 'sent').length,
-      skipped: results.filter((r) => r.status === 'skipped_already_sent').length,
+      skipped_already_sent: results.filter((r) => r.status === 'skipped_already_sent').length,
+      skipped_opted_out: results.filter((r) => r.status === 'skipped_opted_out').length,
       failed: errors.length,
       results,
       errors,

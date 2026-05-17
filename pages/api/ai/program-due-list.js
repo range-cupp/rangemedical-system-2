@@ -95,9 +95,16 @@ export default async function handler(req, res) {
       const payment = computePaymentStatus(lastPurchase, proto.comp);
       const dispense = computeDispenseStatus(cadenceDays, lastPurchase, today);
 
-      const sessionsExhausted = proto.total_sessions > 0 && proto.sessions_used >= proto.total_sessions;
-      const refillDue = proto.next_expected_date && proto.next_expected_date <= today;
       const dispenseUrgent = ['send_now', 'due_now', 'due_soon'].includes(dispense.state);
+
+      // For patients with a recent purchase, the dispense calculation (purchase_date +
+      // coverage days) is more reliable than sessions_used, which can include future-
+      // dated service logs. Only trust sessions_used when there's no purchase to
+      // compute dispense from, or for in-clinic patients where sessions are counted
+      // at the time of visit.
+      const isInClinic = proto.delivery_method === 'in_clinic';
+      const sessionsExhausted = isInClinic && proto.total_sessions > 0 && proto.sessions_used >= proto.total_sessions;
+      const refillDue = proto.next_expected_date && proto.next_expected_date <= today;
 
       if (!sessionsExhausted && !refillDue && !dispenseUrgent) continue;
 

@@ -3,6 +3,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 export default function VoiceAssistant({ services, patientName, onCartAction }) {
   const [active, setActive] = useState(false);
   const [status, setStatus] = useState('idle');
+  const [errorDetail, setErrorDetail] = useState('');
   const [transcript, setTranscript] = useState('');
   const [aiTranscript, setAiTranscript] = useState('');
   const wsRef = useRef(null);
@@ -114,10 +115,13 @@ RULES:
       });
       const sessionData = await sessionRes.json();
       if (!sessionData.clientSecret) {
-        console.error('Voice session error:', sessionData);
+        const detail = sessionData.detail || sessionData.error || 'Unknown error';
+        console.error('Voice session error:', detail);
+        setErrorDetail(typeof detail === 'string' ? detail : JSON.stringify(detail));
         setStatus('error');
         return;
       }
+      setErrorDetail('');
 
       const ws = new WebSocket(
         'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17',
@@ -410,6 +414,11 @@ RULES:
         <span style={{ ...styles.statusDot, background: statusColor[status] }} />
         <span style={styles.statusText}>{statusLabel[status]}</span>
       </button>
+      {errorDetail && (
+        <div style={{ margin: '8px 0', padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', fontSize: '12px', color: '#991b1b', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+          {errorDetail}
+        </div>
+      )}
       {active && (
         <div style={styles.transcriptArea}>
           {transcript && (

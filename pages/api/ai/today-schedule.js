@@ -74,6 +74,16 @@ export default async function handler(req, res) {
         if (!consentsByPatient[c.patient_id]) consentsByPatient[c.patient_id] = new Set();
         consentsByPatient[c.patient_id].add(c.consent_type);
       }
+
+      // Also check intakes table — intake records live there, not in consents
+      const { data: intakes } = await supabase
+        .from('intakes')
+        .select('patient_id')
+        .in('patient_id', patientIds);
+      for (const i of (intakes || [])) {
+        if (!consentsByPatient[i.patient_id]) consentsByPatient[i.patient_id] = new Set();
+        consentsByPatient[i.patient_id].add('intake');
+      }
     }
 
     const REQUIRED_BY_CATEGORY = {

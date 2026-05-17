@@ -57,6 +57,8 @@ export default async function handler(req, res) {
             }),
             items: invoice.items,
             shippingCents: invoice.shipping_cents || 0,
+            discountCents: invoice.discount_cents || 0,
+            discountDescription: invoice.discount_description || '',
             totalCents: invoice.total_cents,
             paymentUrl,
             notes: invoice.notes,

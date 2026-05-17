@@ -39,6 +39,7 @@ import {
   buildSig,
 } from '../../lib/protocol-config';
 import { VIAL_CATALOG, VIAL_CATEGORIES } from '../../lib/vial-catalog';
+import AiAssistant from '../../components/AiAssistant';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
@@ -218,14 +219,7 @@ function CheckoutInner() {
   const [activeProtocols, setActiveProtocols] = useState([]);
   const searchTimeout = useRef(null);
 
-  // ── AI Chat Assistant ──
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState([]); // { role: 'user'|'assistant', content: string, cartAction?: object }
-  const [chatInput, setChatInput] = useState('');
-  const [chatLoading, setChatLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const chatEndRef = useRef(null);
-  const recognitionRef = useRef(null);
+  // ── AI Chat Assistant (via AiAssistant component) ──
 
   // ── Services ──
   const [services, setServices] = useState([]);
@@ -637,99 +631,17 @@ function CheckoutInner() {
     setTimeout(() => setCartWarning(''), 3000);
   }
 
-  // ── AI Chat Assistant ──
-  async function handleChatSend(text) {
-    const msg = (text || chatInput).trim();
-    if (!msg || chatLoading) return;
-    const userMsg = { role: 'user', content: msg };
-    const newMessages = [...chatMessages, userMsg];
-    setChatMessages(newMessages);
-    setChatInput('');
-    setChatLoading(true);
-    try {
-      const svcPayload = services.map(s => ({
-        id: s.id,
-        name: s.name,
-        category: s.category,
-        price_cents: s.price || s.price_cents,
-        sub_category: s.sub_category,
-        recurring: s.recurring,
-      }));
-      const resp = await fetch('/api/ai/checkout-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: newMessages,
-          services: svcPayload,
-          patientName: patient?.name || '',
-        }),
-      });
-      const data = await resp.json();
-      if (data.error) {
-        setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, something went wrong. Try again.' }]);
+  function handleAiCartAction(items) {
+    for (const item of items) {
+      const exists = cartItems.find(i => i.id === item.id);
+      if (exists) {
+        setCartItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity || 1) } : i));
       } else {
-        const assistantMsg = { role: 'assistant', content: data.reply };
-        if (data.cartAction?.items?.length > 0) {
-          assistantMsg.cartAction = data.cartAction;
-          for (const item of data.cartAction.items) {
-            const exists = cartItems.find(i => i.id === item.id);
-            if (exists) {
-              setCartItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity || 1) } : i));
-            } else {
-              setCartItems(prev => [...prev, { ...item, quantity: item.quantity || 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
-            }
-          }
-          setCartOpen(true);
-        }
-        setChatMessages(prev => [...prev, assistantMsg]);
+        setCartItems(prev => [...prev, { ...item, quantity: item.quantity || 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
       }
-    } catch {
-      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Connection error. Try again.' }]);
-    } finally {
-      setChatLoading(false);
     }
+    setCartOpen(true);
   }
-
-  function handleVoiceToggle() {
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-      return;
-    }
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      showWarning('Voice not supported in this browser');
-      return;
-    }
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-    recognition.onresult = (e) => {
-      const transcript = e.results[0]?.[0]?.transcript;
-      if (transcript) {
-        if (!chatOpen) setChatOpen(true);
-        handleChatSend(transcript);
-      }
-      setIsListening(false);
-    };
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
-    recognitionRef.current = recognition;
-    recognition.start();
-    setIsListening(true);
-    if (!chatOpen) setChatOpen(true);
-  }
-
-  function handleChatReset() {
-    setChatMessages([]);
-    setChatInput('');
-    setChatLoading(false);
-  }
-
-  useEffect(() => {
-    if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
 
   // ── HRT Membership monthly Range IV perk ──
   // Add a complimentary Range IV (signature formula) as a $0 dispense line item.
@@ -3041,7 +2953,6 @@ function CheckoutInner() {
       <Head>
         <style>{`
           @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-          @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
           .checkout-segment-card:hover { border-color: #1a1a1a !important; box-shadow: 0 4px 20px rgba(0,0,0,0.06) !important; }
           .checkout-service-card:hover { border-color: #c0c0c0 !important; box-shadow: 0 2px 12px rgba(0,0,0,0.04) !important; }
           .checkout-search-result:hover { background: #f9fafb !important; }
@@ -3308,87 +3219,12 @@ function CheckoutInner() {
               )}
 
               {/* AI Chat Assistant */}
-              <div style={styles.chatBarWrap}>
-                <button
-                  style={styles.chatBarToggle}
-                  onClick={() => setChatOpen(!chatOpen)}
-                >
-                  <span style={styles.chatBarIcon}>✦</span>
-                  <span style={styles.chatBarLabel}>
-                    {chatOpen ? 'Close Assistant' : 'AI Checkout Assistant'}
-                  </span>
-                  {chatMessages.length > 0 && !chatOpen && (
-                    <span style={styles.chatBarBadge}>{chatMessages.filter(m => m.role === 'assistant' && m.cartAction).length} added</span>
-                  )}
-                </button>
-                <button
-                  style={{ ...styles.chatVoiceBtn, ...(isListening ? styles.chatVoiceBtnActive : {}) }}
-                  onClick={handleVoiceToggle}
-                  title={isListening ? 'Stop listening' : 'Voice input'}
-                >
-                  {isListening ? '⏹' : '🎙'}
-                </button>
-              </div>
-              {chatOpen && (
-                <div style={styles.chatDrawer}>
-                  <div style={styles.chatMessageArea}>
-                    {chatMessages.length === 0 && (
-                      <div style={styles.chatWelcome}>
-                        <div style={styles.chatWelcomeIcon}>✦</div>
-                        <div style={styles.chatWelcomeTitle}>Hey! What are we checking out?</div>
-                        <div style={styles.chatWelcomeHint}>
-                          Type or use the mic — e.g. "Range IV and a 10-pack of BPC"
-                        </div>
-                      </div>
-                    )}
-                    {chatMessages.map((msg, idx) => (
-                      <div key={idx} style={msg.role === 'user' ? styles.chatMsgUser : styles.chatMsgAssistant}>
-                        {msg.role === 'assistant' && <div style={styles.chatMsgAvatar}>✦</div>}
-                        <div style={msg.role === 'user' ? styles.chatBubbleUser : styles.chatBubbleAssistant}>
-                          {msg.content}
-                          {msg.cartAction && (
-                            <div style={styles.chatCartAdded}>
-                              ✓ {msg.cartAction.items.length} item{msg.cartAction.items.length !== 1 ? 's' : ''} added to cart
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    {chatLoading && (
-                      <div style={styles.chatMsgAssistant}>
-                        <div style={styles.chatMsgAvatar}>✦</div>
-                        <div style={styles.chatBubbleAssistant}>
-                          <span style={styles.chatTyping}>Thinking...</span>
-                        </div>
-                      </div>
-                    )}
-                    <div ref={chatEndRef} />
-                  </div>
-                  <div style={styles.chatInputArea}>
-                    <input
-                      type="text"
-                      placeholder="Type or tap the mic..."
-                      value={chatInput}
-                      onChange={e => setChatInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') handleChatSend(); }}
-                      style={styles.chatInputField}
-                      disabled={chatLoading}
-                    />
-                    <button
-                      style={{ ...styles.chatSendBtn, opacity: chatLoading || !chatInput.trim() ? 0.4 : 1 }}
-                      onClick={() => handleChatSend()}
-                      disabled={chatLoading || !chatInput.trim()}
-                    >
-                      ↑
-                    </button>
-                    {chatMessages.length > 0 && (
-                      <button style={styles.chatResetBtn} onClick={handleChatReset} title="New conversation">
-                        ↻
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
+              <AiAssistant
+                context="checkout"
+                services={services}
+                patientName={patient?.name}
+                onCartAction={handleAiCartAction}
+              />
 
               {/* Search bar */}
               <div style={styles.serviceSearchWrap}>
@@ -6966,7 +6802,6 @@ const styles = {
   },
 
   // ── Service search ──
-  // ── AI Chat Assistant ──
   chatBarWrap: {
     display: 'flex',
     alignItems: 'center',

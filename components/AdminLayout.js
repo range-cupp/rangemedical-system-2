@@ -19,6 +19,7 @@ const NAV_SECTIONS = [
   { href: '/admin/patients', label: 'Patients', icon: 'users' },
   { href: '/admin/schedule', label: 'Schedule', icon: 'calendar', group: 'medical' },
   { href: '/admin/communications', label: 'Communications', icon: 'message' },
+  { href: '/admin/assistant', label: 'Assistant', icon: 'sparkles' },
   { href: '/admin/tasks', label: 'Tasks', icon: 'check-square', group: 'business' },
   {
     section: 'Clinical',
@@ -236,6 +237,11 @@ const icons = {
   'pie-chart': (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21.21 15.89A10 10 0 1 1 8 2.83" /><path d="M22 12A10 10 0 0 0 12 2v10z" />
+    </svg>
+  ),
+  sparkles: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z" />
     </svg>
   ),
 };

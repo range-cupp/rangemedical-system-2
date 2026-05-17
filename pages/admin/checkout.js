@@ -40,7 +40,6 @@ import {
 } from '../../lib/protocol-config';
 import { VIAL_CATALOG, VIAL_CATEGORIES } from '../../lib/vial-catalog';
 import AiAssistant from '../../components/AiAssistant';
-import VoiceAssistant from '../../components/VoiceAssistant';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
@@ -3227,15 +3226,6 @@ function CheckoutInner() {
                   )}
                 </div>
               )}
-
-              {/* Voice Checkout Assistant */}
-              <VoiceAssistant
-                context="checkout"
-                data={{ services, patientName: patient?.name }}
-                onAction={(action, args) => {
-                  if (action === 'add_to_cart') handleAiCartAction(args.items || []);
-                }}
-              />
 
               {/* AI Chat Assistant */}
               <AiAssistant

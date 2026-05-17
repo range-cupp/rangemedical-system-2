@@ -6,8 +6,6 @@ import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
-import VoiceAssistant from '../../components/VoiceAssistant';
-
 const ConversationView = dynamic(() => import('../../components/ConversationView'), { ssr: false });
 
 export default function CommunicationsPage() {
@@ -420,11 +418,6 @@ export default function CommunicationsPage() {
 
   return (
     <AdminLayout title="Communications">
-      <VoiceAssistant
-        context="communications"
-        data={{ patientName: selectedPatient?.name || '', patientPhone: selectedPatient?.phone || '' }}
-        onAction={(action, args) => { console.log('Voice action:', action, args); }}
-      />
       {/* Tab bar */}
       <div style={styles.tabBar}>
         {[

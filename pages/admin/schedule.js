@@ -13,8 +13,6 @@ import EncounterModal from '../../components/EncounterModal';
 import { useAuth } from '../../components/AuthProvider';
 import { formatPhone } from '../../lib/format-utils';
 import { getRenewalStatus } from '../../lib/protocol-tracking';
-import VoiceAssistant from '../../components/VoiceAssistant';
-
 // Dynamic import CalendarView (it uses browser APIs)
 const CalendarView = dynamic(() => import('../../components/CalendarView'), { ssr: false });
 
@@ -545,130 +543,6 @@ export default function SchedulePage() {
 
   return (
     <AdminLayout title="Schedule">
-      <VoiceAssistant
-        context="schedule"
-        data={{
-          todayAppointments: dayAppointments.map(a => ({
-            id: a.id,
-            patient: a.patient_name || a.patient?.name || 'Unknown',
-            service: a.service_name || a.service?.name || '',
-            time: a.start_time,
-            status: a.status,
-            provider: a.provider_name || '',
-          })),
-          selectedDate: selectedDate,
-        }}
-        onAction={async (action, args) => {
-          console.log('Voice action:', action, args);
-
-          if (action === 'search_patient') {
-            try {
-              const res = await fetch(`/api/patients/search?q=${encodeURIComponent(args.query)}`);
-              const data = await res.json();
-              const patients = (data.patients || []).slice(0, 5).map(p => ({
-                id: p.id, name: p.name, phone: p.phone, email: p.email,
-              }));
-              if (patients.length === 0) return { found: false, message: `No patients found matching "${args.query}"` };
-              return { found: true, patients };
-            } catch (err) {
-              return { error: 'Failed to search patients' };
-            }
-          }
-
-          if (action === 'check_slots') {
-            try {
-              const svcRes = await fetch('/api/bookings/event-types');
-              const svcData = await svcRes.json();
-              const services = svcData.eventTypes || [];
-              const query = (args.service || '').toLowerCase();
-              const svc = services.find(s =>
-                s.title.toLowerCase().includes(query) ||
-                s.slug.toLowerCase().includes(query) ||
-                (s.category && s.category.toLowerCase() === query)
-              );
-              if (!svc) return { error: `No service found matching "${args.service}". Available: ${services.map(s => s.title).join(', ')}` };
-
-              const slotsRes = await fetch(`/api/bookings/slots?serviceSlug=${encodeURIComponent(svc.slug)}&date=${args.date}`);
-              const slotsData = await slotsRes.json();
-              const rawSlots = slotsData.slots?.[args.date] || slotsData.slots || [];
-              const slots = (Array.isArray(rawSlots) ? rawSlots : []).map(s => ({
-                time: new Date(s.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' }),
-                start_iso: s.start,
-              }));
-              return {
-                service_name: svc.title,
-                service_slug: svc.slug,
-                duration_minutes: svc.length,
-                date: args.date,
-                available_slots: slots.length > 0 ? slots : [],
-                slot_count: slots.length,
-              };
-            } catch (err) {
-              return { error: 'Failed to check slots' };
-            }
-          }
-
-          if (action === 'book_appointment') {
-            try {
-              const startISO = args.start_iso || (() => {
-                const d = args.date;
-                const t = args.time;
-                const local = new Date(`${d}T${t}:00`);
-                const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                return new Date(`${d}T${t}:00-07:00`).toISOString();
-              })();
-              const durationMin = args.duration_minutes || 60;
-              const endISO = new Date(new Date(startISO).getTime() + durationMin * 60000).toISOString();
-
-              const res = await fetch('/api/appointments/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  patient_id: args.patient_id,
-                  patient_name: args.patient_name,
-                  service_name: args.service,
-                  service_slug: args.service_slug,
-                  start_time: startISO,
-                  end_time: endISO,
-                  duration_minutes: durationMin,
-                  visit_reason: args.service,
-                  source: 'voice',
-                  created_by: 'Voice Assistant',
-                  send_notification: true,
-                }),
-              });
-              const data = await res.json();
-              if (res.ok && !data.error) {
-                fetchAppointments();
-                return { success: true, message: `Booked ${args.patient_name} for ${args.service} on ${args.date} at ${args.time}` };
-              }
-              return { error: data.error || 'Booking failed' };
-            } catch (err) {
-              return { error: 'Failed to create booking' };
-            }
-          }
-
-          if (action === 'cancel_appointment') {
-            try {
-              const res = await fetch(`/api/appointments/${args.appointment_id}/cancel`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason: args.reason || 'Cancelled via voice assistant' }),
-              });
-              const data = await res.json();
-              if (res.ok) {
-                fetchAppointments();
-                return { success: true, message: 'Appointment cancelled' };
-              }
-              return { error: data.error || 'Cancellation failed' };
-            } catch (err) {
-              return { error: 'Failed to cancel appointment' };
-            }
-          }
-
-          return { error: `Unknown action: ${action}` };
-        }}
-      />
       {/* Tab bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
         <div style={{ display: 'flex', gap: '8px' }}>

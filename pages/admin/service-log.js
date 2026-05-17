@@ -3,16 +3,10 @@
 
 import AdminLayout from '../../components/AdminLayout';
 import ServiceLogContent from '../../components/ServiceLogContent';
-import VoiceAssistant from '../../components/VoiceAssistant';
 
 export default function ServiceLog() {
   return (
     <AdminLayout title="Service Log">
-      <VoiceAssistant
-        context="service_log"
-        data={{}}
-        onAction={(action, args) => { console.log('Voice action:', action, args); }}
-      />
       <ServiceLogContent />
     </AdminLayout>
   );

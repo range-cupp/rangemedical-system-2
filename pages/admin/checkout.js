@@ -218,11 +218,14 @@ function CheckoutInner() {
   const [activeProtocols, setActiveProtocols] = useState([]);
   const searchTimeout = useRef(null);
 
-  // ── AI Command Bar ──
-  const [aiInput, setAiInput] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiResults, setAiResults] = useState(null); // array of parsed items or null
-  const [aiError, setAiError] = useState('');
+  // ── AI Chat Assistant ──
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]); // { role: 'user'|'assistant', content: string, cartAction?: object }
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const chatEndRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   // ── Services ──
   const [services, setServices] = useState([]);
@@ -634,12 +637,15 @@ function CheckoutInner() {
     setTimeout(() => setCartWarning(''), 3000);
   }
 
-  // ── AI Command Bar ──
-  async function handleAiParse() {
-    if (!aiInput.trim() || aiLoading) return;
-    setAiLoading(true);
-    setAiError('');
-    setAiResults(null);
+  // ── AI Chat Assistant ──
+  async function handleChatSend(text) {
+    const msg = (text || chatInput).trim();
+    if (!msg || chatLoading) return;
+    const userMsg = { role: 'user', content: msg };
+    const newMessages = [...chatMessages, userMsg];
+    setChatMessages(newMessages);
+    setChatInput('');
+    setChatLoading(true);
     try {
       const svcPayload = services.map(s => ({
         id: s.id,
@@ -649,61 +655,81 @@ function CheckoutInner() {
         sub_category: s.sub_category,
         recurring: s.recurring,
       }));
-      const resp = await fetch('/api/ai/parse-checkout', {
+      const resp = await fetch('/api/ai/checkout-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: aiInput.trim(), services: svcPayload }),
+        body: JSON.stringify({
+          messages: newMessages,
+          services: svcPayload,
+          patientName: patient?.name || '',
+        }),
       });
       const data = await resp.json();
-      if (data.error && !data.items) {
-        setAiError(data.error);
-      } else if (data.items?.length > 0) {
-        setAiResults(data.items);
+      if (data.error) {
+        setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, something went wrong. Try again.' }]);
       } else {
-        setAiError('No items matched. Try being more specific.');
+        const assistantMsg = { role: 'assistant', content: data.reply };
+        if (data.cartAction?.items?.length > 0) {
+          assistantMsg.cartAction = data.cartAction;
+          for (const item of data.cartAction.items) {
+            const exists = cartItems.find(i => i.id === item.id);
+            if (exists) {
+              setCartItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity || 1) } : i));
+            } else {
+              setCartItems(prev => [...prev, { ...item, quantity: item.quantity || 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
+            }
+          }
+          setCartOpen(true);
+        }
+        setChatMessages(prev => [...prev, assistantMsg]);
       }
     } catch {
-      setAiError('Failed to process. Try again.');
+      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Connection error. Try again.' }]);
     } finally {
-      setAiLoading(false);
+      setChatLoading(false);
     }
   }
 
-  function handleAiAddAll() {
-    if (!aiResults) return;
-    const toAdd = aiResults.filter(r => r.resolved);
-    for (const r of toAdd) {
-      const item = r.resolved;
-      const exists = cartItems.find(i => i.id === item.id);
-      if (exists) {
-        setCartItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity || 1) } : i));
-      } else {
-        setCartItems(prev => [...prev, { ...item, quantity: item.quantity || 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
+  function handleVoiceToggle() {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showWarning('Voice not supported in this browser');
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    recognition.onresult = (e) => {
+      const transcript = e.results[0]?.[0]?.transcript;
+      if (transcript) {
+        if (!chatOpen) setChatOpen(true);
+        handleChatSend(transcript);
       }
-    }
-    setCartOpen(true);
-    setAiResults(null);
-    setAiInput('');
+      setIsListening(false);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+    if (!chatOpen) setChatOpen(true);
   }
 
-  function handleAiAddOne(r) {
-    if (!r.resolved) return;
-    const item = r.resolved;
-    const exists = cartItems.find(i => i.id === item.id);
-    if (exists) {
-      setCartItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity || 1) } : i));
-    } else {
-      setCartItems(prev => [...prev, { ...item, quantity: item.quantity || 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
-    }
-    setCartOpen(true);
-    setAiResults(prev => prev.filter(i => i !== r));
+  function handleChatReset() {
+    setChatMessages([]);
+    setChatInput('');
+    setChatLoading(false);
   }
 
-  function handleAiDismiss() {
-    setAiResults(null);
-    setAiInput('');
-    setAiError('');
-  }
+  useEffect(() => {
+    if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
   // ── HRT Membership monthly Range IV perk ──
   // Add a complimentary Range IV (signature formula) as a $0 dispense line item.
@@ -3015,6 +3041,7 @@ function CheckoutInner() {
       <Head>
         <style>{`
           @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+          @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
           .checkout-segment-card:hover { border-color: #1a1a1a !important; box-shadow: 0 4px 20px rgba(0,0,0,0.06) !important; }
           .checkout-service-card:hover { border-color: #c0c0c0 !important; box-shadow: 0 2px 12px rgba(0,0,0,0.04) !important; }
           .checkout-search-result:hover { background: #f9fafb !important; }
@@ -3280,79 +3307,88 @@ function CheckoutInner() {
                 </div>
               )}
 
-              {/* AI Command Bar */}
-              <div style={styles.aiCommandWrap}>
-                <div style={styles.aiCommandRow}>
-                  <div style={styles.aiCommandIcon}>✦</div>
-                  <input
-                    type="text"
-                    placeholder="Type what you're checking out... e.g. &quot;tirz 10mg, myers IV, HBOT x3&quot;"
-                    value={aiInput}
-                    onChange={e => setAiInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleAiParse(); }}
-                    style={styles.aiCommandInput}
-                    disabled={aiLoading}
-                  />
-                  {aiInput && !aiLoading && (
-                    <button style={styles.aiCommandClear} onClick={() => { setAiInput(''); setAiResults(null); setAiError(''); }}>×</button>
+              {/* AI Chat Assistant */}
+              <div style={styles.chatBarWrap}>
+                <button
+                  style={styles.chatBarToggle}
+                  onClick={() => setChatOpen(!chatOpen)}
+                >
+                  <span style={styles.chatBarIcon}>✦</span>
+                  <span style={styles.chatBarLabel}>
+                    {chatOpen ? 'Close Assistant' : 'AI Checkout Assistant'}
+                  </span>
+                  {chatMessages.length > 0 && !chatOpen && (
+                    <span style={styles.chatBarBadge}>{chatMessages.filter(m => m.role === 'assistant' && m.cartAction).length} added</span>
                   )}
-                  <button
-                    style={{ ...styles.aiCommandBtn, opacity: aiLoading || !aiInput.trim() ? 0.5 : 1 }}
-                    onClick={handleAiParse}
-                    disabled={aiLoading || !aiInput.trim()}
-                  >
-                    {aiLoading ? 'Parsing...' : 'Go'}
-                  </button>
-                </div>
-                {aiError && (
-                  <div style={styles.aiError}>{aiError}</div>
-                )}
-                {aiResults && aiResults.length > 0 && (
-                  <div style={styles.aiResultsWrap}>
-                    <div style={styles.aiResultsHeader}>
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#888', letterSpacing: '0.05em' }}>
-                        MATCHED {aiResults.filter(r => r.resolved).length} ITEM{aiResults.filter(r => r.resolved).length !== 1 ? 'S' : ''}
-                      </span>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button style={styles.aiAddAllBtn} onClick={handleAiAddAll}>
-                          Add All to Cart
-                        </button>
-                        <button style={styles.aiDismissBtn} onClick={handleAiDismiss}>
-                          Dismiss
-                        </button>
+                </button>
+                <button
+                  style={{ ...styles.chatVoiceBtn, ...(isListening ? styles.chatVoiceBtnActive : {}) }}
+                  onClick={handleVoiceToggle}
+                  title={isListening ? 'Stop listening' : 'Voice input'}
+                >
+                  {isListening ? '⏹' : '🎙'}
+                </button>
+              </div>
+              {chatOpen && (
+                <div style={styles.chatDrawer}>
+                  <div style={styles.chatMessageArea}>
+                    {chatMessages.length === 0 && (
+                      <div style={styles.chatWelcome}>
+                        <div style={styles.chatWelcomeIcon}>✦</div>
+                        <div style={styles.chatWelcomeTitle}>Hey! What are we checking out?</div>
+                        <div style={styles.chatWelcomeHint}>
+                          Type or use the mic — e.g. "Range IV and a 10-pack of BPC"
+                        </div>
                       </div>
-                    </div>
-                    {aiResults.map((r, idx) => (
-                      <div key={idx} style={styles.aiResultItem}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 600, color: r.resolved ? '#1a1a1a' : '#999' }}>
-                              {r.resolved ? r.resolved.name : r.name}
-                            </span>
-                            {r.quantity > 1 && <span style={styles.aiQtyBadge}>×{r.quantity}</span>}
-                            {!r.resolved && <span style={styles.aiNoMatch}>No match</span>}
-                            {r.resolved?.fuzzy && <span style={styles.aiFuzzy}>Best guess</span>}
-                          </div>
-                          {r.resolved && (
-                            <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
-                              {r.resolved.category} · {formatPrice(r.resolved.price * (r.resolved.quantity || 1))}
-                              {r.reason ? ` · ${r.reason}` : ''}
+                    )}
+                    {chatMessages.map((msg, idx) => (
+                      <div key={idx} style={msg.role === 'user' ? styles.chatMsgUser : styles.chatMsgAssistant}>
+                        {msg.role === 'assistant' && <div style={styles.chatMsgAvatar}>✦</div>}
+                        <div style={msg.role === 'user' ? styles.chatBubbleUser : styles.chatBubbleAssistant}>
+                          {msg.content}
+                          {msg.cartAction && (
+                            <div style={styles.chatCartAdded}>
+                              ✓ {msg.cartAction.items.length} item{msg.cartAction.items.length !== 1 ? 's' : ''} added to cart
                             </div>
                           )}
-                          {!r.resolved && r.reason && (
-                            <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>{r.reason}</div>
-                          )}
                         </div>
-                        {r.resolved && (
-                          <button style={styles.aiAddOneBtn} onClick={() => handleAiAddOne(r)}>
-                            + Add
-                          </button>
-                        )}
                       </div>
                     ))}
+                    {chatLoading && (
+                      <div style={styles.chatMsgAssistant}>
+                        <div style={styles.chatMsgAvatar}>✦</div>
+                        <div style={styles.chatBubbleAssistant}>
+                          <span style={styles.chatTyping}>Thinking...</span>
+                        </div>
+                      </div>
+                    )}
+                    <div ref={chatEndRef} />
                   </div>
-                )}
-              </div>
+                  <div style={styles.chatInputArea}>
+                    <input
+                      type="text"
+                      placeholder="Type or tap the mic..."
+                      value={chatInput}
+                      onChange={e => setChatInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleChatSend(); }}
+                      style={styles.chatInputField}
+                      disabled={chatLoading}
+                    />
+                    <button
+                      style={{ ...styles.chatSendBtn, opacity: chatLoading || !chatInput.trim() ? 0.4 : 1 }}
+                      onClick={() => handleChatSend()}
+                      disabled={chatLoading || !chatInput.trim()}
+                    >
+                      ↑
+                    </button>
+                    {chatMessages.length > 0 && (
+                      <button style={styles.chatResetBtn} onClick={handleChatReset} title="New conversation">
+                        ↻
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Search bar */}
               <div style={styles.serviceSearchWrap}>
@@ -6930,130 +6966,194 @@ const styles = {
   },
 
   // ── Service search ──
-  // ── AI Command Bar ──
-  aiCommandWrap: {
-    marginBottom: '16px',
-    borderRadius: '10px',
-    border: '1.5px solid #c7d2fe',
-    background: '#fafbff',
-    overflow: 'hidden',
-  },
-  aiCommandRow: {
+  // ── AI Chat Assistant ──
+  chatBarWrap: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    padding: '10px 14px',
+    marginBottom: '12px',
   },
-  aiCommandIcon: {
+  chatBarToggle: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '12px 16px',
+    borderRadius: '10px',
+    border: '1.5px solid #c7d2fe',
+    background: '#fafbff',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 600,
+    color: '#4f46e5',
+    textAlign: 'left',
+  },
+  chatBarIcon: {
     fontSize: '16px',
-    color: '#6366f1',
+  },
+  chatBarLabel: {
+    flex: 1,
+  },
+  chatBarBadge: {
+    fontSize: '11px',
+    fontWeight: 700,
+    background: '#dcfce7',
+    color: '#16a34a',
+    padding: '2px 8px',
+    borderRadius: '10px',
+  },
+  chatVoiceBtn: {
+    width: '46px',
+    height: '46px',
+    borderRadius: '10px',
+    border: '1.5px solid #c7d2fe',
+    background: '#fafbff',
+    cursor: 'pointer',
+    fontSize: '20px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     flexShrink: 0,
   },
-  aiCommandInput: {
+  chatVoiceBtnActive: {
+    background: '#ef4444',
+    borderColor: '#ef4444',
+    animation: 'pulse 1.5s infinite',
+  },
+  chatDrawer: {
+    borderRadius: '10px',
+    border: '1.5px solid #c7d2fe',
+    background: '#fff',
+    marginBottom: '16px',
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    maxHeight: '400px',
+  },
+  chatMessageArea: {
     flex: 1,
-    border: 'none',
-    background: 'transparent',
+    overflowY: 'auto',
+    padding: '16px',
+    minHeight: '120px',
+    maxHeight: '300px',
+  },
+  chatWelcome: {
+    textAlign: 'center',
+    padding: '20px 0',
+  },
+  chatWelcomeIcon: {
+    fontSize: '28px',
+    color: '#6366f1',
+    marginBottom: '8px',
+  },
+  chatWelcomeTitle: {
+    fontSize: '16px',
+    fontWeight: 700,
+    color: '#1a1a1a',
+    marginBottom: '4px',
+  },
+  chatWelcomeHint: {
+    fontSize: '13px',
+    color: '#888',
+  },
+  chatMsgUser: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginBottom: '10px',
+  },
+  chatMsgAssistant: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'flex-start',
+    marginBottom: '10px',
+  },
+  chatMsgAvatar: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    background: '#eef2ff',
+    color: '#6366f1',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '13px',
+    fontWeight: 700,
+    flexShrink: 0,
+  },
+  chatBubbleUser: {
+    background: '#4f46e5',
+    color: '#fff',
+    padding: '10px 14px',
+    borderRadius: '14px 14px 4px 14px',
+    fontSize: '14px',
+    lineHeight: '1.4',
+    maxWidth: '80%',
+  },
+  chatBubbleAssistant: {
+    background: '#f3f4f6',
+    color: '#1a1a1a',
+    padding: '10px 14px',
+    borderRadius: '14px 14px 14px 4px',
+    fontSize: '14px',
+    lineHeight: '1.4',
+    maxWidth: '85%',
+  },
+  chatCartAdded: {
+    marginTop: '8px',
+    padding: '6px 10px',
+    background: '#dcfce7',
+    color: '#166534',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: 700,
+  },
+  chatTyping: {
+    color: '#888',
+    fontStyle: 'italic',
+  },
+  chatInputArea: {
+    display: 'flex',
+    gap: '8px',
+    padding: '10px 14px',
+    borderTop: '1px solid #e5e7eb',
+    background: '#fafbff',
+  },
+  chatInputField: {
+    flex: 1,
+    border: '1px solid #e0e0e0',
+    borderRadius: '8px',
+    padding: '10px 12px',
     fontSize: '14px',
     outline: 'none',
-    color: '#1a1a1a',
-    padding: '4px 0',
+    background: '#fff',
   },
-  aiCommandClear: {
-    background: 'none',
+  chatSendBtn: {
+    width: '38px',
+    height: '38px',
+    borderRadius: '8px',
     border: 'none',
+    background: '#4f46e5',
+    color: '#fff',
     fontSize: '18px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  chatResetBtn: {
+    width: '38px',
+    height: '38px',
+    borderRadius: '8px',
+    border: '1px solid #e0e0e0',
+    background: '#fff',
     color: '#888',
+    fontSize: '18px',
     cursor: 'pointer',
-    padding: '2px 6px',
-    flexShrink: 0,
-  },
-  aiCommandBtn: {
-    background: '#4f46e5',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '7px 16px',
-    fontSize: '13px',
-    fontWeight: 700,
-    cursor: 'pointer',
-    flexShrink: 0,
-  },
-  aiError: {
-    padding: '8px 14px',
-    fontSize: '13px',
-    color: '#dc2626',
-    borderTop: '1px solid #e0e7ff',
-  },
-  aiResultsWrap: {
-    borderTop: '1px solid #e0e7ff',
-  },
-  aiResultsHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '10px 14px',
-    background: '#f0f0ff',
-  },
-  aiAddAllBtn: {
-    background: '#4f46e5',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '5px',
-    padding: '6px 12px',
-    fontSize: '12px',
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
-  aiDismissBtn: {
-    background: 'none',
-    color: '#666',
-    border: '1px solid #ddd',
-    borderRadius: '5px',
-    padding: '6px 12px',
-    fontSize: '12px',
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-  aiResultItem: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
-    padding: '10px 14px',
-    borderTop: '1px solid #f0f0f0',
-  },
-  aiQtyBadge: {
-    fontSize: '11px',
-    fontWeight: 700,
-    background: '#e0e7ff',
-    color: '#4338ca',
-    padding: '2px 6px',
-    borderRadius: '4px',
-  },
-  aiNoMatch: {
-    fontSize: '11px',
-    fontWeight: 600,
-    color: '#dc2626',
-    background: '#fef2f2',
-    padding: '2px 6px',
-    borderRadius: '4px',
-  },
-  aiFuzzy: {
-    fontSize: '11px',
-    fontWeight: 600,
-    color: '#d97706',
-    background: '#fffbeb',
-    padding: '2px 6px',
-    borderRadius: '4px',
-  },
-  aiAddOneBtn: {
-    background: '#f0fdf4',
-    color: '#16a34a',
-    border: '1px solid #bbf7d0',
-    borderRadius: '5px',
-    padding: '5px 10px',
-    fontSize: '12px',
-    fontWeight: 700,
-    cursor: 'pointer',
+    justifyContent: 'center',
     flexShrink: 0,
   },
 

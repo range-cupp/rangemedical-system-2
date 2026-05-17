@@ -196,66 +196,30 @@ export default function HRTConsent() {
               </div>
 
               <div className="health-question" id="hq1">
-                <div className="health-question-text">Do you have any known allergies to medications or hormones?</div>
+                <div className="health-question-text">Are you currently pregnant or nursing?</div>
                 <div className="radio-group">
                   <div className="radio-item"><input type="radio" id="hq1-yes" name="hq1" value="yes" required /><label htmlFor="hq1-yes">Yes</label></div>
                   <div className="radio-item"><input type="radio" id="hq1-no" name="hq1" value="no" /><label htmlFor="hq1-no">No</label></div>
+                  <div className="radio-item"><input type="radio" id="hq1-na" name="hq1" value="n/a" /><label htmlFor="hq1-na">Does not apply</label></div>
                 </div>
-                <div className="health-detail" id="hq1-details"><textarea placeholder="Please describe your allergies..."></textarea></div>
               </div>
 
               <div className="health-question" id="hq2">
-                <div className="health-question-text">Are you currently pregnant or nursing?</div>
+                <div className="health-question-text">Have you ever had a blood clot, stroke, or pulmonary embolism?</div>
                 <div className="radio-group">
                   <div className="radio-item"><input type="radio" id="hq2-yes" name="hq2" value="yes" required /><label htmlFor="hq2-yes">Yes</label></div>
                   <div className="radio-item"><input type="radio" id="hq2-no" name="hq2" value="no" /><label htmlFor="hq2-no">No</label></div>
-                  <div className="radio-item"><input type="radio" id="hq2-na" name="hq2" value="n/a" /><label htmlFor="hq2-na">Does not apply</label></div>
                 </div>
+                <div className="health-detail" id="hq2-details"><textarea placeholder="Please describe..."></textarea></div>
               </div>
 
               <div className="health-question" id="hq3">
-                <div className="health-question-text">Are you currently taking any prescription medications or supplements?</div>
+                <div className="health-question-text">Have you been diagnosed with any hormone-sensitive cancer (breast, prostate, uterine)?</div>
                 <div className="radio-group">
                   <div className="radio-item"><input type="radio" id="hq3-yes" name="hq3" value="yes" required /><label htmlFor="hq3-yes">Yes</label></div>
                   <div className="radio-item"><input type="radio" id="hq3-no" name="hq3" value="no" /><label htmlFor="hq3-no">No</label></div>
                 </div>
-                <div className="health-detail" id="hq3-details"><textarea placeholder="Please list your medications and supplements..."></textarea></div>
-              </div>
-
-              <div className="health-question" id="hq4">
-                <div className="health-question-text">Have you ever had a blood clot, stroke, or pulmonary embolism?</div>
-                <div className="radio-group">
-                  <div className="radio-item"><input type="radio" id="hq4-yes" name="hq4" value="yes" required /><label htmlFor="hq4-yes">Yes</label></div>
-                  <div className="radio-item"><input type="radio" id="hq4-no" name="hq4" value="no" /><label htmlFor="hq4-no">No</label></div>
-                </div>
-                <div className="health-detail" id="hq4-details"><textarea placeholder="Please describe..."></textarea></div>
-              </div>
-
-              <div className="health-question" id="hq5">
-                <div className="health-question-text">Do you have a history of liver disease or liver problems?</div>
-                <div className="radio-group">
-                  <div className="radio-item"><input type="radio" id="hq5-yes" name="hq5" value="yes" required /><label htmlFor="hq5-yes">Yes</label></div>
-                  <div className="radio-item"><input type="radio" id="hq5-no" name="hq5" value="no" /><label htmlFor="hq5-no">No</label></div>
-                </div>
-                <div className="health-detail" id="hq5-details"><textarea placeholder="Please describe..."></textarea></div>
-              </div>
-
-              <div className="health-question" id="hq6">
-                <div className="health-question-text">Have you been diagnosed with any hormone-sensitive cancer (breast, prostate, uterine)?</div>
-                <div className="radio-group">
-                  <div className="radio-item"><input type="radio" id="hq6-yes" name="hq6" value="yes" required /><label htmlFor="hq6-yes">Yes</label></div>
-                  <div className="radio-item"><input type="radio" id="hq6-no" name="hq6" value="no" /><label htmlFor="hq6-no">No</label></div>
-                </div>
-                <div className="health-detail" id="hq6-details"><textarea placeholder="Please describe..."></textarea></div>
-              </div>
-
-              <div className="health-question" id="hq7">
-                <div className="health-question-text">Do you have a history of heart disease or cardiovascular conditions?</div>
-                <div className="radio-group">
-                  <div className="radio-item"><input type="radio" id="hq7-yes" name="hq7" value="yes" required /><label htmlFor="hq7-yes">Yes</label></div>
-                  <div className="radio-item"><input type="radio" id="hq7-no" name="hq7" value="no" /><label htmlFor="hq7-no">No</label></div>
-                </div>
-                <div className="health-detail" id="hq7-details"><textarea placeholder="Please describe..."></textarea></div>
+                <div className="health-detail" id="hq3-details"><textarea placeholder="Please describe..."></textarea></div>
               </div>
             </div>
 
@@ -267,7 +231,7 @@ export default function HRTConsent() {
                 <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack1" required /><span className="ack-initials"></span><span className="ack-text">I understand that along with the benefits of hormone replacement therapy, there are both risks and potential complications. I have not been promised specific results and agree to comply with recommended dosages and protocols.</span></label></div>
                 <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack2" required /><span className="ack-initials"></span><span className="ack-text">I agree to comply with ongoing testing and evaluations necessary to monitor my treatment progress and safety, including laboratory tests, physical examinations, and preventive screenings as recommended by my physician.</span></label></div>
                 <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack3" required /><span className="ack-initials"></span><span className="ack-text">I agree to immediately report any adverse reactions, side effects, or complications related to my therapy to Range Medical.</span></label></div>
-                <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack4" required /><span className="ack-initials"></span><span className="ack-text">I confirm that I have disclosed all relevant medical information, including allergies, current medications, history of blood clots, liver disease, cardiovascular conditions, and hormone-sensitive cancers.</span></label></div>
+                <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack4" required /><span className="ack-initials"></span><span className="ack-text">I confirm that I have disclosed all relevant medical information, including history of blood clots, hormone-sensitive cancers, and any other conditions relevant to hormone therapy.</span></label></div>
                 <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack5" required /><span className="ack-initials"></span><span className="ack-text">I acknowledge that insurance may not cover services provided by Range Medical. I agree to assume full financial responsibility for all charges associated with treatment.</span></label></div>
                 <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack6" required /><span className="ack-initials"></span><span className="ack-text">I understand that HRT is not a substitute for routine medical care. I should continue to see my primary care physician and specialists for ongoing health management.</span></label></div>
                 <div className="ack-item"><label><input type="checkbox" className="ack-checkbox" name="ack7" required /><span className="ack-initials"></span><span className="ack-text">I understand that I have the right to refuse or discontinue treatment at any time without penalty.</span></label></div>
@@ -426,7 +390,7 @@ function initializeForm() {
   // HEALTH SCREENING LOGIC
   // ============================================
   function checkHealthQuestions() {
-    const warningQuestions = ['hq1', 'hq2', 'hq3', 'hq4', 'hq5', 'hq6', 'hq7'];
+    const warningQuestions = ['hq1', 'hq2', 'hq3'];
     let showWarning = false;
     warningQuestions.forEach(q => {
       const yesRadio = document.getElementById(q + '-yes');
@@ -442,8 +406,8 @@ function initializeForm() {
     else warningAlert.classList.remove('visible');
   }
 
-  // Conditional detail fields
-  ['hq1', 'hq3', 'hq4', 'hq5', 'hq6', 'hq7'].forEach(q => {
+  // Conditional detail fields (hq2 and hq3 have detail textareas; hq1/pregnancy does not)
+  ['hq2', 'hq3'].forEach(q => {
     document.querySelectorAll('input[name="' + q + '"]').forEach(radio => {
       radio.addEventListener('change', function() {
         const details = document.getElementById(q + '-details');
@@ -452,7 +416,7 @@ function initializeForm() {
       });
     });
   });
-  document.querySelectorAll('input[name="hq2"]').forEach(radio => {
+  document.querySelectorAll('input[name="hq1"]').forEach(radio => {
     radio.addEventListener('change', checkHealthQuestions);
   });
 
@@ -540,9 +504,9 @@ function initializeForm() {
     }
 
     // Validate health screening
-    const hqLabels = { hq1: 'Medication allergies', hq2: 'Pregnancy', hq3: 'Current medications', hq4: 'Blood clot history', hq5: 'Liver disease', hq6: 'Hormone-sensitive cancer', hq7: 'Heart disease' };
+    const hqLabels = { hq1: 'Pregnancy', hq2: 'Blood clot history', hq3: 'Hormone-sensitive cancer' };
     const unanswered = [];
-    for (let i = 1; i <= 7; i++) {
+    for (let i = 1; i <= 3; i++) {
       const name = 'hq' + i;
       const radios = document.querySelectorAll('input[name="' + name + '"]');
       const anyChecked = Array.from(radios).some(r => r.checked);
@@ -590,7 +554,7 @@ function initializeForm() {
   // ============================================
   function collectFormData() {
     const healthAnswers = {};
-    for (let i = 1; i <= 7; i++) {
+    for (let i = 1; i <= 3; i++) {
       const checked = document.querySelector('input[name="hq' + i + '"]:checked');
       healthAnswers['hq' + i] = checked ? checked.value : 'not answered';
       const details = document.querySelector('#hq' + i + '-details textarea');
@@ -611,7 +575,7 @@ function initializeForm() {
         text: cb.closest('label').querySelector('.ack-text').textContent,
         checked: cb.checked
       })),
-      signature: signaturePad.toDataURL('image/jpeg', 0.5),
+      signature: signaturePad.toDataURL('image/png'),
       submissionDate: new Date().toLocaleString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric',
         hour: '2-digit', minute: '2-digit', timeZone: 'America/Los_Angeles',
@@ -763,13 +727,9 @@ function initializeForm() {
     addSectionHeader('Health Screening Responses');
 
     var hqLabels = [
-      'Allergies to medications or hormones',
       'Currently pregnant or nursing',
-      'Currently taking prescription medications or supplements',
       'History of blood clot, stroke, or pulmonary embolism',
-      'History of liver disease',
-      'Hormone-sensitive cancer (breast, prostate, uterine)',
-      'History of heart disease or cardiovascular conditions'
+      'Hormone-sensitive cancer (breast, prostate, uterine)'
     ];
 
     var yesAnswers = [];
@@ -849,7 +809,7 @@ function initializeForm() {
     if (formData.signature && formData.signature.startsWith('data:')) {
       checkPageBreak(35);
       try {
-        doc.addImage(formData.signature, 'JPEG', leftMargin, yPos, 60, 25);
+        doc.addImage(formData.signature, 'PNG', leftMargin, yPos, 60, 25);
         yPos += 28;
       } catch (e) {
         console.error('Error adding signature:', e);
@@ -895,6 +855,7 @@ function initializeForm() {
       return await response.json();
     } catch (error) {
       console.error('Error saving to database:', error);
+      showStatus('Error saving consent record: ' + (error.message || 'Unknown error'), 'error');
       return { success: false, error: error.message };
     }
   }
@@ -951,7 +912,7 @@ function initializeForm() {
       showStatus('Uploading signature...', 'loading');
       let signatureUrl = null;
       if (formData.signature && formData.signature.startsWith('data:')) {
-        signatureUrl = await uploadBase64ToStorage(formData.signature, 'signatures', patientName, 'jpg');
+        signatureUrl = await uploadBase64ToStorage(formData.signature, 'signatures', patientName, 'png');
       }
       
       showStatus('Generating PDF...', 'loading');

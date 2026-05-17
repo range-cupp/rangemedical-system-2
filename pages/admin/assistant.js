@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, ShoppingCart, Calendar, User, X, Check, Plus, MessageSquare, Trash2, Search } from 'lucide-react';
+import { Send, ShoppingCart, Calendar, User, X, Check, Plus, MessageSquare, Trash2, Search, Mail } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
 
@@ -231,6 +231,10 @@ export default function AssistantPage() {
         return { error: data.error || 'Booking failed' };
       } catch { return { error: 'Failed to create booking' }; }
     }
+    if (name === 'draft_email') {
+      return { draft: true, to: args.to, to_name: args.to_name || '', subject: args.subject, body: args.body };
+    }
+
     if (name === 'lookup_patient_records') {
       try {
         const pid = args.patient_id || patient?.id;
@@ -243,6 +247,37 @@ export default function AssistantPage() {
     }
 
     return { error: `Unknown action: ${name}` };
+  }
+
+  async function sendDraftEmail(draft) {
+    try {
+      const res = await fetch('/api/ai/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: draft.to,
+          subject: draft.subject,
+          body: draft.body,
+          patient_id: patient?.id || null,
+          patient_name: patient?.name || draft.to_name || null,
+          sent_by_name: employee?.name || null,
+          sent_by_id: employee?.id || null,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessages(prev => prev.map(m => {
+          if (!m.toolResults) return m;
+          return { ...m, toolResults: m.toolResults.map(tr =>
+            tr.tool === 'draft_email' && tr.result.to === draft.to && tr.result.subject === draft.subject
+              ? { ...tr, result: { ...tr.result, sent: true } }
+              : tr
+          )};
+        }));
+        return true;
+      }
+      return false;
+    } catch { return false; }
   }
 
   async function sendMessage(text) {
@@ -346,6 +381,50 @@ export default function AssistantPage() {
     }
     if (tr.tool === 'book_appointment') {
       return (<div style={{ ...st.toolCard, borderColor: tr.result.success ? '#86efac' : '#fca5a5' }}><div style={st.toolCardHeader}>{tr.result.success ? <Check size={14} /> : <X size={14} />} {tr.result.success ? 'Booked' : 'Booking Failed'}</div><div style={st.toolCardBody}>{tr.result.message || tr.result.error}</div></div>);
+    }
+    if (tr.tool === 'draft_email' && tr.result.draft) {
+      const d = tr.result;
+      return (
+        <div style={{ ...st.toolCard, borderColor: d.sent ? '#86efac' : '#c7d2fe' }}>
+          <div style={st.toolCardHeader}>
+            <Mail size={14} /> {d.sent ? 'Email Sent' : 'Email Draft'}
+          </div>
+          <div style={{ padding: '10px 12px', fontSize: '13px' }}>
+            <div style={{ marginBottom: '6px' }}>
+              <span style={{ color: '#6b7280', fontSize: '12px' }}>To: </span>
+              <span style={{ fontWeight: 500 }}>{d.to_name ? `${d.to_name} <${d.to}>` : d.to}</span>
+            </div>
+            <div style={{ marginBottom: '8px' }}>
+              <span style={{ color: '#6b7280', fontSize: '12px' }}>Subject: </span>
+              <span style={{ fontWeight: 600 }}>{d.subject}</span>
+            </div>
+            <div style={{ padding: '10px 12px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', whiteSpace: 'pre-wrap', lineHeight: '1.5', fontSize: '13px', color: '#374151' }}>
+              {d.body}
+            </div>
+            {!d.sent && (
+              <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                <button
+                  onClick={() => sendDraftEmail(d)}
+                  style={{ padding: '7px 16px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Send size={13} /> Send Email
+                </button>
+                <button
+                  onClick={() => { setInput(`Edit email: change the subject to... and the body to...`); inputRef.current?.focus(); }}
+                  style={{ padding: '7px 16px', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}
+                >
+                  Edit
+                </button>
+              </div>
+            )}
+            {d.sent && (
+              <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px', color: '#16a34a', fontSize: '12px', fontWeight: 600 }}>
+                <Check size={14} /> Sent successfully
+              </div>
+            )}
+          </div>
+        </div>
+      );
     }
     if (tr.tool === 'lookup_patient_records' && tr.result.protocols) {
       const { protocols, appointments, recentVisits, prescriptions } = tr.result;

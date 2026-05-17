@@ -13,11 +13,12 @@ export default async function handler(req, res) {
         tool_choice: 'auto',
         audio: {
           input: {
-            format: 'pcm16',
+            format: { type: 'audio/pcm16' },
+            turn_detection: { type: 'server_vad' },
             transcription: { model: 'gpt-4o-mini-transcribe' },
           },
           output: {
-            format: 'pcm16',
+            format: { type: 'audio/pcm16' },
             voice: 'coral',
           },
         },

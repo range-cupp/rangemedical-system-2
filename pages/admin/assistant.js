@@ -16,6 +16,102 @@ function renderMarkdown(text) {
   });
 }
 
+function ScheduleCard({ data, onSelectPatient, onLookupRecords, styles }) {
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [expandedId, setExpandedId] = useState(null);
+
+  const appts = data.appointments || [];
+  const s = data.summary;
+  const statusStyle = { scheduled: { bg: '#dbeafe', text: '#1e40af', label: 'Scheduled' }, confirmed: { bg: '#dcfce7', text: '#166534', label: 'Confirmed' }, completed: { bg: '#f3f4f6', text: '#6b7280', label: 'Completed' }, 'no-show': { bg: '#fee2e2', text: '#dc2626', label: 'No Show' }, checked_in: { bg: '#fef3c7', text: '#92400e', label: 'Checked In' } };
+
+  const categories = ['all', ...new Set(appts.map(a => a.category || a.service).filter(Boolean))];
+  const filtered = categoryFilter === 'all' ? appts : appts.filter(a => (a.category || a.service) === categoryFilter);
+
+  return (
+    <div style={styles.toolCard}>
+      <div style={styles.toolCardHeader}>
+        <Calendar size={14} /> Schedule — {new Date(data.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+        <span style={{ marginLeft: 'auto', fontWeight: 400, color: '#6b7280' }}>
+          {s.total} appointment{s.total !== 1 ? 's' : ''}
+        </span>
+      </div>
+      {categories.length > 2 && (
+        <div style={{ display: 'flex', gap: '4px', padding: '8px 12px', overflowX: 'auto', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setCategoryFilter(cat)}
+              style={{ padding: '3px 10px', border: '1px solid', borderColor: categoryFilter === cat ? '#4338ca' : '#d1d5db', borderRadius: '12px', fontSize: '11px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap', background: categoryFilter === cat ? '#4338ca' : '#fff', color: categoryFilter === cat ? '#fff' : '#374151' }}
+            >
+              {cat === 'all' ? `All (${appts.length})` : `${cat} (${appts.filter(a => (a.category || a.service) === cat).length})`}
+            </button>
+          ))}
+        </div>
+      )}
+      {filtered.length === 0 ? (
+        <div style={{ padding: '16px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>No appointments{categoryFilter !== 'all' ? ' in this category' : ' scheduled'}</div>
+      ) : (
+        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+          {filtered.map((a, i) => {
+            const ss = statusStyle[a.checked_in ? 'checked_in' : a.status] || statusStyle.scheduled;
+            const expanded = expandedId === i;
+            return (
+              <div key={i}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderBottom: expanded ? 'none' : '1px solid #f3f4f6', cursor: 'pointer', transition: 'background 0.1s' }}
+                  onClick={() => setExpandedId(expanded ? null : i)}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f9fafb'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <div style={{ width: '58px', fontSize: '13px', fontWeight: 600, color: '#4338ca', flexShrink: 0 }}>{a.time}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>{a.patient_name}</span>
+                      <span style={{ ...styles.badge, background: ss.bg, color: ss.text }}>{ss.label}</span>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '1px' }}>{a.service}</div>
+                  </div>
+                  <div style={{ flexShrink: 0, display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    <button
+                      style={{ padding: '4px 8px', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '11px', color: '#4338ca', cursor: 'pointer', fontWeight: 500 }}
+                      onClick={(e) => { e.stopPropagation(); onLookupRecords(a); }}
+                    >Records</button>
+                    <span style={{ fontSize: '12px', color: '#9ca3af', transition: 'transform 0.15s', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                  </div>
+                </div>
+                {expanded && (
+                  <div style={{ padding: '6px 12px 10px 80px', borderBottom: '1px solid #f3f4f6', background: '#fafafa', fontSize: '12px', color: '#6b7280' }}>
+                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                      {a.provider && <span>Provider: <strong style={{ color: '#111827' }}>{a.provider}</strong></span>}
+                      {a.duration && <span>Duration: <strong style={{ color: '#111827' }}>{a.duration}min</strong></span>}
+                      {a.category && <span>Category: <strong style={{ color: '#111827' }}>{a.category}</strong></span>}
+                      {a.visit_reason && <span>Reason: <strong style={{ color: '#111827' }}>{a.visit_reason}</strong></span>}
+                    </div>
+                    {a.notes && <div style={{ marginTop: '4px', fontStyle: 'italic' }}>{a.notes}</div>}
+                    <div style={{ marginTop: '6px', display: 'flex', gap: '6px' }}>
+                      <button
+                        style={{ padding: '3px 8px', background: '#fff', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '11px', cursor: 'pointer', color: '#374151' }}
+                        onClick={() => onSelectPatient(a)}
+                      >Select Patient</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {s.total > 0 && (
+        <div style={{ display: 'flex', gap: '12px', padding: '8px 12px', background: '#f9fafb', borderTop: '1px solid #e5e7eb', fontSize: '11px', color: '#6b7280' }}>
+          {s.confirmed > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} /> {s.confirmed} confirmed</span>}
+          {s.scheduled > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2563eb', display: 'inline-block' }} /> {s.scheduled} scheduled</span>}
+          {s.completed > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#9ca3af', display: 'inline-block' }} /> {s.completed} completed</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const PROGRAM_COLORS = {
   hrt: { bg: '#f3e8ff', text: '#7c3aed', label: 'HRT' },
   weight_loss: { bg: '#dbeafe', text: '#1e40af', label: 'Weight Loss' },
@@ -437,7 +533,7 @@ export default function AssistantPage() {
           if (tr.tool === 'book_appointment') return tr.result.success ? tr.result.message : tr.result.error;
           if (tr.tool === 'add_note') return tr.result.success ? `Note added to ${tr.result.patient_name}'s chart` : tr.result.error;
           if (tr.tool === 'create_task') return tr.result.success ? `Task "${tr.result.task.title}" created, assigned to ${tr.result.assigned_to_name}` : tr.result.error;
-          if (tr.tool === 'today_schedule' && tr.result.appointments) return `${tr.result.summary.total} appointments on ${tr.result.date}: ${tr.result.appointments.map(a => `${a.time} ${a.patient_name} (${a.service})`).join(', ')}`;
+          if (tr.tool === 'today_schedule' && tr.result.appointments) return `${tr.result.summary.total} appointments on ${tr.result.date} (${tr.result.summary.confirmed} confirmed, ${tr.result.summary.scheduled} scheduled). The schedule card is shown to the user — do NOT list out all the appointments in text. Just give a brief summary like "33 appointments today, busy morning with trials and labs."}`;
           if (tr.tool === 'lookup_comms_history' && tr.result.comms) return `${tr.result.summary.total} recent communications (${tr.result.summary.inbound} inbound, ${tr.result.summary.outbound} outbound)`;
           if (tr.tool === 'cancel_appointment' && tr.result.success) return `Cancelled ${tr.result.patient_name}'s ${tr.result.service} at ${tr.result.time}`;
           if (tr.tool === 'lookup_lab_results' && tr.result.labs) return `${tr.result.summary.total} lab records (${tr.result.summary.completed} completed, ${tr.result.summary.pending} pending). Next lab: ${tr.result.summary.next_lab || 'not scheduled'}`;
@@ -562,62 +658,13 @@ export default function AssistantPage() {
       );
     }
     if (tr.tool === 'today_schedule' && tr.result.appointments) {
-      const appts = tr.result.appointments;
-      const s = tr.result.summary;
-      const statusIcon = { scheduled: '🔵', confirmed: '🟢', completed: '✅', 'no-show': '🔴' };
       return (
-        <div style={st.toolCard}>
-          <div style={st.toolCardHeader}>
-            <Calendar size={14} /> Schedule — {new Date(tr.result.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            <span style={{ marginLeft: 'auto', fontWeight: 400, color: '#6b7280' }}>
-              {s.total} appointment{s.total !== 1 ? 's' : ''}
-            </span>
-          </div>
-          {appts.length === 0 ? (
-            <div style={{ padding: '16px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>No appointments scheduled</div>
-          ) : (
-            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {appts.map((a, i) => (
-                <div
-                  key={i}
-                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', transition: 'background 0.1s' }}
-                  onClick={() => { if (a.patient_id) setPatient({ id: a.patient_id, name: a.patient_name, phone: a.patient_phone }); }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#f9fafb'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                >
-                  <div style={{ width: '60px', fontSize: '13px', fontWeight: 600, color: '#4338ca', flexShrink: 0 }}>{a.time}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>{a.patient_name}</span>
-                      <span style={{ fontSize: '11px' }}>{statusIcon[a.status] || ''}</span>
-                      {a.checked_in && <span style={{ ...st.badge, background: '#dcfce7', color: '#166534' }}>Checked In</span>}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '1px' }}>
-                      {a.service}
-                      {a.provider && <span> · {a.provider}</span>}
-                      {a.duration && <span> · {a.duration}min</span>}
-                    </div>
-                  </div>
-                  <div style={{ flexShrink: 0, display: 'flex', gap: '4px' }}>
-                    <button
-                      style={{ padding: '4px 8px', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '11px', color: '#4338ca', cursor: 'pointer', fontWeight: 500 }}
-                      onClick={(e) => { e.stopPropagation(); if (a.patient_id) { setPatient({ id: a.patient_id, name: a.patient_name, phone: a.patient_phone }); setInput(`Look up ${a.patient_name}'s records`); inputRef.current?.focus(); } }}
-                    >
-                      Records
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {s.total > 0 && (
-            <div style={{ display: 'flex', gap: '12px', padding: '8px 12px', background: '#f9fafb', borderTop: '1px solid #e5e7eb', fontSize: '11px', color: '#6b7280' }}>
-              {s.confirmed > 0 && <span>🟢 {s.confirmed} confirmed</span>}
-              {s.scheduled > 0 && <span>🔵 {s.scheduled} scheduled</span>}
-              {s.completed > 0 && <span>✅ {s.completed} completed</span>}
-            </div>
-          )}
-        </div>
+        <ScheduleCard
+          data={tr.result}
+          styles={st}
+          onSelectPatient={(a) => { if (a.patient_id) setPatient({ id: a.patient_id, name: a.patient_name, phone: a.patient_phone }); }}
+          onLookupRecords={(a) => { if (a.patient_id) { setPatient({ id: a.patient_id, name: a.patient_name, phone: a.patient_phone }); setInput(`Look up ${a.patient_name}'s records`); inputRef.current?.focus(); } }}
+        />
       );
     }
     if (tr.tool === 'add_note' && tr.result.success) {

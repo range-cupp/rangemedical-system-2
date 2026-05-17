@@ -20,6 +20,8 @@ import {
   handleRescheduleAppointment,
   handleSendDocument,
   handleSearchKnowledge,
+  handleLookupIntakeData,
+  handleLookupConsentStatus,
   DOCUMENT_CATALOG,
 } from '../../../lib/staff-bot';
 
@@ -256,6 +258,28 @@ Bundle types and what they include:
     },
   },
   {
+    name: 'lookup_intake_data',
+    description: 'Look up a patient\'s medical intake form data — allergies, current medications, medical conditions (heart disease, diabetes, thyroid, etc.), HRT status, PCP info, symptoms, and notes. Use when someone asks "does this patient have allergies?", "what medications are they on?", "any medical conditions?", "do they have a PCP?", "what did they put on their intake?".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_id: { type: 'string', description: 'Patient UUID' },
+      },
+      required: ['patient_id'],
+    },
+  },
+  {
+    name: 'lookup_consent_status',
+    description: 'Check which consent forms a patient has signed and which are missing for a given service. Also returns health screening answers from each consent. Use when someone asks "have they signed their forms?", "are their consents complete?", "did they flag anything on the HBOT consent?".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_id: { type: 'string', description: 'Patient UUID' },
+      },
+      required: ['patient_id'],
+    },
+  },
+  {
     name: 'send_document',
     description: `Send a link to a Range Medical service page to a patient via SMS or email. These are branded web pages on app.range-medical.com — not PDFs. Use this when staff says things like "send John the HBOT info", "text Sarah about hyperbaric oxygen", "email the tirzepatide page to Mike", "send the red light info to [patient]", or "send [patient] info about [service]". The document parameter should be the natural-language description of what to send (e.g. "hyperbaric oxygen", "tirzepatide", "methylene blue combo", "red light therapy", "NAD", "weight loss"). Available pages: ${DOCUMENT_CATALOG.map(d => d.name).join(', ')}.`,
     input_schema: {
@@ -292,6 +316,8 @@ async function executeTool(toolName, toolInput, staff) {
     case 'reschedule_appointment':    return await handleRescheduleAppointment(toolInput);
     case 'send_document':             return await handleSendDocument(toolInput);
     case 'search_knowledge':          return await handleSearchKnowledge(toolInput);
+    case 'lookup_intake_data':        return await handleLookupIntakeData(toolInput);
+    case 'lookup_consent_status':     return await handleLookupConsentStatus(toolInput);
     default:                          return `Unknown tool: ${toolName}`;
   }
 }

@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { getVoiceContext } from '../lib/voice-contexts';
 
-export default function VoiceAssistant({ services, patientName, onCartAction }) {
+export default function VoiceAssistant({ context = 'general', data = {}, onAction }) {
   const [active, setActive] = useState(false);
   const [status, setStatus] = useState('idle');
   const [errorDetail, setErrorDetail] = useState('');
@@ -18,99 +19,16 @@ export default function VoiceAssistant({ services, patientName, onCartAction }) 
     return () => disconnect();
   }, []);
 
-  function buildSystemPrompt() {
-    const catalog = (services || []).map(s => {
-      const price = s.price_cents || s.price || 0;
-      const priceStr = price ? `$${(price / 100).toFixed(0)}` : 'varies';
-      return `- "${s.name}" (id:${s.id}) | ${priceStr}${s.sub_category ? ` | ${s.sub_category}` : ''}`;
-    }).join('\n');
-
-    return `You are a checkout assistant at Range Medical clinic. You help staff ring up patients through voice conversation. Be conversational, brief, and sound like a helpful coworker.
-
-PATIENT: ${patientName || 'Unknown'}
-
-CATALOG:
-${catalog}
-
-PRODUCT DECISION TREES — ask these questions one at a time:
-
-WEIGHT LOSS:
-1. Which medication? Tirzepatide, Retatrutide, or Semaglutide
-2. What dose? Tirzepatide: 1.25mg ($50), 2.5mg ($100), 5mg ($137), 7.5mg ($150), 10mg ($162), 12.5mg ($175). Retatrutide: 1mg ($62.50) up to 12mg ($215)
-3. How many injections? Usually 4 (monthly block)
-4. Take-home or in-clinic?
-
-IV THERAPY:
-- Range IV signature drips (all $225): Signature, Immune Defense, Energy & Vitality, Muscle Recovery, Detox & Cellular Repair
-- Specialty: NAD+ (250mg $375, 500mg $525, 750mg $650, 1000mg $775), Vitamin C (25g $215, 50g $255, 75g $330), Glutathione (1g $170, 2g $190, 3g $215)
-
-PEPTIDES:
-1. Which program? BPC-157, Recovery 4-Blend, KLOW, GLOW, GH Blends, BDNF, MOTS-C, etc.
-2. Duration? 10 Day ($250), 20 Day ($450), 30 Day ($675)
-3. Phase? (if applicable)
-4. Take-home or in-clinic?
-
-INJECTIONS:
-- Standard ($35): B12, B-Complex, Vitamin D3, Biotin, Amino Blend, BCAA, NAC
-- Premium ($50): L-Carnitine, Glutathione, MIC-B12/Skinny Shot
-- NAD+ ($0.50/mg): 50mg $25, 100mg $50, 150mg $75
-- Buy 10 Get 12 at 10+ units
-
-HRT:
-1. Primary medication? Testosterone Cypionate, Enanthate, HCG, Nandrolone
-2. Route? Intramuscular (every 3.5 days/weekly) or Subcutaneous (daily)
-3. Dose? Males: 20-200mg, Females: 5-100mg
-4. Supply type? Pre-filled syringes, Vial 5ml, Vial 10ml
-5. Secondary meds? HCG, Gonadorelin, Anastrozole
-
-HBOT: Single $185, 5-Pack $850, 10-Pack $1600
-RED LIGHT: Single $85, 5-Pack $375, 10-Pack $600
-
-RULES:
-- Ask one question at a time. Don't dump all options at once.
-- Common abbreviations: "tirz" = Tirzepatide, "sema" = Semaglutide, "reta" = Retatrutide, "test cyp" = Testosterone Cypionate, "BPC" = BPC-157, "NAD" = NAD+, "HBOT" = Hyperbaric
-- Once you have all details, confirm the item, price, and quantity.
-- When staff confirms, call the add_to_cart function.
-- Keep responses SHORT — 1-2 sentences max. This is voice, not text.
-- If the staff says multiple items at once, handle them one at a time.`;
-  }
-
-  function buildTools() {
-    return [{
-      type: 'function',
-      name: 'add_to_cart',
-      description: 'Add confirmed items to the checkout cart. Only call after staff verbally confirms.',
-      parameters: {
-        type: 'object',
-        properties: {
-          items: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                name: { type: 'string', description: 'Display name of the item' },
-                catalog_id: { type: 'string', description: 'Exact ID from the catalog' },
-                quantity: { type: 'number', description: 'Number of units' },
-                price_cents: { type: 'number', description: 'Price per unit in cents' },
-              },
-              required: ['name', 'quantity'],
-            },
-          },
-        },
-        required: ['items'],
-      },
-    }];
-  }
-
   async function connect() {
     setStatus('connecting');
     try {
+      const voiceCtx = getVoiceContext(context, data);
       const sessionRes = await fetch('/api/ai/realtime-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          instructions: buildSystemPrompt(),
-          tools: buildTools(),
+          instructions: voiceCtx.instructions,
+          tools: voiceCtx.tools,
         }),
       });
       const sessionData = await sessionRes.json();
@@ -292,47 +210,28 @@ RULES:
   }
 
   function handleFunctionCallFromOutput(item) {
-    if (item.name === 'add_to_cart') {
-      try {
-        const args = JSON.parse(item.arguments);
-        const resolved = (args.items || []).map(cartItem => {
-          const svc = (services || []).find(s =>
-            String(s.id) === String(cartItem.catalog_id) ||
-            s.name.toLowerCase().includes((cartItem.name || '').toLowerCase())
-          );
-          if (svc) {
-            return {
-              id: svc.id,
-              name: svc.name,
-              category: svc.category,
-              price: svc.price_cents || svc.price || cartItem.price_cents || 0,
-              quantity: cartItem.quantity || 1,
-              recurring: svc.recurring || false,
-              source: 'pos_service',
-            };
-          }
-          return null;
-        }).filter(Boolean);
+    try {
+      const args = JSON.parse(item.arguments);
+      console.log('[Voice] Function call:', item.name, args);
 
-        if (resolved.length > 0 && onCartAction) {
-          onCartAction(resolved);
-        }
-
-        // Send function result back
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          wsRef.current.send(JSON.stringify({
-            type: 'conversation.item.create',
-            item: {
-              type: 'function_call_output',
-              call_id: item.call_id,
-              output: JSON.stringify({ success: true, added: resolved.length }),
-            },
-          }));
-          wsRef.current.send(JSON.stringify({ type: 'response.create' }));
-        }
-      } catch (err) {
-        console.error('Function call parse error:', err);
+      if (onAction) {
+        onAction(item.name, args);
       }
+
+      // Send function result back
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'conversation.item.create',
+          item: {
+            type: 'function_call_output',
+            call_id: item.call_id,
+            output: JSON.stringify({ success: true }),
+          },
+        }));
+        wsRef.current.send(JSON.stringify({ type: 'response.create' }));
+      }
+    } catch (err) {
+      console.error('Function call parse error:', err);
     }
   }
 

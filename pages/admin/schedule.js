@@ -13,6 +13,7 @@ import EncounterModal from '../../components/EncounterModal';
 import { useAuth } from '../../components/AuthProvider';
 import { formatPhone } from '../../lib/format-utils';
 import { getRenewalStatus } from '../../lib/protocol-tracking';
+import VoiceAssistant from '../../components/VoiceAssistant';
 
 // Dynamic import CalendarView (it uses browser APIs)
 const CalendarView = dynamic(() => import('../../components/CalendarView'), { ssr: false });
@@ -544,6 +545,11 @@ export default function SchedulePage() {
 
   return (
     <AdminLayout title="Schedule">
+      <VoiceAssistant
+        context="schedule"
+        data={{ patientName: '' }}
+        onAction={(action, args) => { console.log('Voice action:', action, args); }}
+      />
       {/* Tab bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
         <div style={{ display: 'flex', gap: '8px' }}>

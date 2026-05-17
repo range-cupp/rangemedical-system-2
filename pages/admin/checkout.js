@@ -3221,9 +3221,11 @@ function CheckoutInner() {
 
               {/* Voice Checkout Assistant */}
               <VoiceAssistant
-                services={services}
-                patientName={patient?.name}
-                onCartAction={handleAiCartAction}
+                context="checkout"
+                data={{ services, patientName: patient?.name }}
+                onAction={(action, args) => {
+                  if (action === 'add_to_cart') handleAiCartAction(args.items || []);
+                }}
               />
 
               {/* AI Chat Assistant */}

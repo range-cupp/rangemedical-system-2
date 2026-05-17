@@ -39,12 +39,12 @@ const tools = [
   },
   {
     name: 'check_slots',
-    description: 'Check available appointment slots for a service on a given date.',
+    description: 'Check available appointment slots for a service on a given date. Resolve relative dates ("tomorrow", "Monday", "next week") to YYYY-MM-DD yourself using today\'s date.',
     input_schema: {
       type: 'object',
       properties: {
         service: { type: 'string', description: 'Name of the service to book' },
-        date: { type: 'string', description: 'Date to check in YYYY-MM-DD format' },
+        date: { type: 'string', description: 'Resolved date as YYYY-MM-DD. Calculate from relative terms yourself.' },
       },
       required: ['service', 'date'],
     },
@@ -57,7 +57,7 @@ const tools = [
       properties: {
         service: { type: 'string', description: 'Service name' },
         service_slug: { type: 'string', description: 'Service slug for the booking system' },
-        date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
+        date: { type: 'string', description: 'Resolved date as YYYY-MM-DD' },
         time: { type: 'string', description: 'Time in HH:MM format' },
         start_iso: { type: 'string', description: 'Full ISO datetime for the appointment start' },
         duration_minutes: { type: 'number', description: 'Appointment duration in minutes' },
@@ -116,7 +116,7 @@ const tools = [
         assigned_to_name: { type: 'string', description: 'Name of the staff member to assign to' },
         patient_name: { type: 'string', description: 'Patient name if task relates to a specific patient' },
         priority: { type: 'string', enum: ['high', 'medium', 'low'], description: 'Task priority. Default: medium' },
-        due_date: { type: 'string', description: 'Due date in YYYY-MM-DD format, if mentioned' },
+        due_date: { type: 'string', description: 'Resolved due date as YYYY-MM-DD. Calculate from "Friday", "next week", "end of month", etc.' },
         task_category: { type: 'string', enum: ['medical', 'clinical', 'business'], description: 'medical/clinical for patient care tasks, business for admin. Default: business' },
       },
       required: ['title', 'assigned_to_name'],
@@ -124,11 +124,11 @@ const tools = [
   },
   {
     name: 'today_schedule',
-    description: 'Get today\'s appointment schedule (or a specific date). Use when staff asks "what\'s on the schedule today?", "who\'s coming in?", "any appointments today?", or asks about a specific date\'s schedule.',
+    description: 'Get today\'s appointment schedule (or a specific date). Use when staff asks "what\'s on the schedule today?", "who\'s coming in?", "any appointments today?", or asks about a specific date\'s schedule. You know today\'s date — resolve "Monday", "tomorrow", "next week" yourself. Never ask the user for a date.',
     input_schema: {
       type: 'object',
       properties: {
-        date: { type: 'string', description: 'Date in YYYY-MM-DD format. Omit for today.' },
+        date: { type: 'string', description: 'The resolved date as YYYY-MM-DD. Calculate from relative terms like "Monday", "tomorrow", "next Friday" using today\'s date. Omit for today.' },
       },
       required: [],
     },
@@ -147,11 +147,17 @@ export default async function handler(req, res) {
     const catalog = buildCatalogContext(posServices || []);
     const contextBlock = buildContextBlock(context, patientName, patientId);
 
+    const now = new Date();
+    const today = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'America/Los_Angeles' });
+
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
       tools,
       system: `You are a clinic assistant at Range Medical. You talk like a coworker — brief, natural, helpful. Think of how you'd respond if someone leaned over and asked you something.
+
+TODAY: ${dayOfWeek}, ${today}
 
 You can help with:
 - CHECKOUT: Add items to the cart (services, injections, IVs, peptides, packs)
@@ -163,6 +169,8 @@ You can help with:
 - SCHEDULE: Check today's appointments, see who's coming in, view any date's schedule
 - GENERAL: Answer questions about services, pricing, protocols
 
+DATE HANDLING: You know today's date. When someone says "today", "tomorrow", "Monday", "next week", "this Friday", etc., calculate the correct YYYY-MM-DD date yourself. Never ask the user for a date format — just figure it out. "Monday" means the upcoming Monday. "Last Tuesday" means the most recent past Tuesday.
+
 When staff asks about a patient's meds, next pickup, treatment plan, visit history, or anything clinical — use the lookup_patient_records tool. If a patient is already selected in context, use their patient_id directly. If not, search for them first.
 When staff asks to email a patient, use draft_email. Look up the patient's email first if needed. Write the email body in a warm, professional tone from the clinic. The draft will be previewed before sending — staff must approve it.
 When staff asks to add a note about a patient — use add_note. Write the note clearly and professionally, capturing what the staff said. Use the patient_id from context.
@@ -171,7 +179,7 @@ When staff asks about today's schedule, who's coming in, or appointments for any
 When staff mentions a product, walk through the decision tree one question at a time. Once confirmed, use the add_to_cart tool.
 When staff wants to book, search the patient, check slots, confirm, and book.
 
-Keep responses to 1-3 sentences. You're voice-first — be concise.
+Keep responses to 1-3 sentences. You're voice-first — be concise. Act like a real person, not a bot. Never ask for technical formats — handle that yourself.
 
 ${contextBlock}
 

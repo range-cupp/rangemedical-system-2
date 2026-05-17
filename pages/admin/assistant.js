@@ -5,6 +5,17 @@ import { useAuth } from '../../components/AuthProvider';
 
 const WELCOME_MSG = { role: 'assistant', content: 'Hey! What can I help with? I can check out patients, book appointments, look up patient info, or answer questions about services and pricing.' };
 
+function renderMarkdown(text) {
+  if (!text) return text;
+  const cleaned = text.replace(/^#{1,6}\s+/gm, '');
+  const parts = cleaned.split(/(\*\*[^*]+?\*\*)/g);
+  return parts.map((part, i) => {
+    const boldMatch = part.match(/^\*\*(.+?)\*\*$/);
+    if (boldMatch) return <strong key={i}>{boldMatch[1]}</strong>;
+    return part;
+  });
+}
+
 const PROGRAM_COLORS = {
   hrt: { bg: '#f3e8ff', text: '#7c3aed', label: 'HRT' },
   weight_loss: { bg: '#dbeafe', text: '#1e40af', label: 'Weight Loss' },
@@ -413,7 +424,7 @@ export default function AssistantPage() {
             {messages.map((msg, i) => (
               <div key={i} style={msg.role === 'user' ? st.userMsgRow : st.aiMsgRow}>
                 <div style={msg.role === 'user' ? st.userBubble : st.aiBubble}>
-                  {msg.content}
+                  {msg.role === 'user' ? msg.content : renderMarkdown(msg.content)}
                   {msg.toolResults && msg.toolResults.map((tr, j) => (
                     <div key={j} style={{ marginTop: '8px' }}>{renderToolCard(tr)}</div>
                   ))}

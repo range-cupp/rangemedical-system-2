@@ -659,6 +659,36 @@ export default function AssistantPage() {
     } catch { return false; }
   }
 
+  function formatToolResult(tr) {
+    if (tr.tool === 'add_to_cart') return `Added to cart: ${tr.result.added || 'items added'}`;
+    if (tr.tool === 'search_patient' && tr.result.found) return `Found: ${tr.result.patients.map(p => p.name).join(', ')}`;
+    if (tr.tool === 'search_patient') return tr.result.message || 'No patients found';
+    if (tr.tool === 'check_slots') return tr.result.slots ? `${tr.result.slot_count} slots available for ${tr.result.service_name}` : tr.result.error;
+    if (tr.tool === 'book_appointment') return tr.result.success ? tr.result.message : tr.result.error;
+    if (tr.tool === 'add_note') return tr.result.success ? `Note added to ${tr.result.patient_name}'s chart` : tr.result.error;
+    if (tr.tool === 'create_task') return tr.result.success ? `Task "${tr.result.task.title}" created, assigned to ${tr.result.assigned_to_name}` : tr.result.error;
+    if (tr.tool === 'today_schedule' && tr.result.appointments) return `${tr.result.summary.total} appointments on ${tr.result.date} (${tr.result.summary.confirmed} confirmed, ${tr.result.summary.scheduled} scheduled). The schedule card is shown to the user — do NOT list out all the appointments in text. Just give a brief summary like "33 appointments today, busy morning with trials and labs."}`;
+    if (tr.tool === 'lookup_comms_history' && tr.result.comms) return `${tr.result.summary.total} recent communications (${tr.result.summary.inbound} inbound, ${tr.result.summary.outbound} outbound)`;
+    if (tr.tool === 'cancel_appointment' && tr.result.success) return `Cancelled ${tr.result.patient_name}'s ${tr.result.service} at ${tr.result.time}`;
+    if (tr.tool === 'lookup_lab_results' && tr.result.labs) return `${tr.result.summary.total} lab records (${tr.result.summary.completed} completed, ${tr.result.summary.pending} pending). Next lab: ${tr.result.summary.next_lab || 'not scheduled'}`;
+    if (tr.tool === 'lookup_membership' && tr.result.memberships) return `${tr.result.summary.active_count} active membership(s): ${tr.result.summary.active_names}`;
+    if (tr.tool === 'lookup_consent_forms' && tr.result.forms) return `${tr.result.summary.total_signed} consent forms signed. Intake: ${tr.result.summary.has_intake ? 'yes' : 'NO'}, HIPAA: ${tr.result.summary.has_hipaa ? 'yes' : 'NO'}. Health screening data included for forms that have it.`;
+    if (tr.tool === 'lookup_intake_data' && tr.result.has_intake) return `Intake form found (submitted ${tr.result.submitted_at}). Allergies: ${tr.result.allergies.has_allergies}${tr.result.allergies.list ? ' — ' + tr.result.allergies.list : ''}. Medications: ${tr.result.medications.on_medications}${tr.result.medications.current_list ? ' — ' + tr.result.medications.current_list : ''}. HRT: ${tr.result.medications.on_hrt}.`;
+    if (tr.tool === 'lookup_intake_data' && !tr.result.has_intake) return 'No intake form found for this patient.';
+    if (tr.tool === 'lookup_payments' && tr.result.summary) return `Credit balance: ${tr.result.summary.credit_balance}. Total spent: ${tr.result.summary.total_spent}. ${tr.result.summary.pending_invoices} pending invoice(s). Last payment: ${tr.result.summary.last_payment || 'none'}`;
+    if (tr.tool === 'program_due_list' && tr.result.patients) return `${tr.result.summary.due_count} ${tr.result.program.replace(/_/g, ' ')} patients due (${tr.result.summary.overdue} overdue, ${tr.result.summary.due_now} due now, ${tr.result.summary.due_soon} due soon) out of ${tr.result.summary.total_active} active. The list card is shown — do NOT list all patients in text. Just summarize the numbers.`;
+    if (tr.tool === 'send_consent_forms' && tr.result.all_complete) return `${tr.result.patient_name} has all forms complete for ${tr.result.service} — nothing to send.`;
+    if (tr.tool === 'send_consent_forms' && tr.result.preview) return `Ready to send ${tr.result.forms_to_send.length} form(s) to ${tr.result.patient_name} at ${tr.result.patient_email}: ${tr.result.forms_to_send.map(f => f.name).join(', ')}. The send card is shown — staff will click Send to confirm.`;
+    if (tr.tool === 'send_consent_forms' && tr.result.error) return tr.result.error;
+    if (tr.tool === 'request_protocol_change' && tr.result.preview) return `Protocol change request ready for ${tr.result.patient_name}: "${tr.result.change_description}". The request card is shown — staff will select a provider and click Send Request.`;
+    if (tr.tool === 'request_protocol_change' && tr.result.error) return tr.result.error;
+    if (tr.tool === 'batch_send_forms' && tr.result.preview) return `${tr.result.summary.needing_forms} patient(s) on ${tr.result.date} (${tr.result.service_category}) need forms sent. ${tr.result.summary.already_complete} already complete, ${tr.result.summary.no_email} missing email. The batch send card is shown — staff will click Send All to confirm. Do NOT list individual patients in text.`;
+    if (tr.tool === 'batch_send_forms' && tr.result.all_complete) return `All ${tr.result.total_appointments} patients on ${tr.result.date} (${tr.result.service_category}) have their forms complete — nothing to send.`;
+    if (tr.tool === 'batch_send_forms' && tr.result.no_appointments) return `No ${tr.result.service_category !== 'all' ? tr.result.service_category.toUpperCase() + ' ' : ''}appointments found on ${tr.result.date}.`;
+    if (tr.tool === 'batch_send_forms' && tr.result.error) return tr.result.error;
+    return JSON.stringify(tr.result);
+  }
+
   async function sendMessage(text) {
     if (!text.trim() || loading) return;
     const userMsg = { role: 'user', content: text.trim(), ts: Date.now() };
@@ -677,62 +707,56 @@ export default function AssistantPage() {
       const data = await res.json();
 
       if (data.toolCalls && data.toolCalls.length > 0) {
-        const toolResults = [];
+        const allToolResults = [];
         for (const tc of data.toolCalls) {
           const result = await handleToolCall(tc);
-          toolResults.push({ tool: tc.name, input: tc.input, result });
+          allToolResults.push({ tool: tc.name, input: tc.input, result });
         }
-        const toolResultText = toolResults.map(tr => {
-          if (tr.tool === 'add_to_cart') return `Added to cart: ${tr.result.added || 'items added'}`;
-          if (tr.tool === 'search_patient' && tr.result.found) return `Found: ${tr.result.patients.map(p => p.name).join(', ')}`;
-          if (tr.tool === 'search_patient') return tr.result.message || 'No patients found';
-          if (tr.tool === 'check_slots') return tr.result.slots ? `${tr.result.slot_count} slots available for ${tr.result.service_name}` : tr.result.error;
-          if (tr.tool === 'book_appointment') return tr.result.success ? tr.result.message : tr.result.error;
-          if (tr.tool === 'add_note') return tr.result.success ? `Note added to ${tr.result.patient_name}'s chart` : tr.result.error;
-          if (tr.tool === 'create_task') return tr.result.success ? `Task "${tr.result.task.title}" created, assigned to ${tr.result.assigned_to_name}` : tr.result.error;
-          if (tr.tool === 'today_schedule' && tr.result.appointments) return `${tr.result.summary.total} appointments on ${tr.result.date} (${tr.result.summary.confirmed} confirmed, ${tr.result.summary.scheduled} scheduled). The schedule card is shown to the user — do NOT list out all the appointments in text. Just give a brief summary like "33 appointments today, busy morning with trials and labs."}`;
-          if (tr.tool === 'lookup_comms_history' && tr.result.comms) return `${tr.result.summary.total} recent communications (${tr.result.summary.inbound} inbound, ${tr.result.summary.outbound} outbound)`;
-          if (tr.tool === 'cancel_appointment' && tr.result.success) return `Cancelled ${tr.result.patient_name}'s ${tr.result.service} at ${tr.result.time}`;
-          if (tr.tool === 'lookup_lab_results' && tr.result.labs) return `${tr.result.summary.total} lab records (${tr.result.summary.completed} completed, ${tr.result.summary.pending} pending). Next lab: ${tr.result.summary.next_lab || 'not scheduled'}`;
-          if (tr.tool === 'lookup_membership' && tr.result.memberships) return `${tr.result.summary.active_count} active membership(s): ${tr.result.summary.active_names}`;
-          if (tr.tool === 'lookup_consent_forms' && tr.result.forms) return `${tr.result.summary.total_signed} consent forms signed. Intake: ${tr.result.summary.has_intake ? 'yes' : 'NO'}, HIPAA: ${tr.result.summary.has_hipaa ? 'yes' : 'NO'}. Health screening data included for forms that have it.`;
-          if (tr.tool === 'lookup_intake_data' && tr.result.has_intake) return `Intake form found (submitted ${tr.result.submitted_at}). Allergies: ${tr.result.allergies.has_allergies}${tr.result.allergies.list ? ' — ' + tr.result.allergies.list : ''}. Medications: ${tr.result.medications.on_medications}${tr.result.medications.current_list ? ' — ' + tr.result.medications.current_list : ''}. HRT: ${tr.result.medications.on_hrt}.`;
-          if (tr.tool === 'lookup_intake_data' && !tr.result.has_intake) return 'No intake form found for this patient.';
-          if (tr.tool === 'lookup_payments' && tr.result.summary) return `Credit balance: ${tr.result.summary.credit_balance}. Total spent: ${tr.result.summary.total_spent}. ${tr.result.summary.pending_invoices} pending invoice(s). Last payment: ${tr.result.summary.last_payment || 'none'}`;
-          if (tr.tool === 'program_due_list' && tr.result.patients) return `${tr.result.summary.due_count} ${tr.result.program.replace(/_/g, ' ')} patients due (${tr.result.summary.overdue} overdue, ${tr.result.summary.due_now} due now, ${tr.result.summary.due_soon} due soon) out of ${tr.result.summary.total_active} active. The list card is shown — do NOT list all patients in text. Just summarize the numbers.`;
-          if (tr.tool === 'send_consent_forms' && tr.result.all_complete) return `${tr.result.patient_name} has all forms complete for ${tr.result.service} — nothing to send.`;
-          if (tr.tool === 'send_consent_forms' && tr.result.preview) return `Ready to send ${tr.result.forms_to_send.length} form(s) to ${tr.result.patient_name} at ${tr.result.patient_email}: ${tr.result.forms_to_send.map(f => f.name).join(', ')}. The send card is shown — staff will click Send to confirm.`;
-          if (tr.tool === 'send_consent_forms' && tr.result.error) return tr.result.error;
-          if (tr.tool === 'request_protocol_change' && tr.result.preview) return `Protocol change request ready for ${tr.result.patient_name}: "${tr.result.change_description}". The request card is shown — staff will select a provider and click Send Request.`;
-          if (tr.tool === 'request_protocol_change' && tr.result.error) return tr.result.error;
-          if (tr.tool === 'batch_send_forms' && tr.result.preview) return `${tr.result.summary.needing_forms} patient(s) on ${tr.result.date} (${tr.result.service_category}) need forms sent. ${tr.result.summary.already_complete} already complete, ${tr.result.summary.no_email} missing email. The batch send card is shown — staff will click Send All to confirm. Do NOT list individual patients in text.`;
-          if (tr.tool === 'batch_send_forms' && tr.result.all_complete) return `All ${tr.result.total_appointments} patients on ${tr.result.date} (${tr.result.service_category}) have their forms complete — nothing to send.`;
-          if (tr.tool === 'batch_send_forms' && tr.result.no_appointments) return `No ${tr.result.service_category !== 'all' ? tr.result.service_category.toUpperCase() + ' ' : ''}appointments found on ${tr.result.date}.`;
-          if (tr.tool === 'batch_send_forms' && tr.result.error) return tr.result.error;
-          return JSON.stringify(tr.result);
-        }).join('\n');
 
-        const assistantMsg = { role: 'assistant', content: data.reply || toolResultText, toolResults, ts: Date.now() };
-        const withAssistant = [...newMessages, assistantMsg];
-        setMessages(withAssistant);
+        let assistantMsg = { role: 'assistant', content: data.reply || allToolResults.map(formatToolResult).join('\n'), toolResults: [...allToolResults], ts: Date.now() };
+        let currentMessages = [...newMessages, assistantMsg];
+        setMessages(currentMessages);
 
-        const followUpMessages = [...apiMessages, { role: 'assistant', content: data.reply || toolResultText }];
-        const toolContext = toolResults.map(tr => `[Tool: ${tr.tool}] Result: ${JSON.stringify(tr.result)}`).join('\n');
-        followUpMessages.push({ role: 'user', content: `[System] Tool results:\n${toolContext}\n\nGive a brief confirmation to the user about what just happened.` });
+        let convMsgs = [...apiMessages, { role: 'assistant', content: data.reply || allToolResults.map(formatToolResult).join('\n') }];
+        let lastContext = allToolResults.map(tr => `[Tool: ${tr.tool}] Result: ${JSON.stringify(tr.result)}`).join('\n');
+        convMsgs.push({ role: 'user', content: `[System] Tool results:\n${lastContext}\n\nGive a brief confirmation to the user about what just happened.` });
 
-        const followUp = await fetch('/api/ai/assistant-chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: followUpMessages, services, patientName: patient?.name, patientId: patient?.id, context: 'general' }),
-        });
-        const followUpData = await followUp.json();
-        if (followUpData.reply) {
-          const final = [...withAssistant.slice(0, -1), { ...assistantMsg, content: followUpData.reply }];
-          setMessages(final);
-          debouncedSave(final);
-        } else {
-          debouncedSave(withAssistant);
+        let resolved = false;
+        for (let round = 0; round < 3 && !resolved; round++) {
+          const followUp = await fetch('/api/ai/assistant-chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: convMsgs, services, patientName: patient?.name, patientId: patient?.id, context: 'general' }),
+          });
+          const fData = await followUp.json();
+
+          if (fData.toolCalls && fData.toolCalls.length > 0) {
+            const chainResults = [];
+            for (const tc of fData.toolCalls) {
+              const result = await handleToolCall(tc);
+              chainResults.push({ tool: tc.name, input: tc.input, result });
+            }
+            allToolResults.push(...chainResults);
+
+            assistantMsg = { ...assistantMsg, content: fData.reply || chainResults.map(formatToolResult).join('\n'), toolResults: [...allToolResults] };
+            currentMessages = [...newMessages, assistantMsg];
+            setMessages(currentMessages);
+
+            convMsgs.push({ role: 'assistant', content: fData.reply || chainResults.map(formatToolResult).join('\n') });
+            const chainContext = chainResults.map(tr => `[Tool: ${tr.tool}] Result: ${JSON.stringify(tr.result)}`).join('\n');
+            convMsgs.push({ role: 'user', content: `[System] Tool results:\n${chainContext}\n\nNow respond based on these results.` });
+          } else {
+            resolved = true;
+            if (fData.reply) {
+              const final = [...currentMessages.slice(0, -1), { ...assistantMsg, content: fData.reply }];
+              setMessages(final);
+              debouncedSave(final);
+            } else {
+              debouncedSave(currentMessages);
+            }
+          }
         }
+        if (!resolved) debouncedSave(currentMessages);
       } else {
         const aiMsg = { role: 'assistant', content: data.reply || 'Sorry, I didn\'t get that.', ts: Date.now() };
         const final = [...newMessages, aiMsg];

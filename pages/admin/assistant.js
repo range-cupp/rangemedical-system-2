@@ -1507,8 +1507,11 @@ export default function AssistantPage() {
             ))}
             <div style={st.cartTotal}><span>Total</span><span style={{ fontWeight: 700, fontSize: '18px' }}>${(cartTotal / 100).toFixed(2)}</span></div>
             <button style={st.checkoutBtn} onClick={() => {
+              sessionStorage.setItem('assistant_cart', JSON.stringify(cart));
               const params = new URLSearchParams();
               if (patient?.id) params.set('patient_id', patient.id);
+              if (patient?.name) params.set('patient_name', patient.name);
+              params.set('from_assistant', '1');
               window.location.href = `/admin/checkout${params.toString() ? '?' + params : ''}`;
             }}>Go to Checkout</button>
           </div>

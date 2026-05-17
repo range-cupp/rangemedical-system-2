@@ -9,7 +9,6 @@ import Head from 'next/head';
 import { useAuth } from './AuthProvider';
 import { useAdminNotifications } from './AdminNotificationsProvider';
 import StaffMessagingPanel from './StaffMessagingPanel';
-import AdminVoiceWidget from './AdminVoiceWidget';
 
 
 // Sidebar nav organized into collapsible sections
@@ -717,9 +716,6 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
 
       {/* Floating staff-to-staff messaging — available on every admin page */}
       <StaffMessagingPanel />
-
-      {/* Floating voice assistant — available on every admin page */}
-      <AdminVoiceWidget />
     </>
   );
 }

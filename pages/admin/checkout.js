@@ -39,7 +39,6 @@ import {
   buildSig,
 } from '../../lib/protocol-config';
 import { VIAL_CATALOG, VIAL_CATEGORIES } from '../../lib/vial-catalog';
-import AiAssistant from '../../components/AiAssistant';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
@@ -218,8 +217,6 @@ function CheckoutInner() {
   const [searchingPatients, setSearchingPatients] = useState(false);
   const [activeProtocols, setActiveProtocols] = useState([]);
   const searchTimeout = useRef(null);
-
-  // ── AI Chat Assistant (via AiAssistant component) ──
 
   // ── Services ──
   const [services, setServices] = useState([]);
@@ -631,26 +628,33 @@ function CheckoutInner() {
     setTimeout(() => setCartWarning(''), 3000);
   }
 
-  function handleAiCartAction(items) {
-    for (const item of items) {
-      const catalogMatch = item.catalog_id
-        ? services.find(s => s.id === item.catalog_id)
-        : services.find(s => s.name && item.name && s.name.toLowerCase() === item.name.toLowerCase())
-          || services.find(s => s.name && item.name && s.name.toLowerCase().includes(item.name.toLowerCase()));
-
-      const price = catalogMatch?.price_cents || item.price_cents || item.price || 0;
-      const id = catalogMatch?.id || item.catalog_id || item.id || `voice-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      const name = catalogMatch?.name || item.name;
-
-      const exists = cartItems.find(i => i.id === id);
-      if (exists) {
-        setCartItems(prev => prev.map(i => i.id === id ? { ...i, quantity: i.quantity + (item.quantity || 1) } : i));
-      } else {
-        setCartItems(prev => [...prev, { ...item, id, name, price, quantity: item.quantity || 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
+  useEffect(() => {
+    if (!router.isReady || !services.length) return;
+    if (router.query.from_assistant !== '1') return;
+    try {
+      const raw = sessionStorage.getItem('assistant_cart');
+      if (!raw) return;
+      sessionStorage.removeItem('assistant_cart');
+      const items = JSON.parse(raw);
+      const mapped = items.map(item => {
+        const catalogMatch = item.id
+          ? services.find(s => String(s.id) === String(item.id))
+          : services.find(s => s.name?.toLowerCase() === item.name?.toLowerCase());
+        return {
+          id: catalogMatch?.id || item.id,
+          name: catalogMatch?.name || item.name,
+          price: catalogMatch?.price_cents || item.price || 0,
+          quantity: item.quantity || 1,
+          itemDiscountType: 'none',
+          itemDiscountValue: '',
+        };
+      });
+      if (mapped.length) {
+        setCartItems(mapped);
+        setCartOpen(true);
       }
-    }
-    setCartOpen(true);
-  }
+    } catch {}
+  }, [router.isReady, services]);
 
   // ── HRT Membership monthly Range IV perk ──
   // Add a complimentary Range IV (signature formula) as a $0 dispense line item.
@@ -3226,14 +3230,6 @@ function CheckoutInner() {
                   )}
                 </div>
               )}
-
-              {/* AI Chat Assistant */}
-              <AiAssistant
-                context="checkout"
-                services={services}
-                patientName={patient?.name}
-                onCartAction={handleAiCartAction}
-              />
 
               {/* Search bar */}
               <div style={styles.serviceSearchWrap}>
@@ -6808,197 +6804,6 @@ const styles = {
     background: '#f0f9ff',
     border: '1px solid #bfdbfe',
     color: '#1e40af',
-  },
-
-  // ── Service search ──
-  chatBarWrap: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginBottom: '12px',
-  },
-  chatBarToggle: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    padding: '12px 16px',
-    borderRadius: '10px',
-    border: '1.5px solid #c7d2fe',
-    background: '#fafbff',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: 600,
-    color: '#4f46e5',
-    textAlign: 'left',
-  },
-  chatBarIcon: {
-    fontSize: '16px',
-  },
-  chatBarLabel: {
-    flex: 1,
-  },
-  chatBarBadge: {
-    fontSize: '11px',
-    fontWeight: 700,
-    background: '#dcfce7',
-    color: '#16a34a',
-    padding: '2px 8px',
-    borderRadius: '10px',
-  },
-  chatVoiceBtn: {
-    width: '46px',
-    height: '46px',
-    borderRadius: '10px',
-    border: '1.5px solid #c7d2fe',
-    background: '#fafbff',
-    cursor: 'pointer',
-    fontSize: '20px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  chatVoiceBtnActive: {
-    background: '#ef4444',
-    borderColor: '#ef4444',
-    animation: 'pulse 1.5s infinite',
-  },
-  chatDrawer: {
-    borderRadius: '10px',
-    border: '1.5px solid #c7d2fe',
-    background: '#fff',
-    marginBottom: '16px',
-    overflow: 'hidden',
-    display: 'flex',
-    flexDirection: 'column',
-    maxHeight: '400px',
-  },
-  chatMessageArea: {
-    flex: 1,
-    overflowY: 'auto',
-    padding: '16px',
-    minHeight: '120px',
-    maxHeight: '300px',
-  },
-  chatWelcome: {
-    textAlign: 'center',
-    padding: '20px 0',
-  },
-  chatWelcomeIcon: {
-    fontSize: '28px',
-    color: '#6366f1',
-    marginBottom: '8px',
-  },
-  chatWelcomeTitle: {
-    fontSize: '16px',
-    fontWeight: 700,
-    color: '#1a1a1a',
-    marginBottom: '4px',
-  },
-  chatWelcomeHint: {
-    fontSize: '13px',
-    color: '#888',
-  },
-  chatMsgUser: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    marginBottom: '10px',
-  },
-  chatMsgAssistant: {
-    display: 'flex',
-    gap: '8px',
-    alignItems: 'flex-start',
-    marginBottom: '10px',
-  },
-  chatMsgAvatar: {
-    width: '28px',
-    height: '28px',
-    borderRadius: '50%',
-    background: '#eef2ff',
-    color: '#6366f1',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '13px',
-    fontWeight: 700,
-    flexShrink: 0,
-  },
-  chatBubbleUser: {
-    background: '#4f46e5',
-    color: '#fff',
-    padding: '10px 14px',
-    borderRadius: '14px 14px 4px 14px',
-    fontSize: '14px',
-    lineHeight: '1.4',
-    maxWidth: '80%',
-  },
-  chatBubbleAssistant: {
-    background: '#f3f4f6',
-    color: '#1a1a1a',
-    padding: '10px 14px',
-    borderRadius: '14px 14px 14px 4px',
-    fontSize: '14px',
-    lineHeight: '1.4',
-    maxWidth: '85%',
-  },
-  chatCartAdded: {
-    marginTop: '8px',
-    padding: '6px 10px',
-    background: '#dcfce7',
-    color: '#166534',
-    borderRadius: '6px',
-    fontSize: '12px',
-    fontWeight: 700,
-  },
-  chatTyping: {
-    color: '#888',
-    fontStyle: 'italic',
-  },
-  chatInputArea: {
-    display: 'flex',
-    gap: '8px',
-    padding: '10px 14px',
-    borderTop: '1px solid #e5e7eb',
-    background: '#fafbff',
-  },
-  chatInputField: {
-    flex: 1,
-    border: '1px solid #e0e0e0',
-    borderRadius: '8px',
-    padding: '10px 12px',
-    fontSize: '14px',
-    outline: 'none',
-    background: '#fff',
-  },
-  chatSendBtn: {
-    width: '38px',
-    height: '38px',
-    borderRadius: '8px',
-    border: 'none',
-    background: '#4f46e5',
-    color: '#fff',
-    fontSize: '18px',
-    fontWeight: 700,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  chatResetBtn: {
-    width: '38px',
-    height: '38px',
-    borderRadius: '8px',
-    border: '1px solid #e0e0e0',
-    background: '#fff',
-    color: '#888',
-    fontSize: '18px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
   },
 
   serviceSearchWrap: {

@@ -61,23 +61,60 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
-    const formatted = (appointments || []).map(a => ({
-      id: a.id,
-      patient_id: a.patient_id,
-      patient_name: a.patient_name,
-      patient_phone: a.patient_phone,
-      service: a.service_name,
-      category: a.service_category,
-      provider: a.provider,
-      time: new Date(a.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' }),
-      start_time: a.start_time,
-      duration: a.duration_minutes,
-      status: a.status,
-      modality: a.modality,
-      visit_reason: a.visit_reason,
-      checked_in: !!a.checked_in_at,
-      notes: a.notes,
-    }));
+    // Batch-fetch consent form status for all patients on the schedule
+    const patientIds = [...new Set((appointments || []).map(a => a.patient_id).filter(Boolean))];
+    let consentsByPatient = {};
+    if (patientIds.length > 0) {
+      const { data: consents } = await supabase
+        .from('consents')
+        .select('patient_id, consent_type, consent_given')
+        .in('patient_id', patientIds)
+        .eq('consent_given', true);
+      for (const c of (consents || [])) {
+        if (!consentsByPatient[c.patient_id]) consentsByPatient[c.patient_id] = new Set();
+        consentsByPatient[c.patient_id].add(c.consent_type);
+      }
+    }
+
+    const REQUIRED_BY_CATEGORY = {
+      hrt: ['intake', 'hipaa', 'hrt'],
+      weight_loss: ['intake', 'hipaa', 'weight-loss'],
+      iv_therapy: ['intake', 'hipaa', 'iv'], iv: ['intake', 'hipaa', 'iv'],
+      peptide: ['intake', 'hipaa', 'peptide'],
+      hbot: ['intake', 'hipaa', 'hbot'],
+      rlt: ['intake', 'hipaa', 'red-light'], red_light: ['intake', 'hipaa', 'red-light'],
+      injection: ['intake', 'hipaa'],
+    };
+
+    const formatted = (appointments || []).map(a => {
+      const signed = consentsByPatient[a.patient_id] || new Set();
+      const hasIntake = signed.has('intake');
+      const hasHipaa = signed.has('hipaa');
+      const required = REQUIRED_BY_CATEGORY[a.service_category] || ['intake', 'hipaa'];
+      const missing = required.filter(r => !signed.has(r));
+
+      return {
+        id: a.id,
+        patient_id: a.patient_id,
+        patient_name: a.patient_name,
+        patient_phone: a.patient_phone,
+        service: a.service_name,
+        category: a.service_category,
+        provider: a.provider,
+        time: new Date(a.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' }),
+        start_time: a.start_time,
+        duration: a.duration_minutes,
+        status: a.status,
+        modality: a.modality,
+        visit_reason: a.visit_reason,
+        checked_in: !!a.checked_in_at,
+        notes: a.notes,
+        forms_complete: missing.length === 0,
+        forms_missing: missing,
+        has_intake: hasIntake,
+        has_hipaa: hasHipaa,
+      };
+    });
 
     const summary = {
       total: formatted.length,

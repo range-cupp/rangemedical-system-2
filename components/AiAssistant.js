@@ -1,15 +1,35 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 export default function AiAssistant({ context, services, patientName, onCartAction }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(true);
   const endRef = useRef(null);
 
   useEffect(() => {
     if (endRef.current) endRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    return () => { if (window.speechSynthesis) window.speechSynthesis.cancel(); };
+  }, []);
+
+  const speak = useCallback((text) => {
+    if (!ttsEnabled || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const cleaned = text.replace(/\*\*/g, '').replace(/```[\s\S]*?```/g, '');
+    const utt = new SpeechSynthesisUtterance(cleaned);
+    utt.rate = 1.0;
+    const voices = window.speechSynthesis.getVoices();
+    const preferred =
+      voices.find(v => v.name === 'Samantha') ||
+      voices.find(v => v.lang === 'en-US' && v.localService) ||
+      voices[0];
+    if (preferred) utt.voice = preferred;
+    window.speechSynthesis.speak(utt);
+  }, [ttsEnabled]);
 
   async function handleSend(text) {
     const msg = (text || input).trim();
@@ -27,6 +47,9 @@ export default function AiAssistant({ context, services, patientName, onCartActi
         price_cents: s.price || s.price_cents,
         sub_category: s.sub_category,
         recurring: s.recurring,
+        description: s.description,
+        duration_days: s.duration_days,
+        delivery_method: s.delivery_method,
       }));
       const resp = await fetch('/api/ai/checkout-chat', {
         method: 'POST',
@@ -42,6 +65,7 @@ export default function AiAssistant({ context, services, patientName, onCartActi
       if (data.error) {
         const errMsg = { role: 'assistant', content: 'Sorry, something went wrong. Try again.' };
         setMessages(prev => [...prev, errMsg]);
+        speak(errMsg.content);
       } else {
         const assistantMsg = { role: 'assistant', content: data.reply };
         if (data.cartAction?.items?.length > 0) {
@@ -49,10 +73,12 @@ export default function AiAssistant({ context, services, patientName, onCartActi
           if (onCartAction) onCartAction(data.cartAction.items);
         }
         setMessages(prev => [...prev, assistantMsg]);
+        speak(data.reply);
       }
     } catch {
       const errMsg = { role: 'assistant', content: 'Connection error. Try again.' };
       setMessages(prev => [...prev, errMsg]);
+      speak(errMsg.content);
     } finally {
       setLoading(false);
     }
@@ -63,6 +89,11 @@ export default function AiAssistant({ context, services, patientName, onCartActi
     setInput('');
     setLoading(false);
     if (window.speechSynthesis) window.speechSynthesis.cancel();
+  }
+
+  function toggleTts() {
+    if (ttsEnabled && window.speechSynthesis) window.speechSynthesis.cancel();
+    setTtsEnabled(!ttsEnabled);
   }
 
   const addedCount = messages.filter(m => m.role === 'assistant' && m.cartAction).length;
@@ -131,6 +162,13 @@ export default function AiAssistant({ context, services, patientName, onCartActi
               disabled={loading || !input.trim()}
             >
               ↑
+            </button>
+            <button
+              style={ttsEnabled ? styles.ttsBtnActive : styles.ttsBtn}
+              onClick={toggleTts}
+              title={ttsEnabled ? 'Mute voice' : 'Enable voice'}
+            >
+              {ttsEnabled ? '🔊' : '🔇'}
             </button>
             {messages.length > 0 && (
               <button style={styles.resetBtn} onClick={handleReset} title="New conversation">
@@ -232,6 +270,16 @@ const styles = {
   resetBtn: {
     width: '38px', height: '38px', borderRadius: '8px', border: '1px solid #e0e0e0',
     background: '#fff', color: '#888', fontSize: '18px', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  ttsBtn: {
+    width: '38px', height: '38px', borderRadius: '8px', border: '1px solid #e0e0e0',
+    background: '#fff', fontSize: '16px', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  ttsBtnActive: {
+    width: '38px', height: '38px', borderRadius: '8px', border: '1px solid #c7d2fe',
+    background: '#eef2ff', fontSize: '16px', cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
 };

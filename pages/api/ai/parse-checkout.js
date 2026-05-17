@@ -134,7 +134,13 @@ function buildCatalogContext(posServices) {
     for (const item of items) {
       const cents = item.price_cents || item.price || 0;
       const price = cents ? `$${(cents / 100).toFixed(0)}` : 'varies';
-      sections.push(`- id:"${item.id}" | "${item.name}" | ${price}${item.recurring ? ' (recurring)' : ''}`);
+      const extras = [];
+      if (item.sub_category) extras.push(`sub: ${item.sub_category}`);
+      if (item.duration_days) extras.push(`${item.duration_days}d`);
+      if (item.delivery_method) extras.push(item.delivery_method);
+      if (item.description) extras.push(item.description.slice(0, 80));
+      const suffix = extras.length ? ` | ${extras.join(' | ')}` : '';
+      sections.push(`- id:"${item.id}" | "${item.name}" | ${price}${item.recurring ? ' (recurring)' : ''}${suffix}`);
     }
   }
 

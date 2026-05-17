@@ -122,6 +122,17 @@ const tools = [
       required: ['title', 'assigned_to_name'],
     },
   },
+  {
+    name: 'today_schedule',
+    description: 'Get today\'s appointment schedule (or a specific date). Use when staff asks "what\'s on the schedule today?", "who\'s coming in?", "any appointments today?", or asks about a specific date\'s schedule.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: 'Date in YYYY-MM-DD format. Omit for today.' },
+      },
+      required: [],
+    },
+  },
 ];
 
 export default async function handler(req, res) {
@@ -149,12 +160,14 @@ You can help with:
 - NOTES: Add notes to a patient's chart (clinical observations, follow-ups, staff notes)
 - TASKS: Create tasks for staff (to-dos, reminders, follow-ups)
 - EMAIL: Draft and send emails to patients
+- SCHEDULE: Check today's appointments, see who's coming in, view any date's schedule
 - GENERAL: Answer questions about services, pricing, protocols
 
 When staff asks about a patient's meds, next pickup, treatment plan, visit history, or anything clinical — use the lookup_patient_records tool. If a patient is already selected in context, use their patient_id directly. If not, search for them first.
 When staff asks to email a patient, use draft_email. Look up the patient's email first if needed. Write the email body in a warm, professional tone from the clinic. The draft will be previewed before sending — staff must approve it.
 When staff asks to add a note about a patient — use add_note. Write the note clearly and professionally, capturing what the staff said. Use the patient_id from context.
 When staff asks to create a task, to-do, or reminder — use create_task. If no specific assignee is mentioned, ask who to assign it to. Available staff: Chris, Damien, Evan, Damon, Lily, Brendyn, Tara.
+When staff asks about today's schedule, who's coming in, or appointments for any date — use today_schedule. Summarize the schedule briefly after showing it.
 When staff mentions a product, walk through the decision tree one question at a time. Once confirmed, use the add_to_cart tool.
 When staff wants to book, search the patient, check slots, confirm, and book.
 

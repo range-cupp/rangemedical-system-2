@@ -635,17 +635,16 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
             payload.delivery_method = dm;
             if (isVial) {
               const vialMl = dm === 'vial_5ml' ? 5 : 10;
-              const mgPerMl = item.formData.hrt_type === 'male' ? 200 : 100;
-              const totalMg = vialMl * mgPerMl;
-              const match = item.formData.dosage.match(/(\d+)mg/);
+              const mlMatch = item.formData.dosage.match(/(\d+\.?\d*)\s*ml/i);
               const freq = item.formData.frequency ? parseInt(item.formData.frequency) : 2;
-              let weeks = 12;
-              if (match) {
-                const dosePerInjection = parseInt(match[1]);
-                const weeklyMg = dosePerInjection * freq;
-                weeks = Math.floor(totalMg / weeklyMg);
+              let weeks = vialMl === 5 ? 6 : 10;
+              if (mlMatch) {
+                const mlPerInjection = parseFloat(mlMatch[1]);
+                const mlPerWeek = mlPerInjection * freq;
+                weeks = Math.floor(vialMl / mlPerWeek);
               }
-              payload.dosage = `1 vial (${vialMl}ml) @ ${item.formData.dosage} (${weeks} weeks)`;
+              const method = item.formData.injection_method === 'subq' ? 'SubQ' : 'IM';
+              payload.dosage = `Vial (${vialMl}ml) — ${item.formData.dosage}, ${freq}x/wk ${method} (~${weeks} wks)`;
             } else {
               payload.dosage = `${qty} prefilled @ ${item.formData.dosage}`;
             }

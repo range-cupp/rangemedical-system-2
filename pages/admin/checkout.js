@@ -218,6 +218,12 @@ function CheckoutInner() {
   const [activeProtocols, setActiveProtocols] = useState([]);
   const searchTimeout = useRef(null);
 
+  // ── AI Command Bar ──
+  const [aiInput, setAiInput] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResults, setAiResults] = useState(null); // array of parsed items or null
+  const [aiError, setAiError] = useState('');
+
   // ── Services ──
   const [services, setServices] = useState([]);
   const [loadingServices, setLoadingServices] = useState(true);
@@ -626,6 +632,69 @@ function CheckoutInner() {
   function showWarning(msg) {
     setCartWarning(msg);
     setTimeout(() => setCartWarning(''), 3000);
+  }
+
+  // ── AI Command Bar ──
+  async function handleAiParse() {
+    if (!aiInput.trim() || aiLoading) return;
+    setAiLoading(true);
+    setAiError('');
+    setAiResults(null);
+    try {
+      const resp = await fetch('/api/ai/parse-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: aiInput.trim() }),
+      });
+      const data = await resp.json();
+      if (data.error && !data.items) {
+        setAiError(data.error);
+      } else if (data.items?.length > 0) {
+        setAiResults(data.items);
+      } else {
+        setAiError('No items matched. Try being more specific.');
+      }
+    } catch {
+      setAiError('Failed to process. Try again.');
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  function handleAiAddAll() {
+    if (!aiResults) return;
+    const toAdd = aiResults.filter(r => r.resolved);
+    for (const r of toAdd) {
+      const item = r.resolved;
+      const exists = cartItems.find(i => i.id === item.id);
+      if (exists) {
+        setCartItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity || 1) } : i));
+      } else {
+        setCartItems(prev => [...prev, { ...item, quantity: item.quantity || 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
+      }
+    }
+    setCartOpen(true);
+    setAiResults(null);
+    setAiInput('');
+  }
+
+  function handleAiAddOne(r) {
+    if (!r.resolved) return;
+    const item = r.resolved;
+    const exists = cartItems.find(i => i.id === item.id);
+    if (exists) {
+      setCartItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity || 1) } : i));
+    } else {
+      setCartItems(prev => [...prev, { ...item, quantity: item.quantity || 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
+    }
+    setCartOpen(true);
+    setAiResults(prev => prev.filter(i => i !== r));
+  }
+
+  function handleAiDismiss() {
+    setAiResults(null);
+    setAiInput('');
+    setAiError('');
   }
 
   // ── HRT Membership monthly Range IV perk ──
@@ -3202,6 +3271,80 @@ function CheckoutInner() {
                   )}
                 </div>
               )}
+
+              {/* AI Command Bar */}
+              <div style={styles.aiCommandWrap}>
+                <div style={styles.aiCommandRow}>
+                  <div style={styles.aiCommandIcon}>✦</div>
+                  <input
+                    type="text"
+                    placeholder="Type what you're checking out... e.g. &quot;tirz 10mg, myers IV, HBOT x3&quot;"
+                    value={aiInput}
+                    onChange={e => setAiInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleAiParse(); }}
+                    style={styles.aiCommandInput}
+                    disabled={aiLoading}
+                  />
+                  {aiInput && !aiLoading && (
+                    <button style={styles.aiCommandClear} onClick={() => { setAiInput(''); setAiResults(null); setAiError(''); }}>×</button>
+                  )}
+                  <button
+                    style={{ ...styles.aiCommandBtn, opacity: aiLoading || !aiInput.trim() ? 0.5 : 1 }}
+                    onClick={handleAiParse}
+                    disabled={aiLoading || !aiInput.trim()}
+                  >
+                    {aiLoading ? 'Parsing...' : 'Go'}
+                  </button>
+                </div>
+                {aiError && (
+                  <div style={styles.aiError}>{aiError}</div>
+                )}
+                {aiResults && aiResults.length > 0 && (
+                  <div style={styles.aiResultsWrap}>
+                    <div style={styles.aiResultsHeader}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#888', letterSpacing: '0.05em' }}>
+                        MATCHED {aiResults.filter(r => r.resolved).length} ITEM{aiResults.filter(r => r.resolved).length !== 1 ? 'S' : ''}
+                      </span>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button style={styles.aiAddAllBtn} onClick={handleAiAddAll}>
+                          Add All to Cart
+                        </button>
+                        <button style={styles.aiDismissBtn} onClick={handleAiDismiss}>
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
+                    {aiResults.map((r, idx) => (
+                      <div key={idx} style={styles.aiResultItem}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 600, color: r.resolved ? '#1a1a1a' : '#999' }}>
+                              {r.resolved ? r.resolved.name : r.name}
+                            </span>
+                            {r.quantity > 1 && <span style={styles.aiQtyBadge}>×{r.quantity}</span>}
+                            {!r.resolved && <span style={styles.aiNoMatch}>No match</span>}
+                            {r.resolved?.fuzzy && <span style={styles.aiFuzzy}>Best guess</span>}
+                          </div>
+                          {r.resolved && (
+                            <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                              {r.resolved.category} · {formatPrice(r.resolved.price * (r.resolved.quantity || 1))}
+                              {r.reason ? ` · ${r.reason}` : ''}
+                            </div>
+                          )}
+                          {!r.resolved && r.reason && (
+                            <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>{r.reason}</div>
+                          )}
+                        </div>
+                        {r.resolved && (
+                          <button style={styles.aiAddOneBtn} onClick={() => handleAiAddOne(r)}>
+                            + Add
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Search bar */}
               <div style={styles.serviceSearchWrap}>
@@ -6779,6 +6922,133 @@ const styles = {
   },
 
   // ── Service search ──
+  // ── AI Command Bar ──
+  aiCommandWrap: {
+    marginBottom: '16px',
+    borderRadius: '10px',
+    border: '1.5px solid #c7d2fe',
+    background: '#fafbff',
+    overflow: 'hidden',
+  },
+  aiCommandRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '10px 14px',
+  },
+  aiCommandIcon: {
+    fontSize: '16px',
+    color: '#6366f1',
+    flexShrink: 0,
+  },
+  aiCommandInput: {
+    flex: 1,
+    border: 'none',
+    background: 'transparent',
+    fontSize: '14px',
+    outline: 'none',
+    color: '#1a1a1a',
+    padding: '4px 0',
+  },
+  aiCommandClear: {
+    background: 'none',
+    border: 'none',
+    fontSize: '18px',
+    color: '#888',
+    cursor: 'pointer',
+    padding: '2px 6px',
+    flexShrink: 0,
+  },
+  aiCommandBtn: {
+    background: '#4f46e5',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    padding: '7px 16px',
+    fontSize: '13px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    flexShrink: 0,
+  },
+  aiError: {
+    padding: '8px 14px',
+    fontSize: '13px',
+    color: '#dc2626',
+    borderTop: '1px solid #e0e7ff',
+  },
+  aiResultsWrap: {
+    borderTop: '1px solid #e0e7ff',
+  },
+  aiResultsHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 14px',
+    background: '#f0f0ff',
+  },
+  aiAddAllBtn: {
+    background: '#4f46e5',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '5px',
+    padding: '6px 12px',
+    fontSize: '12px',
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
+  aiDismissBtn: {
+    background: 'none',
+    color: '#666',
+    border: '1px solid #ddd',
+    borderRadius: '5px',
+    padding: '6px 12px',
+    fontSize: '12px',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  aiResultItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '10px 14px',
+    borderTop: '1px solid #f0f0f0',
+  },
+  aiQtyBadge: {
+    fontSize: '11px',
+    fontWeight: 700,
+    background: '#e0e7ff',
+    color: '#4338ca',
+    padding: '2px 6px',
+    borderRadius: '4px',
+  },
+  aiNoMatch: {
+    fontSize: '11px',
+    fontWeight: 600,
+    color: '#dc2626',
+    background: '#fef2f2',
+    padding: '2px 6px',
+    borderRadius: '4px',
+  },
+  aiFuzzy: {
+    fontSize: '11px',
+    fontWeight: 600,
+    color: '#d97706',
+    background: '#fffbeb',
+    padding: '2px 6px',
+    borderRadius: '4px',
+  },
+  aiAddOneBtn: {
+    background: '#f0fdf4',
+    color: '#16a34a',
+    border: '1px solid #bbf7d0',
+    borderRadius: '5px',
+    padding: '5px 10px',
+    fontSize: '12px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    flexShrink: 0,
+  },
+
   serviceSearchWrap: {
     position: 'relative',
     marginBottom: '20px',

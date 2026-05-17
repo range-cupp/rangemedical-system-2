@@ -634,11 +634,20 @@ function CheckoutInner() {
 
   function handleAiCartAction(items) {
     for (const item of items) {
-      const exists = cartItems.find(i => i.id === item.id);
+      const catalogMatch = item.catalog_id
+        ? services.find(s => s.id === item.catalog_id)
+        : services.find(s => s.name && item.name && s.name.toLowerCase() === item.name.toLowerCase())
+          || services.find(s => s.name && item.name && s.name.toLowerCase().includes(item.name.toLowerCase()));
+
+      const price = catalogMatch?.price_cents || item.price_cents || item.price || 0;
+      const id = catalogMatch?.id || item.catalog_id || item.id || `voice-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const name = catalogMatch?.name || item.name;
+
+      const exists = cartItems.find(i => i.id === id);
       if (exists) {
-        setCartItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity || 1) } : i));
+        setCartItems(prev => prev.map(i => i.id === id ? { ...i, quantity: i.quantity + (item.quantity || 1) } : i));
       } else {
-        setCartItems(prev => [...prev, { ...item, quantity: item.quantity || 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
+        setCartItems(prev => [...prev, { ...item, id, name, price, quantity: item.quantity || 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
       }
     }
     setCartOpen(true);

@@ -209,23 +209,24 @@ export default function VoiceAssistant({ context = 'general', data = {}, onActio
     // Handled in response.done for complete args
   }
 
-  function handleFunctionCallFromOutput(item) {
+  async function handleFunctionCallFromOutput(item) {
     try {
       const args = JSON.parse(item.arguments);
       console.log('[Voice] Function call:', item.name, args);
 
+      let result = { success: true };
       if (onAction) {
-        onAction(item.name, args);
+        const actionResult = await onAction(item.name, args);
+        if (actionResult !== undefined) result = actionResult;
       }
 
-      // Send function result back
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify({
           type: 'conversation.item.create',
           item: {
             type: 'function_call_output',
             call_id: item.call_id,
-            output: JSON.stringify({ success: true }),
+            output: JSON.stringify(result),
           },
         }));
         wsRef.current.send(JSON.stringify({ type: 'response.create' }));

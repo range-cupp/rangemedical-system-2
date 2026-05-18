@@ -991,7 +991,7 @@ export default function AssistantPage() {
       return (<div style={{ ...st.toolCard, borderColor: '#fca5a5' }}><div style={st.toolCardHeader}><X size={14} /> Task Failed</div><div style={st.toolCardBody}>{tr.result.error}</div></div>);
     }
     if (tr.tool === 'lookup_patient_records' && tr.result.protocols) {
-      const { protocols, appointments, recentVisits, prescriptions } = tr.result;
+      const { protocols, appointments, recentVisits, prescriptions, intakeMedications } = tr.result;
       const secLabel = (text) => (
         <div style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.12em', color: '#737373', textTransform: 'uppercase', marginBottom: '10px', paddingBottom: '6px', borderBottom: '1px solid #e0e0e0' }}>{text}</div>
       );
@@ -1046,10 +1046,41 @@ export default function AssistantPage() {
           <div style={st.toolCardHeader}><User size={14} /> Patient Records</div>
           <div style={{ padding: '16px' }}>
 
-            {/* Medications — the primary section providers care about */}
+            {/* Patient-Reported Medications — from intake form */}
+            {intakeMedications && (intakeMedications.current_list || intakeMedications.hrt_details || intakeMedications.allergies) && (
+              <div style={{ marginBottom: '20px' }}>
+                {secLabel('Patient-Reported (Intake Form)')}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {intakeMedications.current_list && (
+                    <div style={{ padding: '12px 14px', background: '#fafafa', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 600, color: '#a0a0a0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Current Medications</div>
+                      <div style={{ fontSize: '14px', color: '#1a1a1a', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{intakeMedications.current_list}</div>
+                      {intakeMedications.notes && <div style={{ fontSize: '13px', color: '#737373', marginTop: '4px', fontStyle: 'italic' }}>{intakeMedications.notes}</div>}
+                    </div>
+                  )}
+                  {intakeMedications.on_hrt === 'Yes' && intakeMedications.hrt_details && (
+                    <div style={{ padding: '12px 14px', background: '#fafafa', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 600, color: '#a0a0a0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>HRT (Self-Reported)</div>
+                      <div style={{ fontSize: '14px', color: '#1a1a1a', lineHeight: '1.6' }}>{intakeMedications.hrt_details}</div>
+                    </div>
+                  )}
+                  {intakeMedications.has_allergies === 'Yes' && intakeMedications.allergies && (
+                    <div style={{ padding: '12px 14px', background: '#fff8f0', border: '1px solid #f0d8b0', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 600, color: '#b07020', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Allergies</div>
+                      <div style={{ fontSize: '14px', color: '#1a1a1a', lineHeight: '1.6' }}>{intakeMedications.allergies}</div>
+                    </div>
+                  )}
+                  {intakeMedications.on_medications === 'No' && !intakeMedications.current_list && (
+                    <div style={{ padding: '10px 14px', fontSize: '13px', color: '#a0a0a0', fontStyle: 'italic' }}>Patient reported no current medications on intake.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Prescribed & Provided — from protocols */}
             {medications.length > 0 && (
               <div style={{ marginBottom: '20px' }}>
-                {secLabel('Medications')}
+                {secLabel('Prescribed & Provided')}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {medications.map((m, i) => (
                     <div key={i} style={{ padding: '12px 14px', background: '#FAF9F6', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
@@ -1132,7 +1163,7 @@ export default function AssistantPage() {
               </div>
             )}
 
-            {protocols.length === 0 && appointments.length === 0 && recentVisits.length === 0 && (
+            {protocols.length === 0 && appointments.length === 0 && recentVisits.length === 0 && !intakeMedications && (
               <div style={{ color: '#a0a0a0', fontSize: '14px' }}>No active records found for this patient.</div>
             )}
           </div>

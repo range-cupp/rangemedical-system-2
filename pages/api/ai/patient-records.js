@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   if (!patient_id) return res.status(400).json({ error: 'patient_id required' });
 
   try {
-    const [protocolRes, appointmentRes, serviceLogRes, prescriptionRes, patientRes] = await Promise.all([
+    const [protocolRes, appointmentRes, serviceLogRes, prescriptionRes, patientRes, intakeRes] = await Promise.all([
       supabase
         .from('protocols')
         .select('id, program_name, program_type, medication, status, current_dose, selected_dose, dose, frequency, visit_frequency, delivery_method, start_date, end_date, next_expected_date, last_visit_date, last_refill_date, supply_dispensed_date, supply_remaining, total_sessions, sessions_used, secondary_medications')
@@ -53,6 +53,13 @@ export default async function handler(req, res) {
         .select('id, name, first_name, last_name, email, phone, date_of_birth, gender')
         .eq('id', patient_id)
         .single(),
+
+      supabase
+        .from('intakes')
+        .select('on_medications, current_medications, medication_notes, on_hrt, hrt_details, has_allergies, allergies')
+        .eq('patient_id', patient_id)
+        .order('submitted_at', { ascending: false })
+        .limit(1),
     ]);
 
     const protocols = (protocolRes.data || []).map(p => {
@@ -120,12 +127,25 @@ export default async function handler(req, res) {
       category: rx.category,
     }));
 
+    // Patient-reported medications from intake form
+    const intakeData = intakeRes.data?.[0] || null;
+    const intakeMedications = intakeData ? {
+      on_medications: intakeData.on_medications || 'Unknown',
+      current_list: intakeData.current_medications || null,
+      notes: intakeData.medication_notes || null,
+      on_hrt: intakeData.on_hrt || 'Unknown',
+      hrt_details: intakeData.hrt_details || null,
+      has_allergies: intakeData.has_allergies || 'Unknown',
+      allergies: intakeData.allergies || null,
+    } : null;
+
     return res.status(200).json({
       patient: patientRes.data || null,
       protocols,
       appointments,
       recentVisits,
       prescriptions,
+      intakeMedications,
     });
   } catch (err) {
     console.error('Patient records error:', err);

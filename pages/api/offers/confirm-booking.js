@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { sessionId, offerId, slotStart, firstName, lastName, email, phone } = req.body;
+  const { sessionId, paymentIntentId, offerId, slotStart, firstName, lastName, email, phone } = req.body;
 
   if (!offerId || !slotStart || !firstName) {
     return res.status(400).json({ error: 'offerId, slotStart, and firstName are required' });
@@ -107,6 +107,7 @@ export default async function handler(req, res) {
         service_category: offer.serviceSlug === 'range-iv' ? 'iv_therapy' : offer.serviceSlug === 'hbot' ? 'hbot' : 'rlt',
         service_name: offer.name,
         quantity: offer.id === 'intro-rlt' ? 3 : 1,
+        stripe_payment_intent_id: paymentIntentId || null,
         stripe_checkout_session_id: sessionId || null,
       }),
     }).catch(err => console.error('Record purchase error (non-fatal):', err));

@@ -1,13 +1,14 @@
 import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { NEW_PATIENT_OFFERS } from '../lib/offer-config';
 
 export default function Home() {
   const [isVisible, setIsVisible] = useState({});
   const [openFaq, setOpenFaq] = useState(null);
-  const [checkoutLoading, setCheckoutLoading] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -53,25 +54,6 @@ export default function Home() {
       answer: "Many patients notice changes within the first few weeks. Timelines vary by person and protocol. Your provider will set realistic expectations at your assessment."
     },
   ];
-
-  async function handleOfferCheckout(offerId) {
-    setCheckoutLoading(offerId);
-    try {
-      const res = await fetch('/api/offers/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ offerId }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        setCheckoutLoading(null);
-      }
-    } catch {
-      setCheckoutLoading(null);
-    }
-  }
 
   return (
     <>
@@ -294,10 +276,9 @@ export default function Home() {
                     </ul>
                     <button
                       className="npo-buy-btn"
-                      onClick={() => handleOfferCheckout(offer.id)}
-                      disabled={checkoutLoading === offer.id}
+                      onClick={() => router.push(`/offers/${offer.id}`)}
                     >
-                      {checkoutLoading === offer.id ? 'Loading...' : 'Buy & Schedule'}
+                      Buy &amp; Schedule
                     </button>
                   </div>
                 ))}

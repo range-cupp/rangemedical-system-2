@@ -2,10 +2,12 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
+import { NEW_PATIENT_OFFERS } from '../lib/offer-config';
 
 export default function Home() {
   const [isVisible, setIsVisible] = useState({});
   const [openFaq, setOpenFaq] = useState(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -51,6 +53,25 @@ export default function Home() {
       answer: "Many patients notice changes within the first few weeks. Timelines vary by person and protocol. Your provider will set realistic expectations at your assessment."
     },
   ];
+
+  async function handleOfferCheckout(offerId) {
+    setCheckoutLoading(offerId);
+    try {
+      const res = await fetch('/api/offers/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offerId }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setCheckoutLoading(null);
+      }
+    } catch {
+      setCheckoutLoading(null);
+    }
+  }
 
   return (
     <>
@@ -157,6 +178,19 @@ export default function Home() {
               Start Your Range Assessment
             </Link>
           </div>
+          <p style={{ marginTop: '1rem', fontSize: '15px', color: '#737373' }}>
+            Or{' '}
+            <a
+              href="#new-patient-offers"
+              style={{ color: '#1a1a1a', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: '3px' }}
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('new-patient-offers')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              see our new patient offers
+            </a>
+          </p>
         </section>
 
         {/* Problem / Empathy */}
@@ -228,6 +262,46 @@ export default function Home() {
               <Link href="/assessment" className="btn-primary">
                 Start Your Range Assessment
               </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* New Patient Offers */}
+        <section id="new-patient-offers" className={`home-section-alt home-animate ${isVisible['new-patient-offers'] ? 'home-visible' : ''}`}>
+          <div className="home-container">
+            <div className="npo-layout">
+              <div className="npo-intro">
+                <div className="v2-label"><span className="v2-dot" /> New Patient Offers</div>
+                <h2>Want to try a <em>treatment first?</em></h2>
+                <p style={{ fontSize: '17px', color: '#737373', lineHeight: 1.7, margin: '1rem 0 0' }}>
+                  Not sure where to start? Pick one of these intro sessions &mdash; no commitment, no pressure. Come in, see how you feel, and we&apos;ll take it from there.
+                </p>
+                <p style={{ fontSize: '15px', color: '#a0a0a0', lineHeight: 1.6, margin: '1rem 0 0' }}>
+                  During your visit, we may ask about your energy, sleep, and recovery to see if a Range Assessment could help you get to the root of what&apos;s going on.
+                </p>
+              </div>
+              <div className="npo-cards">
+                {NEW_PATIENT_OFFERS.map((offer) => (
+                  <div key={offer.id} className="npo-card">
+                    <div className="npo-card-header">
+                      <h4>{offer.name}</h4>
+                      <span className="npo-price">{offer.priceDisplay}</span>
+                    </div>
+                    <ul className="npo-bullets">
+                      {offer.bullets.map((b, i) => (
+                        <li key={i}>{b}</li>
+                      ))}
+                    </ul>
+                    <button
+                      className="npo-buy-btn"
+                      onClick={() => handleOfferCheckout(offer.id)}
+                      disabled={checkoutLoading === offer.id}
+                    >
+                      {checkoutLoading === offer.id ? 'Loading...' : 'Buy & Schedule'}
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>

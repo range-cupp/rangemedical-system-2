@@ -90,6 +90,7 @@ export default function Layout({ children, title, description, logoOnly }) {
                     </div>
                   </div>
 
+                  <Link href="/#new-patient-offers" className="rm-nav-link">New Patient Offers</Link>
                   <Link href="/lab-panels" className="rm-nav-link">Labs</Link>
                   <Link href="/how-it-works" className="rm-nav-link">How It Works</Link>
                   <Link href="/reviews" className="rm-nav-link">Reviews</Link>
@@ -147,6 +148,7 @@ export default function Layout({ children, title, description, logoOnly }) {
                 <Link href="/peptide-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Peptide Therapy</Link>
               </div>
             )}
+            <Link href="/#new-patient-offers" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>New Patient Offers</Link>
             <Link href="/lab-panels" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Labs</Link>
             <Link href="/how-it-works" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>How It Works</Link>
             <Link href="/reviews" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Reviews</Link>

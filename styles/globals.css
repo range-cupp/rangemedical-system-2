@@ -1889,6 +1889,120 @@ p {
 }
 
 /* ========================================
+   NEW PATIENT OFFERS — HOMEPAGE SECTION
+   ======================================== */
+
+.npo-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 3.5rem;
+  align-items: start;
+}
+
+.npo-intro h2 {
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+}
+
+.npo-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.npo-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 14px;
+  padding: 24px 28px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.npo-card:hover {
+  border-color: #c0c0c0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.npo-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.npo-card-header h4 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: #1a1a1a;
+}
+
+.npo-price {
+  font-size: 20px;
+  font-weight: 800;
+  color: #2E5D3A;
+  letter-spacing: -0.01em;
+}
+
+.npo-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+}
+
+.npo-bullets li {
+  font-size: 14px;
+  color: #525252;
+  line-height: 1.6;
+  padding: 3px 0 3px 18px;
+  position: relative;
+}
+
+.npo-bullets li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 11px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2E5D3A;
+  opacity: 0.4;
+}
+
+.npo-buy-btn {
+  background: #2E5D3A;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s ease;
+}
+
+.npo-buy-btn:hover {
+  background: #234a2e;
+}
+
+.npo-buy-btn:disabled {
+  background: #a0a0a0;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .npo-layout {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .npo-card {
+    padding: 20px 22px;
+  }
+}
+
+/* ========================================
    TREATMENT PAGES — SHARED STYLES
    ======================================== */
 

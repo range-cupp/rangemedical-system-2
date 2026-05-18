@@ -61,6 +61,22 @@ export default async function handler(req, res) {
       }
     }
 
+    // One-per-patient guard
+    if (patientId) {
+      const { data: priorOffer } = await supabase
+        .from('purchases')
+        .select('id')
+        .eq('patient_id', patientId)
+        .ilike('description', '%New Patient Offer%')
+        .limit(1);
+      if (priorOffer && priorOffer.length > 0) {
+        return res.status(409).json({
+          error: 'This email has already used a new patient offer. These are limited to one per patient.',
+          alreadyUsed: true,
+        });
+      }
+    }
+
     // Pick provider
     const picked = await pickProviderForSlot({
       serviceSlug: offer.serviceSlug,

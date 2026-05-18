@@ -1939,7 +1939,7 @@ p {
 .npo-price {
   font-size: 20px;
   font-weight: 800;
-  color: #2E5D3A;
+  color: #1a1a1a;
   letter-spacing: -0.01em;
 }
 
@@ -1965,12 +1965,12 @@ p {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #2E5D3A;
+  background: #1a1a1a;
   opacity: 0.4;
 }
 
 .npo-buy-btn {
-  background: #2E5D3A;
+  background: #1a1a1a;
   color: #fff;
   border: none;
   border-radius: 999px;
@@ -1983,7 +1983,7 @@ p {
 }
 
 .npo-buy-btn:hover {
-  background: #234a2e;
+  background: #000;
 }
 
 .npo-buy-btn:disabled {

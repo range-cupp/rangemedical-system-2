@@ -14,7 +14,7 @@ import { formatPhone } from '../../lib/format-utils';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
-const ACCENT = '#2E5D3A';
+const ACCENT = '#1a1a1a';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -80,6 +80,11 @@ function PaymentForm({ offer, contact, selectedSlot, onSuccess }) {
         }),
       });
       const piData = await piRes.json();
+      if (piData.alreadyUsed) {
+        setError('You\'ve already used a new patient offer. These are limited to one per patient.');
+        setProcessing(false);
+        return;
+      }
       if (!piRes.ok) throw new Error(piData.error || 'Payment failed');
 
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(piData.clientSecret, {
@@ -355,7 +360,7 @@ export default function OfferFunnel() {
             transition: background 0.2s; font-family: inherit; border-radius: 999px;
             margin-top: 16px; letter-spacing: 0.01em;
           }
-          .of-btn:hover:not(:disabled) { background: #234a2e; }
+          .of-btn:hover:not(:disabled) { background: #000; }
           .of-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
           .of-error {

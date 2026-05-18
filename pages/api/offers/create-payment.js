@@ -2,9 +2,14 @@
 // Creates a Stripe PaymentIntent for a new patient offer (embedded checkout).
 
 import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 import { getOfferById } from '../../../lib/offer-config';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -23,6 +28,23 @@ export default async function handler(req, res) {
   }
 
   try {
+    // One-per-patient: check if this email already purchased any new patient offer
+    const { data: existing } = await supabase
+      .from('purchases')
+      .select('id')
+      .ilike('description', '%New Patient Offer%')
+      .eq('patient_id', (
+        await supabase.from('patients').select('id').eq('email', email.toLowerCase()).maybeSingle()
+      ).data?.id || '00000000-0000-0000-0000-000000000000')
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return res.status(409).json({
+        error: 'It looks like you\'ve already used a new patient offer. These are limited to one per patient.',
+        alreadyUsed: true,
+      });
+    }
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: offer.priceCents,
       currency: 'usd',

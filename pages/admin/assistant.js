@@ -934,7 +934,7 @@ export default function AssistantPage() {
                 <div style={{ fontWeight: 600, fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Upcoming Appointments</div>
                 {appointments.slice(0, 5).map((a, i) => (
                   <div key={i} style={{ padding: '4px 0', fontSize: '12px' }}>
-                    <span style={{ fontWeight: 600 }}>{a.service}</span> — {new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })}
+                    <span style={{ fontWeight: 600 }}>{a.service}</span> — {a.date}
                   </div>
                 ))}
               </div>

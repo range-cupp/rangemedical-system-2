@@ -273,8 +273,9 @@ export default function AssistantPage() {
             || services.find(s => s.name?.toLowerCase().includes(item.name?.toLowerCase()));
         return {
           id: catalogMatch?.id || item.catalog_id || `ai-${Date.now()}`,
-          name: catalogMatch?.name || item.name,
-          price: catalogMatch?.price_cents || item.price_cents || 0,
+          name: item.name || catalogMatch?.name,
+          category: catalogMatch?.category || item.category || null,
+          price: item.price_cents || catalogMatch?.price_cents || 0,
           quantity: item.quantity || 1,
         };
       });

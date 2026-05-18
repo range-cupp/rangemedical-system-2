@@ -354,21 +354,33 @@ IV THERAPY:
 - Range IV signature drips (all $225): Signature, Immune Defense, Energy & Vitality, Muscle Recovery, Detox & Cellular Repair
 - Specialty IVs: NAD+ (250mg $375, 500mg $525, 750mg $650, 1000mg $775), Vitamin C (25g $215, 50g $255, 75g $330), Glutathione (1g $170, 2g $190, 3g $215), Methylene Blue ($450), MB+VitC+Mag Combo ($750)
 
-PEPTIDES — match to POS service by program + duration:
+PEPTIDES:
+Recovery peptides (use "Peptide Therapy — Recovery" entries):
 - BPC-157/TB4: 10 Day ($250), 20 Day ($450), 30 Day ($675)
 - Recovery 4-Blend (BPC/TB4/KPV/MGF): same pricing as BPC
 - KLOW (GHK-Cu/KPV/BPC/TB-4): same pricing as BPC
 - GLOW (GHK-Cu/BPC/TB-4): same pricing as BPC
-- GH Blends (2X, 3X, 4X): Phase 1/2/3, 30-day cycles ($400-$550 depending on blend/phase)
+
+GH Blends (use "Monthly" entries by price):
+- 2X CJC/Ipa: Phase 1 $400, Phase 2 $450, Phase 3 $500
+- 2X Tesa/Ipa: Phase 1 $400, Phase 2 $450, Phase 3 $500
+- 3X Tesa/MGF/Ipa: Phase 1 $425, Phase 2 $475, Phase 3 $525
+- 4X GHRP-2/Tesa/MGF/Ipa: Phase 1 $450, Phase 2 $500, Phase 3 $550
+
+Other peptides (use matching "Protocol" or named entry):
 - BDNF: Phase 1 ($150), Phase 2 ($200), Phase 3 ($250)
-- MOTS-C: 20 Day ($500), 30 Day ($500-$800)
+- MOTS-C: 20 Day Phase 1 ($500), 30 Day Phase 1 ($500), Phase 2 ($800)
 - NAD+ subcutaneous: 100mg 30 Day ($600), 50mg 30 Day ($600), 12 Week ($1500)
 - SS-31: 25 Day ($500/phase)
 - GHK-Cu standalone: 30 Day ($400)
 - Semax: 30 Day ($295)
 - AOD-9604: 30 Day ($400)
 - DSIP: 30 Day ($200)
-- Ask: which program, what duration, which phase (if applicable), take-home or in-clinic?
+- 5-Amino-1MQ / SLUPP: 30 Day ($197)
+- IGF-1 LR3: 7 Day ($200)
+
+Ask: which program, what duration, which phase (if applicable), take-home or in-clinic?
+IMPORTANT: Always set price_cents explicitly from these prices — do not rely on catalog price.
 
 INJECTIONS:
 - Standard ($35/ea): B12, B-Complex, B-12/B-Complex, Vitamin D3, Biotin, Amino Blend, BCAA, NAC
@@ -395,8 +407,10 @@ MATCHING RULES:
 - Common abbreviations: "tirz" = Tirzepatide, "sema" = Semaglutide, "reta" = Retatrutide, "test"/"test cyp" = Testosterone Cypionate, "NAD" = NAD+ IV or injection, "BPC" = BPC-157, "TB4" = TB-500/Thymosin Beta-4, "HBOT" = Hyperbaric Oxygen, "RLT" = Red Light Therapy, "HRT" = Hormone Replacement Therapy, "GH" = Growth Hormone blend
 - Use the catalog_id from the catalog listing when calling add_to_cart.
 - For weight loss: match by medication name + dose. Set quantity = number of injections (usually 4).
-- For peptides: match by program name + duration.
+- For peptides: find the closest catalog entry by sub_category + price. Always set price_cents from the decision tree above — the AI price takes priority over catalog price. Use a descriptive name like "BPC-157/TB4 — 30 Day" (not the generic catalog name).
 - For injections: match the specific type. If quantity >= 10, look for "Buy 10 Get 12" variant.
+- For HBOT: ask how many sessions. Single = $185, 5-Pack = $850, 10-Pack = $1600. Match the right catalog entry.
+- For RLT: ask how many sessions. Single = $85, 5-Pack = $375, 10-Pack = $600. Match the right catalog entry.
 
 CATALOG:
 ${catalog}`,

@@ -117,6 +117,28 @@ export default async function handler(req, res) {
     if (!newDate && !newLogType && !update_weight && !update_dose) {
       return res.status(400).json({ error: 'At least one field to update required' });
     }
+
+    // ── Dose edit block: dose edits on WL injection logs must match the protocol ──
+    if (update_dose && newDose) {
+      const { data: proto } = await supabase
+        .from('protocols')
+        .select('selected_dose, dose, current_dose')
+        .eq('id', id)
+        .single();
+      if (proto) {
+        const protocolDose = proto.selected_dose || proto.current_dose || proto.dose;
+        if (protocolDose) {
+          const normalize = (s) => s ? String(s).trim().toLowerCase().replace(/\s+/g, '') : '';
+          if (normalize(newDose) !== normalize(protocolDose)) {
+            return res.status(400).json({
+              error: `Cannot change dosage to ${newDose} — the protocol dose is ${protocolDose}. Dose changes require provider approval.`,
+              dose_mismatch: true,
+            });
+          }
+        }
+      }
+    }
+
     try {
       // Build update fields for service_logs
       const updateFields = {};
@@ -193,6 +215,21 @@ export default async function handler(req, res) {
     }
 
     const totalSessions = protocol.total_sessions || 4;
+
+    // ── Dose mismatch block: incoming dose must match the protocol's selected_dose ──
+    if (dose && !missed) {
+      const protocolDose = protocol.selected_dose || protocol.current_dose || protocol.dose;
+      if (protocolDose) {
+        const normalize = (s) => s ? String(s).trim().toLowerCase().replace(/\s+/g, '') : '';
+        if (normalize(dose) !== normalize(protocolDose)) {
+          return res.status(400).json({
+            error: `Cannot log injection at ${dose} — the protocol dose is ${protocolDose}. Dose changes require provider approval.`,
+            dose_mismatch: true,
+            protocol_dose: protocolDose,
+          });
+        }
+      }
+    }
 
     // Build log notes
     let logNotes = '';

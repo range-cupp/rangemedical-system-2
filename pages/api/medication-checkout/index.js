@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { generateReceiptHtml } from '../../../lib/receipt-email';
 import { todayPacific } from '../../../lib/date-utils';
-import { isWeightLossType } from '../../../lib/protocol-config';
+import { isWeightLossType, isHRTType } from '../../../lib/protocol-config';
 import { guardDoseChange } from '../../../lib/dose-change-guard';
 import { spawnTakeHomeInjections } from '../../../lib/spawn-takehome-injections';
 import { recountProtocolSessions } from '../../../lib/recount-protocol-sessions';
@@ -100,6 +100,46 @@ export default async function handler(req, res) {
   // but does not block the checkout — the approval gate is on the dose change, not here.
 
   const logDate = entry_date || todayPacific();
+
+  // ── HRT/WL dose mismatch BLOCK ──
+  // For HRT and weight loss, the dispensed dosage MUST match the protocol's selected_dose.
+  // Staff cannot check out a patient at a dose the provider hasn't approved.
+  const isProtectedCheckout = isWeightLossType(category) || category === 'weight_loss' || isHRTType(category) || category === 'hrt' || category === 'testosterone';
+  if (isProtectedCheckout && dosage) {
+    let pQuery = supabase
+      .from('protocols')
+      .select('id, selected_dose, dose, current_dose, program_type')
+      .eq('patient_id', patient_id)
+      .not('status', 'in', '("completed","cancelled")');
+    if (protocol_id) {
+      pQuery = pQuery.eq('id', protocol_id);
+    } else {
+      const wlTypes = ['weight_loss', 'glp1', 'tirzepatide', 'semaglutide', 'retatrutide'];
+      const hrtTypes = ['hrt', 'trt', 'hormone_therapy', 'testosterone'];
+      if (isWeightLossType(category) || category === 'weight_loss') {
+        pQuery = pQuery.in('program_type', wlTypes);
+      } else {
+        pQuery = pQuery.in('program_type', hrtTypes);
+      }
+    }
+    const { data: pRows } = await pQuery.order('created_at', { ascending: false }).limit(1);
+    const activeProto = pRows?.[0];
+    if (activeProto) {
+      const protocolDose = activeProto.selected_dose || activeProto.current_dose || activeProto.dose;
+      if (protocolDose) {
+        const normalize = (s) => s ? String(s).trim().toLowerCase().replace(/\s+/g, '') : '';
+        if (normalize(dosage) !== normalize(protocolDose)) {
+          const typeLabel = isWeightLossType(category) || category === 'weight_loss' ? 'Weight Loss' : 'HRT';
+          return res.status(400).json({
+            error: `Cannot dispense at ${dosage} — the protocol dose is ${protocolDose}. ${typeLabel} dose changes require provider approval. Use the Dose Change modal on the patient profile to request a change first.`,
+            dose_mismatch: true,
+            protocol_dose: protocolDose,
+            attempted_dose: dosage,
+          });
+        }
+      }
+    }
+  }
 
   // Determine if this is an in-clinic purchase (not a take-home pickup)
   // For in-clinic: checkout only sets available injections on the protocol.

@@ -88,31 +88,24 @@ export default async function handler(req, res) {
 
     // ── Dose change approval check (HRT / weight loss) ──
     // Policy:
-    //   - WL: ALL dose changes require a valid approved_dose_change_request_id.
-    //   - HRT: INCREASES require approval; decreases are allowed.
+    //   - WL: ALL dose changes require provider approval.
+    //   - HRT: ALL dose changes (increases AND decreases) require provider approval.
     // An approved dose_change_requests row is the only valid authorization.
+    // Only Brendyn and Damien can approve.
     const isHRT = isHRTType(current.program_type);
     const isWL = isWeightLossType(current.program_type);
     if (isHRT || isWL) {
       const providerBypass = editor_email && canApproveDoseChange(editor_email);
 
-      const oldMl = parseMlFromDose(current.selected_dose);
-      const newMl = parseMlFromDose(selected_dose);
-      const oldIpw = current.injections_per_week || 2;
-
-      const isDoseIncrease =
-        (newMl && oldMl && newMl > oldMl) ||
-        (newIpw > oldIpw) ||
-        (newMl && oldMl && newMl === oldMl && newIpw > oldIpw);
-
-      const needsApproval = isWL || (isHRT && isDoseIncrease);
+      // ALL dose changes for HRT and WL require approval — no exceptions
+      const needsApproval = true;
 
       if (needsApproval && !providerBypass) {
         if (!approved_dose_change_request_id) {
           return res.status(400).json({
             error: isWL
-              ? 'Weight-loss dose changes require Dr. Burgess approval. Use the Dose Change modal on the patient profile to send an approval request.'
-              : 'HRT dose increases require Dr. Burgess approval. Use the Dose Change modal on the patient profile to send an approval request.',
+              ? 'Weight-loss dose changes require provider approval. Use the Dose Change modal on the patient profile to send an approval request.'
+              : 'HRT dose changes require provider approval. Use the Dose Change modal on the patient profile to send an approval request.',
             requires_approval: true,
           });
         }

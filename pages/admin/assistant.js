@@ -1417,7 +1417,7 @@ export default function AssistantPage() {
                   style={{ padding: '8px 12px', border: '1px solid #e0e0e0', borderRadius: '999px', fontSize: '13px', background: '#fff', color: '#1a1a1a' }}
                 >
                   <option value="damien">Dr. Damien</option>
-                  <option value="evan">Evan</option>
+                  <option value="brendyn">Brendyn</option>
                 </select>
                 <button
                   onClick={() => {

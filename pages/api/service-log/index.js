@@ -10,7 +10,7 @@
 // 4. Returns feedback about what happened
 
 import { createClient } from '@supabase/supabase-js';
-import { isWeightLossType } from '../../../lib/protocol-config';
+import { isWeightLossType, isHRTType } from '../../../lib/protocol-config';
 import { createProtocol } from '../../../lib/create-protocol';
 import { todayPacific } from '../../../lib/date-utils';
 import { guardDoseChange } from '../../../lib/dose-change-guard';
@@ -304,6 +304,48 @@ async function handlePost(req, res) {
         });
       }
     }
+    // ── HRT/WL dose mismatch block ──
+    // For HRT and weight loss, the logged dosage MUST match the protocol's selected_dose.
+    // Staff cannot dispense or log at a different dose than what the provider approved.
+    const isProtectedCategory = isWeightLossType(category) || category === 'weight_loss' || isHRTType(category) || category === 'hrt';
+    if (isProtectedCategory && dosage && ['injection', 'pickup'].includes(resolvedEntryType)) {
+      // Find the active protocol for this patient + category
+      let protocolQuery = supabase
+        .from('protocols')
+        .select('id, selected_dose, dose, current_dose, program_type')
+        .eq('patient_id', patient_id)
+        .not('status', 'in', '("completed","cancelled")');
+      if (protocol_id) {
+        protocolQuery = protocolQuery.eq('id', protocol_id);
+      } else {
+        // Match by category
+        const wlTypes = ['weight_loss', 'glp1', 'tirzepatide', 'semaglutide', 'retatrutide'];
+        const hrtTypes = ['hrt', 'trt', 'hormone_therapy'];
+        if (isWeightLossType(category) || category === 'weight_loss') {
+          protocolQuery = protocolQuery.in('program_type', wlTypes);
+        } else {
+          protocolQuery = protocolQuery.in('program_type', hrtTypes);
+        }
+      }
+      const { data: protocolRows } = await protocolQuery.order('created_at', { ascending: false }).limit(1);
+      const activeProtocol = protocolRows?.[0];
+      if (activeProtocol) {
+        const protocolDose = activeProtocol.selected_dose || activeProtocol.current_dose || activeProtocol.dose;
+        if (protocolDose) {
+          const normalize = (s) => s ? String(s).trim().toLowerCase().replace(/\s+/g, '') : '';
+          if (normalize(dosage) !== normalize(protocolDose)) {
+            return res.status(400).json({
+              success: false,
+              dose_mismatch: true,
+              error: `Cannot log at ${dosage} — the protocol dose is ${protocolDose}. Dose changes for ${isHRTType(category) || category === 'hrt' ? 'HRT' : 'Weight Loss'} require provider approval. Use the Dose Change modal on the patient profile to request a change.`,
+              protocol_dose: protocolDose,
+              attempted_dose: dosage,
+            });
+          }
+        }
+      }
+    }
+
     const logData = {
       patient_id,
       category,
@@ -660,6 +702,56 @@ async function handlePut(req, res) {
   } = req.body;
 
   try {
+    // ── HRT/WL dose mismatch block on edit ──
+    // If dosage is being changed on an HRT or WL entry, it must match the protocol.
+    if (dosage) {
+      const { data: existingLog } = await supabase
+        .from('service_logs')
+        .select('category, entry_type, patient_id, protocol_id')
+        .eq('id', id)
+        .single();
+
+      if (existingLog) {
+        const cat = existingLog.category;
+        const isProtectedEdit = isWeightLossType(cat) || cat === 'weight_loss' || isHRTType(cat) || cat === 'hrt';
+        if (isProtectedEdit && ['injection', 'pickup'].includes(existingLog.entry_type)) {
+          let pQuery = supabase
+            .from('protocols')
+            .select('id, selected_dose, dose, current_dose, program_type')
+            .eq('patient_id', existingLog.patient_id)
+            .not('status', 'in', '("completed","cancelled")');
+          if (existingLog.protocol_id) {
+            pQuery = pQuery.eq('id', existingLog.protocol_id);
+          } else {
+            const wlTypes = ['weight_loss', 'glp1', 'tirzepatide', 'semaglutide', 'retatrutide'];
+            const hrtTypes = ['hrt', 'trt', 'hormone_therapy'];
+            if (isWeightLossType(cat) || cat === 'weight_loss') {
+              pQuery = pQuery.in('program_type', wlTypes);
+            } else {
+              pQuery = pQuery.in('program_type', hrtTypes);
+            }
+          }
+          const { data: pRows } = await pQuery.order('created_at', { ascending: false }).limit(1);
+          const proto = pRows?.[0];
+          if (proto) {
+            const protocolDose = proto.selected_dose || proto.current_dose || proto.dose;
+            if (protocolDose) {
+              const normalize = (s) => s ? String(s).trim().toLowerCase().replace(/\s+/g, '') : '';
+              if (normalize(dosage) !== normalize(protocolDose)) {
+                return res.status(400).json({
+                  success: false,
+                  dose_mismatch: true,
+                  error: `Cannot change dosage to ${dosage} — the protocol dose is ${protocolDose}. Dose changes require provider approval.`,
+                  protocol_dose: protocolDose,
+                  attempted_dose: dosage,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
     const updateData = {
       entry_date: entry_date || null,
       medication: medication || null,

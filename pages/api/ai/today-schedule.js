@@ -3,6 +3,8 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { CONSENT_TYPE_TO_FORM_ID } from '../../../lib/form-bundles';
+import { REQUIRED_FORMS } from '../../../lib/appointment-services';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -72,7 +74,8 @@ export default async function handler(req, res) {
         .eq('consent_given', true);
       for (const c of (consents || [])) {
         if (!consentsByPatient[c.patient_id]) consentsByPatient[c.patient_id] = new Set();
-        consentsByPatient[c.patient_id].add(c.consent_type);
+        const formId = CONSENT_TYPE_TO_FORM_ID[c.consent_type] || c.consent_type;
+        consentsByPatient[c.patient_id].add(formId);
       }
 
       // Also check intakes table — intake records live there, not in consents
@@ -86,21 +89,11 @@ export default async function handler(req, res) {
       }
     }
 
-    const REQUIRED_BY_CATEGORY = {
-      hrt: ['intake', 'hipaa', 'hrt'],
-      weight_loss: ['intake', 'hipaa', 'weight-loss'],
-      iv_therapy: ['intake', 'hipaa', 'iv'], iv: ['intake', 'hipaa', 'iv'],
-      peptide: ['intake', 'hipaa', 'peptide'],
-      hbot: ['intake', 'hipaa', 'hbot'],
-      rlt: ['intake', 'hipaa', 'red-light'], red_light: ['intake', 'hipaa', 'red-light'],
-      injection: ['intake', 'hipaa'],
-    };
-
     const formatted = (appointments || []).map(a => {
       const signed = consentsByPatient[a.patient_id] || new Set();
       const hasIntake = signed.has('intake');
       const hasHipaa = signed.has('hipaa');
-      const required = REQUIRED_BY_CATEGORY[a.service_category] || ['intake', 'hipaa'];
+      const required = REQUIRED_FORMS[a.service_category] || ['intake', 'hipaa'];
       const missing = required.filter(r => !signed.has(r));
 
       return {

@@ -703,6 +703,12 @@ export default function AssistantPage() {
     if (tr.tool === 'cancel_appointment' && tr.result.success) return `Cancelled ${tr.result.patient_name}'s ${tr.result.service} at ${tr.result.time}`;
     if (tr.tool === 'lookup_lab_results' && tr.result.labs) return `${tr.result.summary.total} lab records (${tr.result.summary.completed} completed, ${tr.result.summary.pending} pending). Next lab: ${tr.result.summary.next_lab || 'not scheduled'}`;
     if (tr.tool === 'lookup_membership' && tr.result.memberships) return `${tr.result.summary.active_count} active membership(s): ${tr.result.summary.active_names}`;
+    if (tr.tool === 'lookup_patient_records' && tr.result.protocols) {
+      const protos = tr.result.protocols.map(p => p.medication || p.program).join(', ');
+      const apptCount = (tr.result.appointments || []).length;
+      const visitCount = (tr.result.recentVisits || []).length;
+      return `Patient records card is shown with ${tr.result.protocols.length} protocol(s)${protos ? ': ' + protos : ''}, ${apptCount} upcoming appointment(s), ${visitCount} recent visit(s). The details are displayed visually — do NOT repeat them in text. Just say something brief like "Here's their info" or answer the specific question they asked.`;
+    }
     if (tr.tool === 'lookup_consent_forms' && tr.result.forms) return `${tr.result.summary.total_signed} consent forms signed. Intake: ${tr.result.summary.has_intake ? 'yes' : 'NO'}, HIPAA: ${tr.result.summary.has_hipaa ? 'yes' : 'NO'}. Health screening data included for forms that have it.`;
     if (tr.tool === 'lookup_intake_data' && tr.result.has_intake) return `Intake form found (submitted ${tr.result.submitted_at}). Allergies: ${tr.result.allergies.has_allergies}${tr.result.allergies.list ? ' — ' + tr.result.allergies.list : ''}. Medications: ${tr.result.medications.on_medications}${tr.result.medications.current_list ? ' — ' + tr.result.medications.current_list : ''}. HRT: ${tr.result.medications.on_hrt}.`;
     if (tr.tool === 'lookup_intake_data' && !tr.result.has_intake) return 'No intake form found for this patient.';

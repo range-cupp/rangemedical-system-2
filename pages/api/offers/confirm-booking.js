@@ -7,6 +7,7 @@ import { Resend } from 'resend';
 import { getOfferById } from '../../../lib/offer-config';
 import { createAppointment, CreateAppointmentError } from '../../../lib/create-appointment';
 import { pickProviderForSlot } from '../../../lib/scheduling';
+import { createFormBundle, FORM_DEFINITIONS } from '../../../lib/form-bundles';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -169,6 +170,73 @@ export default async function handler(req, res) {
       subject: `New Patient Offer: ${patientName} — ${offer.name}`,
       html: staffHtml,
     }).catch(err => console.error('Staff email error (non-fatal):', err));
+
+    // Send consent forms + medical intake to patient
+    if (email) {
+      const formIds = ['intake', ...offer.consentTypes];
+      const formList = formIds
+        .filter(id => FORM_DEFINITIONS[id])
+        .map(id => `<li style="padding:4px 0;color:#525252;">${FORM_DEFINITIONS[id].name} <span style="color:#a0a0a0;">(${FORM_DEFINITIONS[id].time})</span></li>`)
+        .join('');
+
+      createFormBundle({
+        formIds,
+        patientId,
+        patientName,
+        patientEmail: email.toLowerCase(),
+        patientPhone: phone || null,
+        metadata: { source: 'new_patient_offer', offerId: offer.id },
+      }).then(bundle => {
+        const apptDateStr = startDate.toLocaleString('en-US', {
+          weekday: 'long', month: 'long', day: 'numeric',
+          hour: 'numeric', minute: '2-digit',
+          timeZone: 'America/Los_Angeles',
+        });
+
+        const patientHtml = `
+          <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;">
+            <div style="background:#000;padding:24px;text-align:center;">
+              <h1 style="margin:0;color:#fff;font-size:20px;letter-spacing:0.1em;">RANGE MEDICAL</h1>
+            </div>
+            <div style="padding:30px;background:#fff;">
+              <p style="margin:0 0 20px;color:#171717;font-size:16px;line-height:1.6;">
+                Hi ${firstName},
+              </p>
+              <p style="margin:0 0 20px;color:#525252;font-size:15px;line-height:1.6;">
+                Your <strong>${offer.name}</strong> is booked for <strong>${apptDateStr}</strong>. Before your visit, please complete the following forms:
+              </p>
+              <ul style="margin:0 0 24px;padding-left:20px;line-height:1.8;font-size:14px;">
+                ${formList}
+              </ul>
+              <div style="text-align:center;margin:28px 0;">
+                <a href="${bundle.url}" style="display:inline-block;padding:14px 36px;background:#1a1a1a;color:#fff;text-decoration:none;font-size:15px;font-weight:700;border-radius:999px;letter-spacing:0.01em;">
+                  Complete Your Forms
+                </a>
+              </div>
+              <p style="margin:0 0 12px;color:#a0a0a0;font-size:13px;line-height:1.5;text-align:center;">
+                Takes about ${formIds.reduce((sum, id) => sum + (parseInt(FORM_DEFINITIONS[id]?.time) || 5), 0)} minutes total. Please complete before your appointment.
+              </p>
+              <div style="border-top:1px solid #e5e5e5;padding-top:20px;margin-top:24px;">
+                <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Location</p>
+                <p style="margin:0;color:#171717;font-size:14px;font-weight:600;">Range Medical</p>
+                <p style="margin:4px 0 0;color:#525252;font-size:14px;">1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660</p>
+              </div>
+            </div>
+            <div style="background:#fafafa;padding:20px;text-align:center;border-top:2px solid #e5e5e5;">
+              <p style="margin:0;color:#737373;font-size:12px;">Questions? Call or text (949) 997-3988</p>
+            </div>
+          </div>
+        `;
+
+        resend.emails.send({
+          from: 'Range Medical <noreply@range-medical.com>',
+          replyTo: 'info@range-medical.com',
+          to: [email.toLowerCase()],
+          subject: `Your forms for ${offer.name} — please complete before your visit`,
+          html: patientHtml,
+        }).catch(err => console.error('Patient forms email error (non-fatal):', err));
+      }).catch(err => console.error('Form bundle creation error (non-fatal):', err));
+    }
 
     return res.status(200).json({
       success: true,

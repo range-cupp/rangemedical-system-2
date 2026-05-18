@@ -267,7 +267,13 @@ export default function Home() {
                   <div key={offer.id} className="npo-card">
                     <div className="npo-card-header">
                       <h4>{offer.name}</h4>
-                      <span className="npo-price">{offer.priceDisplay}</span>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '14px', color: '#a0a0a0', textDecoration: 'line-through', marginRight: 6 }}>{offer.regularPriceDisplay}</span>
+                        <span className="npo-price">{offer.priceDisplay}</span>
+                        <div style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600, marginTop: 2 }}>
+                          Save ${(offer.regularPriceCents - offer.priceCents) / 100}
+                        </div>
+                      </div>
                     </div>
                     <ul className="npo-bullets">
                       {offer.bullets.map((b, i) => (

@@ -112,7 +112,10 @@ function PaymentForm({ offer, contact, selectedSlot, onSuccess }) {
       <div style={styles.summaryBox}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <span style={{ fontWeight: 600, fontSize: '15px' }}>{offer.name}</span>
-          <span style={{ fontWeight: 700, fontSize: '17px', color: ACCENT }}>{offer.priceDisplay}</span>
+          <div>
+            <span style={{ fontSize: '13px', color: '#a0a0a0', textDecoration: 'line-through', marginRight: 6 }}>{offer.regularPriceDisplay}</span>
+            <span style={{ fontWeight: 700, fontSize: '17px', color: ACCENT }}>{offer.priceDisplay}</span>
+          </div>
         </div>
         <p style={{ fontSize: '13px', color: '#737373', margin: '6px 0 0' }}>
           {formatSlotFull(selectedSlot)}
@@ -403,7 +406,13 @@ export default function OfferFunnel() {
           <p className="of-eyebrow">New Patient Offer &middot; Newport Beach</p>
           <h1>{offer.name}</h1>
           <p className="of-sub">{offer.shortDescription}</p>
-          <span className="of-price-tag">{offer.priceDisplay}</span>
+          <div style={{ margin: '0 0 20px' }}>
+            <span style={{ fontSize: '18px', color: '#a0a0a0', textDecoration: 'line-through', marginRight: 8 }}>{offer.regularPriceDisplay}</span>
+            <span className="of-price-tag" style={{ margin: 0 }}>{offer.priceDisplay}</span>
+            <span style={{ display: 'inline-block', fontSize: '13px', color: '#16a34a', fontWeight: 600, marginLeft: 10 }}>
+              Save ${(offer.regularPriceCents - offer.priceCents) / 100}
+            </span>
+          </div>
           <ul className="of-bullets">
             {offer.bullets.map((b, i) => <li key={i}>{b}</li>)}
           </ul>

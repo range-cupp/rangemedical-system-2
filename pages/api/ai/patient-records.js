@@ -55,22 +55,35 @@ export default async function handler(req, res) {
         .single(),
     ]);
 
-    const protocols = (protocolRes.data || []).map(p => ({
-      program: p.program_name || p.program_type,
-      medication: p.medication,
-      status: p.status,
-      dose: p.current_dose || p.selected_dose || p.dose,
-      frequency: p.frequency || p.visit_frequency,
-      delivery: p.delivery_method,
-      next_date: p.next_expected_date,
-      last_visit: p.last_visit_date,
-      last_refill: p.last_refill_date,
-      supply_dispensed: p.supply_dispensed_date,
-      supply_remaining: p.supply_remaining,
-      sessions_total: p.total_sessions,
-      sessions_used: p.sessions_used,
-      secondary_meds: p.secondary_medications,
-    }));
+    const protocols = (protocolRes.data || []).map(p => {
+      // Parse secondary medications (stored as JSON string or array)
+      let secondaryMeds = [];
+      if (p.secondary_medications) {
+        try {
+          secondaryMeds = typeof p.secondary_medications === 'string'
+            ? JSON.parse(p.secondary_medications)
+            : (Array.isArray(p.secondary_medications) ? p.secondary_medications : []);
+        } catch { secondaryMeds = []; }
+      }
+      return {
+        id: p.id,
+        program: p.program_name || p.program_type,
+        program_type: p.program_type,
+        medication: p.medication,
+        status: p.status,
+        dose: p.current_dose || p.selected_dose || p.dose,
+        frequency: p.frequency || p.visit_frequency,
+        delivery: p.delivery_method,
+        next_date: p.next_expected_date,
+        last_visit: p.last_visit_date,
+        last_refill: p.last_refill_date,
+        supply_dispensed: p.supply_dispensed_date,
+        supply_remaining: p.supply_remaining,
+        sessions_total: p.total_sessions,
+        sessions_used: p.sessions_used,
+        secondary_meds: secondaryMeds,
+      };
+    });
 
     const appointments = (appointmentRes.data || []).map(a => ({
       service: a.service_name,

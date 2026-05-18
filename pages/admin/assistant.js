@@ -995,31 +995,112 @@ export default function AssistantPage() {
       const secLabel = (text) => (
         <div style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.12em', color: '#737373', textTransform: 'uppercase', marginBottom: '10px', paddingBottom: '6px', borderBottom: '1px solid #e0e0e0' }}>{text}</div>
       );
+
+      // Build unified medications list from protocols (primary + secondary)
+      const medications = [];
+      for (const p of protocols) {
+        if (p.medication) {
+          medications.push({
+            name: p.medication,
+            dose: p.dose,
+            frequency: p.frequency,
+            delivery: p.delivery,
+            program: p.program,
+            program_type: p.program_type,
+            next_date: p.next_date,
+            last_refill: p.last_refill,
+            isPrimary: true,
+          });
+        }
+        if (p.secondary_meds && Array.isArray(p.secondary_meds)) {
+          for (const sm of p.secondary_meds) {
+            if (sm.medication || sm.name) {
+              medications.push({
+                name: sm.medication || sm.name,
+                dose: sm.dose || sm.current_dose,
+                frequency: sm.frequency,
+                delivery: sm.delivery_method || sm.delivery,
+                program: p.program,
+                program_type: p.program_type,
+                isPrimary: false,
+              });
+            }
+          }
+        }
+        // Protocols without a medication (like "Cellular Energy Reset") show as programs
+        if (!p.medication && p.program) {
+          medications.push({
+            name: p.program,
+            dose: p.dose,
+            frequency: p.frequency,
+            delivery: p.delivery,
+            program_type: p.program_type,
+            next_date: p.next_date,
+            isProgram: true,
+          });
+        }
+      }
+
       return (
         <div style={st.toolCard}>
           <div style={st.toolCardHeader}><User size={14} /> Patient Records</div>
           <div style={{ padding: '16px' }}>
-            {protocols.length > 0 && (
+
+            {/* Medications — the primary section providers care about */}
+            {medications.length > 0 && (
               <div style={{ marginBottom: '20px' }}>
-                {secLabel('Active Protocols')}
+                {secLabel('Medications')}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {protocols.map((p, i) => (
-                    <div key={i} style={{ padding: '10px 14px', background: '#FAF9F6', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
-                      <div style={{ fontWeight: 600, fontSize: '14px', color: '#1a1a1a' }}>{p.medication || p.program}</div>
-                      {(p.dose || p.frequency) && (
-                        <div style={{ fontSize: '13px', color: '#737373', marginTop: '3px' }}>
-                          {[p.dose, p.frequency].filter(Boolean).join(', ')}
+                  {medications.map((m, i) => (
+                    <div key={i} style={{ padding: '12px 14px', background: '#FAF9F6', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: '14px', color: '#1a1a1a' }}>{m.name}</div>
+                          {(m.dose || m.frequency || m.delivery) && (
+                            <div style={{ fontSize: '13px', color: '#737373', marginTop: '3px' }}>
+                              {[m.dose, m.frequency, m.delivery].filter(Boolean).join(' · ')}
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', gap: '10px', marginTop: '5px', flexWrap: 'wrap' }}>
+                            {m.program && !m.isProgram && <span style={{ fontSize: '12px', color: '#a0a0a0' }}>{m.program}</span>}
+                            {m.next_date && <span style={{ fontSize: '12px', fontWeight: 500, color: '#404040' }}>Next: {new Date(m.next_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
+                            {m.last_refill && <span style={{ fontSize: '12px', color: '#737373' }}>Last refill: {new Date(m.last_refill + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
+                          </div>
                         </div>
-                      )}
-                      <div style={{ display: 'flex', gap: '12px', marginTop: '5px' }}>
-                        {p.next_date && <span style={{ fontSize: '12px', fontWeight: 500, color: '#404040' }}>Next: {new Date(p.next_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
-                        {p.last_refill && <span style={{ fontSize: '12px', color: '#737373' }}>Last refill: {new Date(p.last_refill + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
+                        {!m.isProgram && (
+                          <button
+                            onClick={() => { setInput(`Change ${m.name}${m.dose ? ' ' + m.dose : ''} to `); inputRef.current?.focus(); }}
+                            style={{ padding: '4px 10px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: '999px', fontSize: '11px', color: '#737373', cursor: 'pointer', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}
+                          >
+                            Change
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
+
+            {/* Prescriptions (if any exist beyond protocol meds) */}
+            {prescriptions && prescriptions.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                {secLabel('Prescriptions')}
+                <div style={{ border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden' }}>
+                  {prescriptions.map((rx, i) => (
+                    <div key={i} style={{ padding: '10px 14px', borderBottom: i < prescriptions.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
+                      <div style={{ fontWeight: 600, fontSize: '14px', color: '#1a1a1a' }}>
+                        {rx.medication}
+                        {rx.strength && <span style={{ fontWeight: 400, color: '#737373' }}> {rx.strength}</span>}
+                      </div>
+                      {rx.sig && <div style={{ fontSize: '13px', color: '#737373', marginTop: '3px' }}>{rx.sig}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Upcoming Appointments */}
             {appointments.length > 0 && (
               <div style={{ marginBottom: '20px' }}>
                 {secLabel('Upcoming Appointments')}
@@ -1033,6 +1114,8 @@ export default function AssistantPage() {
                 </div>
               </div>
             )}
+
+            {/* Recent Visits */}
             {recentVisits.length > 0 && (
               <div>
                 {secLabel('Recent Visits')}
@@ -1048,6 +1131,7 @@ export default function AssistantPage() {
                 </div>
               </div>
             )}
+
             {protocols.length === 0 && appointments.length === 0 && recentVisits.length === 0 && (
               <div style={{ color: '#a0a0a0', fontSize: '14px' }}>No active records found for this patient.</div>
             )}

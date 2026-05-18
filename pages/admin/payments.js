@@ -1465,26 +1465,35 @@ export default function PaymentsPage() {
           ) : (
             (() => {
               const CATEGORY_ORDER = [
-                'programs', 'combo_membership', 'hbot', 'red_light', 'hrt', 'weight_loss',
-                'iv_therapy', 'specialty_iv', 'injection_standard', 'injection_premium',
-                'injection_pack', 'nad_injection', 'peptide', 'labs', 'assessment', 'gift_card', 'custom',
+                'recovery', 'combo_membership', 'hbot', 'red_light', 'hrt', 'weight_loss',
+                'peptide', 'vials', 'longevity',
+                'iv_therapy', 'specialty_iv',
+                'injection_standard', 'injection_premium', 'injection_pack', 'nad_injection',
+                'labs', 'assessment', 'prp', 'packages',
+                'supplements', 'other', 'gift_card', 'custom',
               ];
               const CATEGORY_LABELS = {
-                programs: 'Programs',
+                recovery: 'Recovery Programs',
                 combo_membership: 'Combo Memberships',
                 hbot: 'HBOT',
                 red_light: 'Red Light Therapy',
                 hrt: 'HRT',
                 weight_loss: 'Weight Loss',
+                peptide: 'Peptides',
+                vials: 'Vials',
+                longevity: 'Longevity',
                 iv_therapy: 'IV Therapy',
                 specialty_iv: 'Specialty IVs',
                 injection_standard: 'Standard Injections',
                 injection_premium: 'Premium Injections',
                 injection_pack: 'Injection Packs',
                 nad_injection: 'NAD+ Injections',
-                peptide: 'Peptides',
                 labs: 'Lab Panels',
                 assessment: 'Assessment',
+                prp: 'PRP',
+                packages: 'Packages',
+                supplements: 'Supplements',
+                other: 'Other',
                 gift_card: 'Gift Cards',
                 custom: 'Custom',
               };
@@ -1526,7 +1535,9 @@ export default function PaymentsPage() {
                                   ${(service.price / 100).toLocaleString('en-US', { minimumFractionDigits: 0 })}
                                 </span>
                                 {service.recurring && (
-                                  <span style={styles.productRecurring}>/mo</span>
+                                  <span style={styles.productRecurring}>
+                                    {['combo_membership', 'hbot', 'red_light', 'recovery'].includes(service.category) ? '/4 wks' : '/mo'}
+                                  </span>
                                 )}
                               </div>
                             </div>

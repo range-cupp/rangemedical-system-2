@@ -900,33 +900,33 @@ export default function AssistantPage() {
     if (tr.tool === 'draft_email' && tr.result.draft) {
       const d = tr.result;
       return (
-        <div style={{ ...st.toolCard, borderColor: d.sent ? '#86efac' : '#c7d2fe' }}>
+        <div style={{ ...st.toolCard, borderColor: d.sent ? '#86efac' : '#e0e0e0' }}>
           <div style={st.toolCardHeader}>
             <Mail size={14} /> {d.sent ? 'Email Sent' : 'Email Draft'}
           </div>
-          <div style={{ padding: '10px 12px', fontSize: '13px' }}>
-            <div style={{ marginBottom: '6px' }}>
-              <span style={{ color: '#6b7280', fontSize: '12px' }}>To: </span>
-              <span style={{ fontWeight: 500 }}>{d.to_name ? `${d.to_name} <${d.to}>` : d.to}</span>
-            </div>
+          <div style={{ padding: '16px', fontSize: '14px' }}>
             <div style={{ marginBottom: '8px' }}>
-              <span style={{ color: '#6b7280', fontSize: '12px' }}>Subject: </span>
-              <span style={{ fontWeight: 600 }}>{d.subject}</span>
+              <span style={{ color: '#737373', fontSize: '12px' }}>To: </span>
+              <span style={{ fontWeight: 500, color: '#1a1a1a' }}>{d.to_name ? `${d.to_name} <${d.to}>` : d.to}</span>
             </div>
-            <div style={{ padding: '10px 12px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', whiteSpace: 'pre-wrap', lineHeight: '1.5', fontSize: '13px', color: '#374151' }}>
+            <div style={{ marginBottom: '10px' }}>
+              <span style={{ color: '#737373', fontSize: '12px' }}>Subject: </span>
+              <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{d.subject}</span>
+            </div>
+            <div style={{ padding: '14px 16px', background: '#FAF9F6', border: '1px solid #e0e0e0', borderRadius: '8px', whiteSpace: 'pre-wrap', lineHeight: '1.6', fontSize: '14px', color: '#1a1a1a' }}>
               {d.body}
             </div>
             {!d.sent && (
               <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                 <button
                   onClick={() => sendDraftEmail(d)}
-                  style={{ padding: '7px 16px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  style={{ padding: '8px 20px', background: '#1a1a1a', color: '#fff', border: 'none', borderRadius: '999px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <Send size={13} /> Send Email
                 </button>
                 <button
                   onClick={() => { setInput(`Edit email: change the subject to... and the body to...`); inputRef.current?.focus(); }}
-                  style={{ padding: '7px 16px', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}
+                  style={{ padding: '8px 20px', background: '#fff', color: '#1a1a1a', border: '1px solid #e0e0e0', borderRadius: '999px', fontSize: '13px', cursor: 'pointer', fontWeight: 500 }}
                 >
                   Edit
                 </button>
@@ -955,11 +955,11 @@ export default function AssistantPage() {
       return (
         <div style={{ ...st.toolCard, borderColor: '#86efac' }}>
           <div style={st.toolCardHeader}><FileText size={14} /> Note Added</div>
-          <div style={{ padding: '8px 12px', fontSize: '13px' }}>
-            <div style={{ fontWeight: 600, fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
-              {tr.result.patient_name} — {tr.result.note_category === 'clinical' ? 'Clinical' : 'Internal'} Note
+          <div style={{ padding: '16px' }}>
+            <div style={{ fontWeight: 500, fontSize: '12px', color: '#737373', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px' }}>
+              {tr.result.patient_name} — {tr.result.note_category === 'clinical' ? 'Clinical' : 'Internal'}
             </div>
-            <div style={{ padding: '8px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', whiteSpace: 'pre-wrap', lineHeight: '1.5', fontSize: '13px', color: '#374151' }}>
+            <div style={{ padding: '12px 14px', background: '#FAF9F6', border: '1px solid #e0e0e0', borderRadius: '8px', whiteSpace: 'pre-wrap', lineHeight: '1.6', fontSize: '14px', color: '#1a1a1a' }}>
               {tr.result.note_text}
             </div>
           </div>
@@ -971,16 +971,16 @@ export default function AssistantPage() {
     }
     if (tr.tool === 'create_task' && tr.result.success) {
       const t = tr.result.task;
-      const priorityColors = { high: { bg: '#fee2e2', text: '#dc2626' }, medium: { bg: '#fef3c7', text: '#92400e' }, low: { bg: '#f3f4f6', text: '#6b7280' } };
+      const priorityColors = { high: { bg: '#fff', text: '#dc2626', border: '#dc2626' }, medium: { bg: '#fff', text: '#92400e', border: '#e0e0e0' }, low: { bg: '#fff', text: '#737373', border: '#e0e0e0' } };
       const pc = priorityColors[t.priority] || priorityColors.medium;
       return (
         <div style={{ ...st.toolCard, borderColor: '#86efac' }}>
           <div style={st.toolCardHeader}><CheckSquare size={14} /> Task Created</div>
-          <div style={{ padding: '8px 12px', fontSize: '13px' }}>
-            <div style={{ fontWeight: 600, marginBottom: '4px' }}>{t.title}</div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12px', color: '#6b7280' }}>
-              <span>Assigned to <span style={{ fontWeight: 600, color: '#111827' }}>{tr.result.assigned_to_name}</span></span>
-              <span style={{ ...st.badge, background: pc.bg, color: pc.text }}>{t.priority}</span>
+          <div style={{ padding: '16px' }}>
+            <div style={{ fontWeight: 600, fontSize: '15px', color: '#1a1a1a', marginBottom: '8px' }}>{t.title}</div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px', color: '#737373' }}>
+              <span>Assigned to <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{tr.result.assigned_to_name}</span></span>
+              <span style={{ ...st.badge, background: pc.bg, color: pc.text, border: `1px solid ${pc.border}` }}>{t.priority}</span>
               {t.due_date && <span>Due {new Date(t.due_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
             </div>
           </div>
@@ -992,49 +992,64 @@ export default function AssistantPage() {
     }
     if (tr.tool === 'lookup_patient_records' && tr.result.protocols) {
       const { protocols, appointments, recentVisits, prescriptions } = tr.result;
+      const secLabel = (text) => (
+        <div style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.12em', color: '#737373', textTransform: 'uppercase', marginBottom: '10px', paddingBottom: '6px', borderBottom: '1px solid #e0e0e0' }}>{text}</div>
+      );
       return (
         <div style={st.toolCard}>
           <div style={st.toolCardHeader}><User size={14} /> Patient Records</div>
-          <div style={{ padding: '8px 12px', fontSize: '13px' }}>
+          <div style={{ padding: '16px' }}>
             {protocols.length > 0 && (
-              <div style={{ marginBottom: '10px' }}>
-                <div style={{ fontWeight: 600, fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Active Protocols</div>
-                {protocols.map((p, i) => (
-                  <div key={i} style={{ padding: '4px 0', borderBottom: '1px solid #f3f4f6' }}>
-                    <span style={{ fontWeight: 600 }}>{p.medication || p.program}</span>
-                    {p.dose && <span style={{ color: '#6b7280' }}> — {p.dose}</span>}
-                    {p.frequency && <span style={{ color: '#6b7280' }}>, {p.frequency}</span>}
-                    {p.next_date && <div style={{ fontSize: '12px', color: '#4f46e5' }}>Next: {new Date(p.next_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>}
-                    {p.last_refill && <div style={{ fontSize: '12px', color: '#6b7280' }}>Last refill: {new Date(p.last_refill + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>}
-                  </div>
-                ))}
+              <div style={{ marginBottom: '20px' }}>
+                {secLabel('Active Protocols')}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {protocols.map((p, i) => (
+                    <div key={i} style={{ padding: '10px 14px', background: '#FAF9F6', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+                      <div style={{ fontWeight: 600, fontSize: '14px', color: '#1a1a1a' }}>{p.medication || p.program}</div>
+                      {(p.dose || p.frequency) && (
+                        <div style={{ fontSize: '13px', color: '#737373', marginTop: '3px' }}>
+                          {[p.dose, p.frequency].filter(Boolean).join(', ')}
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: '12px', marginTop: '5px' }}>
+                        {p.next_date && <span style={{ fontSize: '12px', fontWeight: 500, color: '#404040' }}>Next: {new Date(p.next_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
+                        {p.last_refill && <span style={{ fontSize: '12px', color: '#737373' }}>Last refill: {new Date(p.last_refill + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             {appointments.length > 0 && (
-              <div style={{ marginBottom: '10px' }}>
-                <div style={{ fontWeight: 600, fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Upcoming Appointments</div>
-                {appointments.slice(0, 5).map((a, i) => (
-                  <div key={i} style={{ padding: '4px 0', fontSize: '12px' }}>
-                    <span style={{ fontWeight: 600 }}>{a.service}</span> — {a.date}
-                  </div>
-                ))}
+              <div style={{ marginBottom: '20px' }}>
+                {secLabel('Upcoming Appointments')}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {appointments.slice(0, 5).map((a, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#FAF9F6', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+                      <div style={{ fontWeight: 600, fontSize: '14px', color: '#1a1a1a' }}>{a.service}</div>
+                      <div style={{ fontSize: '13px', color: '#737373', fontWeight: 500 }}>{a.date}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             {recentVisits.length > 0 && (
               <div>
-                <div style={{ fontWeight: 600, fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Recent Visits</div>
-                {recentVisits.slice(0, 8).map((v, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', fontSize: '12px', color: '#4b5563', borderBottom: '1px solid #f3f4f6' }}>
-                    <span style={{ width: '55px', flexShrink: 0, color: '#6b7280' }}>{new Date(v.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                    <span style={{ fontWeight: 500, color: '#111827' }}>{v.medication || v.category || v.type}</span>
-                    {v.dosage && <span style={{ color: '#6b7280' }}>({v.dosage})</span>}
-                    {v.administered_by && <span style={{ color: '#9ca3af', fontSize: '11px', marginLeft: 'auto' }}>{v.administered_by}</span>}
-                  </div>
-                ))}
+                {secLabel('Recent Visits')}
+                <div style={{ border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden' }}>
+                  {recentVisits.slice(0, 8).map((v, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '10px 14px', borderBottom: i < Math.min(recentVisits.length, 8) - 1 ? '1px solid #f0f0f0' : 'none' }}>
+                      <span style={{ width: '56px', flexShrink: 0, fontSize: '13px', color: '#737373' }}>{new Date(v.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      <span style={{ fontWeight: 500, fontSize: '14px', color: '#1a1a1a', flex: 1 }}>{v.medication || v.category || v.type}</span>
+                      {v.dosage && <span style={{ fontSize: '13px', color: '#737373' }}>({v.dosage})</span>}
+                      {v.administered_by && <span style={{ fontSize: '12px', color: '#a0a0a0', marginLeft: '12px' }}>{v.administered_by}</span>}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             {protocols.length === 0 && appointments.length === 0 && recentVisits.length === 0 && (
-              <div style={{ color: '#9ca3af' }}>No active records found for this patient.</div>
+              <div style={{ color: '#a0a0a0', fontSize: '14px' }}>No active records found for this patient.</div>
             )}
           </div>
         </div>
@@ -1046,18 +1061,18 @@ export default function AssistantPage() {
         <div style={st.toolCard}>
           <div style={st.toolCardHeader}><MessageCircle size={14} /> Recent Communications</div>
           {comms.length === 0 ? (
-            <div style={{ padding: '12px', color: '#9ca3af', fontSize: '13px', textAlign: 'center' }}>No communications found</div>
+            <div style={{ padding: '20px 16px', color: '#a0a0a0', fontSize: '14px', textAlign: 'center' }}>No communications found</div>
           ) : (
-            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+            <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
               {comms.map((c, i) => (
-                <div key={i} style={{ padding: '6px 12px', borderBottom: '1px solid #f3f4f6', fontSize: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                    <span style={{ ...st.badge, background: c.direction === 'inbound' ? '#dbeafe' : '#f3f4f6', color: c.direction === 'inbound' ? '#1e40af' : '#6b7280' }}>{c.direction === 'inbound' ? '← In' : '→ Out'}</span>
-                    <span style={{ ...st.badge, background: c.channel === 'email' ? '#fef3c7' : '#dcfce7', color: c.channel === 'email' ? '#92400e' : '#166534' }}>{c.channel}</span>
-                    <span style={{ color: '#9ca3af', fontSize: '11px', marginLeft: 'auto' }}>{new Date(c.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })}</span>
+                <div key={i} style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', fontSize: '13px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                    <span style={{ ...st.badge, background: c.direction === 'inbound' ? '#f0f0f0' : '#FAF9F6', color: '#1a1a1a', border: '1px solid #e0e0e0' }}>{c.direction === 'inbound' ? '← In' : '→ Out'}</span>
+                    <span style={{ ...st.badge, background: '#fff', color: '#737373', border: '1px solid #e0e0e0' }}>{c.channel}</span>
+                    <span style={{ color: '#a0a0a0', fontSize: '12px', marginLeft: 'auto' }}>{new Date(c.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })}</span>
                   </div>
-                  {c.subject && <div style={{ fontWeight: 600, fontSize: '12px', color: '#374151' }}>{c.subject}</div>}
-                  <div style={{ color: '#6b7280', lineHeight: '1.4' }}>{c.message}</div>
+                  {c.subject && <div style={{ fontWeight: 600, fontSize: '14px', color: '#1a1a1a' }}>{c.subject}</div>}
+                  <div style={{ color: '#737373', lineHeight: '1.5', marginTop: '2px' }}>{c.message}</div>
                 </div>
               ))}
             </div>
@@ -1076,31 +1091,31 @@ export default function AssistantPage() {
     }
     if (tr.tool === 'lookup_lab_results' && tr.result.labs) {
       const { labs, summary } = tr.result;
-      const statusColors = { completed: '#16a34a', provider_reviewed: '#16a34a', pending: '#d97706', awaiting_results: '#d97706', draw_scheduled: '#6366f1', draw_complete: '#6366f1' };
+      const statusColors = { completed: '#166534', provider_reviewed: '#166534', pending: '#92400e', awaiting_results: '#92400e', draw_scheduled: '#404040', draw_complete: '#404040' };
       return (
         <div style={st.toolCard}>
           <div style={st.toolCardHeader}><TestTube size={14} /> Lab Results</div>
-          <div style={{ padding: '8px 12px', fontSize: '13px' }}>
+          <div style={{ padding: '16px' }}>
             {labs.length === 0 ? (
-              <div style={{ color: '#9ca3af' }}>No lab records found.</div>
+              <div style={{ color: '#a0a0a0', fontSize: '14px' }}>No lab records found.</div>
             ) : (
-              <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {labs.slice(0, 5).map((l, i) => (
-                  <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid #f3f4f6' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontWeight: 600 }}>{l.panel}</span>
-                      <span style={{ fontSize: '11px', color: statusColors[l.status] || '#6b7280', fontWeight: 600 }}>{l.status?.replace(/_/g, ' ')}</span>
+                  <div key={i} style={{ padding: '10px 14px', background: '#FAF9F6', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontWeight: 600, fontSize: '14px', color: '#1a1a1a' }}>{l.panel}</span>
+                      <span style={{ ...st.badge, background: '#fff', color: statusColors[l.status] || '#737373', border: '1px solid #e0e0e0' }}>{l.status?.replace(/_/g, ' ')}</span>
                     </div>
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                    <div style={{ fontSize: '13px', color: '#737373', marginTop: '4px' }}>
                       {l.test_date && <span>{new Date(l.test_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
                       {l.provider && <span> · {l.provider}</span>}
                       {l.biomarker_count > 0 && <span> · {l.biomarker_count} biomarkers</span>}
                     </div>
-                    {l.synopsis && <div style={{ fontSize: '12px', color: '#4b5563', marginTop: '4px', fontStyle: 'italic' }}>{l.synopsis}</div>}
+                    {l.synopsis && <div style={{ fontSize: '13px', color: '#404040', marginTop: '4px', fontStyle: 'italic' }}>{l.synopsis}</div>}
                   </div>
                 ))}
-                {summary.next_lab && <div style={{ fontSize: '12px', color: '#4f46e5', marginTop: '6px' }}>Next lab: {new Date(summary.next_lab + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>}
-              </>
+                {summary.next_lab && <div style={{ fontSize: '13px', fontWeight: 500, color: '#404040', marginTop: '4px' }}>Next lab: {new Date(summary.next_lab + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>}
+              </div>
             )}
           </div>
         </div>
@@ -1108,26 +1123,30 @@ export default function AssistantPage() {
     }
     if (tr.tool === 'lookup_membership' && tr.result.memberships) {
       const { memberships, summary } = tr.result;
-      const statusColors = { active: '#16a34a', past_due: '#dc2626', canceled: '#6b7280', paused: '#d97706' };
+      const statusColors = { active: '#166534', past_due: '#dc2626', canceled: '#737373', paused: '#92400e' };
       return (
         <div style={st.toolCard}>
           <div style={st.toolCardHeader}><UserCheck size={14} /> Memberships</div>
-          <div style={{ padding: '8px 12px', fontSize: '13px' }}>
+          <div style={{ padding: '16px' }}>
             {memberships.length === 0 ? (
-              <div style={{ color: '#9ca3af' }}>No memberships found.</div>
-            ) : memberships.map((m, i) => (
-              <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid #f3f4f6' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontWeight: 600 }}>{m.name}</span>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: statusColors[m.status] || '#6b7280' }}>{m.status}</span>
-                </div>
-                <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                  {m.price && <span>{m.price} {m.billing_cycle}</span>}
-                  {m.current_period_end && <span> · Renews {new Date(m.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
-                  {m.cancels_at_period_end && <span style={{ color: '#dc2626' }}> · Cancels at period end</span>}
-                </div>
+              <div style={{ color: '#a0a0a0', fontSize: '14px' }}>No memberships found.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {memberships.map((m, i) => (
+                  <div key={i} style={{ padding: '10px 14px', background: '#FAF9F6', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontWeight: 600, fontSize: '14px', color: '#1a1a1a' }}>{m.name}</span>
+                      <span style={{ ...st.badge, background: '#fff', color: statusColors[m.status] || '#737373', border: '1px solid #e0e0e0' }}>{m.status}</span>
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#737373', marginTop: '4px' }}>
+                      {m.price && <span>{m.price} {m.billing_cycle}</span>}
+                      {m.current_period_end && <span> · Renews {new Date(m.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
+                      {m.cancels_at_period_end && <span style={{ color: '#dc2626' }}> · Cancels at period end</span>}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         </div>
       );
@@ -1171,7 +1190,7 @@ export default function AssistantPage() {
                         </div>
                       </div>
                       <button
-                        style={{ padding: '4px 8px', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '11px', color: '#4338ca', cursor: 'pointer', fontWeight: 500, flexShrink: 0 }}
+                        style={{ padding: '4px 10px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: '999px', fontSize: '11px', color: '#1a1a1a', cursor: 'pointer', fontWeight: 500, flexShrink: 0 }}
                         onClick={() => { setPatient({ id: p.patient_id, name: p.patient_name, phone: p.patient_phone }); setInput(`Look up ${p.patient_name}'s records`); inputRef.current?.focus(); }}
                       >Records</button>
                     </div>
@@ -1217,7 +1236,7 @@ export default function AssistantPage() {
               <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                 <button
                   onClick={() => sendConsentForms(d)}
-                  style={{ padding: '7px 16px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  style={{ padding: '8px 20px', background: '#1a1a1a', color: '#fff', border: 'none', borderRadius: '999px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <Send size={13} /> Send Forms
                 </button>
@@ -1280,7 +1299,7 @@ export default function AssistantPage() {
                 <select
                   id={`provider-select-${d.patient_id}`}
                   defaultValue="damien"
-                  style={{ padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', background: '#fff' }}
+                  style={{ padding: '8px 12px', border: '1px solid #e0e0e0', borderRadius: '999px', fontSize: '13px', background: '#fff', color: '#1a1a1a' }}
                 >
                   <option value="damien">Dr. Damien</option>
                   <option value="evan">Evan</option>
@@ -1290,7 +1309,7 @@ export default function AssistantPage() {
                     const sel = document.getElementById(`provider-select-${d.patient_id}`);
                     sendProtocolChangeRequest(d, sel?.value || 'damien');
                   }}
-                  style={{ padding: '7px 16px', background: '#d97706', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  style={{ padding: '8px 20px', background: '#1a1a1a', color: '#fff', border: 'none', borderRadius: '999px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <Send size={13} /> Send Request
                 </button>
@@ -1379,7 +1398,7 @@ export default function AssistantPage() {
             {!sent && d.patients_needing_forms.length > 0 && (
               <button
                 onClick={() => sendBatchForms(d)}
-                style={{ padding: '8px 20px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                style={{ padding: '8px 20px', background: '#1a1a1a', color: '#fff', border: 'none', borderRadius: '999px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <Send size={13} /> Send All ({d.patients_needing_forms.length})
               </button>
@@ -1832,7 +1851,7 @@ const st = {
   container: { display: 'flex', height: 'calc(100vh - 80px)', gap: '0' },
   historySidebar: { width: '260px', borderRight: '1px solid #e5e7eb', background: '#fafafa', display: 'flex', flexDirection: 'column', flexShrink: 0 },
   historyHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderBottom: '1px solid #e5e7eb' },
-  newChatBtn: { display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 10px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' },
+  newChatBtn: { display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 12px', background: '#1a1a1a', color: '#fff', border: 'none', borderRadius: '999px', fontSize: '12px', fontWeight: 500, cursor: 'pointer' },
   historyList: { flex: 1, overflowY: 'auto' },
   historyItem: { display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6', transition: 'background 0.15s' },
   historyTitle: { fontSize: '13px', fontWeight: 500, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
@@ -1840,31 +1859,31 @@ const st = {
   chatArea: { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 },
   patientBar: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px', borderBottom: '1px solid #e5e7eb', background: '#fff' },
   toggleHistoryBtn: { background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', padding: '6px', cursor: 'pointer', display: 'flex', color: '#6b7280' },
-  selectedPatient: { display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', background: '#eef2ff', borderRadius: '8px', fontSize: '13px', color: '#4338ca' },
+  selectedPatient: { display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', background: '#FAF9F6', border: '1px solid #e0e0e0', borderRadius: '999px', fontSize: '13px', color: '#1a1a1a', fontWeight: 500 },
   clearBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: '#9ca3af', display: 'flex' },
   patientSearchWrap: { position: 'relative', flex: 1, maxWidth: '400px' },
   patientInput: { width: '100%', padding: '6px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', outline: 'none' },
   patientDropdown: { position: 'absolute', top: '100%', left: 0, width: '420px', background: '#fff', border: '1px solid #d1d5db', borderRadius: '10px', marginTop: '4px', maxHeight: '360px', overflowY: 'auto', zIndex: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)' },
   patientOption: { padding: '10px 14px', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', fontSize: '13px', borderBottom: '1px solid #f3f4f6', transition: 'background 0.1s' },
-  badge: { display: 'inline-block', fontSize: '10px', fontWeight: 600, padding: '1px 7px', borderRadius: '4px', lineHeight: '16px', whiteSpace: 'nowrap' },
+  badge: { display: 'inline-block', fontSize: '11px', fontWeight: 500, padding: '3px 10px', borderRadius: '999px', lineHeight: '16px', whiteSpace: 'nowrap' },
   cartToggle: { marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#166534' },
   messagesList: { flex: 1, overflowY: 'auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '12px' },
   userMsgRow: { display: 'flex', justifyContent: 'flex-end' },
   aiMsgRow: { display: 'flex', justifyContent: 'flex-start' },
-  userBubble: { maxWidth: '70%', padding: '10px 14px', background: '#4f46e5', color: '#fff', borderRadius: '16px 16px 4px 16px', fontSize: '14px', lineHeight: '1.5' },
-  aiBubble: { maxWidth: '80%', padding: '10px 14px', background: '#f3f4f6', color: '#111827', borderRadius: '16px 16px 16px 4px', fontSize: '14px', lineHeight: '1.5' },
+  userBubble: { maxWidth: '70%', padding: '10px 16px', background: '#1a1a1a', color: '#fff', borderRadius: '16px 16px 4px 16px', fontSize: '14px', lineHeight: '1.6' },
+  aiBubble: { maxWidth: '80%', padding: '10px 16px', background: '#f5f5f0', color: '#1a1a1a', borderRadius: '16px 16px 16px 4px', fontSize: '14px', lineHeight: '1.6' },
   inputBar: { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', borderTop: '1px solid #e5e7eb', background: '#fff' },
   textInput: { flex: 1, padding: '12px 16px', border: '1.5px solid #d1d5db', borderRadius: '12px', fontSize: '14px', outline: 'none' },
-  sendBtn: { width: '44px', height: '44px', borderRadius: '12px', border: 'none', background: '#4f46e5', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  toolCard: { border: '1px solid #e5e7eb', borderRadius: '10px', overflow: 'hidden', background: '#fff' },
-  toolCardHeader: { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', background: '#f9fafb', fontSize: '12px', fontWeight: 600, color: '#374151', borderBottom: '1px solid #e5e7eb' },
-  toolCardBody: { padding: '8px 12px', fontSize: '13px', color: '#4b5563' },
-  patientResultRow: { display: 'flex', justifyContent: 'space-between', padding: '8px 12px', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid #f3f4f6' },
-  slotsGrid: { display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px 12px' },
-  slotBtn: { padding: '6px 12px', border: '1px solid #c7d2fe', borderRadius: '8px', background: '#eef2ff', color: '#4338ca', fontSize: '12px', fontWeight: 500, cursor: 'pointer' },
+  sendBtn: { width: '44px', height: '44px', borderRadius: '50%', border: 'none', background: '#1a1a1a', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  toolCard: { border: '1px solid #e0e0e0', borderRadius: '12px', overflow: 'hidden', background: '#fff' },
+  toolCardHeader: { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', fontSize: '12px', fontWeight: 500, color: '#737373', letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: '1px solid #e0e0e0' },
+  toolCardBody: { padding: '12px 16px', fontSize: '14px', color: '#1a1a1a', lineHeight: '1.5' },
+  patientResultRow: { display: 'flex', justifyContent: 'space-between', padding: '12px 16px', cursor: 'pointer', fontSize: '14px', borderBottom: '1px solid #f0f0f0', transition: 'background 0.15s' },
+  slotsGrid: { display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '12px 16px' },
+  slotBtn: { padding: '8px 14px', border: '1px solid #e0e0e0', borderRadius: '999px', background: '#fff', color: '#1a1a1a', fontSize: '13px', fontWeight: 500, cursor: 'pointer', transition: 'background 0.15s, border-color 0.15s' },
   cartSidebar: { width: '280px', borderLeft: '1px solid #e5e7eb', background: '#fff', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' },
   cartHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   cartItem: { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0', borderBottom: '1px solid #f3f4f6' },
   cartTotal: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderTop: '2px solid #111827', marginTop: 'auto', fontSize: '15px', fontWeight: 600 },
-  checkoutBtn: { width: '100%', padding: '12px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' },
+  checkoutBtn: { width: '100%', padding: '12px', background: '#1a1a1a', color: '#fff', border: 'none', borderRadius: '999px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' },
 };

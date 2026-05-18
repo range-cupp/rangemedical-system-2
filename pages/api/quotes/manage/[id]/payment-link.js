@@ -149,6 +149,18 @@ export default async function handler(req, res) {
     // Build Stripe Checkout line items with inline price_data (no pre-created Prices needed).
     // Category / peptide / duration metadata flows through so the stripe webhook can
     // auto-create the matching protocol when the patient pays.
+    // IMPORTANT: Stripe-visible names must use generic program names — never specific
+    // medication or peptide names (BPC-157, Tirzepatide, etc.) to protect the merchant account.
+    const STRIPE_SAFE_NAMES = {
+      weight_loss: 'Medical Weight Loss Program',
+      peptide: 'Wellness Protocol',
+      hrt: 'Hormone Optimization Program',
+    };
+    const getStripeSafeName = (itemName, category) => {
+      if (STRIPE_SAFE_NAMES[category]) return STRIPE_SAFE_NAMES[category];
+      return itemName;
+    };
+
     const compactMeta = (obj) => {
       const out = {};
       for (const [k, v] of Object.entries(obj || {})) {
@@ -161,14 +173,13 @@ export default async function handler(req, res) {
       const productMeta = compactMeta({
         category: meta.category,
         sub_category: meta.sub_category,
-        peptide_identifier: meta.peptide_identifier,
         duration_days: meta.duration_days,
         pos_service_id: meta.pos_service_id,
       });
       const priceMeta = compactMeta({
-        peptide_identifier: meta.peptide_identifier,
         duration_days: meta.duration_days,
       });
+      const safeName = getStripeSafeName(String(it.name || 'Item'), meta.category);
       return {
         quantity: Number(it.qty) || 1,
         price_data: {
@@ -176,8 +187,7 @@ export default async function handler(req, res) {
           unit_amount: Math.round(Number(it.price || 0) * 100),
           ...(Object.keys(priceMeta).length ? { metadata: priceMeta } : {}),
           product_data: {
-            name: String(it.name || 'Item'),
-            ...(it.description ? { description: String(it.description).slice(0, 500) } : {}),
+            name: safeName,
             ...(Object.keys(productMeta).length ? { metadata: productMeta } : {}),
           },
         },

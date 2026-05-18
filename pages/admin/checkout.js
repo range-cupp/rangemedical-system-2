@@ -777,10 +777,11 @@ function CheckoutInner() {
     // e.g. "Tirzepatide — 2x 4mg + 2x 5mg"
     const groupDescs = validGroups.map(g => `${g.quantity}x ${g.dose}`);
     const internalName = `${wlMedication} — ${groupDescs.join(' + ')}`;
+    const displayName = `Medical Weight Loss Program — ${totalInj} injection${totalInj !== 1 ? 's' : ''}`;
 
     const cartItem = {
       id: 'wl-builder-' + Date.now(),
-      name: internalName,
+      name: displayName,
       category: 'weight_loss',
       price: totalCents,
       quantity: 1,
@@ -1487,11 +1488,25 @@ function CheckoutInner() {
     return Math.max(getBaseAmount() - getTotalDiscountCents(), 0) + getShippingCents();
   }
 
+  const STRIPE_SAFE_CATEGORY_NAMES = {
+    weight_loss: 'Medical Weight Loss Program',
+    peptide: 'Wellness Protocol',
+    hrt: 'Hormone Optimization Program',
+  };
+
+  function getStripeSafeName(item) {
+    if (STRIPE_SAFE_CATEGORY_NAMES[item.category]) return STRIPE_SAFE_CATEGORY_NAMES[item.category];
+    return item.name;
+  }
+
   function getChargeDescription() {
     if (activeSubCategory === 'custom') return customDescription || 'Custom charge';
     const paidItems = getPaidCartItems();
     if (paidItems.length === 0) return '';
-    return paidItems.map(i => (i.quantity || 1) > 1 ? `${i.name} x${i.quantity}` : i.name).join(', ');
+    return paidItems.map(i => {
+      const name = getStripeSafeName(i);
+      return (i.quantity || 1) > 1 ? `${name} x${i.quantity}` : name;
+    }).join(', ');
   }
 
   function isRecurring() {
@@ -5388,6 +5403,12 @@ function CheckoutInner() {
                             onClick={() => setCartItems(cartItems.filter(i => i.id !== item.id))}
                           >×</button>
                         </div>
+                        {item.wlConfig?.internalName && (
+                          <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>{item.wlConfig.internalName}</div>
+                        )}
+                        {item.peptideConfig?.internalName && (
+                          <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>{item.peptideConfig.internalName}</div>
+                        )}
                         <div style={styles.cartItemDetails}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <div style={styles.qtyControls}>
@@ -5395,7 +5416,7 @@ function CheckoutInner() {
                               <span style={styles.qtyValue}>{qty}</span>
                               <button style={styles.qtyBtn} onClick={() => updateItemQuantity(item.id, qty + 1)}>+</button>
                             </div>
-                            {item.category === 'weight_loss' && (
+                            {item.category === 'weight_loss' && !item.wlConfig && (
                               <span style={{ fontSize: '11px', color: '#666' }}>injection{qty > 1 ? 's' : ''}</span>
                             )}
                           </div>

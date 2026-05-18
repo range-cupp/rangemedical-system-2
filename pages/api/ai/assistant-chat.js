@@ -407,7 +407,7 @@ MATCHING RULES:
 - Common abbreviations: "tirz" = Tirzepatide, "sema" = Semaglutide, "reta" = Retatrutide, "test"/"test cyp" = Testosterone Cypionate, "NAD" = NAD+ IV or injection, "BPC" = BPC-157, "TB4" = TB-500/Thymosin Beta-4, "HBOT" = Hyperbaric Oxygen, "RLT" = Red Light Therapy, "HRT" = Hormone Replacement Therapy, "GH" = Growth Hormone blend
 - Use the catalog_id from the catalog listing when calling add_to_cart.
 - For weight loss: match by medication name + dose. Set quantity = number of injections (usually 4).
-- For peptides: find the closest catalog entry by sub_category + price. Always set price_cents from the decision tree above — the AI price takes priority over catalog price. Use a descriptive name like "BPC-157/TB4 — 30 Day" (not the generic catalog name).
+- For peptides: find the closest catalog entry by sub_category + price. Always set price_cents from the decision tree above — the AI price takes priority over catalog price. CRITICAL: use the GENERIC program name for the cart item name — never put specific peptide names (BPC-157, Tirzepatide, etc.) in the name field. Recovery peptides → "Injury & Recovery Program — [duration]". GH blends, longevity, cognitive, skin, other → "Energy & Optimization Program — [duration/phase]". HCG → "HRT Support Program".
 - For injections: match the specific type. If quantity >= 10, look for "Buy 10 Get 12" variant.
 - For HBOT: ask how many sessions. Single = $185, 5-Pack = $850, 10-Pack = $1600. Match the right catalog entry.
 - For RLT: ask how many sessions. Single = $85, 5-Pack = $375, 10-Pack = $600. Match the right catalog entry.

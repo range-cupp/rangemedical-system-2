@@ -1139,7 +1139,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         }
 
         if (res.ok) {
-          results.push({ date: bookDate, ok: true });
+          const resData = await res.json().catch(() => ({}));
+          results.push({ date: bookDate, ok: true, warnings: resData.warnings || [] });
         } else {
           const err = await res.json().catch(() => ({}));
           errors.push({ date: bookDate, error: err.error || 'Could not create appointment' });
@@ -1151,6 +1152,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         const bookedDates = results.map(r =>
           new Date(r.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })
         );
+
+        // Collect any protocol mismatch warnings from the booking responses
+        const allWarnings = results.flatMap(r => r.warnings || []);
 
         setBookingConfirmed({
           patientName: isWalkIn ? walkInName : selectedPatient?.name,
@@ -1166,6 +1170,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
           notificationSent: sendNotification,
           visitReason,
           failedDates: errors.length > 0 ? errors : null,
+          warnings: allWarnings.length > 0 ? allWarnings : null,
         });
         if (!wizardOnly) {
           setCurrentDate(new Date(`${apptDate}T${apptTime}`));
@@ -3482,6 +3487,17 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               {bookingConfirmed.failedDates.map(f => (
                 <div key={f.date}>{new Date(f.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })} — {f.error}</div>
               ))}
+            </div>
+          )}
+          {bookingConfirmed.warnings && bookingConfirmed.warnings.length > 0 && (
+            <div style={{ marginTop: '12px', padding: '10px 12px', background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e', fontSize: '12.5px', lineHeight: '1.5', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+              <span style={{ fontSize: '16px', flexShrink: 0 }}>⚠️</span>
+              <div>
+                <strong>Protocol Mismatch</strong>
+                {bookingConfirmed.warnings.map((w, i) => (
+                  <div key={i} style={{ marginTop: '4px' }}>{w.message}</div>
+                ))}
+              </div>
             </div>
           )}
 

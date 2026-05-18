@@ -336,7 +336,11 @@ export default function AssistantPage() {
           }),
         });
         const data = await res.json();
-        if (res.ok && !data.error) return { success: true, message: `Booked ${args.patient_name} for ${args.service}` };
+        if (res.ok && !data.error) {
+          const result = { success: true, message: `Booked ${args.patient_name} for ${args.service}` };
+          if (data.warnings && data.warnings.length > 0) result.warnings = data.warnings;
+          return result;
+        }
         return { error: data.error || 'Booking failed' };
       } catch { return { error: 'Failed to create booking' }; }
     }
@@ -522,6 +526,32 @@ export default function AssistantPage() {
         const protoRes = await fetch(`/api/ai/patient-records?patient_id=${pid}`);
         const protoData = await protoRes.json();
         const protocols = protoData.protocols || [];
+        const category = args.protocol_category || 'other';
+
+        // Peptide changes don't need provider approval — log directly
+        if (category === 'peptide') {
+          const noteRes = await fetch('/api/ai/add-note', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              patient_id: pid,
+              body: `Protocol change (peptide): ${args.change_description}`,
+              created_by: employee?.name || 'AI Assistant',
+              note_category: 'clinical',
+            }),
+          });
+          const noteData = await noteRes.json();
+          return {
+            peptide_direct: true,
+            success: noteData.success || false,
+            patient_id: pid,
+            patient_name: patient?.name || protoData.patient_name || 'Patient',
+            change_description: args.change_description,
+            changed_by: employee?.name || 'Staff',
+          };
+        }
+
+        // HRT / WL / other — require provider approval
         return {
           preview: true,
           patient_id: pid,
@@ -532,6 +562,13 @@ export default function AssistantPage() {
           requested_by_email: employee?.email || session?.user?.email || null,
         };
       } catch { return { error: 'Failed to prepare change request' }; }
+    }
+
+    if (name === 'show_patient_profile') {
+      const pid = args.patient_id || patient?.id;
+      if (!pid) return { error: 'No patient selected. Search for a patient first.' };
+      openPatientProfile();
+      return { success: true, opened: true };
     }
 
     if (name === 'batch_send_forms') {
@@ -718,7 +755,10 @@ export default function AssistantPage() {
     if (tr.tool === 'send_consent_forms' && tr.result.preview) return `Ready to send ${tr.result.forms_to_send.length} form(s) to ${tr.result.patient_name} at ${tr.result.patient_email}: ${tr.result.forms_to_send.map(f => f.name).join(', ')}. The send card is shown — staff will click Send to confirm.`;
     if (tr.tool === 'send_consent_forms' && tr.result.error) return tr.result.error;
     if (tr.tool === 'request_protocol_change' && tr.result.preview) return `Protocol change request ready for ${tr.result.patient_name}: "${tr.result.change_description}". The request card is shown — staff will select a provider and click Send Request.`;
+    if (tr.tool === 'request_protocol_change' && tr.result.peptide_direct) return `Peptide change logged for ${tr.result.patient_name}: "${tr.result.change_description}". No provider approval needed — chart note added.`;
     if (tr.tool === 'request_protocol_change' && tr.result.error) return tr.result.error;
+    if (tr.tool === 'show_patient_profile') return 'Profile panel opened.';
+
     if (tr.tool === 'batch_send_forms' && tr.result.preview) return `${tr.result.summary.needing_forms} patient(s) on ${tr.result.date} (${tr.result.service_category}) need forms sent. ${tr.result.summary.already_complete} already complete, ${tr.result.summary.no_email} missing email. The batch send card is shown — staff will click Send All to confirm. Do NOT list individual patients in text.`;
     if (tr.tool === 'batch_send_forms' && tr.result.all_complete) return `All ${tr.result.total_appointments} patients on ${tr.result.date} (${tr.result.service_category}) have their forms complete — nothing to send.`;
     if (tr.tool === 'batch_send_forms' && tr.result.no_appointments) return `No ${tr.result.service_category !== 'all' ? tr.result.service_category.toUpperCase() + ' ' : ''}appointments found on ${tr.result.date}.`;
@@ -841,7 +881,21 @@ export default function AssistantPage() {
       </div>);
     }
     if (tr.tool === 'book_appointment') {
-      return (<div style={{ ...st.toolCard, borderColor: tr.result.success ? '#86efac' : '#fca5a5' }}><div style={st.toolCardHeader}>{tr.result.success ? <Check size={14} /> : <X size={14} />} {tr.result.success ? 'Booked' : 'Booking Failed'}</div><div style={st.toolCardBody}>{tr.result.message || tr.result.error}</div></div>);
+      const warnings = tr.result.warnings || [];
+      return (
+        <div style={{ ...st.toolCard, borderColor: tr.result.success ? (warnings.length > 0 ? '#fcd34d' : '#86efac') : '#fca5a5' }}>
+          <div style={st.toolCardHeader}>{tr.result.success ? <Check size={14} /> : <X size={14} />} {tr.result.success ? 'Booked' : 'Booking Failed'}</div>
+          <div style={st.toolCardBody}>{tr.result.message || tr.result.error}</div>
+          {warnings.length > 0 && (
+            <div style={{ margin: '0 12px 10px', padding: '8px 10px', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '6px', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+              <AlertTriangle size={14} style={{ color: '#d97706', flexShrink: 0, marginTop: '1px' }} />
+              <div style={{ fontSize: '12px', color: '#92400e', lineHeight: '1.4' }}>
+                {warnings.map((w, i) => <div key={i}>{w.message}</div>)}
+              </div>
+            </div>
+          )}
+        </div>
+      );
     }
     if (tr.tool === 'draft_email' && tr.result.draft) {
       const d = tr.result;
@@ -1254,6 +1308,26 @@ export default function AssistantPage() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+      );
+    }
+    if (tr.tool === 'request_protocol_change' && tr.result.peptide_direct) {
+      const d = tr.result;
+      return (
+        <div style={{ ...st.toolCard, borderColor: '#86efac' }}>
+          <div style={st.toolCardHeader}><Check size={14} /> Peptide Change Logged</div>
+          <div style={{ padding: '10px 12px', fontSize: '13px' }}>
+            <div style={{ marginBottom: '6px' }}>
+              <span style={{ color: '#6b7280', fontSize: '12px' }}>Patient: </span>
+              <span style={{ fontWeight: 600 }}>{d.patient_name}</span>
+            </div>
+            <div style={{ padding: '8px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', marginBottom: '6px' }}>
+              <div style={{ color: '#166534', whiteSpace: 'pre-wrap', lineHeight: '1.5', fontSize: '13px' }}>{d.change_description}</div>
+            </div>
+            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+              Changed by {d.changed_by} — no provider approval needed for peptide changes
+            </div>
           </div>
         </div>
       );

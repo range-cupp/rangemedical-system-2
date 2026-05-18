@@ -237,14 +237,26 @@ const tools = [
   },
   {
     name: 'request_protocol_change',
-    description: 'Request a protocol or medication change that requires provider approval. Use when staff wants to change a dose, frequency, delivery method, medication, or any clinical detail on a patient\'s protocol. This does NOT make the change — it sends a request to the provider (Damien or Evan) for review. Use for things like "change his testosterone to daily sub-Q", "increase her tirz to 5mg", "switch frequency to weekly", etc.',
+    description: 'Request a protocol or medication change. For HRT and Weight Loss — requires provider approval (sends request to Damien/Evan). For Peptides — staff can make changes directly without provider approval; this logs the change and adds a chart note. Use when staff wants to change a dose, frequency, delivery method, medication, or any clinical detail on a patient\'s protocol.',
     input_schema: {
       type: 'object',
       properties: {
         patient_id: { type: 'string', description: 'Patient UUID' },
         change_description: { type: 'string', description: 'Clear description of the requested change. Include current values and proposed new values when known. E.g. "Change testosterone cypionate from 0.35ml every 3.5 days IM to daily sub-Q injection"' },
+        protocol_category: { type: 'string', enum: ['hrt', 'weight_loss', 'peptide', 'iv', 'other'], description: 'Category of the protocol being changed. Peptide changes do NOT need provider approval. HRT and weight_loss DO need provider approval.' },
       },
       required: ['patient_id', 'change_description'],
+    },
+  },
+  {
+    name: 'show_patient_profile',
+    description: 'Open the patient profile slide-out panel. Use when staff says "show me their profile", "pull up their info", "open their chart", "show me this patient", or any request to view the patient\'s full profile panel. This opens the detailed profile view with demographics, protocols, consents, and payments.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_id: { type: 'string', description: 'Patient UUID — use the selected patient in context' },
+      },
+      required: ['patient_id'],
     },
   },
   {
@@ -285,7 +297,7 @@ export default async function handler(req, res) {
 
 TODAY: ${dayOfWeek}, ${today}
 TIMEZONE: All times are Pacific Time (PT). When you see appointment times, they are already in Pacific. Always communicate times in Pacific. Never convert or assume UTC.
-${contextBlock ? `\n${contextBlock}\nIMPORTANT: A patient is selected. When staff says "him", "her", "them", "this patient", "their", or asks to do something without naming a patient — they mean the selected patient above. Use their patient_id directly. Do NOT ask which patient unless the request explicitly names a DIFFERENT person.\n` : ''}
+${contextBlock ? `\n${contextBlock}\nCRITICAL — SELECTED PATIENT RULE: A patient is already selected and shown in the header. ALL requests refer to this patient unless staff explicitly names someone else. When staff says "him", "her", "them", "this patient", "their", "he", "she", "the patient", or asks to do ANYTHING without naming a different person — use the PATIENT ID above. NEVER ask "which patient?" when one is selected. NEVER say "I'll need the patient's name" when you already have it. The only time you should ask is if staff explicitly mentions a DIFFERENT person by name.\n` : ''}
 You can help with:
 - CHECKOUT: Add items to the cart (services, injections, IVs, peptides, packs)
 - SCHEDULING: Search patients, check available slots, book appointments, cancel appointments
@@ -308,7 +320,8 @@ You can help with:
 
 DATE HANDLING: You know today's date. When someone says "today", "tomorrow", "Monday", "next week", "this Friday", etc., calculate the correct YYYY-MM-DD date yourself. Never ask the user for a date format — just figure it out. "Monday" means the upcoming Monday. "Last Tuesday" means the most recent past Tuesday.
 
-When staff asks about a patient's meds, next pickup, treatment plan, visit history, profile, or anything clinical — use the lookup_patient_records tool. If a patient is already selected in context, use their patient_id directly. If not, search for them first. IMPORTANT: The patient records card is shown visually below your message — do NOT repeat all the data in your text response. Keep your text to 1 sentence like "Here's Aleph's info" or answer the specific question. Never dump protocols, visits, appointments, or payment details into a paragraph — the cards already show it.
+When staff asks about a patient's meds, next pickup, treatment plan, visit history, or anything clinical — use the lookup_patient_records tool. If a patient is already selected in context, use their patient_id directly. If not, search for them first. IMPORTANT: The patient records card is shown visually below your message — do NOT repeat all the data in your text response. Keep your text to 1 sentence like "Here's Aleph's info" or answer the specific question. Never dump protocols, visits, appointments, or payment details into a paragraph — the cards already show it.
+When staff says "show me their profile", "pull up their info", "open their chart", or anything requesting the full patient profile view — use show_patient_profile. This opens the slide-out panel with demographics, protocols, consents, and payments. Use the selected patient's ID.
 When staff asks to email a patient, use draft_email. Look up the patient's email first if needed. Write the email body in a warm, professional tone from the clinic. The draft will be previewed before sending — staff must approve it.
 When staff asks to add a note about a patient — use add_note. Write the note clearly and professionally, capturing what the staff said. Use the patient_id from context.
 When staff asks to create a task, to-do, or reminder — use create_task. If no specific assignee is mentioned, ask who to assign it to. Available staff: Chris, Damien, Evan, Damon, Lily, Brendyn, Tara.
@@ -323,7 +336,7 @@ When staff asks about payments, balance, invoices, spending, or whether someone 
 When staff asks which patients are due for their next payment, round, pack, or renewal on any program — use program_due_list. Pick the matching program (weight_loss, hrt, peptide, hbot, etc.).
 When staff asks to send forms to a specific patient — use send_consent_forms. Pick the service_category that matches their service (e.g. "hbot" for HBOT patients). If no specific service is mentioned, use "general" to send intake + HIPAA.
 When staff asks to send forms to multiple patients at once, everyone on a date, or all patients for a service — use batch_send_forms. E.g. "send HBOT forms to all Monday patients" → batch_send_forms with date=Monday and service_category=hbot. This previews the list first — staff clicks Send All to confirm. NEVER loop through patients one by one with send_consent_forms when batch_send_forms can do it in one call.
-When staff asks to change a dose, medication, frequency, delivery method, or any protocol detail — use request_protocol_change. You CANNOT make protocol changes directly. Always route through the provider approval flow. Describe the change clearly with current and proposed values.
+When staff asks to change a dose, medication, frequency, delivery method, or any protocol detail — use request_protocol_change. Set protocol_category based on what's being changed. For HRT and weight_loss changes: you CANNOT make changes directly — always route through provider approval. For peptide changes: staff can make these directly without provider approval — the tool will log the change and add a chart note instead. Describe the change clearly with current and proposed values.
 When staff mentions a product, walk through the decision tree one question at a time. Once confirmed, use the add_to_cart tool.
 When staff wants to book, search the patient, check slots, confirm, and book.
 

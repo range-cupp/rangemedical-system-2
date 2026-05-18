@@ -44,7 +44,7 @@ PEPTIDES — match to POS service by program + duration:
 - GH Blends (2X, 3X, 4X): Phase 1/2/3, 30-day cycles ($400-$550 depending on blend/phase)
 - BDNF: Phase 1 ($150), Phase 2 ($200), Phase 3 ($250)
 - MOTS-C: 20 Day ($500), 30 Day ($500-$800)
-- NAD+ subcutaneous: 100mg 30 Day ($600), 50mg 30 Day ($600), 12 Week ($1500)
+- NAD+ subcutaneous: 100mg 30 Day ($600), 50mg 30 Day ($600)
 - SS-31: 25 Day ($500/phase)
 - GHK-Cu standalone: 30 Day ($400)
 - Semax: 30 Day ($295)

@@ -1630,146 +1630,200 @@ export default function AssistantPage() {
       </div>
 
       {/* Patient profile slide-out panel */}
-      {profileOpen && (
+      {profileOpen && (() => {
+        const pp = profileData;
+        const pt = pp?.patient;
+        const sectionLabel = (text) => (
+          <div style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.12em', color: '#737373', textTransform: 'uppercase', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid #e0e0e0' }}>{text}</div>
+        );
+        return (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)' }} onClick={() => setProfileOpen(false)} />
-          <div style={{ position: 'relative', width: '420px', maxWidth: '90vw', background: '#fff', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)', overflowY: 'auto', animation: 'slideIn 0.2s ease-out' }}>
-            <div style={{ position: 'sticky', top: 0, background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#4f46e5', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '14px' }}>
-                  {(patient?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)' }} onClick={() => setProfileOpen(false)} />
+          <div style={{ position: 'relative', width: '440px', maxWidth: '90vw', background: '#FAF9F6', boxShadow: '-8px 0 40px rgba(0,0,0,0.08)', overflowY: 'auto', animation: 'slideIn 0.2s ease-out' }}>
+
+            {/* Header */}
+            <div style={{ position: 'sticky', top: 0, background: '#fff', borderBottom: '1px solid #e0e0e0', padding: '20px 24px', zIndex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#1a1a1a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '15px', letterSpacing: '0.02em' }}>
+                    {(patient?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '17px', color: '#1a1a1a', lineHeight: '1.2' }}>{patient?.name}</div>
+                    {pt && <div style={{ fontSize: '13px', color: '#737373', marginTop: '2px' }}>{pt.email || pt.phone || ''}</div>}
+                  </div>
                 </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '15px', color: '#111827' }}>{patient?.name}</div>
-                  {profileData?.patient && <div style={{ fontSize: '12px', color: '#6b7280' }}>{profileData.patient.email || profileData.patient.phone || ''}</div>}
-                </div>
+                <button onClick={() => setProfileOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#737373', padding: '6px', borderRadius: '6px' }}><X size={18} /></button>
               </div>
-              <button onClick={() => setProfileOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '4px' }}><X size={18} /></button>
             </div>
 
             {profileLoading ? (
-              <div style={{ padding: '40px 20px', textAlign: 'center', color: '#9ca3af' }}>Loading profile...</div>
-            ) : profileData ? (
-              <div style={{ padding: '16px 20px' }}>
-                {/* Contact Info */}
-                {profileData.patient && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: '8px' }}>Contact</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px' }}>
-                      {profileData.patient.phone && <div><span style={{ color: '#6b7280', width: '50px', display: 'inline-block' }}>Phone</span> {profileData.patient.phone}</div>}
-                      {profileData.patient.email && <div><span style={{ color: '#6b7280', width: '50px', display: 'inline-block' }}>Email</span> {profileData.patient.email}</div>}
-                      {profileData.patient.date_of_birth && <div><span style={{ color: '#6b7280', width: '50px', display: 'inline-block' }}>DOB</span> {new Date(profileData.patient.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>}
+              <div style={{ padding: '60px 24px', textAlign: 'center', color: '#a0a0a0', fontSize: '14px' }}>Loading profile...</div>
+            ) : pp ? (
+              <div style={{ padding: '24px' }}>
+
+                {/* Contact */}
+                {pt && (
+                  <div style={{ marginBottom: '28px' }}>
+                    {sectionLabel('Contact')}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {pt.phone && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                          <span style={{ color: '#737373' }}>Phone</span>
+                          <span style={{ color: '#1a1a1a', fontWeight: 500 }}>{pt.phone}</span>
+                        </div>
+                      )}
+                      {pt.email && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                          <span style={{ color: '#737373' }}>Email</span>
+                          <span style={{ color: '#1a1a1a', fontWeight: 500 }}>{pt.email}</span>
+                        </div>
+                      )}
+                      {pt.date_of_birth && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                          <span style={{ color: '#737373' }}>Date of Birth</span>
+                          <span style={{ color: '#1a1a1a', fontWeight: 500 }}>{new Date(pt.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
 
                 {/* Active Protocols */}
-                {profileData.protocols && profileData.protocols.length > 0 && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: '8px' }}>Active Protocols</div>
-                    {profileData.protocols.map((p, i) => (
-                      <div key={i} style={{ padding: '8px 10px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', marginBottom: '6px', fontSize: '13px' }}>
-                        <div style={{ fontWeight: 600, color: '#111827' }}>{p.medication || p.program}</div>
-                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
-                          {[p.dose, p.frequency, p.delivery].filter(Boolean).join(' · ')}
+                {pp.protocols && pp.protocols.length > 0 && (
+                  <div style={{ marginBottom: '28px' }}>
+                    {sectionLabel('Active Protocols')}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {pp.protocols.map((p, i) => (
+                        <div key={i} style={{ padding: '12px 14px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+                          <div style={{ fontWeight: 600, fontSize: '14px', color: '#1a1a1a' }}>{p.medication || p.program}</div>
+                          {(p.dose || p.frequency || p.delivery) && (
+                            <div style={{ fontSize: '13px', color: '#737373', marginTop: '4px' }}>
+                              {[p.dose, p.frequency, p.delivery].filter(Boolean).join(' · ')}
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
+                            {p.next_date && <span style={{ fontSize: '12px', color: '#404040', fontWeight: 500 }}>Next: {p.next_date}</span>}
+                            {p.sessions_total > 0 && <span style={{ fontSize: '12px', color: '#737373' }}>{p.sessions_used || 0}/{p.sessions_total} sessions</span>}
+                          </div>
                         </div>
-                        {p.next_date && <div style={{ fontSize: '11px', color: '#4f46e5', marginTop: '2px' }}>Next: {p.next_date}</div>}
-                        {p.sessions_total > 0 && <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{p.sessions_used || 0}/{p.sessions_total} sessions used</div>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Consent Forms */}
-                {profileData.consents && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: '8px' }}>Consent Forms</div>
-                    {profileData.consents.signed_types && profileData.consents.signed_types.length > 0 ? (
-                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                        {profileData.consents.signed_types.map(t => (
-                          <span key={t} style={{ ...st.badge, background: '#dcfce7', color: '#166534' }}>{t}</span>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: '12px', color: '#9ca3af' }}>No forms signed</div>
-                    )}
-                    {!profileData.consents.has_basics && (
-                      <div style={{ padding: '6px 8px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '6px', fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>
-                        Missing: {!profileData.consents.summary?.has_intake && 'Intake'}{!profileData.consents.summary?.has_intake && !profileData.consents.summary?.has_hipaa && ', '}{!profileData.consents.summary?.has_hipaa && 'HIPAA'}
-                      </div>
-                    )}
+                      ))}
+                    </div>
                   </div>
                 )}
 
                 {/* Upcoming Appointments */}
-                {profileData.appointments && profileData.appointments.length > 0 && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: '8px' }}>Upcoming Appointments</div>
-                    {profileData.appointments.slice(0, 5).map((a, i) => (
-                      <div key={i} style={{ padding: '4px 0', fontSize: '12px', borderBottom: '1px solid #f3f4f6' }}>
-                        <span style={{ fontWeight: 600, color: '#111827' }}>{a.service}</span>
-                        <span style={{ color: '#6b7280' }}> — {a.date}</span>
-                        {a.provider && <span style={{ color: '#9ca3af' }}> ({a.provider})</span>}
-                      </div>
-                    ))}
+                {pp.appointments && pp.appointments.length > 0 && (
+                  <div style={{ marginBottom: '28px' }}>
+                    {sectionLabel('Upcoming Appointments')}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {pp.appointments.slice(0, 8).map((a, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '14px', color: '#1a1a1a' }}>{a.service}</div>
+                            {a.provider && <div style={{ fontSize: '12px', color: '#737373', marginTop: '2px' }}>{a.provider}</div>}
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a1a' }}>{a.date}</div>
+                            {a.time && <div style={{ fontSize: '12px', color: '#737373' }}>{a.time}</div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
-                {/* Payment Summary */}
-                {profileData.payments?.summary && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: '8px' }}>Payments</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                      <div style={{ padding: '8px 10px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px' }}>
-                        <div style={{ color: '#6b7280', marginBottom: '2px' }}>Total Spent</div>
-                        <div style={{ fontWeight: 700, color: '#111827', fontSize: '15px' }}>{profileData.payments.summary.total_spent}</div>
+                {/* Consent Forms */}
+                {pp.consents && (
+                  <div style={{ marginBottom: '28px' }}>
+                    {sectionLabel('Consent Forms')}
+                    {pp.consents.signed_types && pp.consents.signed_types.length > 0 ? (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                        {pp.consents.signed_types.map(t => (
+                          <span key={t} style={{ padding: '4px 10px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: '999px', fontSize: '12px', fontWeight: 500, color: '#1a1a1a' }}>{t}</span>
+                        ))}
                       </div>
-                      <div style={{ padding: '8px 10px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px' }}>
-                        <div style={{ color: '#6b7280', marginBottom: '2px' }}>Credit Balance</div>
-                        <div style={{ fontWeight: 700, color: profileData.payments.summary.credit_balance !== '$0.00' ? '#16a34a' : '#111827', fontSize: '15px' }}>{profileData.payments.summary.credit_balance}</div>
+                    ) : (
+                      <div style={{ fontSize: '13px', color: '#a0a0a0' }}>No forms signed</div>
+                    )}
+                    {!pp.consents.has_basics && (
+                      <div style={{ padding: '10px 14px', background: '#fff', border: '1px solid #dc2626', borderRadius: '8px', fontSize: '13px', color: '#dc2626', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <AlertTriangle size={14} />
+                        <span>Missing: {[!pp.consents.summary?.has_intake && 'Intake', !pp.consents.summary?.has_hipaa && 'HIPAA'].filter(Boolean).join(', ')}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Payments */}
+                {pp.payments?.summary && (
+                  <div style={{ marginBottom: '28px' }}>
+                    {sectionLabel('Payments')}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
+                      <div style={{ padding: '14px 16px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+                        <div style={{ fontSize: '12px', color: '#737373', marginBottom: '4px' }}>Total Spent</div>
+                        <div style={{ fontWeight: 600, color: '#1a1a1a', fontSize: '18px' }}>{pp.payments.summary.total_spent}</div>
+                      </div>
+                      <div style={{ padding: '14px 16px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+                        <div style={{ fontSize: '12px', color: '#737373', marginBottom: '4px' }}>Credit Balance</div>
+                        <div style={{ fontWeight: 600, color: pp.payments.summary.credit_balance !== '$0.00' ? '#166534' : '#1a1a1a', fontSize: '18px' }}>{pp.payments.summary.credit_balance}</div>
                       </div>
                     </div>
-                    {profileData.payments.summary.last_payment && (
-                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px' }}>Last payment: {profileData.payments.summary.last_payment}</div>
+                    {pp.payments.summary.last_payment && (
+                      <div style={{ fontSize: '13px', color: '#737373' }}>Last payment: {pp.payments.summary.last_payment}</div>
                     )}
                   </div>
                 )}
 
                 {/* Recent Visits */}
-                {profileData.recentVisits && profileData.recentVisits.length > 0 && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: '8px' }}>Recent Visits</div>
-                    {profileData.recentVisits.slice(0, 10).map((v, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', fontSize: '12px', borderBottom: '1px solid #f3f4f6' }}>
-                        <span style={{ width: '50px', flexShrink: 0, color: '#6b7280' }}>{new Date(v.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                        <span style={{ fontWeight: 500, color: '#111827' }}>{v.medication || v.category || v.type}</span>
-                        {v.dosage && <span style={{ color: '#6b7280' }}>({v.dosage})</span>}
-                        {v.administered_by && <span style={{ color: '#9ca3af', fontSize: '11px', marginLeft: 'auto' }}>{v.administered_by}</span>}
-                      </div>
-                    ))}
+                {pp.recentVisits && pp.recentVisits.length > 0 && (
+                  <div style={{ marginBottom: '28px' }}>
+                    {sectionLabel('Recent Visits')}
+                    <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden' }}>
+                      {pp.recentVisits.slice(0, 10).map((v, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '10px 14px', borderBottom: i < Math.min(pp.recentVisits.length, 10) - 1 ? '1px solid #f0f0f0' : 'none' }}>
+                          <span style={{ width: '56px', flexShrink: 0, fontSize: '13px', color: '#737373' }}>{new Date(v.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                          <span style={{ fontWeight: 500, fontSize: '14px', color: '#1a1a1a', flex: 1 }}>{v.medication || v.category || v.type}</span>
+                          {v.dosage && <span style={{ fontSize: '13px', color: '#737373' }}>{v.dosage}</span>}
+                          {v.administered_by && <span style={{ fontSize: '12px', color: '#a0a0a0', marginLeft: '12px' }}>{v.administered_by}</span>}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
                 {/* Prescriptions */}
-                {profileData.prescriptions && profileData.prescriptions.length > 0 && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: '8px' }}>Prescriptions</div>
-                    {profileData.prescriptions.map((rx, i) => (
-                      <div key={i} style={{ padding: '4px 0', fontSize: '12px', borderBottom: '1px solid #f3f4f6' }}>
-                        <span style={{ fontWeight: 600, color: '#111827' }}>{rx.medication}</span>
-                        {rx.strength && <span style={{ color: '#6b7280' }}> {rx.strength}</span>}
-                        {rx.sig && <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>{rx.sig}</div>}
-                      </div>
-                    ))}
+                {pp.prescriptions && pp.prescriptions.length > 0 && (
+                  <div style={{ marginBottom: '28px' }}>
+                    {sectionLabel('Prescriptions')}
+                    <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden' }}>
+                      {pp.prescriptions.map((rx, i) => (
+                        <div key={i} style={{ padding: '10px 14px', borderBottom: i < pp.prescriptions.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
+                          <div style={{ fontWeight: 600, fontSize: '14px', color: '#1a1a1a' }}>
+                            {rx.medication}
+                            {rx.strength && <span style={{ fontWeight: 400, color: '#737373' }}> {rx.strength}</span>}
+                          </div>
+                          {rx.sig && <div style={{ fontSize: '13px', color: '#737373', marginTop: '3px' }}>{rx.sig}</div>}
+                        </div>
+                      ))}
+                    </div>
                   </div>
+                )}
+
+                {/* View Full Chart link */}
+                {patient?.id && (
+                  <a href={`/admin/patient/${patient.id}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', padding: '12px', background: '#1a1a1a', color: '#fff', borderRadius: '999px', fontSize: '14px', fontWeight: 500, textDecoration: 'none', marginTop: '4px', transition: 'background 0.2s' }}>
+                    View Full Chart
+                  </a>
                 )}
               </div>
             ) : (
-              <div style={{ padding: '40px 20px', textAlign: 'center', color: '#9ca3af' }}>Failed to load profile</div>
+              <div style={{ padding: '60px 24px', textAlign: 'center', color: '#a0a0a0', fontSize: '14px' }}>Failed to load profile</div>
             )}
           </div>
         </div>
-      )}
+        );
+      })()}
     </AdminLayout>
   );
 }
